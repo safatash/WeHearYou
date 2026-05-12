@@ -63,7 +63,7 @@ const script = `
         (data.widget.showRating ? '<div class=\"why-widget-stars\">' + escapeHtml(stars(review.rating)) + '</div>' : '') +
         reviewerHtml +
         '<div class=\"why-widget-body\">' + escapeHtml(review.body) + '</div>' +
-        (review.sourceReplyText ? '<div class=\"why-widget-owner-reply\"><strong>Owner reply:</strong> ' + escapeHtml(review.sourceReplyText) + '</div>' : '') +
+        (data.widget.showResponses && review.sourceReplyText ? '<div class=\"why-widget-owner-reply\"><strong>Owner reply:</strong> ' + escapeHtml(review.sourceReplyText) + '</div>' : '') +
         '<div class=\"why-widget-meta-row\">' +
           (data.widget.showDate && review.reviewedAt ? '<div class=\"why-widget-date\">' + escapeHtml(formatDate(review.reviewedAt)) + '</div>' : '<div></div>') +
           (review.sourceReviewUrl ? '<a class=\"why-widget-review-link\" href="' + escapeHtml(review.sourceReviewUrl) + '" target="_blank" rel="noopener noreferrer">View on Google</a>' : '') +

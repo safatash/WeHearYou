@@ -80,6 +80,7 @@ export default async function WidgetDetailPage({
               <label><input type="checkbox" name="showReviewerName" defaultChecked={widget.showReviewerName} /> Show reviewer name</label>
               <label><input type="checkbox" name="showDate" defaultChecked={widget.showDate} /> Show date</label>
               <label><input type="checkbox" name="showWriteReview" defaultChecked={widget.showWriteReview} /> Show write review link</label>
+              <label><input type="checkbox" name="showResponses" defaultChecked={widget.showResponses} /> Show owner responses</label>
             </div>
 
             <button className="rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white">
@@ -133,6 +134,7 @@ export default async function WidgetDetailPage({
               showReviewerName={widget.showReviewerName}
               showDate={widget.showDate}
               showWriteReview={widget.showWriteReview}
+              showResponses={widget.showResponses}
               reviewLink={preview?.location.reviewLink ?? widget.location.reviewLink ?? null}
             />
           </div>

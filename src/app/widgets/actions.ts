@@ -98,6 +98,7 @@ export async function updateReviewWidget(formData: FormData) {
       showReviewerName: String(formData.get("showReviewerName") ?? "") === "on",
       showDate: String(formData.get("showDate") ?? "") === "on",
       showWriteReview: String(formData.get("showWriteReview") ?? "") === "on",
+      showResponses: String(formData.get("showResponses") ?? "") === "on",
     },
   });
 
