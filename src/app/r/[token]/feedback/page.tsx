@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { notFound } from "next/navigation";
 import { submitPrivateFeedback } from "@/app/r/[token]/actions";
 import { getRecipientByToken } from "@/lib/funnel";

@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { AppShell } from "@/components/app-shell";
 import { FunnelPreviewSimulator } from "@/components/funnel-preview-simulator";
 import { getFunnelPreviewData } from "@/lib/funnels";

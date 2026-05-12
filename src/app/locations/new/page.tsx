@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { GooglePlacesSearch } from "@/components/google-places-search";

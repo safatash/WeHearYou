@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { OutcomeCard, PrimaryButton, SectionHeading, SecondaryButton, StatCard } from "@/components/ui";

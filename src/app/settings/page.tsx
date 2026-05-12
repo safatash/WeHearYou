@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { AppShell } from "@/components/app-shell";
 import { Field, StatCard } from "@/components/ui";
 import { FormSubmitButton } from "@/components/form-submit-button";

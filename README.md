@@ -16,7 +16,7 @@ WeHearYou is a Next.js + Prisma app for managing review requests, reputation fun
 - Next.js 16
 - React 19
 - Prisma 6
-- SQLite for local development
+- PostgreSQL/Supabase for the application database
 - Tailwind CSS 4
 
 ## Local setup
@@ -35,11 +35,10 @@ cp .env.example .env
 
 ### 3. Prepare the database
 
-For a fast local setup, use Prisma push + seed:
+For a fast local setup against PostgreSQL/Supabase, use Prisma push + seed:
 
 ```bash
 npm run prisma:generate
-rm -f prisma/prisma/dev.db prisma/prisma/dev.db-journal
 npm run prisma:push
 npm run prisma:seed
 ```
@@ -48,7 +47,6 @@ If you prefer migrations during local development:
 
 ```bash
 npm run prisma:generate
-rm -f prisma/prisma/dev.db prisma/prisma/dev.db-journal
 npm run prisma:migrate
 npm run prisma:seed
 ```
@@ -70,13 +68,13 @@ Open:
 
 - `DATABASE_URL`
 
-Default local SQLite value:
+PostgreSQL/Supabase example:
 
 ```env
-DATABASE_URL="file:./prisma/dev.db"
+DATABASE_URL="postgresql://postgres:YOUR_PASSWORD@db.YOUR_PROJECT_REF.supabase.co:5432/postgres?schema=public"
 ```
 
-Note: Prisma resolves SQLite paths relative to the schema location, so this value writes to `prisma/prisma/dev.db` when using the current schema layout. That is the active local database file unless you change the schema/env setup.
+The current Prisma datasource is PostgreSQL, so a SQLite URL such as `file:./prisma/dev.db` will fail Prisma validation. Use a local PostgreSQL database for local development or a Supabase direct PostgreSQL URI for hosted development and production.
 
 ### Optional, required for Google OAuth/sync
 

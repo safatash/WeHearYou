@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { CopyButton } from "@/components/copy-button";
