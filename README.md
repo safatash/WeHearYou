@@ -85,6 +85,7 @@ If these are missing, the app still runs, but Google connect will redirect back 
 - `GOOGLE_OAUTH_REDIRECT_URI`
 - `GOOGLE_PLACES_API_KEY`
 - `NEXT_PUBLIC_APP_URL`
+- `GOOGLE_REVIEW_SYNC_SECRET` or `CRON_SECRET` for protected automatic review sync
 
 Local example:
 
@@ -94,6 +95,8 @@ GOOGLE_CLIENT_SECRET=""
 GOOGLE_OAUTH_REDIRECT_URI="http://localhost:3000/api/integrations/google/callback"
 GOOGLE_PLACES_API_KEY=""
 NEXT_PUBLIC_APP_URL="http://localhost:3000"
+GOOGLE_REVIEW_SYNC_SECRET="generate-a-long-random-secret"
+CRON_SECRET="generate-a-long-random-secret"
 ```
 
 ## Seeded demo data
@@ -158,3 +161,26 @@ GOOGLE_OAUTH_REDIRECT_URI="http://localhost:3000/api/integrations/google/callbac
 ```
 
 and make sure the same URI is registered in your Google OAuth app.
+
+## Google Business Profile review sync
+
+The dashboard manual sync buttons should remain the primary way to test an individual location immediately after connecting Google Business Profile. For production, the app also includes a protected background endpoint at `/api/integrations/google/sync-reviews` that syncs every mapped Google Business Profile location into the local `Review` table. The public embed widget then reads those stored reviews from `/api/public/widgets/[token]`, so client websites never call Google directly and never receive Google credentials.
+
+Set either `GOOGLE_REVIEW_SYNC_SECRET` or `CRON_SECRET` in production. The endpoint accepts `GET` or `POST` requests with `Authorization: Bearer <secret>`, `x-google-review-sync-secret`, or `x-automation-runner-secret`. If you deploy to Vercel, `vercel.json` schedules the endpoint every six hours with Vercel Cron.
+
+Manual test example:
+
+```bash
+curl -H "Authorization: Bearer $GOOGLE_REVIEW_SYNC_SECRET" \
+  "$NEXT_PUBLIC_APP_URL/api/integrations/google/sync-reviews"
+```
+
+Optional scoped sync for one stored Google connection:
+
+```bash
+curl -X POST \
+  -H "Authorization: Bearer $GOOGLE_REVIEW_SYNC_SECRET" \
+  -H "Content-Type: application/json" \
+  -d '{"googleConnectionId":"YOUR_CONNECTION_ID"}' \
+  "$NEXT_PUBLIC_APP_URL/api/integrations/google/sync-reviews"
+```
