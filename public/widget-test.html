@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WeHearYou Widget Test</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background: #f8fafc;
+        color: #0f172a;
+        margin: 0;
+        padding: 32px;
+      }
+      .wrap {
+        max-width: 1100px;
+        margin: 0 auto;
+      }
+      .card {
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 24px;
+        padding: 24px;
+        margin-bottom: 24px;
+      }
+      code {
+        background: #f1f5f9;
+        padding: 2px 6px;
+        border-radius: 6px;
+      }
+      input {
+        width: 100%;
+        padding: 12px 14px;
+        border-radius: 12px;
+        border: 1px solid #cbd5e1;
+        margin-top: 8px;
+        margin-bottom: 16px;
+      }
+      button {
+        border: 0;
+        background: #0f172a;
+        color: white;
+        padding: 12px 16px;
+        border-radius: 12px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="card">
+        <h1>WeHearYou widget test</h1>
+        <p>Use this file to test the public embed outside the app UI.</p>
+        <p>Enter your local app base URL and widget token, then mount the script.</p>
+        <label>
+          App URL
+          <input id="appUrl" value="http://localhost:3000" />
+        </label>
+        <label>
+          Widget token
+          <input id="widgetToken" placeholder="wg_..." />
+        </label>
+        <button id="mountBtn" type="button">Mount widget</button>
+      </div>
+
+      <div class="card">
+        <h2>Mounted widget</h2>
+        <div id="why-reviews-widget"></div>
+      </div>
+    </div>
+
+    <script>
+      document.getElementById('mountBtn').addEventListener('click', function () {
+        var existing = document.getElementById('why-widget-script');
+        if (existing) existing.remove();
+
+        document.getElementById('why-reviews-widget').innerHTML = '';
+
+        var appUrl = document.getElementById('appUrl').value.replace(/\/$/, '');
+        var token = document.getElementById('widgetToken').value.trim();
+
+        if (!appUrl || !token) {
+          alert('Enter both app URL and widget token');
+          return;
+        }
+
+        var script = document.createElement('script');
+        script.id = 'why-widget-script';
+        script.src = appUrl + '/embed/widget.js';
+        script.setAttribute('data-token', token);
+        script.setAttribute('data-mount', '#why-reviews-widget');
+        document.body.appendChild(script);
+      });
+    </script>
+  </body>
+</html>

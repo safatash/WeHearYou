@@ -1,0 +1,48 @@
+"use client";
+
+import { useActionState } from "react";
+import { authenticate, type LoginActionState } from "@/app/login/actions";
+
+const initialState: LoginActionState = {};
+
+export function LoginForm() {
+  const [state, formAction, pending] = useActionState(authenticate, initialState);
+
+  return (
+    <form action={formAction} className="space-y-5">
+      <label className="grid gap-2 text-sm font-semibold text-slate-700">
+        Email
+        <input
+          name="email"
+          type="email"
+          required
+          autoComplete="email"
+          className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-normal text-slate-700"
+        />
+      </label>
+
+      <label className="grid gap-2 text-sm font-semibold text-slate-700">
+        Password
+        <input
+          name="password"
+          type="password"
+          required
+          autoComplete="current-password"
+          className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-normal text-slate-700"
+        />
+      </label>
+
+      {state.error ? (
+        <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{state.error}</div>
+      ) : null}
+
+      <button
+        type="submit"
+        disabled={pending}
+        className="w-full rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-sm disabled:opacity-60"
+      >
+        {pending ? "Signing in..." : "Sign in"}
+      </button>
+    </form>
+  );
+}

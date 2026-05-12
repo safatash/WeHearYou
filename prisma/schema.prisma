@@ -1,0 +1,552 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum MembershipRole {
+  OWNER
+  ADMIN
+  MANAGER
+  ANALYST
+  SUPPORT
+}
+
+enum MembershipStatus {
+  ACTIVE
+  INVITED
+  DISABLED
+}
+
+enum ContactSource {
+  MANUAL
+  CSV_IMPORT
+  WEBHOOK
+  API
+}
+
+enum ContactStatus {
+  ACTIVE
+  NEEDS_FOLLOW_UP
+  ARCHIVED
+}
+
+enum PreferredChannel {
+  SMS
+  EMAIL
+}
+
+enum CampaignStatus {
+  DRAFT
+  SCHEDULED
+  SENT
+  OPENED
+  CLICKED
+  COMPLETED
+  FAILED
+}
+
+enum ReviewSource {
+  GOOGLE
+  FACEBOOK
+  INTERNAL
+}
+
+enum ReviewStatus {
+  PUBLISHED
+  NEEDS_FOLLOW_UP
+  PRIVATE_FEEDBACK
+}
+
+enum AutomationTriggerType {
+  APPOINTMENT_COMPLETED
+  PROJECT_COMPLETED
+  MANUAL_ENROLLMENT
+  WEBHOOK_EVENT
+}
+
+enum AutomationStepType {
+  DELAY
+  SEND_REQUEST
+  TAG_CONTACT
+  NOTIFY_TEAM
+  WEBHOOK
+}
+
+model Organization {
+  id                String                  @id @default(cuid())
+  name              String
+  slug              String                  @unique
+  website           String?
+  createdAt         DateTime                @default(now())
+  updatedAt         DateTime                @updatedAt
+
+  users             UserMembership[]
+  locations         Location[]
+  automations       Automation[]
+  googleConnections GoogleAccountConnection[]
+  reviewWidgets     ReviewWidget[]
+}
+
+model User {
+  id          String           @id @default(cuid())
+  name        String
+  email       String           @unique
+  passwordHash String?
+  emailVerified DateTime?
+  avatarUrl   String?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  memberships UserMembership[]
+  accounts    Account[]
+  sessions    Session[]
+}
+
+model Account {
+  id                 String  @id @default(cuid())
+  userId             String
+  type               String
+  provider           String
+  providerAccountId  String
+  refresh_token      String?
+  access_token       String?
+  expires_at         Int?
+  token_type         String?
+  scope              String?
+  id_token           String?
+  session_state      String?
+
+  user               User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model UserMembership {
+  id             String            @id @default(cuid())
+  organizationId String
+  userId         String
+  role           MembershipRole
+  status         MembershipStatus  @default(INVITED)
+  accessScope    String?
+  inviteToken    String?           @unique
+  inviteSentAt   DateTime?
+  invitedByUserId String?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  organization    Organization              @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user            User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ownedReviews    Review[]
+  sentReplies     Review[]                 @relation("ReviewReplySender")
+  locationAccess  MembershipLocationAccess[]
+
+  @@unique([organizationId, userId])
+  @@index([organizationId])
+  @@index([userId])
+}
+
+model MembershipLocationAccess {
+  membershipId    String
+  locationId      String
+  createdAt       DateTime      @default(now())
+
+  membership      UserMembership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+  location        Location       @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  @@id([membershipId, locationId])
+  @@index([locationId])
+}
+
+model Location {
+  id                    String        @id @default(cuid())
+  organizationId        String
+  googleConnectionId    String?
+  name                  String
+  slug                  String
+  city                  String
+  state                 String
+  status                String
+  reviewLink            String?
+  managerName           String?
+  avgRating             Float?
+  googleLocationId      String?
+  googlePlaceId         String?
+  googleLocationName    String?
+  googleConnectedAt     DateTime?
+  lastSyncStatus        String?
+  lastSyncMessage       String?
+  lastSyncImportedCount Int?
+  lastSyncUpdatedCount  Int?
+  lastSyncSkippedCount  Int?
+  lastSyncFetchedCount  Int?
+  lastSyncAt            DateTime?
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+
+  organization          Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  googleConnection      GoogleAccountConnection? @relation(fields: [googleConnectionId], references: [id], onDelete: SetNull)
+  publicProfile         LocationPublicProfile?
+  contacts              Contact[]
+  campaigns             Campaign[]
+  reviews               Review[]
+  automationRuns        AutomationRun[]
+  membershipAccess      MembershipLocationAccess[]
+  reviewWidgets         ReviewWidget[]
+
+  @@unique([organizationId, slug])
+  @@index([organizationId])
+  @@index([googleConnectionId])
+  @@index([googleLocationId])
+}
+
+model Contact {
+  id               String           @id @default(cuid())
+  locationId       String
+  firstName        String?
+  lastName         String?
+  name             String
+  email            String?
+  phone            String?
+  source           ContactSource
+  status           ContactStatus    @default(ACTIVE)
+  preferredChannel PreferredChannel @default(SMS)
+  notes            String?
+  lastInvitedAt    DateTime?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  location         Location         @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  tags             ContactTag[]
+  campaigns        CampaignRecipient[]
+  reviews          Review[]
+  automationRuns   AutomationRun[]
+
+  @@index([locationId])
+  @@index([email])
+  @@index([phone])
+}
+
+model Tag {
+  id          String       @id @default(cuid())
+  name        String       @unique
+  color       String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  contacts    ContactTag[]
+}
+
+model ContactTag {
+  contactId   String
+  tagId       String
+  createdAt   DateTime @default(now())
+
+  contact     Contact  @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  tag         Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([contactId, tagId])
+  @@index([tagId])
+}
+
+model Campaign {
+  id             String             @id @default(cuid())
+  locationId     String
+  name           String
+  channel        PreferredChannel
+  status         CampaignStatus     @default(DRAFT)
+  workflowName   String?
+  sendAt         DateTime?
+  messageBody    String?
+  emailSubject   String?
+  destination    String?
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  location       Location           @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  recipients     CampaignRecipient[]
+
+  @@index([locationId])
+  @@index([status])
+}
+
+model CampaignRecipient {
+  id             String         @id @default(cuid())
+  campaignId     String
+  contactId      String
+  token          String         @unique
+  status         CampaignStatus @default(DRAFT)
+  outcome        String?
+  sentAt         DateTime?
+  openedAt       DateTime?
+  completedAt    DateTime?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  campaign       Campaign       @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  contact        Contact        @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  @@unique([campaignId, contactId])
+  @@index([campaignId])
+  @@index([contactId])
+  @@index([token])
+}
+
+model Review {
+  id                    String        @id @default(cuid())
+  locationId            String
+  contactId             String?
+  ownerMembershipId     String?
+  source                ReviewSource
+  externalId            String?
+  reviewerName          String
+  reviewerPhotoUrl      String?
+  sourceReviewUrl       String?
+  sourceReplyText       String?
+  rating                Int
+  status                ReviewStatus
+  sentiment             String?
+  title                 String?
+  body                  String
+  internalNotes         String?
+  replyDraft            String?
+  replySentAt           DateTime?
+  replySentByMembershipId String?
+  isTestimonial         Boolean       @default(false)
+  isFeatured            Boolean       @default(false)
+  isWidgetVisible       Boolean       @default(false)
+  publishedExternally   Boolean       @default(false)
+  legacySourceId        String?
+  reviewedAt            DateTime?
+  lastImportedAt        DateTime?
+  sourceUpdatedAt       DateTime?
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+
+  location              Location      @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  contact               Contact?      @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  ownerMembership       UserMembership? @relation(fields: [ownerMembershipId], references: [id], onDelete: SetNull)
+  replySentByMembership UserMembership? @relation("ReviewReplySender", fields: [replySentByMembershipId], references: [id], onDelete: SetNull)
+
+  @@index([locationId])
+  @@index([contactId])
+  @@index([ownerMembershipId])
+  @@index([replySentByMembershipId])
+  @@index([source])
+  @@index([isTestimonial])
+  @@index([isWidgetVisible])
+}
+
+model Automation {
+  id             String                 @id @default(cuid())
+  organizationId String
+  name           String
+  triggerType    AutomationTriggerType
+  isActive       Boolean                @default(true)
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+
+  organization   Organization           @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  steps          AutomationStep[]
+  runs           AutomationRun[]
+
+  @@index([organizationId])
+}
+
+model AutomationStep {
+  id             String              @id @default(cuid())
+  automationId   String
+  stepType       AutomationStepType
+  title          String
+  description    String?
+  orderIndex     Int
+  configJson     Json?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  automation     Automation          @relation(fields: [automationId], references: [id], onDelete: Cascade)
+  queuedJobs     AutomationJob[]
+
+  @@index([automationId])
+  @@unique([automationId, orderIndex])
+}
+
+model AutomationRun {
+  id             String        @id @default(cuid())
+  automationId   String
+  locationId     String
+  contactId      String
+  triggerEvent   String
+  source         String?
+  status         String        @default("pending")
+  payloadJson    Json?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  automation     Automation    @relation(fields: [automationId], references: [id], onDelete: Cascade)
+  location       Location      @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  contact        Contact       @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  jobs           AutomationJob[]
+
+  @@index([automationId])
+  @@index([locationId])
+  @@index([contactId])
+  @@index([status])
+}
+
+model AutomationJob {
+  id                String          @id @default(cuid())
+  automationRunId   String
+  automationStepId  String
+  status            String          @default("pending")
+  executeAt         DateTime
+  executedAt        DateTime?
+  errorMessage      String?
+  payloadJson       Json?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  automationRun     AutomationRun   @relation(fields: [automationRunId], references: [id], onDelete: Cascade)
+  automationStep    AutomationStep  @relation(fields: [automationStepId], references: [id], onDelete: Cascade)
+
+  @@index([automationRunId])
+  @@index([automationStepId])
+  @@index([status, executeAt])
+}
+
+model GoogleAccountConnection {
+  id                   String        @id @default(cuid())
+  organizationId       String
+  providerAccountId    String?
+  email                String?
+  accessToken          String?
+  refreshToken         String?
+  tokenType            String?
+  scope                String?
+  expiresAt            DateTime?
+  lastSyncedAt         DateTime?
+  lastBatchSyncStatus  String?
+  lastBatchSyncMessage String?
+  lastBatchSyncedCount Int?
+  lastBatchFailedCount Int?
+  lastBatchFailedNames String?
+  lastBatchImportedCount Int?
+  lastBatchUpdatedCount Int?
+  lastBatchSkippedCount Int?
+  lastBatchFetchedCount Int?
+  lastBatchSyncAt      DateTime?
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+
+  organization         Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  locations            Location[]
+
+  @@index([organizationId])
+  @@index([providerAccountId])
+}
+
+model ReviewWidget {
+  id               String       @id @default(cuid())
+  organizationId   String
+  locationId       String
+  name             String
+  publicToken      String       @unique
+  isActive         Boolean      @default(true)
+
+  layout           String       @default("grid")
+  theme            String       @default("light")
+  sort             String       @default("newest")
+  minRating        Int          @default(1)
+  pageSize         Int          @default(12)
+
+  showHeader       Boolean      @default(true)
+  showRating       Boolean      @default(true)
+  showReviewerName Boolean      @default(true)
+  showDate         Boolean      @default(true)
+  showWriteReview  Boolean      @default(true)
+  showResponses    Boolean      @default(false)
+
+  customCss        String?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  location         Location     @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([locationId])
+  @@index([publicToken])
+}
+
+model LocationPublicProfile {
+  id                   String      @id @default(cuid())
+  locationId           String      @unique
+  headline             String?
+  subheadline          String?
+  instagramUrl         String?
+  facebookUrl          String?
+  xUrl                 String?
+  tiktokUrl            String?
+  youtubeUrl           String?
+  linkedinUrl          String?
+  phone                String?
+  email                String?
+  addressLine1         String?
+  addressLine2         String?
+  postalCode           String?
+  bookingUrl           String?
+  ctaLabel             String?
+  ctaUrl               String?
+  logoUrl              String?
+  heroImageUrl         String?
+  googleMapsUrl        String?
+  googleHours          String?
+  theme                String?
+  funnelRatingStyle    String?
+  funnelPromptTitle    String?
+  funnelPromptBody     String?
+  funnelPrivateTitle   String?
+  funnelPrivateBody    String?
+  funnelPrivateSubmitLabel String?
+  funnelThanksPublicTitle String?
+  funnelThanksPublicBody  String?
+  funnelThanksPrivateTitle String?
+  funnelThanksPrivateBody  String?
+  funnelReviewButtonLabel  String?
+  businessType         String?
+  customDomain         String?
+  showReviews          Boolean     @default(true)
+  showTestimonials     Boolean     @default(true)
+  showMap              Boolean     @default(true)
+  showHours            Boolean     @default(false)
+  schemaEnabled        Boolean     @default(true)
+  createdAt            DateTime    @default(now())
+  updatedAt            DateTime    @updatedAt
+
+  location             Location    @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  @@index([customDomain])
+}
