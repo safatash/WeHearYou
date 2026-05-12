@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import Link from "next/link";
 import { syncGoogleReviewsFromLocationsList } from "@/app/locations/actions";
 import { AppShell } from "@/components/app-shell";

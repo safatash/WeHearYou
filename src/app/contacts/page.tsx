@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { formatContactSource, formatContactStatus, formatLastInvite, getContacts } from "@/lib/contacts";

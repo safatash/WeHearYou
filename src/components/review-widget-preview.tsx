@@ -17,6 +17,7 @@ type ReviewWidgetPreviewProps = {
   showReviewerName: boolean;
   showDate: boolean;
   showWriteReview: boolean;
+  showResponses: boolean;
   reviewLink?: string | null;
 };
 
@@ -46,6 +47,7 @@ export function ReviewWidgetPreview({
   showReviewerName,
   showDate,
   showWriteReview,
+  showResponses,
   reviewLink,
 }: ReviewWidgetPreviewProps) {
   return (
@@ -79,7 +81,7 @@ export function ReviewWidgetPreview({
                   </div>
                 ) : null}
                 <div className="text-sm leading-6 text-slate-600">{review.body}</div>
-                {review.sourceReplyText ? (
+                {showResponses && review.sourceReplyText ? (
                   <div className="mt-3 rounded-2xl bg-slate-50 p-3 text-xs leading-5 text-slate-500">
                     <span className="font-semibold text-slate-700">Owner reply:</span> {review.sourceReplyText}
                   </div>

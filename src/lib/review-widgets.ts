@@ -25,6 +25,7 @@ export type PublicWidgetPayload = {
     showReviewerName: boolean;
     showDate: boolean;
     showWriteReview: boolean;
+    showResponses: boolean;
   };
   location: {
     name: string;
@@ -221,6 +222,7 @@ export async function getPublicReviewWidgetPayload(publicToken: string, page = 1
       showReviewerName: widget.showReviewerName,
       showDate: widget.showDate,
       showWriteReview: widget.showWriteReview,
+      showResponses: widget.showResponses,
     },
     location: {
       name: widget.location.name,

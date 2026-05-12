@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { searchGooglePlaces } from "@/lib/google-oauth";
+import { getCurrentMembership } from "@/lib/authz";
 
 function extractAddressComponent(
   components: Array<{ longText?: string; shortText?: string; types?: string[] }> | undefined,
@@ -11,6 +12,12 @@ function extractAddressComponent(
 }
 
 export async function GET(request: NextRequest) {
+  const membership = await getCurrentMembership();
+
+  if (!membership) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const url = new URL(request.url);
   const query = url.searchParams.get("q")?.trim() ?? "";
 
