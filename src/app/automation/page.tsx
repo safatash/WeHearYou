@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { AppShell } from "@/components/app-shell";
 import { Field, StatCard } from "@/components/ui";
 import { formatConfig, formatStepType, formatTriggerType, getAutomations } from "@/lib/automation";

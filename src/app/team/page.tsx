@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { InviteUserForm } from "@/app/team/invite-user-form";

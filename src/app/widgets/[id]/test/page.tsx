@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import Link from "next/link";
 import Script from "next/script";
 import { notFound } from "next/navigation";
