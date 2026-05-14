@@ -10,7 +10,7 @@ export type FunnelBuilderActionState = {
   success: boolean;
   error?: string;
 };
-import { fetchGoogleBusinessLocations, fetchGoogleLocationReviews, getValidGoogleAccessToken, normalizeGoogleStarRating } from "@/lib/google-oauth";
+import { buildGoogleOAuthUrl, fetchGoogleBusinessLocations, fetchGoogleLocationReviews, getValidGoogleAccessToken, normalizeGoogleStarRating } from "@/lib/google-oauth";
 import { buildBulkGoogleSyncRedirect, buildRetryGoogleSyncRedirect } from "@/lib/google-batch-sync-actions";
 import { buildLocationDetailSyncSuccessPath } from "@/lib/google-sync-action-paths";
 import {
@@ -35,6 +35,24 @@ function formatGoogleWeekdayDescriptions(weekdayDescriptions?: string[] | null) 
 function normalize(value: FormDataEntryValue | null) {
   const text = typeof value === "string" ? value.trim() : "";
   return text.length > 0 ? text : null;
+}
+
+async function requireGoogleConnectionForOrganization(googleConnectionId: string, organizationId: string) {
+  const connection = await prisma.googleAccountConnection.findFirst({
+    where: {
+      id: googleConnectionId,
+      organizationId,
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  if (!connection) {
+    throw new Error("Google connection not found for this organization");
+  }
+
+  return connection;
 }
 
 async function saveUploadedLogo(file: File | null, locationId: string) {
@@ -152,6 +170,7 @@ async function performGoogleReviewSync(locationId: string) {
   let googleReviews;
   let googleLocationDetails:
     | {
+        accountResourceName?: string;
         metadata?: { mapsUri?: string };
         regularHours?: { weekdayDescriptions?: string[] };
       }
@@ -169,10 +188,13 @@ async function performGoogleReviewSync(locationId: string) {
 
     const googleLocations = await fetchGoogleBusinessLocations(accessToken);
     googleLocationDetails = googleLocations.find((googleLocation) => googleLocation.name === location.googleLocationName);
+    const googleReviewLocationName = googleLocationDetails?.accountResourceName
+      ? `${googleLocationDetails.accountResourceName}/${location.googleLocationName}`
+      : location.googleLocationName;
 
     googleReviews = await fetchGoogleLocationReviews({
       accessToken,
-      googleLocationName: location.googleLocationName,
+      googleLocationName: googleReviewLocationName,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Google review sync failed";
@@ -349,9 +371,13 @@ export async function syncAllGoogleReviewsForConnection(formData: FormData) {
     throw new Error("Google connection is required");
   }
 
+  const membership = await requireTeamManagement();
+  await requireGoogleConnectionForOrganization(googleConnectionId, membership.organizationId);
+
   try {
     const locations = await prisma.location.findMany({
       where: {
+        organizationId: membership.organizationId,
         googleConnectionId,
         googleLocationName: {
           not: null,
@@ -472,6 +498,10 @@ export async function createLocation(formData: FormData) {
     const derivedPlaceId = normalize(parsed.googlePlaceId ?? null);
     const derivedReviewLink = normalize(parsed.reviewLink ?? null) ?? buildGoogleWriteReviewLink(parsed.googlePlaceId);
     const hasMappedGoogleLocation = Boolean(googleConnectionId && derivedGoogleLocationId && derivedGoogleLocationName);
+
+    if (googleConnectionId) {
+      await requireGoogleConnectionForOrganization(googleConnectionId, organization.id);
+    }
 
     if (!name || !city || !state) {
       throw new Error("Selected Google business is missing required location details");
@@ -869,7 +899,8 @@ export async function mapLocationToGoogle(formData: FormData) {
     throw new Error("Location mapping requires a WeHearYou location, Google connection, and selected Google location");
   }
 
-  await requireLocationAccess(locationId);
+  const membership = await requireLocationAccess(locationId);
+  await requireGoogleConnectionForOrganization(googleConnectionId, membership.organizationId);
 
   const parsed = JSON.parse(googleLocationPayload) as {
     googleLocationId: string;
@@ -1048,17 +1079,21 @@ export async function syncGoogleReviewsFromIntegrations(formData: FormData) {
 
   await requireLocationAccess(locationId);
 
+  let redirectPath: string;
+
   try {
     const result = await performGoogleReviewSync(locationId);
     const params = buildIntegrationSingleSyncSuccessParams(result.location.name, result);
 
-    redirect(`/integrations?${params.toString()}`);
+    redirectPath = `/integrations?${params.toString()}`;
   } catch (error) {
     const message = error instanceof Error ? error.message : "Google review sync failed";
     const params = buildIntegrationErrorParams("sync-error", message);
 
-    redirect(`/integrations?${params.toString()}`);
+    redirectPath = `/integrations?${params.toString()}`;
   }
+
+  redirect(redirectPath);
 }
 
 export async function refreshGoogleConnection(formData: FormData) {
@@ -1068,10 +1103,13 @@ export async function refreshGoogleConnection(formData: FormData) {
     throw new Error("Google connection is required");
   }
 
-  await requireTeamManagement();
+  const membership = await requireTeamManagement();
 
-  const connection = await prisma.googleAccountConnection.findUnique({
-    where: { id: googleConnectionId },
+  const connection = await prisma.googleAccountConnection.findFirst({
+    where: {
+      id: googleConnectionId,
+      organizationId: membership.organizationId,
+    },
     select: {
       id: true,
       accessToken: true,
@@ -1086,14 +1124,7 @@ export async function refreshGoogleConnection(formData: FormData) {
     throw new Error("Google connection not found");
   }
 
-  try {
-    await getValidGoogleAccessToken(connection);
-    revalidatePath("/integrations");
-    redirect("/integrations?google=connected&message=Google+connection+refreshed");
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Google connection refresh failed";
-    redirect(`/integrations?google=callback_failed&reason=${encodeURIComponent(message)}`);
-  }
+  redirect(buildGoogleOAuthUrl({ organizationId: membership.organizationId, connectionId: googleConnectionId }));
 }
 
 export async function updateLocation(formData: FormData) {
@@ -1201,10 +1232,13 @@ export async function disconnectGoogleConnection(formData: FormData) {
     throw new Error("Google connection is required");
   }
 
-  await requireTeamManagement();
+  const membership = await requireTeamManagement();
 
-  const connection = await prisma.googleAccountConnection.findUnique({
-    where: { id: googleConnectionId },
+  const connection = await prisma.googleAccountConnection.findFirst({
+    where: {
+      id: googleConnectionId,
+      organizationId: membership.organizationId,
+    },
     include: {
       locations: {
         select: {
@@ -1222,6 +1256,7 @@ export async function disconnectGoogleConnection(formData: FormData) {
   await prisma.$transaction([
     prisma.location.updateMany({
       where: {
+        organizationId: membership.organizationId,
         googleConnectionId,
       },
       data: {
@@ -1264,11 +1299,13 @@ export async function retryFailedGoogleSyncs(formData: FormData) {
     throw new Error("Google connection is required");
   }
 
-  await requireTeamManagement();
+  const membership = await requireTeamManagement();
+  await requireGoogleConnectionForOrganization(googleConnectionId, membership.organizationId);
 
   try {
     const failedLocations = await prisma.location.findMany({
       where: {
+        organizationId: membership.organizationId,
         googleConnectionId,
         lastSyncStatus: "error",
         googleLocationName: {

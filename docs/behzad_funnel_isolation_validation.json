@@ -1,0 +1,57 @@
+{
+  "user": {
+    "id": "cmp442hxl0000p66shxpml69g",
+    "name": "Behzad Riazi",
+    "email": "safatash@gmail.com"
+  },
+  "activeMembership": {
+    "id": "cmp442hxq0003p66sowyut095",
+    "role": "OWNER",
+    "status": "ACTIVE",
+    "organizationId": "cmp442hxo0001p66st9zlhcet"
+  },
+  "organization": {
+    "id": "cmp442hxo0001p66st9zlhcet",
+    "name": "NOVA MedMarket",
+    "slug": "nova-medmarket"
+  },
+  "accessibleLocationIds": [
+    "cmp443r4g0005p66sy8ekqxb9"
+  ],
+  "scopedBuilderLocations": [
+    {
+      "id": "cmp443r4g0005p66sy8ekqxb9",
+      "name": "NOVA MedMarket",
+      "slug": "nova-medmarket",
+      "organizationId": "cmp442hxo0001p66st9zlhcet"
+    }
+  ],
+  "scopedPreviewLocations": [
+    {
+      "id": "cmp443r4g0005p66sy8ekqxb9",
+      "name": "NOVA MedMarket",
+      "slug": "nova-medmarket",
+      "organizationId": "cmp442hxo0001p66st9zlhcet",
+      "visibleReviewCountLoaded": 0
+    }
+  ],
+  "organizationGoogleConnections": [
+    {
+      "id": "cmp4586lk0001p6418v2wgi8d",
+      "organizationId": "cmp442hxo0001p66st9zlhcet"
+    },
+    {
+      "id": "cmp458s330003p64159uehws3",
+      "organizationId": "cmp442hxo0001p66st9zlhcet"
+    }
+  ],
+  "crossOrgMappedLocations": [],
+  "assertions": {
+    "singleActiveMembership": true,
+    "activeOrganizationIsNovaMedMarket": true,
+    "scopedBuilderHasNoForeignLocations": true,
+    "scopedPreviewHasNoForeignLocations": true,
+    "noForeignOrganizationGoogleConnections": true,
+    "noCrossOrgMappedLocations": true
+  }
+}

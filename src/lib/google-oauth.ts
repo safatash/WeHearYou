@@ -26,6 +26,8 @@ export type GoogleBusinessLocation = {
   title?: string;
   storeCode?: string;
   languageCode?: string;
+  accountName?: string;
+  accountResourceName?: string;
   storefrontAddress?: {
     addressLines?: string[];
     locality?: string;
@@ -437,14 +439,11 @@ export async function upsertGoogleConnection({
   });
 }
 
-export async function getPrimaryOrganization() {
-  return prisma.organization.findFirst({
-    orderBy: { createdAt: "asc" },
-  });
-}
-
-export async function getGoogleConnections() {
+export async function getGoogleConnections(organizationId: string) {
   const connections = await prisma.googleAccountConnection.findMany({
+    where: {
+      organizationId,
+    },
     include: {
       locations: {
         orderBy: [{ createdAt: "asc" }],

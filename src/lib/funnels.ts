@@ -1,7 +1,12 @@
 import { prisma } from "@/lib/prisma";
 
-export async function getFunnelBuilderData(selectedLocationId?: string | null) {
+export async function getFunnelBuilderData(accessibleLocationIds: string[], selectedLocationId?: string | null) {
   const locations = await prisma.location.findMany({
+    where: {
+      id: {
+        in: accessibleLocationIds,
+      },
+    },
     include: {
       publicProfile: true,
     },
@@ -19,8 +24,13 @@ export async function getFunnelBuilderData(selectedLocationId?: string | null) {
   };
 }
 
-export async function getFunnelPreviewData(selectedLocationId?: string | null) {
+export async function getFunnelPreviewData(accessibleLocationIds: string[], selectedLocationId?: string | null) {
   const locations = await prisma.location.findMany({
+    where: {
+      id: {
+        in: accessibleLocationIds,
+      },
+    },
     include: {
       publicProfile: true,
       reviews: {

@@ -11,8 +11,8 @@ export default async function SettingsPage({
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const params = (await searchParams) ?? {};
-  await requireTeamAccessPage();
-  const data = await getSettingsData();
+  const membership = await requireTeamAccessPage();
+  const data = await getSettingsData(membership.organizationId);
   const flash = typeof params.flash === "string" ? params.flash : null;
   const tone = typeof params.tone === "string" && ["success", "error", "info"].includes(params.tone) ? params.tone as "success" | "error" | "info" : "success";
 

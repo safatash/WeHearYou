@@ -1,7 +1,10 @@
 import { prisma } from "@/lib/prisma";
 
-export async function getSettingsData() {
-  const organization = await prisma.organization.findFirst({
+export async function getSettingsData(organizationId: string) {
+  const organization = await prisma.organization.findUnique({
+    where: {
+      id: organizationId,
+    },
     include: {
       locations: {
         include: {
@@ -17,7 +20,6 @@ export async function getSettingsData() {
         },
       },
     },
-    orderBy: [{ createdAt: "asc" }],
   });
 
   if (!organization) {

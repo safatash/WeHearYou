@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { exchangeGoogleCodeForTokens, fetchGoogleUserInfo, parseOAuthState, upsertGoogleConnection } from "@/lib/google-oauth";
 
+function redirectToIntegrations(pathAndQuery: string) {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  return NextResponse.redirect(new URL(pathAndQuery, appUrl));
+}
+
 export async function GET(request: NextRequest) {
   const url = new URL(request.url);
   const code = url.searchParams.get("code");
@@ -10,17 +15,17 @@ export async function GET(request: NextRequest) {
   if (error) {
     const description = url.searchParams.get("error_description");
     const reason = description || error;
-    return NextResponse.redirect(new URL(`/integrations?google=error&reason=${encodeURIComponent(reason)}`, request.url));
+    return redirectToIntegrations(`/integrations?google=error&reason=${encodeURIComponent(reason)}`);
   }
 
   if (!code || !state) {
-    return NextResponse.redirect(new URL("/integrations?google=missing_params", request.url));
+    return redirectToIntegrations("/integrations?google=missing_params");
   }
 
   const parsedState = parseOAuthState(state);
 
   if (!parsedState) {
-    return NextResponse.redirect(new URL("/integrations?google=invalid_state", request.url));
+    return redirectToIntegrations("/integrations?google=invalid_state");
   }
 
   try {
@@ -38,9 +43,9 @@ export async function GET(request: NextRequest) {
       expiresIn: tokens.expires_in,
     });
 
-    return NextResponse.redirect(new URL("/integrations?google=connected", request.url));
+    return redirectToIntegrations("/integrations?google=connected");
   } catch (callbackError) {
     const message = callbackError instanceof Error ? callbackError.message : "unknown_error";
-    return NextResponse.redirect(new URL(`/integrations?google=callback_failed&reason=${encodeURIComponent(message)}`, request.url));
+    return redirectToIntegrations(`/integrations?google=callback_failed&reason=${encodeURIComponent(message)}`);
   }
 }

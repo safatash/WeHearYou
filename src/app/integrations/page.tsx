@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import Link from "next/link";
 import { disconnectGoogleConnection, refreshGoogleConnection, retryFailedGoogleSyncs, syncAllGoogleReviewsForConnection, syncGoogleReviewsFromIntegrations } from "@/app/locations/actions";
 import { AppShell } from "@/components/app-shell";
@@ -7,6 +9,7 @@ import { GoogleLocationSyncStatusCard } from "@/components/google-location-sync-
 import { GoogleSyncBanner } from "@/components/google-sync-banner";
 import { getGoogleConnections, getGoogleOAuthConfig } from "@/lib/google-oauth";
 import { formatRelativeSyncTime } from "@/lib/locations";
+import { requireActiveMembershipPage } from "@/lib/page-guards";
 
 export default async function IntegrationsPage({ searchParams }: { searchParams?: Promise<Record<string, string | string[] | undefined>> }) {
   const params = (await searchParams) ?? {};
@@ -20,7 +23,8 @@ export default async function IntegrationsPage({ searchParams }: { searchParams?
   const failedLocations = typeof params.failed === "string" ? Number(params.failed) : 0;
   const failedLocationNames = typeof params.failedNames === "string" && params.failedNames.length > 0 ? params.failedNames.split("|") : [];
   const syncMessage = typeof params.message === "string" ? params.message : typeof params.reason === "string" ? params.reason : undefined;
-  const googleConnections = await getGoogleConnections();
+  const membership = await requireActiveMembershipPage();
+  const googleConnections = await getGoogleConnections(membership.organizationId);
   const googleConfig = getGoogleOAuthConfig();
   const googleReady = Boolean(googleConfig.clientId && googleConfig.clientSecret && googleConfig.redirectUri);
 
@@ -135,12 +139,11 @@ export default async function IntegrationsPage({ searchParams }: { searchParams?
                   {connection.fetchError ? <p className="mt-2 text-sm text-amber-700">Location fetch error: {connection.fetchError}</p> : null}
                   {connection.fetchError?.includes("ACCESS_TOKEN_SCOPE_INSUFFICIENT") || connection.fetchError?.includes("insufficient authentication scopes") ? (
                     <div className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-                      This Google account connected without the Business Profile scope needed to load GBP locations. Use <span className="font-semibold">Reconnect / refresh</span>, then approve the requested Google Business permissions again.
+                      This Google account connected without the Business Profile scope needed to load GBP locations. Use the <span className="font-semibold">Reconnect / refresh</span> button below, then approve the requested Google Business permissions again.
                     </div>
                   ) : null}
 
-                  {connection.locations.length > 0 ? (
-                    <div className="mt-4 space-y-4">
+                  <div className="mt-4 space-y-4">
                       <div className="flex flex-wrap gap-2">
                         <form action={refreshGoogleConnection}>
                           <input type="hidden" name="googleConnectionId" value={connection.id} />
@@ -215,7 +218,6 @@ export default async function IntegrationsPage({ searchParams }: { searchParams?
                         ))}
                       </div>
                     </div>
-                  ) : null}
 
                   {connection.googleLocations.length > 0 ? (
                     <div className="mt-4 rounded-2xl bg-slate-50 p-4">

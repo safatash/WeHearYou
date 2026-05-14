@@ -21,7 +21,7 @@ export default async function NewLocationPage() {
         status: true,
       },
     }),
-    getGoogleConnections(),
+    getGoogleConnections(membership.organizationId),
   ]);
 
   const googlePlacesReady = Boolean(getGooglePlacesConfig().apiKey);

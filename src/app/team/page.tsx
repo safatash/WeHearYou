@@ -10,12 +10,12 @@ export default async function TeamPage({
 }: {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  await requireTeamAccessPage();
+  const membership = await requireTeamAccessPage();
   const params = await searchParams;
   const flash = typeof params?.flash === "string" ? params.flash : null;
   const tone = typeof params?.tone === "string" && ["success", "error", "info"].includes(params.tone) ? (params.tone as "success" | "error" | "info") : "success";
   const inviteToken = typeof params?.invite === "string" ? params.invite : null;
-  const members = await getTeamMembers();
+  const members = await getTeamMembers(membership.organizationId);
   const stats = getMembershipStats(members);
   const inviteLocations = members[0]?.organization.locations.map((location) => ({
     id: location.id,

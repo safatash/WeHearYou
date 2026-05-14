@@ -3,6 +3,8 @@ import { AppShell } from "@/components/app-shell";
 import { FunnelBuilderForm } from "@/components/funnel-builder-form";
 import { Field, StatCard } from "@/components/ui";
 import { getFunnelBuilderData } from "@/lib/funnels";
+import { requireActiveMembershipPage } from "@/lib/page-guards";
+import { getAccessibleLocationIds } from "@/lib/scope";
 
 export default async function FunnelBuilderPage({
   searchParams,
@@ -13,14 +15,16 @@ export default async function FunnelBuilderPage({
   const selectedLocationParam = typeof params?.location === "string" ? params.location : undefined;
   const flash = typeof params?.flash === "string" ? params.flash : null;
   const tone = typeof params?.tone === "string" && ["success", "error", "info"].includes(params.tone) ? params.tone as "success" | "error" | "info" : "success";
-  const data = await getFunnelBuilderData(selectedLocationParam);
+  const membership = await requireActiveMembershipPage();
+  const locationIds = getAccessibleLocationIds(membership);
+  const data = await getFunnelBuilderData(locationIds, selectedLocationParam);
 
   if (!data.selectedLocation) {
     return (
       <AppShell activeScreen="funnel-builder">
         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <p className="text-sm font-semibold text-slate-900">No locations found.</p>
-          <p className="mt-2 text-sm text-slate-600">Seed the database to load a starter funnel configuration.</p>
+          <p className="mt-2 text-sm text-slate-600">Add a business location to start configuring this account&apos;s review funnel.</p>
         </div>
       </AppShell>
     );

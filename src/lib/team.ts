@@ -31,16 +31,22 @@ export type TeamMemberWithRelations = Prisma.UserMembershipGetPayload<{
 const ORG_ADMIN_ROLES: MembershipRole[] = ["OWNER", "ADMIN"];
 const LOCATION_SCOPED_ROLES: MembershipRole[] = ["MANAGER", "SUPPORT"];
 
-export async function getTeamMembers() {
+export async function getTeamMembers(organizationId: string) {
   return prisma.userMembership.findMany({
+    where: {
+      organizationId,
+    },
     include: membershipInclude,
     orderBy: [{ createdAt: "asc" }],
   });
 }
 
-export async function getTeamMemberById(id: string) {
-  return prisma.userMembership.findUnique({
-    where: { id },
+export async function getTeamMemberById(id: string, organizationId: string) {
+  return prisma.userMembership.findFirst({
+    where: {
+      id,
+      organizationId,
+    },
     include: membershipInclude,
   });
 }

@@ -29,12 +29,12 @@ export default async function TeamMemberDetailPage({
   params: Promise<{ id: string }>;
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  await requireTeamAccessPage();
+  const membership = await requireTeamAccessPage();
   const { id } = await params;
   const query = await searchParams;
   const flash = typeof query?.flash === "string" ? query.flash : null;
   const tone = typeof query?.tone === "string" && ["success", "error", "info"].includes(query.tone) ? (query.tone as "success" | "error" | "info") : "success";
-  const member = await getTeamMemberById(id);
+  const member = await getTeamMemberById(id, membership.organizationId);
 
   if (!member) {
     notFound();

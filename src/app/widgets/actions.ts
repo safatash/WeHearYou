@@ -3,28 +3,29 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { generateReviewWidgetToken } from "@/lib/review-widgets";
-import { getPrimaryOrganization } from "@/lib/google-oauth";
-import { requireOrganizationAccess } from "@/lib/authz";
+import { getCurrentMembership, requireOrganizationAccess } from "@/lib/authz";
 
 export async function createReviewWidget(formData: FormData) {
-  const organization = await getPrimaryOrganization();
+  const membership = await getCurrentMembership();
   const locationId = String(formData.get("locationId") ?? "").trim();
   const name = String(formData.get("name") ?? "").trim() || "Reviews Widget";
 
-  if (!organization?.id) {
+  if (!membership) {
     throw new Error("Organization is required");
   }
+
+  const organizationId = membership.organizationId;
 
   if (!locationId) {
     throw new Error("Location is required");
   }
 
-  await requireOrganizationAccess(organization.id);
+  await requireOrganizationAccess(organizationId);
 
   const location = await prisma.location.findFirst({
     where: {
       id: locationId,
-      organizationId: organization.id,
+      organizationId,
     },
     select: {
       id: true,
@@ -55,7 +56,7 @@ export async function createReviewWidget(formData: FormData) {
 
   const widget = await prisma.reviewWidget.create({
     data: {
-      organizationId: organization.id,
+      organizationId,
       locationId,
       name,
       publicToken: generateReviewWidgetToken(),

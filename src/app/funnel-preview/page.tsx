@@ -1,6 +1,10 @@
+export const dynamic = "force-dynamic";
+
 import { AppShell } from "@/components/app-shell";
 import { FunnelPreviewSimulator } from "@/components/funnel-preview-simulator";
 import { getFunnelPreviewData } from "@/lib/funnels";
+import { requireActiveMembershipPage } from "@/lib/page-guards";
+import { getAccessibleLocationIds } from "@/lib/scope";
 
 export default async function FunnelPreviewPage({
   searchParams,
@@ -8,14 +12,16 @@ export default async function FunnelPreviewPage({
   searchParams?: Promise<{ location?: string }>;
 }) {
   const params = await searchParams;
-  const data = await getFunnelPreviewData(params?.location);
+  const membership = await requireActiveMembershipPage();
+  const locationIds = getAccessibleLocationIds(membership);
+  const data = await getFunnelPreviewData(locationIds, params?.location);
 
   if (!data.selectedLocation) {
     return (
       <AppShell activeScreen="funnel-preview">
         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <p className="text-sm font-semibold text-slate-900">No locations found.</p>
-          <p className="mt-2 text-sm text-slate-600">Seed the database to load a starter review funnel preview.</p>
+          <p className="mt-2 text-sm text-slate-600">Add a business location to start previewing this account&apos;s review funnel.</p>
         </div>
       </AppShell>
     );
