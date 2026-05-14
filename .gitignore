@@ -52,3 +52,4 @@ prisma/dev.db-journal
 prisma/prisma/*.db
 prisma/prisma/*.db-journal
 wehearyou.zip
+.env*.local
