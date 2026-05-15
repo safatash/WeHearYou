@@ -4,6 +4,7 @@ export default auth((req) => {
   const isLoggedIn = Boolean(req.auth);
   const isPublicPath =
     req.nextUrl.pathname === "/login" ||
+    req.nextUrl.pathname === "/signup" ||
     req.nextUrl.pathname.startsWith("/accept-invite") ||
     req.nextUrl.pathname.startsWith("/api/auth") ||
     req.nextUrl.pathname.startsWith("/api/public/widgets/") ||
@@ -17,7 +18,7 @@ export default auth((req) => {
     return Response.redirect(loginUrl);
   }
 
-  if (isLoggedIn && req.nextUrl.pathname === "/login") {
+  if (isLoggedIn && (req.nextUrl.pathname === "/login" || req.nextUrl.pathname === "/signup")) {
     return Response.redirect(new URL("/", req.nextUrl.origin));
   }
 
