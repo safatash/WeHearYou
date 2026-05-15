@@ -37,6 +37,22 @@ function normalize(value: FormDataEntryValue | null) {
   return text.length > 0 ? text : null;
 }
 
+function firstNonEmptyFormValue(formData: FormData, name: string) {
+  for (const value of formData.getAll(name)) {
+    const normalized = normalize(value);
+
+    if (normalized) {
+      return normalized;
+    }
+  }
+
+  return null;
+}
+
+function redirectToNewLocationError(message: string): never {
+  redirect(`/locations/new?error=${encodeURIComponent(message)}`);
+}
+
 async function requireGoogleConnectionForOrganization(googleConnectionId: string, organizationId: string) {
   const connection = await prisma.googleAccountConnection.findFirst({
     where: {
@@ -467,11 +483,11 @@ export async function createLocation(formData: FormData) {
   const status = "Launching";
 
   if (mode === "google") {
-    const googleLocationPayload = String(formData.get("googleLocationPayload") ?? "").trim();
+    const googleLocationPayload = firstNonEmptyFormValue(formData, "googleLocationPayload");
     const googleConnectionId = normalize(formData.get("googleConnectionId"));
 
     if (!googleLocationPayload) {
-      throw new Error("Choose a Google business before creating the location");
+      redirectToNewLocationError("Choose a Google business from search results or use manual entry below.");
     }
 
     const parsed = JSON.parse(googleLocationPayload) as {
@@ -504,7 +520,7 @@ export async function createLocation(formData: FormData) {
     }
 
     if (!name || !city || !state) {
-      throw new Error("Selected Google business is missing required location details");
+      redirectToNewLocationError("Selected Google business is missing required location details. Use manual entry below or choose a different result.");
     }
 
     const slug = await createUniqueLocationSlug(organization.id, name);
@@ -559,7 +575,7 @@ export async function createLocation(formData: FormData) {
   const postalCode = normalize(formData.get("postalCode"));
 
   if (!name || !city || !state || !addressLine1) {
-    throw new Error("Name, street address, city, and state are required");
+    redirectToNewLocationError("Name, street address, city, and state are required for manual location creation.");
   }
 
   const slug = await createUniqueLocationSlug(organization.id, name);

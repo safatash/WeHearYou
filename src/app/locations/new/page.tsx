@@ -8,7 +8,9 @@ import { getGoogleConnections, getGooglePlacesConfig } from "@/lib/google-oauth"
 import { requireActiveMembershipPage } from "@/lib/page-guards";
 import { prisma } from "@/lib/prisma";
 
-export default async function NewLocationPage() {
+export default async function NewLocationPage({ searchParams }: { searchParams?: Promise<{ error?: string }> }) {
+  const params = searchParams ? await searchParams : {};
+  const errorMessage = typeof params.error === "string" ? params.error : null;
   const membership = await requireActiveMembershipPage();
 
   const [locations, googleConnections] = await Promise.all([
@@ -64,6 +66,12 @@ export default async function NewLocationPage() {
             </Link>
           </div>
         </div>
+
+        {errorMessage ? (
+          <div className="rounded-2xl border border-rose-200 bg-rose-50 px-5 py-4 text-sm font-medium text-rose-800" role="alert">
+            {errorMessage}
+          </div>
+        ) : null}
 
         <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
           <div className="space-y-6">
