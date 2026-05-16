@@ -20,11 +20,24 @@ export type PublicWidgetPayload = {
     layout: string;
     theme: string;
     pageSize: number;
+    // Header
     showHeader: boolean;
+    showAvgRating: boolean;
+    showReviewCount: boolean;
+    headerAlign: string;
+    // Reviews
     showRating: boolean;
     showReviewerName: boolean;
     showDate: boolean;
     showWriteReview: boolean;
+    showResponses: boolean;
+    bodyMaxChars: number;
+    // Appearance
+    primaryColor: string;
+    starColor: string;
+    backgroundColor: string;
+    textColor: string;
+    fontFamily: string;
   };
   location: {
     name: string;
@@ -217,10 +230,20 @@ export async function getPublicReviewWidgetPayload(publicToken: string, page = 1
       theme: widget.theme,
       pageSize,
       showHeader: widget.showHeader,
+      showAvgRating: widget.showAvgRating,
+      showReviewCount: widget.showReviewCount,
+      headerAlign: widget.headerAlign,
       showRating: widget.showRating,
       showReviewerName: widget.showReviewerName,
       showDate: widget.showDate,
       showWriteReview: widget.showWriteReview,
+      showResponses: widget.showResponses,
+      bodyMaxChars: widget.bodyMaxChars,
+      primaryColor: widget.primaryColor,
+      starColor: widget.starColor,
+      backgroundColor: widget.backgroundColor,
+      textColor: widget.textColor,
+      fontFamily: widget.fontFamily,
     },
     location: {
       name: widget.location.name,

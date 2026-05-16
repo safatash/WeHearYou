@@ -482,12 +482,26 @@ model ReviewWidget {
   minRating        Int          @default(1)
   pageSize         Int          @default(12)
 
+  // Header panel
   showHeader       Boolean      @default(true)
+  showAvgRating    Boolean      @default(true)
+  showReviewCount  Boolean      @default(true)
+  headerAlign      String       @default("left")
+
+  // Review card panel
   showRating       Boolean      @default(true)
   showReviewerName Boolean      @default(true)
   showDate         Boolean      @default(true)
   showWriteReview  Boolean      @default(true)
   showResponses    Boolean      @default(false)
+  bodyMaxChars     Int          @default(280)
+
+  // Appearance panel
+  primaryColor     String       @default("#4338ca")
+  starColor        String       @default("#f59e0b")
+  backgroundColor  String       @default("#ffffff")
+  textColor        String       @default("#0f172a")
+  fontFamily       String       @default("system")
 
   customCss        String?
   createdAt        DateTime     @default(now())
