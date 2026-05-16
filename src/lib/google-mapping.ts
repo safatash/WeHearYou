@@ -1,3 +1,13 @@
+export function isValidGoogleLocationName(value: string | null | undefined) {
+  const normalized = typeof value === "string" ? value.trim() : "";
+
+  if (!normalized) {
+    return false;
+  }
+
+  return normalized.startsWith("locations/") || normalized.includes("/locations/");
+}
+
 export function isMalformedGoogleLocationName(value: string | null | undefined) {
   const normalized = typeof value === "string" ? value.trim() : "";
 
@@ -5,7 +15,7 @@ export function isMalformedGoogleLocationName(value: string | null | undefined) 
     return false;
   }
 
-  return !normalized.includes("/locations/");
+  return !isValidGoogleLocationName(normalized);
 }
 
 export function buildGoogleMappingHealth({
