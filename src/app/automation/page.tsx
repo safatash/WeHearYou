@@ -3,13 +3,15 @@ export const dynamic = "force-dynamic";
 import { AppShell } from "@/components/app-shell";
 import { Field, StatCard } from "@/components/ui";
 import { formatConfig, formatStepType, formatTriggerType, getAutomations } from "@/lib/automation";
+import { getCurrentMembership } from "@/lib/authz";
 
 export default async function AutomationPage() {
-  const automations = await getAutomations();
+  const membership = await getCurrentMembership();
+  const automations = membership ? await getAutomations(membership.organizationId) : [];
   const selectedAutomation = automations[0];
   const selectedNode = selectedAutomation?.steps[0];
-  const totalSteps = automations.reduce((sum, automation) => sum + automation.steps.length, 0);
-  const activeAutomations = automations.filter((automation) => automation.isActive).length;
+  const totalSteps = automations.reduce((sum: number, automation: typeof automations[0]) => sum + automation.steps.length, 0);
+  const activeAutomations = automations.filter((automation: typeof automations[0]) => automation.isActive).length;
 
   return (
     <AppShell activeScreen="automation">
@@ -25,6 +27,7 @@ export default async function AutomationPage() {
           <a
             href="/automation/new"
             className="inline-flex rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-slate-800 transition whitespace-nowrap"
+            style={{ color: "white" }}
           >
             + New Automation
           </a>
@@ -159,6 +162,7 @@ export default async function AutomationPage() {
             <a
               href="/automation/new"
               className="mt-4 inline-flex rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-slate-800 transition"
+              style={{ color: "white" }}
             >
               + New Automation
             </a>

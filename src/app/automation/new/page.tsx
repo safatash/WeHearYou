@@ -51,6 +51,7 @@ export default function NewAutomationPage() {
               <button
                 type="submit"
                 className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-slate-800 transition"
+                style={{ color: "white" }}
               >
                 Create Automation
               </button>

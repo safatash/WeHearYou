@@ -98,6 +98,7 @@ export function AddStepForm({ automationId }: { automationId: string }) {
       <button
         type="submit"
         className="rounded-2xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 transition"
+        style={{ color: "white" }}
       >
         Add Step
       </button>

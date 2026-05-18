@@ -13,8 +13,9 @@ export type AutomationWithSteps = Prisma.AutomationGetPayload<{
   include: typeof automationInclude;
 }>;
 
-export async function getAutomations() {
+export async function getAutomations(organizationId: string) {
   return prisma.automation.findMany({
+    where: { organizationId },
     include: automationInclude,
     orderBy: [{ createdAt: "asc" }],
   });

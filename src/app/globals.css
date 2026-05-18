@@ -47,6 +47,13 @@ a {
   text-decoration: none;
 }
 
+/* Ensure white text on dark buttons is never overridden */
+.text-white,
+a.text-white,
+button.text-white {
+  color: #ffffff !important;
+}
+
 textarea {
   resize: none;
 }
