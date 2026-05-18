@@ -230,10 +230,10 @@ function SliderLayout({ children }: { children: React.ReactNode[] }) {
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 overflow-hidden">
       <div
         ref={trackRef}
-        className="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2 scrollbar-thin"
+        className="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2"
         style={{ scrollbarWidth: "thin" }}
       >
         {children.map((child, i) => (
