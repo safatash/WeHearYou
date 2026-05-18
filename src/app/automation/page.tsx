@@ -14,12 +14,20 @@ export default async function AutomationPage() {
   return (
     <AppShell activeScreen="automation">
       <div className="space-y-6">
-        <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.22em] text-indigo-600">Automation Builder</p>
-          <h2 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">Workflow automation</h2>
-          <p className="mt-3 max-w-3xl text-slate-600">
-            Review the live automation graph that powers post-appointment and webhook-driven request flows.
-          </p>
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-[0.22em] text-indigo-600">Automation Builder</p>
+            <h2 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">Workflow automation</h2>
+            <p className="mt-3 max-w-3xl text-slate-600">
+              Build and manage automated workflows that trigger review requests and follow-ups.
+            </p>
+          </div>
+          <a
+            href="/automation/new"
+            className="inline-flex rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-slate-800 transition whitespace-nowrap"
+          >
+            + New Automation
+          </a>
         </div>
 
         <div className="grid gap-4 xl:grid-cols-3">
@@ -127,7 +135,7 @@ export default async function AutomationPage() {
                 <p className="text-sm font-semibold uppercase tracking-[0.22em] text-indigo-600">All workflows</p>
                 <div className="mt-4 space-y-3">
                   {automations.map((automation) => (
-                    <div key={automation.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                    <a key={automation.id} href={`/automation/${automation.id}`} className="block rounded-2xl border border-slate-200 bg-slate-50 p-4 hover:border-indigo-200 hover:bg-indigo-50 transition">
                       <div className="flex items-center justify-between gap-3">
                         <p className="font-semibold text-slate-900">{automation.name}</p>
                         <span className={`rounded-full px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] ${automation.isActive ? "bg-emerald-100 text-emerald-700" : "bg-slate-200 text-slate-600"}`}>
@@ -136,7 +144,7 @@ export default async function AutomationPage() {
                       </div>
                       <p className="mt-1 text-sm text-slate-600">Trigger: {formatTriggerType(automation.triggerType)}</p>
                       <p className="mt-1 text-sm text-slate-600">Steps: {automation.steps.length}</p>
-                    </div>
+                    </a>
                   ))}
                 </div>
               </div>
@@ -144,10 +152,16 @@ export default async function AutomationPage() {
           </div>
         ) : (
           <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <p className="text-sm font-semibold text-slate-900">No automations found yet.</p>
+            <p className="text-sm font-semibold text-slate-900">No automations yet.</p>
             <p className="mt-2 text-sm text-slate-600">
-              Seed the database to load the starter appointment follow-up workflow, or create your first automation record in Prisma.
+              Create your first automation to start sending automated review requests.
             </p>
+            <a
+              href="/automation/new"
+              className="mt-4 inline-flex rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-slate-800 transition"
+            >
+              + New Automation
+            </a>
           </div>
         )}
       </div>
