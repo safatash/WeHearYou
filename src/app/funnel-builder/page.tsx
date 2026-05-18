@@ -125,7 +125,7 @@ export default async function FunnelBuilderPage({
                 <Field label="Promoter destination" value={selectedLocation.reviewLink ?? "Set this in Location Settings"} multiline />
               </div>
               <div className="mt-6 flex flex-wrap gap-3">
-                <Link href={`/funnel-preview?location=${selectedLocation.id}`} className="rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white shadow-sm">
+                <Link href={`/funnel-preview?location=${selectedLocation.id}`} className="rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold !text-white visited:!text-white hover:!text-white shadow-sm">
                   Open preview
                 </Link>
                 <Link href={`/f/${selectedLocation.slug}`} className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm">

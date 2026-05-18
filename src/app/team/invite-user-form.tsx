@@ -63,7 +63,7 @@ export function InviteUserForm({
       ) : null}
 
       <div className="mt-6 flex justify-end">
-        <button type="submit" disabled={pending} className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-sm disabled:opacity-60">
+        <button type="submit" disabled={pending} className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold !text-white shadow-sm disabled:opacity-60">
           {pending ? "Creating invite..." : "Create invite"}
         </button>
       </div>

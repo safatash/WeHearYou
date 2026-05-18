@@ -54,7 +54,7 @@ export default async function WidgetsPage() {
                 </option>
               ))}
             </select>
-            <button className="rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white">
+            <button className="rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold !text-white shadow-sm">
               Create widget
             </button>
           </form>
