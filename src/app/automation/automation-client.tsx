@@ -64,9 +64,19 @@ export function AddStepForm({ automationId }: { automationId: string }) {
       )}
 
       {stepType === "SEND_REQUEST" && (
-        <div className="rounded-2xl border border-indigo-100 bg-indigo-50 p-4">
-          <p className="text-sm text-indigo-700">
-            Review request will be sent using the email subject, message, and destination configured in each location's <strong>Funnel Settings</strong>.
+        <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4 space-y-3">
+          <div>
+            <label className="mb-2 block text-sm font-semibold text-slate-700">Channel</label>
+            <select
+              name="channel"
+              className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+            >
+              <option value="EMAIL">Email</option>
+              <option value="SMS">SMS</option>
+            </select>
+          </div>
+          <p className="text-xs text-slate-500">
+            Email subject and message are configured in each location's Funnel Settings.
           </p>
         </div>
       )}
