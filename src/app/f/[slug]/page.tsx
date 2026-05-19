@@ -52,12 +52,6 @@ export default async function PublicFunnelPage({ params }: { params: Promise<{ s
           {profile?.funnelPromptBody ?? profile?.subheadline ?? `Share a quick rating for ${location.name}. Happy customers can continue to a public review, while lower ratings stay private so the team can follow up directly.`}
         </p>
 
-        <div className="mt-6 rounded-3xl bg-slate-50 p-5 text-sm leading-7 text-slate-600">
-          <p>
-            <span className="font-semibold text-slate-900">How it works:</span> choose a rating below. 4 to 5 stars continue toward a public review, and 1 to 3 stars open a private feedback form.
-          </p>
-        </div>
-
         <div className="mt-8 rounded-3xl border border-slate-200 bg-white p-6">
           <p className="text-sm font-semibold text-slate-700">Choose a rating</p>
           <form action={submitPublicFunnelRating} className={`mt-4 grid gap-3 ${ratingMode === "stars" ? "sm:grid-cols-5" : ratingMode === "faces" ? "sm:grid-cols-3" : "sm:grid-cols-2"}`}>
