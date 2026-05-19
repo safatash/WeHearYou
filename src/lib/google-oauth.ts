@@ -281,12 +281,31 @@ export async function fetchGoogleBusinessLocations(accessToken: string) {
   const accounts = await fetchGoogleBusinessAccounts(accessToken);
   const locationSets = await Promise.all(
     accounts.map(async (account) => {
-      const response = await googleFetch<{ locations?: GoogleBusinessLocation[] }>(
-        `${GOOGLE_BUSINESS_LOCATIONS_URL}/${account.name}/locations?readMask=name,title,storeCode,languageCode,storefrontAddress,metadata,regularHours`,
-        accessToken,
-      );
+      const allLocations: GoogleBusinessLocation[] = [];
+      let pageToken: string | undefined;
+      let pageCount = 0;
+      const maxPages = 50;
 
-      return (response.locations ?? []).map((location) => ({
+      do {
+        const url = new URL(`${GOOGLE_BUSINESS_LOCATIONS_URL}/${account.name}/locations`);
+        url.searchParams.set("readMask", "name,title,storeCode,languageCode,storefrontAddress,metadata,regularHours");
+        url.searchParams.set("pageSize", "100");
+        if (pageToken) url.searchParams.set("pageToken", pageToken);
+
+        const response = await googleFetch<{ locations?: GoogleBusinessLocation[]; nextPageToken?: string }>(
+          url.toString(),
+          accessToken,
+        );
+
+        if (response.locations?.length) {
+          allLocations.push(...response.locations);
+        }
+
+        pageToken = response.nextPageToken;
+        pageCount += 1;
+      } while (pageToken && pageCount < maxPages);
+
+      return allLocations.map((location) => ({
         ...location,
         accountName: account.accountName,
         accountResourceName: account.name,
