@@ -550,6 +550,8 @@ model LocationPublicProfile {
   funnelThanksPrivateTitle String?
   funnelThanksPrivateBody  String?
   funnelReviewButtonLabel  String?
+  negativeFilterEnabled    Boolean     @default(false)
+  negativeFilterThreshold  Int         @default(4)
   businessType         String?
   customDomain         String?
   showReviews          Boolean     @default(true)

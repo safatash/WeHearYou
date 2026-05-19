@@ -27,7 +27,13 @@ export async function submitPublicFunnelRating(formData: FormData) {
     redirect(`/f/${slug}?error=missing_location`);
   }
 
-  if (ratingValue >= 4) {
+  const profile = location.publicProfile;
+  const filterEnabled = profile?.negativeFilterEnabled ?? false;
+  const threshold = profile?.negativeFilterThreshold ?? 4;
+
+  // Filter OFF: all ratings go to public review (Google)
+  // Filter ON: ratings below threshold go to private feedback
+  if (!filterEnabled || ratingValue >= threshold) {
     redirect(`/f/${slug}/thanks?rating=${ratingValue}`);
   }
 

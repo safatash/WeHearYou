@@ -6,6 +6,7 @@ export type ScreenKey =
   | "automation"
   | "funnel-preview"
   | "funnel-builder"
+  | "campaign-wizard"
   | "locations"
   | "team"
   | "analytics"
@@ -21,6 +22,7 @@ export const navItems: { key: ScreenKey; label: string; icon: string; href: stri
   { key: "automation", label: "Automation", icon: "⟲", href: "/automation" },
   { key: "funnel-preview", label: "Funnel Page", icon: "◎", href: "/funnel-preview" },
   { key: "funnel-builder", label: "Funnel Builder", icon: "⌘", href: "/funnel-builder" },
+  { key: "campaign-wizard", label: "Campaign Wizard", icon: "✦", href: "/campaign-wizard" },
   { key: "locations", label: "Locations", icon: "⌂", href: "/locations" },
   { key: "team", label: "Team & Access", icon: "♟", href: "/team" },
   { key: "analytics", label: "Analytics", icon: "◔", href: "/analytics" },
