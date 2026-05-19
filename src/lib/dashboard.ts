@@ -13,16 +13,23 @@ export async function getDashboardData(locationIds?: string[]) {
   if (locationIds !== undefined && locationIds.length === 0) {
     return {
       totalReviews: 0,
-      testimonials: 0,
-      averageRating: "0.0",
-      completedRequests: 0,
-      totalRequests: 0,
-      conversionRate: "0",
-      weeklyReviews: [],
-      weeklyRequests: [],
-      recentReviews: [],
+      averageRating: "0.0 ★",
+      requestConversion: "0.0%",
+      reviewTrendBars: Array.from({ length: 12 }, () => 0),
+      funnelOutcomes: {
+        redirectedToGoogle: 0,
+        privateFeedback: 0,
+        awaitingResponse: 0,
+        webhookTriggered: 0,
+        testimonials: 0,
+        widgetTestimonials: 0,
+      },
+      channelBreakdown: {
+        google: 0,
+        facebook: 0,
+        privateFeedback: 0,
+      },
       locations: [],
-      reviewsBySource: [],
     };
   }
 
