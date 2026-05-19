@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useRef } from "react";
+import { useState, useTransition } from "react";
 import { saveCampaignWizard } from "@/app/campaign-wizard/actions";
 
 type Location = {
@@ -136,54 +136,19 @@ function PhonePreview({
 }
 
 function QRCodeDisplay({ url }: { url: string }) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [generated, setGenerated] = useState(false);
-
-  async function generateQR() {
-    try {
-      const QRCode = (await import("qrcode")).default;
-      if (canvasRef.current) {
-        await QRCode.toCanvas(canvasRef.current, url, {
-          width: 200,
-          margin: 2,
-          color: { dark: "#0f172a", light: "#ffffff" },
-        });
-        setGenerated(true);
-      }
-    } catch {
-      // qrcode not available, show link instead
-      setGenerated(false);
-    }
-  }
-
-  if (!generated) {
-    return (
-      <div className="flex flex-col items-center gap-3">
-        <div className="flex h-[200px] w-[200px] items-center justify-center rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50">
-          <button
-            type="button"
-            onClick={generateQR}
-            className="text-sm font-semibold text-indigo-600 hover:text-indigo-700"
-          >
-            Generate QR Code
-          </button>
-        </div>
-      </div>
-    );
-  }
+  const encodedUrl = encodeURIComponent(url);
+  const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodedUrl}&bgcolor=ffffff&color=0f172a&margin=10`;
 
   function downloadQR() {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
     const link = document.createElement("a");
     link.download = "review-qr-code.png";
-    link.href = canvas.toDataURL();
+    link.href = qrSrc;
     link.click();
   }
 
   return (
     <div className="flex flex-col items-center gap-3">
-      <canvas ref={canvasRef} className="rounded-2xl" />
+      <img src={qrSrc} alt="QR Code" className="rounded-2xl border border-slate-200" width={200} height={200} />
       <button
         type="button"
         onClick={downloadQR}
