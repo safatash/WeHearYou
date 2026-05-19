@@ -1,7 +1,5 @@
 "use server";
 
-import { mkdir, writeFile } from "node:fs/promises";
-import path from "node:path";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { ReviewSource, ReviewStatus } from "@prisma/client";
@@ -84,14 +82,12 @@ async function saveUploadedLogo(file: File | null, locationId: string) {
 
   const extension = file.name.includes(".") ? file.name.split(".").pop()?.toLowerCase() : "png";
   const safeExtension = extension && /^[a-z0-9]+$/.test(extension) ? extension : "png";
-  const buffer = Buffer.from(await file.arrayBuffer());
-  const uploadsDir = path.join(process.cwd(), "public", "uploads", "logos");
-  const filename = `${locationId}-${Date.now()}.${safeExtension}`;
+  const filename = `uploads/logos/${locationId}-${Date.now()}.${safeExtension}`;
 
-  await mkdir(uploadsDir, { recursive: true });
-  await writeFile(path.join(uploadsDir, filename), buffer);
+  const { put } = await import("@vercel/blob");
+  const blob = await put(filename, file, { access: "public" });
 
-  return `/uploads/logos/${filename}`;
+  return blob.url;
 }
 
 function slugifyLocationName(value: string) {
