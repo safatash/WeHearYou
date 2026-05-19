@@ -95,7 +95,7 @@ export default async function LocationDetailPage({
           <StatCard title="Last Synced" value={lastSyncedLabel} meta={lastSyncedMeta} />
         </div>
 
-        <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+        <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr] xl:items-start">
           <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
             <div className="flex items-center justify-between gap-4">
               <div>
@@ -340,7 +340,7 @@ export default async function LocationDetailPage({
             </form>
           </section>
 
-          <aside className="space-y-6">
+          <aside className="space-y-6 xl:sticky xl:top-6">
             <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
               <h3 className="text-xl font-semibold text-slate-950">Performance Snapshot</h3>
               <div className="mt-6 space-y-4">
