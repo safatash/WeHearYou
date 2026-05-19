@@ -711,12 +711,19 @@ export async function saveLocationSettings(formData: FormData) {
   const uploadedLogo = formData.get("logoFile");
   let logoUrl = String(formData.get("existingLogoUrl") ?? "").trim() || null;
 
+  const uploadedHero = formData.get("heroImageFile");
+  let heroImageUrl = String(formData.get("existingHeroImageUrl") ?? "").trim() || null;
+
   if (!name || !city || !state) {
     throw new Error("Location name, city, and state are required");
   }
 
   if (uploadedLogo instanceof File && uploadedLogo.size > 0) {
     logoUrl = await saveUploadedLogo(uploadedLogo, locationId);
+  }
+
+  if (uploadedHero instanceof File && uploadedHero.size > 0) {
+    heroImageUrl = await saveUploadedLogo(uploadedHero, locationId + "-hero");
   }
 
   const nextSlug = await createUniqueLocationSlug(location.organizationId, name, location.id);
@@ -751,6 +758,7 @@ export async function saveLocationSettings(formData: FormData) {
             youtubeUrl: String(formData.get("youtubeUrl") ?? "").trim() || null,
             tiktokUrl: String(formData.get("tiktokUrl") ?? "").trim() || null,
             logoUrl,
+            heroImageUrl,
             theme: String(formData.get("theme") ?? "").trim() || null,
             businessType: String(formData.get("businessType") ?? "").trim() || null,
             customDomain: String(formData.get("customDomain") ?? "").trim() || null,
@@ -778,6 +786,7 @@ export async function saveLocationSettings(formData: FormData) {
             youtubeUrl: String(formData.get("youtubeUrl") ?? "").trim() || null,
             tiktokUrl: String(formData.get("tiktokUrl") ?? "").trim() || null,
             logoUrl,
+            heroImageUrl,
             theme: String(formData.get("theme") ?? "").trim() || null,
             businessType: String(formData.get("businessType") ?? "").trim() || null,
             customDomain: String(formData.get("customDomain") ?? "").trim() || null,

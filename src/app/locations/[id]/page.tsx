@@ -197,6 +197,19 @@ export default async function LocationDetailPage({
                       <p className="text-sm font-normal text-slate-500">Upload a logo for the mini-site and funnel pages.</p>
                     )}
                   </div>
+                  <div className="grid gap-2 text-sm font-semibold text-slate-700 md:col-span-2">
+                    <span>Cover image <span className="font-normal text-slate-400">(shown as hero banner on mini-site)</span></span>
+                    <input type="hidden" name="existingHeroImageUrl" value={publicProfile?.heroImageUrl ?? ""} />
+                    <input name="heroImageFile" type="file" accept="image/png,image/jpeg,image/webp" className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-3 text-sm font-normal text-slate-700 file:mr-3 file:rounded-xl file:border-0 file:bg-slate-900 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-white" />
+                    {publicProfile?.heroImageUrl ? (
+                      <div className="flex items-center gap-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                        <img src={publicProfile.heroImageUrl} alt="Cover" className="h-14 w-24 rounded-xl object-cover" />
+                        <p className="text-sm font-normal text-slate-600">Current cover image. Upload a new one to replace it.</p>
+                      </div>
+                    ) : (
+                      <p className="text-sm font-normal text-slate-500">Recommended: 1200×400px or wider. Shows as the banner at the top of your mini-site.</p>
+                    )}
+                  </div>
                 </div>
               </div>
 
