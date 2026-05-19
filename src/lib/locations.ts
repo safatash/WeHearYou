@@ -47,7 +47,7 @@ export type LocationWithRelations = Prisma.LocationGetPayload<{
 
 export async function getLocations(locationIds?: string[]) {
   const locations = await prisma.location.findMany({
-    where: locationIds && locationIds.length > 0 ? { id: { in: locationIds } } : undefined,
+    where: locationIds ? { id: { in: locationIds } } : undefined,
     include: locationInclude,
     orderBy: [{ createdAt: "asc" }],
   });

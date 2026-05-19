@@ -75,7 +75,7 @@ export async function getReviews(
 export async function getReviewFilterOptions(locationIds?: string[]) {
   const [locations, owners] = await Promise.all([
     prisma.location.findMany({
-      where: locationIds && locationIds.length > 0 ? { id: { in: locationIds } } : undefined,
+      where: locationIds ? { id: { in: locationIds } } : undefined,
       select: {
         id: true,
         name: true,

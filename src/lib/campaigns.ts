@@ -19,7 +19,7 @@ export type CampaignWithRelations = Prisma.CampaignGetPayload<{
 
 export async function getCampaigns(locationIds?: string[]) {
   return prisma.campaign.findMany({
-    where: locationIds && locationIds.length > 0 ? { locationId: { in: locationIds } } : undefined,
+    where: locationIds ? { locationId: { in: locationIds } } : undefined,
     include: campaignInclude,
     orderBy: [{ createdAt: "desc" }],
   });

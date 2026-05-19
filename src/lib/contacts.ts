@@ -24,7 +24,7 @@ export type ContactWithRelations = Prisma.ContactGetPayload<{
 
 export async function getContacts(locationIds?: string[]) {
   return prisma.contact.findMany({
-    where: locationIds && locationIds.length > 0 ? { locationId: { in: locationIds } } : undefined,
+    where: locationIds ? { locationId: { in: locationIds } } : undefined,
     include: contactInclude,
     orderBy: [{ createdAt: "asc" }],
   });

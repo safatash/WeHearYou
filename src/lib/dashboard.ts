@@ -9,6 +9,23 @@ const completedCampaignStatuses = new Set<CampaignStatus>([
 ]);
 
 export async function getDashboardData(locationIds?: string[]) {
+  // If locationIds is explicitly provided but empty, the user has no locations — return empty data
+  if (locationIds !== undefined && locationIds.length === 0) {
+    return {
+      totalReviews: 0,
+      testimonials: 0,
+      averageRating: "0.0",
+      completedRequests: 0,
+      totalRequests: 0,
+      conversionRate: "0",
+      weeklyReviews: [],
+      weeklyRequests: [],
+      recentReviews: [],
+      locations: [],
+      reviewsBySource: [],
+    };
+  }
+
   const locationWhere = locationIds && locationIds.length > 0 ? { in: locationIds } : undefined;
 
   const [reviews, campaigns, locations] = await Promise.all([
