@@ -6,6 +6,7 @@ import { AppShell } from "@/components/app-shell";
 import { FormSubmitButton } from "@/components/form-submit-button";
 import { GoogleBatchSyncResultCard } from "@/components/google-batch-sync-result-card";
 import { GoogleLocationSyncStatusCard } from "@/components/google-location-sync-status-card";
+import { GoogleLocationsSearchList } from "@/components/google-locations-search-list";
 import { GoogleSyncBanner } from "@/components/google-sync-banner";
 import { getGoogleConnections, getGoogleOAuthConfig } from "@/lib/google-oauth";
 import { formatRelativeSyncTime } from "@/lib/locations";
@@ -220,20 +221,7 @@ export default async function IntegrationsPage({ searchParams }: { searchParams?
                     </div>
 
                   {connection.googleLocations.length > 0 ? (
-                    <div className="mt-4 rounded-2xl bg-slate-50 p-4">
-                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Discovered Google Business Profile locations</p>
-                      <div className="mt-3 space-y-3">
-                        {connection.googleLocations.map((location) => (
-                          <div key={location.name} className="rounded-2xl border border-slate-200 bg-white p-3 text-sm text-slate-700">
-                            <p className="font-semibold text-slate-900">{location.title ?? location.name}</p>
-                            <p className="mt-1 text-slate-600">Account: {location.accountName ?? location.accountResourceName ?? "Unknown account"}</p>
-                            <p className="mt-1 text-slate-600">
-                              {[location.storefrontAddress?.locality, location.storefrontAddress?.administrativeArea].filter(Boolean).join(", ") || "Address not available"}
-                            </p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
+                    <GoogleLocationsSearchList googleLocations={connection.googleLocations} />
                   ) : null}
                 </div>
               ))}
