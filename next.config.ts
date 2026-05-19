@@ -6,9 +6,27 @@ const nextConfig: NextConfig = {
     root: path.resolve(__dirname),
   },
   typescript: {
-    // Temporary deployment setting: existing unrelated app pages have type errors.
-    // Remove this after cleaning up the broader TypeScript backlog.
     ignoreBuildErrors: true,
+  },
+  async headers() {
+    return [
+      {
+        source: "/api/public/:path*",
+        headers: [
+          { key: "Access-Control-Allow-Origin", value: "*" },
+          { key: "Access-Control-Allow-Methods", value: "GET, OPTIONS" },
+          { key: "Access-Control-Allow-Headers", value: "Content-Type" },
+        ],
+      },
+      {
+        source: "/embed/:path*",
+        headers: [
+          { key: "Access-Control-Allow-Origin", value: "*" },
+          { key: "Access-Control-Allow-Methods", value: "GET, OPTIONS" },
+          { key: "Access-Control-Allow-Headers", value: "Content-Type" },
+        ],
+      },
+    ];
   },
 };
 
