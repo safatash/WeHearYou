@@ -1,19 +1,15 @@
-import nodemailer from "nodemailer";
+import { Resend } from "resend";
 
-function getMailConfig() {
+function getResendConfig() {
   return {
-    host: process.env.MAILTRAP_HOST ?? "",
-    port: Number(process.env.MAILTRAP_PORT ?? "587"),
-    user: process.env.MAILTRAP_USERNAME ?? "",
-    pass: process.env.MAILTRAP_PASSWORD ?? "",
-    from: process.env.MAIL_FROM ?? "",
+    apiKey: process.env.RESEND_API_KEY ?? "",
+    from: process.env.RESEND_FROM_EMAIL ?? "onboarding@resend.dev",
     appUrl: process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
   };
 }
 
 export function isEmailSendingConfigured() {
-  const config = getMailConfig();
-  return Boolean(config.host && config.port && config.user && config.pass && config.from);
+  return Boolean(process.env.RESEND_API_KEY);
 }
 
 export async function sendReviewRequestEmail({
@@ -29,43 +25,77 @@ export async function sendReviewRequestEmail({
   locationName: string;
   reviewUrl: string;
 }) {
-  const config = getMailConfig();
+  const config = getResendConfig();
 
-  if (!isEmailSendingConfigured()) {
-    throw new Error("Email sending is not configured");
+  if (!config.apiKey) {
+    throw new Error("RESEND_API_KEY is not configured");
   }
 
-  const transporter = nodemailer.createTransport({
-    host: config.host,
-    port: config.port,
-    secure: config.port === 465,
-    auth: {
-      user: config.user,
-      pass: config.pass,
-    },
-  });
+  const resend = new Resend(config.apiKey);
 
-  const html = `
-    <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #0f172a; max-width: 600px; margin: 0 auto;">
-      <p style="font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase; color: #4f46e5; font-weight: 700;">WeHearYou Review Request</p>
-      <h1 style="font-size: 28px; line-height: 1.2; margin: 16px 0;">How was your experience with ${locationName}?</h1>
-      <p>Hi ${recipientName}, thanks for choosing ${locationName}. We'd really appreciate your feedback.</p>
-      <p>Please use the secure link below to rate your experience.</p>
-      <p style="margin: 32px 0;">
-        <a href="${reviewUrl}" style="display: inline-block; background: #0f172a; color: #ffffff; text-decoration: none; padding: 14px 20px; border-radius: 14px; font-weight: 700;">
-          Leave Feedback
-        </a>
-      </p>
-      <p style="font-size: 14px; color: #475569;">If the button doesn't work, copy and paste this link into your browser:</p>
-      <p style="font-size: 14px; color: #475569; word-break: break-all;">${reviewUrl}</p>
-    </div>
-  `;
-
-  await transporter.sendMail({
+  await resend.emails.send({
     from: config.from,
     to,
-    subject,
-    text: `Hi ${recipientName}, thanks for choosing ${locationName}. Please share your feedback here: ${reviewUrl}`,
-    html,
+    subject: subject || `How was your experience with ${locationName}?`,
+    html: `
+      <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #0f172a; max-width: 600px; margin: 0 auto;">
+        <p style="font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase; color: #4f46e5; font-weight: 700;">Review Request</p>
+        <h1 style="font-size: 28px; line-height: 1.2; margin: 16px 0;">How was your experience with ${locationName}?</h1>
+        <p>Hi ${recipientName}, thanks for choosing ${locationName}. We'd really appreciate your feedback.</p>
+        <p>Please use the secure link below to rate your experience.</p>
+        <p style="margin: 32px 0;">
+          <a href="${reviewUrl}" style="display: inline-block; background: #0f172a; color: #ffffff; text-decoration: none; padding: 14px 20px; border-radius: 14px; font-weight: 700;">
+            Leave Feedback
+          </a>
+        </p>
+        <p style="font-size: 14px; color: #475569;">If the button doesn't work, copy and paste this link:</p>
+        <p style="font-size: 14px; color: #475569; word-break: break-all;">${reviewUrl}</p>
+        <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 32px 0;" />
+        <p style="font-size: 12px; color: #94a3b8;">Powered by WeHearYou</p>
+      </div>
+    `,
+  });
+}
+
+export async function sendVideoTestimonialRequestEmail({
+  to,
+  recipientName,
+  locationName,
+  recorderUrl,
+}: {
+  to: string;
+  recipientName: string;
+  locationName: string;
+  recorderUrl: string;
+}) {
+  const config = getResendConfig();
+
+  if (!config.apiKey) {
+    throw new Error("RESEND_API_KEY is not configured");
+  }
+
+  const resend = new Resend(config.apiKey);
+
+  await resend.emails.send({
+    from: config.from,
+    to,
+    subject: `Share your experience with ${locationName} on video`,
+    html: `
+      <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #0f172a; max-width: 600px; margin: 0 auto;">
+        <p style="font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase; color: #4f46e5; font-weight: 700;">Video Testimonial Request</p>
+        <h1 style="font-size: 28px; line-height: 1.2; margin: 16px 0;">We'd love to hear from you, ${recipientName}!</h1>
+        <p>Hi ${recipientName}, thanks for choosing ${locationName}. Would you mind recording a short video sharing your experience?</p>
+        <p>It only takes 30–60 seconds and means the world to us.</p>
+        <p style="margin: 32px 0;">
+          <a href="${recorderUrl}" style="display: inline-block; background: #4f46e5; color: #ffffff; text-decoration: none; padding: 14px 20px; border-radius: 14px; font-weight: 700;">
+            Record My Testimonial 🎥
+          </a>
+        </p>
+        <p style="font-size: 14px; color: #475569;">If the button doesn't work, copy and paste this link:</p>
+        <p style="font-size: 14px; color: #475569; word-break: break-all;">${recorderUrl}</p>
+        <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 32px 0;" />
+        <p style="font-size: 12px; color: #94a3b8;">Powered by WeHearYou</p>
+      </div>
+    `,
   });
 }
