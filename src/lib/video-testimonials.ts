@@ -61,14 +61,14 @@ export async function createVideoTestimonialToken(locationId: string) {
 
 export async function submitVideoTestimonial({
   token,
-  blobUrl,
+  videoUrl,
   mimeType,
   durationSeconds,
   submitterName,
   submitterEmail,
 }: {
   token: string;
-  blobUrl: string;
+  videoUrl: string;
   mimeType: string;
   durationSeconds?: number;
   submitterName?: string;
@@ -77,7 +77,7 @@ export async function submitVideoTestimonial({
   return prisma.videoTestimonial.update({
     where: { token },
     data: {
-      blobUrl,
+      videoUrl,
       mimeType,
       durationSeconds: durationSeconds ?? null,
       submitterName: submitterName ?? null,
