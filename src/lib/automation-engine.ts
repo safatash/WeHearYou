@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 import { AutomationStepType, AutomationTriggerType, CampaignStatus, ContactSource, PreferredChannel, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { sendReviewRequestEmail } from "@/lib/email";
+import { sendReviewRequestSMS, isSMSSendingConfigured } from "@/lib/sms";
 
 export type AutomationWebhookEventType = "appointment_completed" | "project_completed";
 
@@ -296,6 +297,22 @@ async function createCampaignFromStep({
       emailSubject,
       locationName: location.name,
     });
+  }
+
+  if (channel === PreferredChannel.SMS && isSMSSendingConfigured()) {
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+    for (const recipient of campaign.recipients) {
+      if (recipient.contact.phone) {
+        const reviewUrl = \`\${appUrl}/f/\${location.id}/\${recipient.token}\`;
+        await sendReviewRequestSMS({
+          to: recipient.contact.phone,
+          recipientName: recipient.contact.name,
+          locationName: location.name,
+          reviewUrl,
+          messageBody,
+        });
+      }
+    }
   }
 
   await prisma.contact.update({
