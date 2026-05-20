@@ -595,31 +595,3 @@ model VideoTestimonial {
   @@index([token])
   @@index([status])
 }
-
-
-enum VideoTestimonialStatus {
-  PENDING
-  PUBLISHED
-  REJECTED
-}
-
-model VideoTestimonial {
-  id              String                  @id @default(cuid())
-  locationId      String
-  token           String                  @unique
-  submitterName   String?
-  submitterEmail  String?
-  blobUrl         String?
-  mimeType        String?
-  durationSeconds Int?
-  status          VideoTestimonialStatus  @default(PENDING)
-  publishedAt     DateTime?
-  createdAt       DateTime                @default(now())
-  updatedAt       DateTime                @updatedAt
-
-  location        Location                @relation(fields: [locationId], references: [id], onDelete: Cascade)
-
-  @@index([locationId])
-  @@index([token])
-  @@index([status])
-}
