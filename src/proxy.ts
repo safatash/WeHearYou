@@ -11,7 +11,12 @@ export default auth((req) => {
     req.nextUrl.pathname.startsWith("/embed/") ||
     req.nextUrl.pathname.startsWith("/f/") ||
     req.nextUrl.pathname.startsWith("/r/") ||
-    req.nextUrl.pathname.startsWith("/b/");
+    req.nextUrl.pathname.startsWith("/b/") ||
+    req.nextUrl.pathname.startsWith("/api/webhooks/") ||
+    req.nextUrl.pathname.startsWith("/api/cron") ||
+    req.nextUrl.pathname.startsWith("/api/automation/") ||
+    req.nextUrl.pathname.startsWith("/vt/") ||
+    req.nextUrl.pathname.startsWith("/embed/vt/");
 
   if (!isLoggedIn && !isPublicPath) {
     const loginUrl = new URL("/login", req.nextUrl.origin);
