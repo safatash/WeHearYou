@@ -76,6 +76,12 @@ enum AutomationStepType {
   WEBHOOK
 }
 
+enum VideoTestimonialStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 model Organization {
   id                String                  @id @default(cuid())
   name              String
@@ -216,6 +222,7 @@ model Location {
   automationRuns        AutomationRun[]
   membershipAccess      MembershipLocationAccess[]
   reviewWidgets         ReviewWidget[]
+  videoTestimonials     VideoTestimonial[]
 
   @@unique([organizationId, slug])
   @@index([organizationId])
@@ -565,4 +572,25 @@ model LocationPublicProfile {
   location             Location    @relation(fields: [locationId], references: [id], onDelete: Cascade)
 
   @@index([customDomain])
+}
+
+model VideoTestimonial {
+  id              String                 @id @default(cuid())
+  locationId      String
+  token           String                 @unique
+  submitterName   String?
+  submitterEmail  String?
+  videoUrl        String?
+  mimeType        String?
+  durationSeconds Int?
+  status          VideoTestimonialStatus @default(PENDING)
+  publishedAt     DateTime?
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+
+  location        Location               @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  @@index([locationId])
+  @@index([token])
+  @@index([status])
 }
