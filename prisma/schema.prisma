@@ -95,7 +95,6 @@ model Organization {
   automations       Automation[]
   googleConnections GoogleAccountConnection[]
   reviewWidgets     ReviewWidget[]
-  videoTestimonials VideoTestimonial[]
 }
 
 model User {
