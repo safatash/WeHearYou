@@ -6,6 +6,8 @@ const MAX_DURATION_SECONDS = 90;
 const MAX_FILE_SIZE_BYTES = 150 * 1024 * 1024; // 150MB
 const ALLOWED_MIME_TYPES = new Set(["video/webm", "video/mp4", "video/quicktime"]);
 
+export const maxDuration = 60;
+
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
@@ -71,9 +73,3 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Upload failed. Please try again." }, { status: 500 });
   }
 }
-
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-};
