@@ -107,7 +107,7 @@ export default async function LocationDetailPage({
               </Link>
             </div>
 
-            <form action={saveLocationSettings} className="mt-6 space-y-8">
+            <form action={saveLocationSettings} encType="multipart/form-data" className="mt-6 space-y-8">
               <input type="hidden" name="locationId" value={location.id} />
 
               <div className="space-y-4">

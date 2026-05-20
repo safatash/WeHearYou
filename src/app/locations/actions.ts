@@ -51,6 +51,10 @@ function redirectToNewLocationError(message: string): never {
   redirect(`/locations/new?error=${encodeURIComponent(message)}`);
 }
 
+function redirectToLocationSettingsError(locationId: string, message: string): never {
+  redirect(`/locations/${locationId}?flash=${encodeURIComponent(message)}&tone=error`);
+}
+
 async function requireGoogleConnectionForOrganization(googleConnectionId: string, organizationId: string) {
   const connection = await prisma.googleAccountConnection.findFirst({
     where: {
@@ -69,23 +73,32 @@ async function requireGoogleConnectionForOrganization(googleConnectionId: string
   return connection;
 }
 
-async function saveUploadedLogo(file: File | null, locationId: string) {
+const MAX_LOCATION_IMAGE_UPLOAD_SIZE_BYTES = 20 * 1024 * 1024;
+
+async function saveUploadedLocationImage(file: File | null, locationId: string, imageKind: "logo" | "hero") {
   if (!file || file.size === 0) {
     return null;
   }
 
-  const allowedTypes = new Set(["image/png", "image/jpeg", "image/webp", "image/svg+xml"]);
+  const allowedTypes =
+    imageKind === "logo"
+      ? new Set(["image/png", "image/jpeg", "image/webp", "image/svg+xml"])
+      : new Set(["image/png", "image/jpeg", "image/webp"]);
 
   if (!allowedTypes.has(file.type)) {
-    throw new Error("Logo must be a PNG, JPG, WEBP, or SVG file");
+    throw new Error(imageKind === "logo" ? "Logo must be a PNG, JPG, WEBP, or SVG file." : "Cover image must be a PNG, JPG, or WEBP file.");
+  }
+
+  if (file.size > MAX_LOCATION_IMAGE_UPLOAD_SIZE_BYTES) {
+    throw new Error("Image must be smaller than 20MB.");
   }
 
   const extension = file.name.includes(".") ? file.name.split(".").pop()?.toLowerCase() : "png";
   const safeExtension = extension && /^[a-z0-9]+$/.test(extension) ? extension : "png";
-  const filename = `uploads/logos/${locationId}-${Date.now()}.${safeExtension}`;
+  const filename = `uploads/${imageKind}s/${locationId}-${Date.now()}.${safeExtension}`;
 
   const { put } = await import("@vercel/blob");
-  const blob = await put(filename, file, { access: "public" });
+  const blob = await put(filename, file, { access: "public", contentType: file.type });
 
   return blob.url;
 }
@@ -714,12 +727,18 @@ export async function saveLocationSettings(formData: FormData) {
     throw new Error("Location name, city, and state are required");
   }
 
-  if (uploadedLogo instanceof File && uploadedLogo.size > 0) {
-    logoUrl = await saveUploadedLogo(uploadedLogo, locationId);
-  }
+  try {
+    if (uploadedLogo instanceof File && uploadedLogo.size > 0) {
+      logoUrl = await saveUploadedLocationImage(uploadedLogo, locationId, "logo");
+    }
 
-  if (uploadedHero instanceof File && uploadedHero.size > 0) {
-    heroImageUrl = await saveUploadedLogo(uploadedHero, locationId + "-hero");
+    if (uploadedHero instanceof File && uploadedHero.size > 0) {
+      heroImageUrl = await saveUploadedLocationImage(uploadedHero, `${locationId}-hero`, "hero");
+    }
+  } catch (error) {
+    console.error("Location image upload failed:", error);
+    const message = error instanceof Error ? error.message : "Image upload failed. Please try again.";
+    redirectToLocationSettingsError(locationId, message);
   }
 
   const nextSlug = await createUniqueLocationSlug(location.organizationId, name, location.id);
