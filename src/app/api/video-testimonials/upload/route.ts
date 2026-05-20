@@ -4,7 +4,6 @@ import { prisma } from "@/lib/prisma";
 
 const MAX_DURATION_SECONDS = 90;
 const MAX_FILE_SIZE_BYTES = 150 * 1024 * 1024; // 150MB
-const ALLOWED_MIME_TYPES = new Set(["video/webm", "video/mp4", "video/quicktime"]);
 
 export const maxDuration = 60;
 
@@ -29,7 +28,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Video file is too large (max 150MB)" }, { status: 400 });
     }
 
-    if (!ALLOWED_MIME_TYPES.has(videoFile.type)) {
+    if (!videoFile.type.startsWith("video/")) {
       return NextResponse.json({ error: "Unsupported video format" }, { status: 400 });
     }
 
