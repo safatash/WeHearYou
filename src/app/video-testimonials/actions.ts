@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { requireLocationAccess, requireActiveMembership } from "@/lib/authz";
+import { requireLocationAccess, requireActiveMembershipPage } from "@/lib/authz";
 
 export async function generateVideoTestimonialLink(formData: FormData) {
   const locationId = String(formData.get("locationId") ?? "").trim();
@@ -88,7 +88,7 @@ export async function deleteVideoTestimonial(formData: FormData) {
 }
 
 export async function getVideoTestimonialsForOrg() {
-  const membership = await requireActiveMembership();
+  const membership = await requireActiveMembershipPage();
 
   const locations = await prisma.location.findMany({
     where: { organizationId: membership.organizationId },
