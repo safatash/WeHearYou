@@ -95,14 +95,14 @@ export default async function LocationDetailPage({
           <StatCard title="Last Synced" value={lastSyncedLabel} meta={lastSyncedMeta} />
         </div>
 
-        <div className="grid gap-6 xl:grid-cols-5 xl:items-start">
-          <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm xl:col-span-3">
+        <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+          <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
             <div className="flex items-center justify-between gap-4">
               <div>
                 <h3 className="text-xl font-semibold text-slate-950">Location Settings</h3>
                 <p className="mt-2 text-sm text-slate-600">Manage both the business record and customer-facing mini-site from one place.</p>
               </div>
-              <Link href={`/b/${location.slug}`} target="_blank" rel="noreferrer" className="shrink-0 text-sm font-semibold text-indigo-600">
+              <Link href={`/b/${location.slug}`} target="_blank" rel="noreferrer" className="text-sm font-semibold text-indigo-600">
                 View mini-site
               </Link>
             </div>
@@ -340,7 +340,7 @@ export default async function LocationDetailPage({
             </form>
           </section>
 
-          <aside className="space-y-6 xl:col-span-2 xl:sticky xl:top-6">
+          <aside className="space-y-6">
             <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
               <h3 className="text-xl font-semibold text-slate-950">Performance Snapshot</h3>
               <div className="mt-6 space-y-4">
