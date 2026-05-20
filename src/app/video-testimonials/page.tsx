@@ -1,4 +1,5 @@
-feat: add video testimonials dashboard page
+export const dynamic = "force-dynamic";
+
 import { AppShell } from "@/components/app-shell";
 import { FormSubmitButton } from "@/components/form-submit-button";
 import { requireActiveMembershipPage } from "@/lib/page-guards";
