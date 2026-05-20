@@ -68,7 +68,7 @@ export default async function NewCampaignPage() {
                 </label>
                 <fieldset className="grid gap-3 text-sm font-semibold text-slate-700">
                   <legend>Request Channels</legend>
-                  <div className="grid gap-3 md:grid-cols-2">
+                  <div className="grid gap-3 md:grid-cols-3">
                     <label className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm font-semibold text-slate-700">
                       <input type="checkbox" name="channels" value="SMS" defaultChecked className="h-4 w-4" />
                       Send SMS requests
@@ -76,6 +76,10 @@ export default async function NewCampaignPage() {
                     <label className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm font-semibold text-slate-700">
                       <input type="checkbox" name="channels" value="EMAIL" className="h-4 w-4" />
                       Send email requests
+                    </label>
+                    <label className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm font-semibold text-slate-700">
+                      <input type="checkbox" name="channels" value="VIDEO_TESTIMONIAL" className="h-4 w-4" />
+                      Video testimonial link
                     </label>
                   </div>
                 </fieldset>
