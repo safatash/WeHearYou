@@ -12,6 +12,7 @@ export type ScreenKey =
   | "analytics"
   | "integrations"
   | "widgets"
+  | "video-testimonials"
   | "settings";
 
 export const navItems: { key: ScreenKey; label: string; icon: string; href: string }[] = [
@@ -28,5 +29,6 @@ export const navItems: { key: ScreenKey; label: string; icon: string; href: stri
   { key: "analytics", label: "Analytics", icon: "◔", href: "/analytics" },
   { key: "integrations", label: "Integrations", icon: "⟗", href: "/integrations" },
   { key: "widgets", label: "Widgets", icon: "▣", href: "/widgets" },
+  { key: "video-testimonials", label: "Video Testimonials", icon: "▶", href: "/video-testimonials" },
   { key: "settings", label: "Settings", icon: "⚙", href: "/settings" },
 ];
