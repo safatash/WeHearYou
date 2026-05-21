@@ -4,7 +4,7 @@ import Link from "next/link";
 import { syncGoogleReviewsFromLocationsList } from "@/app/locations/actions";
 import { AppShell } from "@/components/app-shell";
 import { FormSubmitButton } from "@/components/form-submit-button";
-import { Field, StatCard } from "@/components/ui";
+import { StatCard } from "@/components/ui";
 import { buildGoogleLastSyncResultSummary, buildGoogleSyncSummary, buildLocationSyncErrorMessage } from "@/lib/google-sync-summary";
 import { formatRelativeSyncTime, getLocationPortfolioStats, getLocations } from "@/lib/locations";
 import { getCurrentAccessibleLocationIds } from "@/lib/current-scope";
@@ -63,7 +63,7 @@ export default async function LocationsPage({ searchParams }: { searchParams?: P
           <StatCard title="Portfolio Rating" value={portfolio.portfolioRating} meta="Average reputation across portfolio" />
         </div>
 
-        <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
+        <div>
           <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
             <div className="flex items-center justify-between">
               <h3 className="text-xl font-semibold text-slate-950">Locations</h3>
@@ -181,16 +181,6 @@ export default async function LocationsPage({ searchParams }: { searchParams?: P
               ))}
             </div>
           </section>
-
-          <aside className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h3 className="text-xl font-semibold text-slate-950">Location Defaults</h3>
-            <div className="mt-6 space-y-4">
-              <Field label="Brand Group" value="Nova Dental" />
-              <Field label="Default Request Delay" value="2 hours after completion" />
-              <Field label="Fallback Review Channel" value="Google Business Profile" />
-              <Field label="Escalation Rule" value="Low ratings notify location manager and agency admin" multiline />
-            </div>
-          </aside>
         </div>
       </div>
     </AppShell>

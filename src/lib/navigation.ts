@@ -3,32 +3,44 @@ export type ScreenKey =
   | "contacts"
   | "reviews"
   | "campaigns"
-  | "automation"
-  | "funnel-preview"
-  | "funnel-builder"
   | "campaign-wizard"
+  | "funnel-builder"
   | "locations"
-  | "team"
-  | "analytics"
-  | "integrations"
   | "widgets"
   | "video-testimonials"
-  | "settings";
+  | "automation"
+  | "team"
+  | "analytics"
+  | "integrations";
 
-export const navItems: { key: ScreenKey; label: string; icon: string; href: string }[] = [
+export interface NavItem {
+  key: ScreenKey;
+  label: string;
+  icon: string;
+  href: string;
+  group?: string;
+}
+
+export const navItems: NavItem[] = [
   { key: "dashboard", label: "Dashboard", icon: "◫", href: "/" },
-  { key: "contacts", label: "Contacts", icon: "☰", href: "/contacts" },
-  { key: "reviews", label: "Reviews Inbox", icon: "✦", href: "/reviews" },
-  { key: "campaigns", label: "Review Requests", icon: "➜", href: "/campaigns" },
-  { key: "automation", label: "Automation", icon: "⟲", href: "/automation" },
-  { key: "funnel-preview", label: "Funnel Page", icon: "◎", href: "/funnel-preview" },
-  { key: "funnel-builder", label: "Funnel Builder", icon: "⌘", href: "/funnel-builder" },
-  { key: "campaign-wizard", label: "Campaign Wizard", icon: "✦", href: "/campaign-wizard" },
-  { key: "locations", label: "Locations", icon: "⌂", href: "/locations" },
-  { key: "team", label: "Team & Access", icon: "♟", href: "/team" },
-  { key: "analytics", label: "Analytics", icon: "◔", href: "/analytics" },
-  { key: "integrations", label: "Integrations", icon: "⟗", href: "/integrations" },
-  { key: "widgets", label: "Widgets", icon: "▣", href: "/widgets" },
-  { key: "video-testimonials", label: "Video Testimonials", icon: "▶", href: "/video-testimonials" },
-  { key: "settings", label: "Settings", icon: "⚙", href: "/settings" },
+
+  // Requests & Feedback
+  { key: "contacts", label: "Contacts", icon: "☰", href: "/contacts", group: "REQUESTS & FEEDBACK" },
+  { key: "campaigns", label: "Review Requests", icon: "➜", href: "/campaigns", group: "REQUESTS & FEEDBACK" },
+  { key: "reviews", label: "Reviews Inbox", icon: "✦", href: "/reviews", group: "REQUESTS & FEEDBACK" },
+
+  // Funnel Setup
+  { key: "campaign-wizard", label: "Campaign Wizard", icon: "✨", href: "/campaign-wizard", group: "FUNNEL SETUP" },
+  { key: "funnel-builder", label: "Funnel Builder", icon: "⌘", href: "/funnel-builder", group: "FUNNEL SETUP" },
+
+  // Website Displays
+  { key: "locations", label: "Locations", icon: "⌂", href: "/locations", group: "WEBSITE DISPLAYS" },
+  { key: "widgets", label: "Widgets", icon: "▣", href: "/widgets", group: "WEBSITE DISPLAYS" },
+  { key: "video-testimonials", label: "Video Testimonials", icon: "▶", href: "/video-testimonials", group: "WEBSITE DISPLAYS" },
+
+  // Settings
+  { key: "automation", label: "Automation", icon: "⟲", href: "/automation", group: "SETTINGS" },
+  { key: "integrations", label: "Integrations", icon: "⟗", href: "/integrations", group: "SETTINGS" },
+  { key: "team", label: "Team & Access", icon: "♟", href: "/team", group: "SETTINGS" },
+  { key: "analytics", label: "Analytics", icon: "◔", href: "/analytics", group: "SETTINGS" },
 ];

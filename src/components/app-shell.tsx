@@ -37,37 +37,93 @@ export async function AppShell({
               <h1 className="text-lg font-semibold text-slate-950">Reputation OS</h1>
             </div>
           </div>
-          <p className="mt-5 px-1 text-sm leading-6 text-slate-500">
-            This prototype is shaped around the plugin logic, tokenized funnel flow, request campaigns, and automation rules you already built.
-          </p>
         </div>
 
-        <nav className="mt-8 space-y-1">
-          {navItems.map((item) => {
-            const active = item.key === activeScreen;
-            return (
-              <Link
-                key={item.key}
-                href={item.href}
-                className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-medium transition ${
-                  active
-                    ? "bg-slate-950 text-white shadow-sm"
-                    : "text-slate-600 hover:bg-slate-100 hover:text-slate-950"
-                }`}
-              >
-                <span className={`text-base ${active ? "text-white" : "text-current"}`}>{item.icon}</span>
-                <span className={active ? "text-white" : "text-current"}>{item.label}</span>
-              </Link>
+        <nav className="mt-8 space-y-6">
+          {/* Group items by their group property */}
+          {(() => {
+            const grouped = navItems.reduce(
+              (acc, item) => {
+                const groupName = item.group || "OTHER";
+                if (!acc[groupName]) acc[groupName] = [];
+                acc[groupName].push(item);
+                return acc;
+              },
+              {} as Record<string, typeof navItems>
             );
-          })}
+
+            // Maintain order: dashboard first, then groups in order
+            const orderedGroups = [
+              "REQUESTS & FEEDBACK",
+              "FUNNEL SETUP",
+              "WEBSITE DISPLAYS",
+              "SETTINGS",
+            ];
+
+            return (
+              <>
+                {/* Dashboard - no group */}
+                {navItems
+                  .filter((item) => !item.group)
+                  .map((item) => {
+                    const active = item.key === activeScreen;
+                    return (
+                      <Link
+                        key={item.key}
+                        href={item.href}
+                        className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-medium transition ${
+                          active
+                            ? "bg-slate-950 text-white shadow-sm"
+                            : "text-slate-600 hover:bg-slate-100 hover:text-slate-950"
+                        }`}
+                      >
+                        <span className={`text-base ${active ? "text-white" : "text-current"}`}>
+                          {item.icon}
+                        </span>
+                        <span className={active ? "text-white" : "text-current"}>{item.label}</span>
+                      </Link>
+                    );
+                  })}
+
+                {/* Grouped items */}
+                {orderedGroups.map((groupName) => {
+                  const items = grouped[groupName] || [];
+                  if (items.length === 0) return null;
+
+                  return (
+                    <div key={groupName}>
+                      <p className="px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">
+                        {groupName}
+                      </p>
+                      <div className="space-y-1">
+                        {items.map((item) => {
+                          const active = item.key === activeScreen;
+                          return (
+                            <Link
+                              key={item.key}
+                              href={item.href}
+                              className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-medium transition ${
+                                active
+                                  ? "bg-slate-950 text-white shadow-sm"
+                                  : "text-slate-600 hover:bg-slate-100 hover:text-slate-950"
+                              }`}
+                            >
+                              <span className={`text-base ${active ? "text-white" : "text-current"}`}>
+                                {item.icon}
+                              </span>
+                              <span className={active ? "text-white" : "text-current"}>{item.label}</span>
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </>
+            );
+          })()}
         </nav>
 
-        <div className="mt-auto rounded-[28px] border border-slate-200 bg-slate-50/80 p-4 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Product Direction</p>
-          <p className="mt-2 text-sm text-slate-600">
-            Standalone SaaS evolution of ReviewRamp, keeping the useful parts, dropping the rough edges, and presenting the better product version.
-          </p>
-        </div>
       </aside>
 
       <div className="flex min-h-screen flex-1 flex-col">
