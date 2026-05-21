@@ -48,28 +48,8 @@ const FONT_STACKS: Record<string, string> = {
   serif: "Georgia, 'Times New Roman', serif",
 };
 
-function fontStack(fontFamily?: string) {
-  if (!fontFamily) return FONT_STACKS.system;
-  return FONT_STACKS[fontFamily] ?? FONT_STACKS.system;
-}
-
-function stars(rating: number) {
-  return "★".repeat(Math.max(0, Math.min(5, rating))) + "☆".repeat(Math.max(0, 5 - rating));
-}
-
-function formatDate(value?: string | null) {
-  if (!value) return "";
-  try {
-    return new Date(value).toLocaleDateString();
-  } catch {
-    return "";
-  }
-}
-
-function truncate(body: string, maxChars: number) {
-  if (maxChars <= 0 || body.length <= maxChars) return body;
-  const cut = body.slice(0, maxChars).trimEnd();
-  return cut.endsWith(".") ? `${cut}..` : `${cut}…`;
+function fontStack(family: string) {
+  return FONT_STACKS[family] || FONT_STACKS.system;
 }
 
 function ReviewHeader({
@@ -84,39 +64,36 @@ function ReviewHeader({
   mutedColor,
 }: {
   businessName: string;
-  avgRating: number | null | undefined;
+  avgRating?: number | null;
   reviewCount: number;
-  showAvgRating: boolean;
-  showReviewCount: boolean;
-  headerAlign: string;
+  showAvgRating?: boolean;
+  showReviewCount?: boolean;
+  headerAlign?: string;
   starColor: string;
   textColor: string;
   mutedColor: string;
 }) {
-  const align =
-    headerAlign === "center" ? "items-center text-center" : "items-start text-left";
-  const ratingNum = typeof avgRating === "number" ? avgRating.toFixed(1) : null;
+  if (!showAvgRating && !showReviewCount) return null;
 
   return (
-    <div className={`mb-4 flex flex-col gap-1 ${align}`}>
-      <p className="text-xl font-semibold" style={{ color: textColor }}>
-        {businessName}
-      </p>
-      <div className="flex flex-wrap items-center gap-2 text-sm" style={{ color: mutedColor }}>
-        {showAvgRating && ratingNum ? (
-          <span className="flex items-center gap-1">
-            <span style={{ color: starColor }}>{stars(Math.round(avgRating ?? 0))}</span>
-            <span style={{ color: textColor }} className="font-semibold">
-              {ratingNum}
-            </span>
-          </span>
-        ) : null}
-        {showReviewCount && reviewCount > 0 ? (
-          <span>
-            Based on {reviewCount} review{reviewCount === 1 ? "" : "s"}
-          </span>
-        ) : null}
-      </div>
+    <div style={{ textAlign: (headerAlign as "left" | "center" | undefined) || "left" }}>
+      {showAvgRating && (
+        <>
+          <div className="mb-3 mt-0 flex items-center gap-2" style={{ justifyContent: headerAlign === "center" ? "center" : "flex-start" }}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <text x="2" y="18" fontSize="14" fontWeight="bold" fill="#1f2937">G</text>
+            </svg>
+            <p className="text-sm font-bold" style={{ color: textColor, margin: 0 }}>
+              Google Reviews
+            </p>
+          </div>
+          <p className="mb-3 mt-0 flex flex-row items-center gap-2" style={{ justifyContent: headerAlign === "center" ? "center" : "flex-start" }}>
+            <span style={{ fontSize: "1.5em", fontWeight: "bold" }}>{avgRating?.toFixed(1) || "0"}</span>
+            <span style={{ color: starColor }}>{'★'.repeat(Math.round(avgRating || 0))}</span>
+            {showReviewCount && <span style={{ color: mutedColor }}>({reviewCount})</span>}
+          </p>
+        </>
+      )}
     </div>
   );
 }
@@ -144,127 +121,41 @@ function ReviewCard({
   mutedColor: string;
   primaryColor: string;
 }) {
-  const body = truncate(review.body, bodyMaxChars);
+  const truncatedBody = review.body.length > bodyMaxChars ? `${review.body.substring(0, bodyMaxChars)}...` : review.body;
+  const reviewDate = review.reviewedAt ? new Date(review.reviewedAt).toLocaleDateString() : null;
 
   return (
-    <article
-      className="flex h-full flex-col gap-2 rounded-2xl border p-4"
-      style={{ borderColor: "rgba(0,0,0,0.08)", color: textColor }}
-    >
-      {showRating ? (
-        <div className="text-sm" style={{ color: starColor }}>
-          {stars(review.rating)}
-        </div>
-      ) : null}
-      {showReviewerName ? (
-        <div className="flex items-center gap-3">
-          {review.reviewerPhotoUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={review.reviewerPhotoUrl}
-              alt={review.reviewerName}
-              className="h-8 w-8 rounded-full object-cover"
-            />
-          ) : (
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-200 text-xs font-semibold text-slate-600">
-              {review.reviewerName.slice(0, 1).toUpperCase()}
-            </div>
-          )}
-          <div className="font-semibold" style={{ color: textColor }}>
-            {review.reviewerName}
-          </div>
-        </div>
-      ) : null}
-      <div className="text-sm leading-6" style={{ color: mutedColor }}>
-        {body}
-      </div>
-      {showResponses && review.sourceReplyText ? (
-        <div
-          className="mt-2 rounded-2xl bg-black/5 p-3 text-xs leading-5"
-          style={{ color: mutedColor }}
-        >
-          <span className="font-semibold" style={{ color: textColor }}>
-            Owner reply:
-          </span>{" "}
-          {review.sourceReplyText}
-        </div>
-      ) : null}
-      <div className="mt-auto flex items-center justify-between gap-3 pt-2">
-        {showDate && review.reviewedAt ? (
-          <div className="text-xs" style={{ color: mutedColor }}>
-            {formatDate(review.reviewedAt)}
-          </div>
-        ) : (
-          <div />
+    <div className="rounded-2xl border border-slate-200 p-4">
+      {showRating && (
+        <p className="mb-2 mt-0 flex gap-1">
+          {[...Array(5)].map((_, i) => (
+            <span key={i} style={{ color: i < Math.round(review.rating) ? starColor : mutedColor }}>
+              ★
+            </span>
+          ))}
+        </p>
+      )}
+
+      <p className="mb-2 mt-0 text-sm" style={{ color: textColor }}>
+        {truncatedBody}
+      </p>
+
+      <div className="flex flex-col gap-2 text-xs" style={{ color: mutedColor }}>
+        {showReviewerName && review.reviewerName && (
+          <p className="m-0 flex gap-2">
+            {review.reviewerPhotoUrl && <img src={review.reviewerPhotoUrl} className="h-6 w-6 rounded-full object-cover" alt="" />}
+            <span>{review.reviewerName}</span>
+          </p>
         )}
-        {review.sourceReviewUrl ? (
-          <a
-            href={review.sourceReviewUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="text-xs font-semibold"
-            style={{ color: primaryColor }}
-          >
-            View on Google
-          </a>
-        ) : null}
+        {showDate && reviewDate && <p className="m-0">{reviewDate}</p>}
       </div>
-    </article>
-  );
-}
 
-function SliderLayout({ children }: { children: React.ReactNode[] }) {
-  const trackRef = useRef<HTMLDivElement | null>(null);
-  const [index, setIndex] = useState(0);
-  const count = children.length;
-
-  function scrollTo(i: number) {
-    const target = Math.max(0, Math.min(count - 1, i));
-    setIndex(target);
-    const track = trackRef.current;
-    if (!track) return;
-    const card = track.children[target] as HTMLElement | undefined;
-    if (card) {
-      track.scrollTo({ left: card.offsetLeft, behavior: "smooth" });
-    }
-  }
-
-  return (
-    <div className="space-y-3 overflow-hidden">
-      <div
-        ref={trackRef}
-        className="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2"
-        style={{ scrollbarWidth: "thin" }}
-      >
-        {children.map((child, i) => (
-          <div key={i} className="min-w-[80%] snap-start sm:min-w-[55%] md:min-w-[40%]">
-            {child}
-          </div>
-        ))}
-      </div>
-      {count > 1 ? (
-        <div className="flex items-center justify-center gap-2">
-          <button
-            type="button"
-            onClick={() => scrollTo(index - 1)}
-            disabled={index === 0}
-            className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600 disabled:opacity-40"
-          >
-            ‹
-          </button>
-          <span className="text-xs text-slate-500">
-            {Math.min(index + 1, count)} / {count}
-          </span>
-          <button
-            type="button"
-            onClick={() => scrollTo(index + 1)}
-            disabled={index >= count - 1}
-            className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600 disabled:opacity-40"
-          >
-            ›
-          </button>
+      {showResponses && review.sourceReplyText && (
+        <div className="mt-2 rounded-lg bg-slate-50 p-2 text-xs" style={{ color: mutedColor }}>
+          <p className="m-0 font-semibold">Owner response</p>
+          <p className="m-0 mt-1">{review.sourceReplyText}</p>
         </div>
-      ) : null}
+      )}
     </div>
   );
 }
@@ -280,7 +171,7 @@ function BadgeLayout({
   primaryColor,
 }: {
   businessName: string;
-  avgRating: number | null | undefined;
+  avgRating?: number | null;
   reviewCount: number;
   reviewLink?: string | null;
   starColor: string;
@@ -288,45 +179,94 @@ function BadgeLayout({
   mutedColor: string;
   primaryColor: string;
 }) {
-  const ratingNum = typeof avgRating === "number" ? avgRating.toFixed(1) : null;
-
-  const inner = (
-    <div className="inline-flex items-center gap-3 rounded-full border border-slate-200 bg-white px-4 py-2 shadow-sm">
-      <span className="text-lg font-bold" style={{ color: textColor }}>
-        {ratingNum ?? "—"}
-      </span>
-      <span style={{ color: starColor }} className="text-base">
-        {stars(Math.round(avgRating ?? 0))}
-      </span>
-      <span className="text-xs" style={{ color: mutedColor }}>
-        <span className="font-semibold" style={{ color: textColor }}>
-          {businessName}
-        </span>
-        {reviewCount > 0 ? (
-          <>
-            {" · "}
-            {reviewCount} review{reviewCount === 1 ? "" : "s"}
-          </>
-        ) : null}
-      </span>
+  return (
+    <div className="rounded-2xl border border-slate-300 p-4 text-center">
+      <p className="mb-2 text-sm font-semibold" style={{ color: textColor }}>
+        {businessName}
+      </p>
+      <p className="mb-3 flex items-center justify-center gap-2">
+        <span style={{ fontSize: "1.25em" }}>{avgRating?.toFixed(1) || "0"}</span>
+        <span style={{ color: starColor }}>{'★'.repeat(Math.round(avgRating || 0))}</span>
+        <span style={{ color: mutedColor, fontSize: "0.875em" }}>({reviewCount})</span>
+      </p>
+      {reviewLink && (
+        <a href={reviewLink} target="_blank" rel="noreferrer" className="text-xs font-semibold" style={{ color: primaryColor }}>
+          Write a review
+        </a>
+      )}
     </div>
   );
+}
 
-  if (reviewLink) {
-    return (
-      <a
-        href={reviewLink}
-        target="_blank"
-        rel="noreferrer"
-        className="no-underline"
-        style={{ color: primaryColor }}
-      >
-        {inner}
-      </a>
-    );
-  }
+function SliderLayout({ children }: { children: React.ReactNode[] }) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(true);
 
-  return inner;
+  const checkScroll = () => {
+    if (scrollRef.current) {
+      setCanScrollLeft(scrollRef.current.scrollLeft > 0);
+      setCanScrollRight(scrollRef.current.scrollLeft < scrollRef.current.scrollWidth - scrollRef.current.clientWidth);
+    }
+  };
+
+  const scroll = (direction: "left" | "right") => {
+    if (scrollRef.current) {
+      const amount = 300;
+      scrollRef.current.scrollBy({
+        left: direction === "left" ? -amount : amount,
+        behavior: "smooth",
+      });
+      setTimeout(checkScroll, 100);
+    }
+  };
+
+  return (
+    <div className="relative">
+      <div ref={scrollRef} className="flex gap-3 overflow-x-auto scrollbar-hide" onScroll={checkScroll}>
+        {children}
+      </div>
+      {canScrollLeft && (
+        <button onClick={() => scroll("left")} className="absolute left-0 top-1/2 -translate-y-1/2 z-10 rounded-full bg-slate-900 p-2 text-white hover:bg-slate-800">
+          ←
+        </button>
+      )}
+      {canScrollRight && (
+        <button onClick={() => scroll("right")} className="absolute right-0 top-1/2 -translate-y-1/2 z-10 rounded-full bg-slate-900 p-2 text-white hover:bg-slate-800">
+          →
+        </button>
+      )}
+    </div>
+  );
+}
+
+function CarouselLayout({ cards }: { cards: React.ReactNode[] }) {
+  const [index, setIndex] = useState(0);
+  if (cards.length === 0) return null;
+
+  const goToPrevious = () => setIndex((i) => (i - 1 + cards.length) % cards.length);
+  const goToNext = () => setIndex((i) => (i + 1) % cards.length);
+
+  return (
+    <div>
+      <div className="relative flex items-center justify-center gap-4 min-h-[280px]">
+        <button onClick={goToPrevious} className="absolute left-0 z-10 p-2 rounded-full hover:bg-slate-200 transition text-lg">
+          ←
+        </button>
+        <div className="flex-1 flex justify-center">
+          {cards[index]}
+        </div>
+        <button onClick={goToNext} className="absolute right-0 z-10 p-2 rounded-full hover:bg-slate-200 transition text-lg">
+          →
+        </button>
+      </div>
+      <div className="flex justify-center gap-2 mt-4">
+        {cards.map((_, i) => (
+          <button key={i} onClick={() => setIndex(i)} className={`w-2 h-2 rounded-full transition ${i === index ? "bg-slate-900" : "bg-slate-300"}`} />
+        ))}
+      </div>
+    </div>
+  );
 }
 
 export function ReviewWidgetPreview({
@@ -335,7 +275,7 @@ export function ReviewWidgetPreview({
   reviewCount,
   reviews,
   layout = "grid",
-  showHeader,
+  showHeader = true,
   showAvgRating = true,
   showReviewCount = true,
   headerAlign = "left",
@@ -353,7 +293,7 @@ export function ReviewWidgetPreview({
   reviewLink,
 }: ReviewWidgetPreviewProps) {
   const mutedColor = "#475569";
-  const safeLayout = ["grid", "list", "slider", "badge"].includes(layout) ? layout : "grid";
+  const safeLayout = ["grid", "list", "slider", "badge", "carousel", "masonry"].includes(layout) ? layout : "grid";
 
   if (safeLayout === "badge") {
     return (
@@ -427,6 +367,12 @@ export function ReviewWidgetPreview({
 
         {reviews.length === 0 ? (
           emptyState
+        ) : safeLayout === "carousel" ? (
+          <CarouselLayout cards={cards} />
+        ) : safeLayout === "masonry" ? (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 auto-rows-max">
+            {cards}
+          </div>
         ) : safeLayout === "list" ? (
           <div className="flex flex-col gap-3">{cards}</div>
         ) : safeLayout === "slider" ? (
