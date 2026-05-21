@@ -303,7 +303,7 @@ async function createCampaignFromStep({
     const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
     for (const recipient of campaign.recipients) {
       if (recipient.contact.phone) {
-        const reviewUrl = \`\${appUrl}/f/\${location.id}/\${recipient.token}\`;
+        const reviewUrl = `${appUrl}/f/${location.id}/${recipient.token}`;
         await sendReviewRequestSMS({
           to: recipient.contact.phone,
           recipientName: recipient.contact.name,
