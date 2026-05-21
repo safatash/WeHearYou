@@ -4,7 +4,7 @@ import { AppShell } from "@/components/app-shell";
 import { FormSubmitButton } from "@/components/form-submit-button";
 import { requireActiveMembershipPage } from "@/lib/page-guards";
 import { prisma } from "@/lib/prisma";
-import { generateVideoTestimonialLink, approveVideoTestimonial, rejectVideoTestimonial, deleteVideoTestimonial } from "./actions";
+import { generateVideoTestimonialLink, approveVideoTestimonial, rejectVideoTestimonial, deleteVideoTestimonial, sendVideoTestimonialRequest } from "./actions";
 
 function formatDuration(seconds: number | null) {
   if (!seconds) return null;
@@ -71,13 +71,13 @@ export default async function VideoTestimonialsPage() {
         </div>
 
         <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h3 className="text-lg font-semibold text-slate-950">Generate a Recording Link</h3>
-          <p className="mt-1 text-sm text-slate-600">Create a unique link for a customer to record their video testimonial. Each link is single-use.</p>
+          <h3 className="text-lg font-semibold text-slate-950">Send a Video Request</h3>
+          <p className="mt-1 text-sm text-slate-600">Send a customer a link to record a short video testimonial via SMS or email.</p>
           <div className="mt-4">
             {locations.length === 0 ? (
-              <p className="text-sm text-slate-500">Add a location first to generate video testimonial links.</p>
+              <p className="text-sm text-slate-500">Add a location first to send video testimonial requests.</p>
             ) : (
-              <form action={generateVideoTestimonialLink} className="flex flex-wrap items-end gap-3">
+              <form action={sendVideoTestimonialRequest} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 <div className="flex flex-col gap-1">
                   <label className="text-xs font-semibold text-slate-600">Location</label>
                   <select name="locationId" required className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100">
@@ -86,7 +86,28 @@ export default async function VideoTestimonialsPage() {
                     ))}
                   </select>
                 </div>
-                <FormSubmitButton idleLabel="Generate link" pendingLabel="Generating..." className="rounded-2xl bg-slate-950 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800" />
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-semibold text-slate-600">Customer Name</label>
+                  <input name="recipientName" required placeholder="Jane Smith" className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100" />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-semibold text-slate-600">Channel</label>
+                  <select name="channel" required className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100">
+                    <option value="EMAIL">Email</option>
+                    <option value="SMS">SMS</option>
+                  </select>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-semibold text-slate-600">Email</label>
+                  <input name="recipientEmail" type="email" placeholder="jane@example.com" className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100" />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-semibold text-slate-600">Phone (for SMS)</label>
+                  <input name="recipientPhone" type="tel" placeholder="+17031234567" className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100" />
+                </div>
+                <div className="flex items-end">
+                  <FormSubmitButton idleLabel="Send Request 🎥" pendingLabel="Sending..." className="w-full rounded-2xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700" />
+                </div>
               </form>
             )}
           </div>
