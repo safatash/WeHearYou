@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { createReviewWidget } from "@/app/widgets/actions";
 
 type Location = {
@@ -40,6 +41,7 @@ export function WidgetLayoutPicker({ locations }: WidgetLayoutPickerProps) {
   const [widgetName, setWidgetName] = useState("");
   const [locationId, setLocationId] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const eligibleLocations = locations.filter((l) => l.canCreateWidget);
 
@@ -56,13 +58,16 @@ export function WidgetLayoutPicker({ locations }: WidgetLayoutPickerProps) {
     e.preventDefault();
     if (!selectedLayout || !widgetName.trim() || !locationId) return;
     setIsSaving(true);
+    setErrorMessage(null);
     const formData = new FormData();
     formData.append("layout", selectedLayout);
     formData.append("name", widgetName.trim());
     formData.append("locationId", locationId);
     try {
       await createReviewWidget(formData);
-    } catch {
+    } catch (err) {
+      if (isRedirectError(err)) throw err;
+      setErrorMessage("Something went wrong. Please try again.");
       setIsSaving(false);
     }
   };
@@ -127,20 +132,30 @@ export function WidgetLayoutPicker({ locations }: WidgetLayoutPickerProps) {
               placeholder="Widget name (e.g. Main reviews widget)"
               className="flex-1 min-w-0 rounded-lg border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
             />
-            <select
-              required
-              value={locationId}
-              onChange={(e) => setLocationId(e.target.value)}
-              className="flex-1 min-w-0 rounded-lg border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-            >
-              <option value="">Choose a location…</option>
-              {eligibleLocations.map((loc) => (
-                <option key={loc.id} value={loc.id}>
-                  {loc.name} ({loc.reviewCount} reviews)
-                </option>
-              ))}
-            </select>
+            {eligibleLocations.length === 0 ? (
+              <p className="flex-1 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-4 py-2.5">
+                No eligible locations yet — sync Google reviews first.
+              </p>
+            ) : (
+              <select
+                required
+                value={locationId}
+                onChange={(e) => setLocationId(e.target.value)}
+                className="flex-1 min-w-0 rounded-lg border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+              >
+                <option value="">Choose a location…</option>
+                {eligibleLocations.map((loc) => (
+                  <option key={loc.id} value={loc.id}>
+                    {loc.name} ({loc.reviewCount} reviews)
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
+
+          {errorMessage && (
+            <p className="text-sm text-red-600 flex-shrink-0">{errorMessage}</p>
+          )}
 
           <div className="flex items-center gap-3 flex-shrink-0">
             <button
@@ -152,7 +167,7 @@ export function WidgetLayoutPicker({ locations }: WidgetLayoutPickerProps) {
             </button>
             <button
               type="submit"
-              disabled={isSaving || !widgetName.trim() || !locationId}
+              disabled={isSaving || !widgetName.trim() || !locationId || eligibleLocations.length === 0}
               className="rounded-lg bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 disabled:opacity-50 px-6 py-2.5 text-sm font-semibold text-white transition-all shadow-sm"
             >
               {isSaving ? "Creating…" : "Create Widget →"}
