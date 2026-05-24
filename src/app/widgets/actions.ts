@@ -12,7 +12,7 @@ export async function createReviewWidget(formData: FormData) {
 
   const ALLOWED_LAYOUTS = new Set(["grid", "list", "slider", "badge", "carousel", "masonry", "floating"]);
   const rawLayout = String(formData.get("layout") ?? "").trim();
-  const layout = ALLOWED_LAYOUTS.has(rawLayout) ? rawLayout : "slider";
+  const layout = ALLOWED_LAYOUTS.has(rawLayout) ? rawLayout : "grid";
 
   if (!membership) {
     throw new Error("Organization is required");
