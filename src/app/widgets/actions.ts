@@ -84,7 +84,7 @@ export async function updateReviewWidget(formData: FormData) {
 
   await requireOrganizationAccess(existing.organizationId);
 
-  const allowedLayouts = new Set(["grid", "list", "slider", "badge"]);
+  const allowedLayouts = new Set(["grid", "list", "slider", "badge", "carousel", "masonry", "floating"]);
   const allowedAligns = new Set(["left", "center"]);
   const allowedFonts = new Set(["system", "sans", "serif"]);
 
