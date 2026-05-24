@@ -33,8 +33,12 @@ The current flow (button → modal with name + location dropdown) gives no visua
 
 - `src/app/widgets/[id]/page.tsx` — customizer page
 - `src/components/widget-customizer.tsx` — customizer UI
-- `src/app/widgets/actions.ts` — `createReviewWidget` server action reused as-is
 - `src/lib/review-widgets.ts` — `getWidgetEligibleLocations` reused as-is
+
+### Small fixes required
+
+- `src/app/widgets/actions.ts` — `createReviewWidget` needs to read `layout` from formData and persist it on the new widget record
+- `src/app/widgets/actions.ts` — `updateReviewWidget` has `allowedLayouts = new Set(["grid", "list", "slider", "badge"])` — must be expanded to include all 7 layout values: `carousel`, `masonry`, `floating`
 
 ## Components
 
@@ -77,6 +81,7 @@ Cards are filtered by `activeTab`. Each renders:
 
 **Form submission:**
 - Calls `createReviewWidget(formData)` with `layout`, `name`, `locationId`
+- `createReviewWidget` must be updated to read and persist `layout` (defaults to `"slider"` if missing)
 - On success: redirects to `/widgets/[id]`
 - On error: logs to console (error handling can be improved later)
 
