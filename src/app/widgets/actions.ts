@@ -10,6 +10,10 @@ export async function createReviewWidget(formData: FormData) {
   const locationId = String(formData.get("locationId") ?? "").trim();
   const name = String(formData.get("name") ?? "").trim() || "Reviews Widget";
 
+  const ALLOWED_LAYOUTS = new Set(["grid", "list", "slider", "badge", "carousel", "masonry", "floating"]);
+  const rawLayout = String(formData.get("layout") ?? "").trim();
+  const layout = ALLOWED_LAYOUTS.has(rawLayout) ? rawLayout : "slider";
+
   if (!membership) {
     throw new Error("Organization is required");
   }
@@ -59,6 +63,7 @@ export async function createReviewWidget(formData: FormData) {
       organizationId,
       locationId,
       name,
+      layout,
       publicToken: generateReviewWidgetToken(),
     },
   });
