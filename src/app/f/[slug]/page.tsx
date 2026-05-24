@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { submitPublicFunnelRating } from "./actions";
+import { FunnelRatingForm } from "./funnel-rating-form";
 
 const liveRatingModes = {
   stars: [
@@ -52,25 +53,13 @@ export default async function PublicFunnelPage({ params }: { params: Promise<{ s
           {profile?.funnelPromptBody ?? profile?.subheadline ?? `Share a quick rating for ${location.name}. Happy customers can continue to a public review, while lower ratings stay private so the team can follow up directly.`}
         </p>
 
-        <div className="mt-8 rounded-3xl border border-slate-200 bg-white p-6">
-          <p className="text-sm font-semibold text-slate-700">Choose a rating</p>
-          <form action={submitPublicFunnelRating} className={`mt-4 grid gap-3 ${ratingMode === "stars" ? "sm:grid-cols-5" : ratingMode === "faces" ? "sm:grid-cols-3" : "sm:grid-cols-2"}`}>
-            <input type="hidden" name="slug" value={slug} />
-            {ratingOptions.map((option) => (
-              <button
-                key={`${ratingMode}-${option.value}`}
-                type="submit"
-                name="rating"
-                value={option.value}
-                className="rounded-3xl border border-slate-200 bg-slate-50 px-4 py-5 text-center transition hover:border-indigo-300 hover:bg-indigo-50"
-              >
-                <div className={`text-2xl ${ratingMode === "stars" ? "text-amber-400" : ""}`}>{ratingMode === "stars" ? option.icon.repeat(option.value) : option.icon}</div>
-                <div className="mt-2 text-sm font-semibold text-slate-700">{option.label}</div>
-                <div className="mt-1 text-xs text-slate-500">{option.value >= 4 ? "Public option" : "Private"}</div>
-              </button>
-            ))}
-          </form>
-        </div>
+        <FunnelRatingForm
+        slug={slug}
+        submitAction={submitPublicFunnelRating}
+        reviewLink={location.reviewLink}
+        filterEnabled={profile?.negativeFilterEnabled ?? false}
+        filterThreshold={profile?.negativeFilterThreshold ?? 4}
+      />
       </div>
     </main>
   );

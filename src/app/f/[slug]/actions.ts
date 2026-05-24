@@ -16,6 +16,7 @@ async function getLocationBySlug(slug: string) {
 export async function submitPublicFunnelRating(formData: FormData) {
   const slug = String(formData.get("slug") ?? "").trim();
   const ratingValue = Number(formData.get("rating"));
+  const feedback = String(formData.get("feedback") ?? "").trim();
 
   if (!slug || !Number.isInteger(ratingValue) || ratingValue < 1 || ratingValue > 5) {
     redirect(`/f/${slug}?error=invalid_rating`);
@@ -25,6 +26,23 @@ export async function submitPublicFunnelRating(formData: FormData) {
 
   if (!location) {
     redirect(`/f/${slug}?error=missing_location`);
+  }
+
+  // If feedback is provided, save it as private feedback
+  if (feedback && ratingValue < 4) {
+    await prisma.review.create({
+      data: {
+        locationId: location.id,
+        source: "INTERNAL",
+        reviewerName: "Anonymous customer",
+        rating: ratingValue,
+        status: "PRIVATE_FEEDBACK",
+        sentiment: ratingValue <= 2 ? "negative" : "neutral",
+        body: feedback,
+        reviewedAt: new Date(),
+      },
+    });
+    redirect(`/f/${slug}/thanks?rating=${ratingValue}&mode=private`);
   }
 
   const profile = location.publicProfile;

@@ -34,15 +34,24 @@ export default async function WidgetDetailPage({
     <AppShell activeScreen="widgets" flash={flash ? { message: flash, tone } : null}>
       <div className="space-y-8">
         {/* Header */}
-        <div>
+        <div className="border-b border-slate-200 pb-6">
           <p className="text-sm font-semibold uppercase tracking-[0.22em] text-indigo-600">Widget Customizer</p>
-          <h2 className="mt-2 text-4xl font-bold tracking-tight text-slate-950">{widget.name}</h2>
-          <p className="mt-2 text-slate-600">Location: <span className="font-semibold">{widget.location.name}</span></p>
-          <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-700">
-            <span className={widget.health.status === "healthy" ? "text-emerald-600" : "text-amber-600"}>
-              {widget.health.status === "healthy" ? "✓" : "⚠"}
-            </span>
-            {widget.health.status.replace("_", " ")}
+          <div className="mt-4 flex items-end justify-between gap-4">
+            <div>
+              <p className="text-sm text-slate-600 font-medium">Customizing</p>
+              <h2 className="mt-1 text-4xl font-bold tracking-tight text-slate-950">{widget.location.name}</h2>
+              <p className="mt-3 text-base text-slate-600">
+                <span className="font-medium text-slate-900">{widget.name}</span> widget
+              </p>
+            </div>
+            <div className="flex-shrink-0">
+              <div className={`flex items-center justify-center rounded-full p-3 ${widget.health.status === "healthy" ? "bg-emerald-100" : "bg-amber-100"}`}>
+                <span className="text-2xl">{widget.health.status === "healthy" ? "✓" : "⚠"}</span>
+              </div>
+              <p className="mt-2 text-xs font-semibold text-center uppercase tracking-wide text-slate-600">
+                {widget.health.status.replace("_", " ")}
+              </p>
+            </div>
           </div>
         </div>
 

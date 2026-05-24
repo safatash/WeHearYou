@@ -84,7 +84,20 @@ const script = `
       ".why-widget-badge{display:inline-flex;align-items:center;gap:10px;border:1px solid rgba(0,0,0,.08);background:#fff;border-radius:999px;padding:10px 16px;box-shadow:0 1px 2px rgba(0,0,0,.04);text-decoration:none}" +
       ".why-widget-badge-rating{font-size:18px;font-weight:700}" +
       ".why-widget-badge-stars{font-size:16px}" +
-      ".why-widget-badge-text{font-size:12px;opacity:.75}";
+      ".why-widget-badge-text{font-size:12px;opacity:.75}" +
+      ".why-widget-carousel{position:relative;display:flex;flex-direction:column;gap:16px}" +
+      ".why-widget-carousel-item{display:none}" +
+      ".why-widget-carousel-item.active{display:block}" +
+      ".why-widget-carousel-controls{display:flex;align-items:center;justify-content:center;gap:12px}" +
+      ".why-widget-carousel-btn{border:1px solid rgba(0,0,0,.1);background:#fff;border-radius:999px;width:32px;height:32px;cursor:pointer;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center;transition:all .2s}" +
+      ".why-widget-carousel-btn:hover{background:rgba(0,0,0,.05)}" +
+      ".why-widget-carousel-btn[disabled]{opacity:.4;cursor:not-allowed}" +
+      ".why-widget-carousel-pagination{display:flex;gap:6px;justify-content:center;align-items:center}" +
+      ".why-widget-carousel-dot{width:8px;height:8px;border-radius:999px;background:rgba(0,0,0,.2);cursor:pointer;transition:all .2s}" +
+      ".why-widget-carousel-dot.active{background:rgba(0,0,0,.8)}" +
+      ".why-widget-branding{margin-top:12px;text-align:center;font-size:12px;opacity:.6}" +
+      ".why-widget-branding a{color:inherit;text-decoration:none}" +
+      ".why-widget-branding a:hover{text-decoration:underline}";
     document.head.appendChild(style);
   }
 
@@ -195,6 +208,57 @@ const script = `
     update();
   }
 
+  function attachCarouselControls(carousel, itemCount) {
+    var currentIndex = 0;
+    var items = carousel.querySelectorAll(".why-widget-carousel-item");
+    var prev = carousel.querySelector(".why-widget-carousel-prev");
+    var next = carousel.querySelector(".why-widget-carousel-next");
+    var pagination = carousel.querySelector(".why-widget-carousel-pagination");
+
+    function updateView() {
+      items.forEach(function (item, idx) {
+        item.classList.toggle("active", idx === currentIndex);
+      });
+      if (pagination) {
+        var dots = pagination.querySelectorAll(".why-widget-carousel-dot");
+        dots.forEach(function (dot, idx) {
+          dot.classList.toggle("active", idx === currentIndex);
+        });
+      }
+      if (prev) prev.disabled = currentIndex === 0;
+      if (next) next.disabled = currentIndex === itemCount - 1;
+    }
+
+    if (prev) {
+      prev.addEventListener("click", function () {
+        if (currentIndex > 0) {
+          currentIndex--;
+          updateView();
+        }
+      });
+    }
+    if (next) {
+      next.addEventListener("click", function () {
+        if (currentIndex < itemCount - 1) {
+          currentIndex++;
+          updateView();
+        }
+      });
+    }
+
+    if (pagination) {
+      var dots = pagination.querySelectorAll(".why-widget-carousel-dot");
+      dots.forEach(function (dot, idx) {
+        dot.addEventListener("click", function () {
+          currentIndex = idx;
+          updateView();
+        });
+      });
+    }
+
+    updateView();
+  }
+
   async function init() {
     var scriptEl = currentScript();
     if (!scriptEl) return;
@@ -204,6 +268,20 @@ const script = `
     var mount = mountSelector ? document.querySelector(mountSelector) : null;
 
     if (!token || !mount) return;
+
+    // Extract optional data attributes for configuration overrides
+    var overrides = {
+      layout: scriptEl.getAttribute("data-layout"),
+      theme: scriptEl.getAttribute("data-theme"),
+      showNav: scriptEl.getAttribute("data-show-nav"),
+      showPagination: scriptEl.getAttribute("data-show-pagination"),
+      showBranding: scriptEl.getAttribute("data-show-branding"),
+      showHeader: scriptEl.getAttribute("data-show-header"),
+      showRating: scriptEl.getAttribute("data-show-rating"),
+      showReviewerName: scriptEl.getAttribute("data-show-reviewer-name"),
+      showDate: scriptEl.getAttribute("data-show-date"),
+      showWriteReview: scriptEl.getAttribute("data-show-write-review"),
+    };
 
     ensureStyles();
 
@@ -235,6 +313,18 @@ const script = `
         var data = await response.json();
         widgetConfig = data.widget;
 
+        // Apply data attribute overrides to widget configuration
+        if (overrides.layout) data.widget.layout = overrides.layout;
+        if (overrides.theme) data.widget.backgroundColor = overrides.theme === "dark" ? "#1e293b" : "#ffffff";
+        if (overrides.showNav !== null) data.widget.showNav = overrides.showNav !== "false";
+        if (overrides.showPagination !== null) data.widget.showPagination = overrides.showPagination !== "false";
+        if (overrides.showBranding !== null) data.widget.showBranding = overrides.showBranding !== "false";
+        if (overrides.showHeader !== null) data.widget.showHeader = overrides.showHeader !== "false";
+        if (overrides.showRating !== null) data.widget.showRating = overrides.showRating !== "false";
+        if (overrides.showReviewerName !== null) data.widget.showReviewerName = overrides.showReviewerName !== "false";
+        if (overrides.showDate !== null) data.widget.showDate = overrides.showDate !== "false";
+        if (overrides.showWriteReview !== null) data.widget.showWriteReview = overrides.showWriteReview !== "false";
+
         if (nextPage === 1) {
           // Badge layout: render once and bail — no pagination needed.
           if (data.widget.layout === "badge") {
@@ -248,13 +338,28 @@ const script = `
             ? "why-widget-list"
             : data.widget.layout === "slider"
               ? "why-widget-slider-track"
-              : "why-widget-grid";
+              : data.widget.layout === "video" || data.widget.layout === "carousel"
+                ? "why-widget-carousel"
+                : "why-widget-grid";
 
-          var listWrapper = data.widget.layout === "slider"
-            ? '<div class="why-widget-slider"><div class="' + layoutClass + '"></div><div class="why-widget-slider-controls"><button class="why-widget-slider-btn why-widget-slider-prev" type="button">‹</button><span class="why-widget-slider-label"></span><button class="why-widget-slider-btn why-widget-slider-next" type="button">›</button></div></div>'
-            : '<div class="' + layoutClass + '"></div>';
+          var listWrapper = '';
+          if (data.widget.layout === "slider") {
+            listWrapper = '<div class="why-widget-slider"><div class="' + layoutClass + '"></div>' +
+              (data.widget.showNav !== false ? '<div class="why-widget-slider-controls"><button class="why-widget-slider-btn why-widget-slider-prev" type="button">‹</button><span class="why-widget-slider-label"></span><button class="why-widget-slider-btn why-widget-slider-next" type="button">›</button></div>' : '') +
+              '</div>';
+          } else if (data.widget.layout === "video" || data.widget.layout === "carousel") {
+            listWrapper = '<div class="why-widget-carousel">' +
+              '<div class="' + layoutClass + '"></div>' +
+              (data.widget.showNav !== false ? '<div class="why-widget-carousel-controls"><button class="why-widget-carousel-btn why-widget-carousel-prev" type="button">‹</button><button class="why-widget-carousel-btn why-widget-carousel-next" type="button">›</button></div>' : '') +
+              (data.widget.showPagination !== false ? '<div class="why-widget-carousel-pagination"></div>' : '') +
+              '</div>';
+          } else {
+            listWrapper = '<div class="' + layoutClass + '"></div>';
+          }
 
+          var titleHtml = data.widget.name ? '<h2 style="font-size:18px;font-weight:700;margin:0 0 12px 0;color:' + escapeHtml(data.widget.textColor) + '">' + escapeHtml(data.widget.name) + '</h2>' : '';
           mount.innerHTML = '<div class="why-widget" style="font-family:' + fontStack(data.widget.fontFamily) + ';background:' + escapeHtml(data.widget.backgroundColor) + ';color:' + escapeHtml(data.widget.textColor) + ';border-radius:18px;padding:20px;border:1px solid rgba(0,0,0,.06)">' +
+            titleHtml +
             renderHeader(data) +
             listWrapper +
             '<div class="why-widget-footer"></div>' +
@@ -270,6 +375,18 @@ const script = `
             container.insertAdjacentHTML("beforeend", data.reviews.map(function (review) {
               return '<div class="why-widget-slide">' + renderCard(review, data.widget) + '</div>';
             }).join(""));
+          } else if (data.widget.layout === "video" || data.widget.layout === "carousel") {
+            container.insertAdjacentHTML("beforeend", data.reviews.map(function (review, idx) {
+              return '<div class="why-widget-carousel-item' + (idx === 0 ? ' active' : '') + '">' + renderCard(review, data.widget) + '</div>';
+            }).join(""));
+            // Add pagination dots if pagination is enabled
+            var paginationContainer = mount.querySelector(".why-widget-carousel-pagination");
+            if (paginationContainer && data.widget.showPagination !== false) {
+              var dotsHtml = data.reviews.map(function (_, idx) {
+                return '<div class="why-widget-carousel-dot' + (idx === 0 ? ' active' : '') + '"></div>';
+              }).join("");
+              paginationContainer.innerHTML = dotsHtml;
+            }
           } else {
             container.insertAdjacentHTML("beforeend", cardsHtml);
           }
@@ -280,11 +397,14 @@ const script = `
           if (data.widget.showWriteReview && data.location.reviewLink) {
             footerHtml += '<a class="why-widget-link" href="' + escapeHtml(data.location.reviewLink) + '" target="_blank" rel="noopener noreferrer" style="color:' + escapeHtml(data.widget.primaryColor) + '">Write a review</a>';
           }
+          if (data.widget.showBranding !== false) {
+            footerHtml += (footerHtml ? '<div class="why-widget-branding">Powered by <a href="https://www.wehearyou.io" target="_blank" rel="noopener noreferrer">WeHearYou</a></div>' : '<div class="why-widget-branding">Powered by <a href="https://www.wehearyou.io" target="_blank" rel="noopener noreferrer">WeHearYou</a></div>');
+          }
           footerActions.innerHTML = footerHtml;
         }
 
-        // Add the Load more button (skip for slider — sliders are typically single-page hero strips)
-        if (footerActions && !loadMoreButton && data.widget.layout !== "slider") {
+        // Add the Load more button (skip for slider and carousel layouts)
+        if (footerActions && !loadMoreButton && data.widget.layout !== "slider" && data.widget.layout !== "carousel" && data.widget.layout !== "video") {
           loadMoreButton = document.createElement("button");
           loadMoreButton.type = "button";
           loadMoreButton.className = "why-widget-button";
@@ -300,8 +420,15 @@ const script = `
           if (slider) attachSliderControls(slider);
         }
 
+        if ((data.widget.layout === "carousel" || data.widget.layout === "video") && nextPage === 1) {
+          var carousel = mount.querySelector(".why-widget-carousel");
+          if (carousel && data.reviews.length > 0) {
+            attachCarouselControls(carousel, data.reviews.length);
+          }
+        }
+
         page = data.pagination.page;
-        done = !data.pagination.hasMore || data.widget.layout === "slider";
+        done = !data.pagination.hasMore || data.widget.layout === "slider" || data.widget.layout === "carousel" || data.widget.layout === "video";
         setLoadingState(false);
       } catch (error) {
         if (nextPage === 1) {

@@ -39,6 +39,11 @@ type ReviewWidgetPreviewProps = {
   textColor?: string;
   fontFamily?: string;
   reviewLink?: string | null;
+  // Layout controls
+  showNav?: boolean;
+  showPagination?: boolean;
+  showBranding?: boolean;
+  widgetTitle?: string;
 };
 
 const FONT_STACKS: Record<string, string> = {
@@ -198,7 +203,7 @@ function BadgeLayout({
   );
 }
 
-function SliderLayout({ children }: { children: React.ReactNode[] }) {
+function SliderLayout({ children, showNav = true }: { children: React.ReactNode[]; showNav?: boolean }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
@@ -226,12 +231,12 @@ function SliderLayout({ children }: { children: React.ReactNode[] }) {
       <div ref={scrollRef} className="flex gap-3 overflow-x-auto scrollbar-hide" onScroll={checkScroll}>
         {children}
       </div>
-      {canScrollLeft && (
+      {showNav && canScrollLeft && (
         <button onClick={() => scroll("left")} className="absolute left-0 top-1/2 -translate-y-1/2 z-10 rounded-full bg-slate-900 p-2 text-white hover:bg-slate-800">
           ←
         </button>
       )}
-      {canScrollRight && (
+      {showNav && canScrollRight && (
         <button onClick={() => scroll("right")} className="absolute right-0 top-1/2 -translate-y-1/2 z-10 rounded-full bg-slate-900 p-2 text-white hover:bg-slate-800">
           →
         </button>
@@ -240,7 +245,7 @@ function SliderLayout({ children }: { children: React.ReactNode[] }) {
   );
 }
 
-function CarouselLayout({ cards }: { cards: React.ReactNode[] }) {
+function CarouselLayout({ cards, showNav = true, showPagination = true }: { cards: React.ReactNode[]; showNav?: boolean; showPagination?: boolean }) {
   const [index, setIndex] = useState(0);
   if (cards.length === 0) return null;
 
@@ -250,21 +255,100 @@ function CarouselLayout({ cards }: { cards: React.ReactNode[] }) {
   return (
     <div>
       <div className="relative flex items-center justify-center gap-4 min-h-[280px]">
-        <button onClick={goToPrevious} className="absolute left-0 z-10 p-2 rounded-full hover:bg-slate-200 transition text-lg">
-          ←
-        </button>
+        {showNav && (
+          <button onClick={goToPrevious} className="absolute left-0 z-10 p-2 rounded-full hover:bg-slate-200 transition text-lg">
+            ←
+          </button>
+        )}
         <div className="flex-1 flex justify-center">
           {cards[index]}
         </div>
-        <button onClick={goToNext} className="absolute right-0 z-10 p-2 rounded-full hover:bg-slate-200 transition text-lg">
-          →
-        </button>
+        {showNav && (
+          <button onClick={goToNext} className="absolute right-0 z-10 p-2 rounded-full hover:bg-slate-200 transition text-lg">
+            →
+          </button>
+        )}
       </div>
-      <div className="flex justify-center gap-2 mt-4">
-        {cards.map((_, i) => (
-          <button key={i} onClick={() => setIndex(i)} className={`w-2 h-2 rounded-full transition ${i === index ? "bg-slate-900" : "bg-slate-300"}`} />
-        ))}
+      {showPagination && (
+        <div className="flex justify-center gap-2 mt-4">
+          {cards.map((_, i) => (
+            <button key={i} onClick={() => setIndex(i)} className={`w-2 h-2 rounded-full transition ${i === index ? "bg-slate-900" : "bg-slate-300"}`} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function VideoLayout({
+  children,
+  starColor,
+  textColor,
+  mutedColor,
+  primaryColor,
+  showNav = true,
+  showPagination = true,
+}: {
+  children: React.ReactNode[];
+  starColor: string;
+  textColor: string;
+  mutedColor: string;
+  primaryColor: string;
+  showNav?: boolean;
+  showPagination?: boolean;
+}) {
+  const [index, setIndex] = useState(0);
+  const childrenArray = Array.isArray(children) ? children : [];
+  if (childrenArray.length === 0) return null;
+
+  const goToPrevious = () => setIndex((i) => (i - 1 + childrenArray.length) % childrenArray.length);
+  const goToNext = () => setIndex((i) => (i + 1) % childrenArray.length);
+
+  return (
+    <div>
+      <div className="relative flex items-center justify-center gap-4 min-h-[400px]">
+        {showNav && (
+          <button onClick={goToPrevious} className="absolute left-0 z-10 p-2 rounded-full hover:bg-slate-200 transition text-lg">
+            ←
+          </button>
+        )}
+        <div className="flex-1 flex flex-col justify-center items-center">
+          {/* Video Placeholder */}
+          <div className="w-full relative aspect-video bg-gradient-to-br from-slate-900 to-slate-800 rounded-lg flex items-center justify-center mb-4 overflow-hidden">
+            {childrenArray[index] ? (
+              <div className="relative w-full h-full flex items-center justify-center">
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div
+                    className="w-16 h-16 rounded-full flex items-center justify-center opacity-80 hover:opacity-100 transition cursor-pointer"
+                    style={{ backgroundColor: primaryColor }}
+                  >
+                    <span className="text-white text-2xl">▶</span>
+                  </div>
+                </div>
+                <div className="relative z-10 p-8 text-white text-center">
+                  <p className="text-sm font-semibold">Video Testimonial</p>
+                </div>
+              </div>
+            ) : null}
+          </div>
+          {/* Review Card Below Video */}
+          <div className="w-full">
+            {childrenArray[index]}
+          </div>
+        </div>
+        {showNav && (
+          <button onClick={goToNext} className="absolute right-0 z-10 p-2 rounded-full hover:bg-slate-200 transition text-lg">
+            →
+          </button>
+        )}
       </div>
+      {showPagination && (
+        <div className="flex justify-center gap-2 mt-4">
+          {childrenArray.map((_, i) => (
+            <button key={i} onClick={() => setIndex(i)} className={`w-2 h-2 rounded-full transition ${i === index ? "bg-slate-900" : "bg-slate-300"}`} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -291,9 +375,13 @@ export function ReviewWidgetPreview({
   textColor = "#0f172a",
   fontFamily = "system",
   reviewLink,
+  showNav = true,
+  showPagination = true,
+  showBranding = true,
+  widgetTitle,
 }: ReviewWidgetPreviewProps) {
   const mutedColor = "#475569";
-  const safeLayout = ["grid", "list", "slider", "badge", "carousel", "masonry"].includes(layout) ? layout : "grid";
+  const safeLayout = ["grid", "list", "slider", "badge", "carousel", "masonry", "video"].includes(layout) ? layout : "grid";
 
   if (safeLayout === "badge") {
     return (
@@ -351,6 +439,12 @@ export function ReviewWidgetPreview({
           borderColor: "rgba(0,0,0,0.08)",
         }}
       >
+        {widgetTitle && (
+          <h2 className="text-lg font-bold mb-4" style={{ color: textColor }}>
+            {widgetTitle}
+          </h2>
+        )}
+
         {showHeader ? (
           <ReviewHeader
             businessName={businessName}
@@ -368,7 +462,9 @@ export function ReviewWidgetPreview({
         {reviews.length === 0 ? (
           emptyState
         ) : safeLayout === "carousel" ? (
-          <CarouselLayout cards={cards} />
+          <CarouselLayout cards={cards} showNav={showNav} showPagination={showPagination} />
+        ) : safeLayout === "video" ? (
+          <VideoLayout cards={cards} starColor={starColor} textColor={textColor} mutedColor={mutedColor} primaryColor={primaryColor} showNav={showNav} showPagination={showPagination} />
         ) : safeLayout === "masonry" ? (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 auto-rows-max">
             {cards}
@@ -376,7 +472,7 @@ export function ReviewWidgetPreview({
         ) : safeLayout === "list" ? (
           <div className="flex flex-col gap-3">{cards}</div>
         ) : safeLayout === "slider" ? (
-          <SliderLayout>{cards}</SliderLayout>
+          <SliderLayout showNav={showNav}>{cards}</SliderLayout>
         ) : (
           <div className="grid gap-4 md:grid-cols-2">{cards}</div>
         )}
@@ -394,6 +490,20 @@ export function ReviewWidgetPreview({
             </a>
           </div>
         ) : null}
+
+        {showBranding && (
+          <div className={`mt-4 pt-4 border-t ${`border-opacity-20`}`} style={{ borderColor: primaryColor }}>
+            <a
+              href="https://wehearyou.app"
+              target="_blank"
+              rel="noreferrer"
+              className="text-xs font-semibold opacity-60 hover:opacity-100 transition"
+              style={{ color: textColor }}
+            >
+              Powered by WeHearYou
+            </a>
+          </div>
+        )}
       </div>
     </div>
   );

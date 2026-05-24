@@ -1,0 +1,44 @@
+<h2>How should the new widget creation flow work?</h2>
+<p class="subtitle">3 approaches — each trades scope vs. experience</p>
+
+<div class="options">
+
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Enhanced Modal (2 steps)</h3>
+      <p>Keep the "Create Widget" button → modal, but make the modal multi-step: <strong>Step 1</strong> — visual layout gallery inside the modal (big preview cards). <strong>Step 2</strong> — name + location. Creates a widget and redirects to the customizer.</p>
+      <div class="pros-cons" style="margin-top:12px">
+        <div class="pros"><h4>Pros</h4><ul><li>Minimal page changes</li><li>Fast to build</li><li>Familiar flow</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>Cramped for many variants</li><li>No deep URL / back button</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Dedicated Page — Full Trustindex Clone</h3>
+      <p>New route <code>/widgets/new</code>. Full-page layout selector with layout-type tabs (Slider, Grid, List, Badge, Floating…), multiple visual variants per type (List I, List II…), and a top source filter. Selecting a variant → name/location form → create.</p>
+      <div class="pros-cons" style="margin-top:12px">
+        <div class="pros"><h4>Pros</h4><ul><li>Rich, pro-feeling experience</li><li>Scales to many variants</li><li>Deep-linkable</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>Bigger build</li><li>Need real preview thumbnails</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Dedicated Page — Simplified (Recommended)</h3>
+      <p>New route <code>/widgets/new</code> with a visual layout gallery (one card per layout type, rendered HTML preview — no variants for now). Layout type tabs to filter. No source filter (WeHearYou is Google-only). Select a card → bottom panel slides up for name + location → create.</p>
+      <div class="pros-cons" style="margin-top:12px">
+        <div class="pros"><h4>Pros</h4><ul><li>Looks great, not overwhelming</li><li>Right scope for current app</li><li>Extendable to variants later</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>Not a 1:1 Trustindex clone</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<p class="subtitle" style="margin-top:24px">Click to select, then tell me your choice in the terminal.</p>

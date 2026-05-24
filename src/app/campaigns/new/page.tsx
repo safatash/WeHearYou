@@ -176,7 +176,30 @@ export default async function NewCampaignPage() {
             <Link href="/campaigns" className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm">
               Cancel
             </Link>
-            <button type="submit" className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold !text-white shadow-sm visited:!text-white hover:!text-white">
+            <button
+              type="submit"
+              onClick={(e) => {
+                const form = (e.target as HTMLButtonElement).closest('form') as HTMLFormElement;
+                const contactCheckboxes = Array.from(form?.querySelectorAll('input[name="contactIds"]') || []) as HTMLInputElement[];
+                const channelCheckboxes = Array.from(form?.querySelectorAll('input[name="channels"]') || []) as HTMLInputElement[];
+
+                const anyContactChecked = contactCheckboxes.some((cb) => cb.checked);
+                const anyChannelChecked = channelCheckboxes.some((cb) => cb.checked);
+
+                if (!anyContactChecked) {
+                  e.preventDefault();
+                  alert("Please select at least one contact");
+                  return;
+                }
+
+                if (!anyChannelChecked) {
+                  e.preventDefault();
+                  alert("Please select at least one request channel");
+                  return;
+                }
+              }}
+              className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold !text-white shadow-sm visited:!text-white hover:!text-white"
+            >
               Send Review Request
             </button>
           </div>

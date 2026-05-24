@@ -2,6 +2,7 @@ import Link from "next/link";
 import { auth } from "@/auth";
 import { FlashToast } from "@/components/flash-toast";
 import { SignOutButton } from "@/components/sign-out-button";
+import { MotivationBlock } from "@/components/motivation-block";
 import { getCurrentMembership } from "@/lib/authz";
 import { navItems, type ScreenKey } from "@/lib/navigation";
 
@@ -26,20 +27,20 @@ export async function AppShell({
 
   return (
     <div className="flex min-h-screen bg-slate-50 text-slate-900">
-      <aside className="hidden w-72 flex-col border-r border-slate-200/80 bg-white/90 px-5 py-6 backdrop-blur lg:flex">
+      <aside className="hidden w-72 flex-col border-r border-slate-700 bg-slate-900 px-5 py-6 lg:flex">
         <div>
-          <div className="flex items-center gap-3 rounded-[24px] bg-gradient-to-br from-indigo-50 to-white px-4 py-4 shadow-sm ring-1 ring-indigo-100">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-600 text-lg font-semibold text-white">
+          <div className="flex items-center gap-3 rounded-xl px-3 py-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-yellow-400 text-lg font-bold text-slate-900">
               W
             </div>
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-indigo-600">WeHearYou</p>
-              <h1 className="text-lg font-semibold text-slate-950">Reputation OS</h1>
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">WeHearYou</p>
+              <h1 className="text-base font-semibold text-white">Reputation OS</h1>
             </div>
           </div>
         </div>
 
-        <nav className="mt-8 space-y-6">
+        <nav className="mt-10 space-y-6">
           {/* Group items by their group property */}
           {(() => {
             const grouped = navItems.reduce(
@@ -71,16 +72,16 @@ export async function AppShell({
                       <Link
                         key={item.key}
                         href={item.href}
-                        className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-medium transition ${
+                        className={`flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left text-sm font-medium transition ${
                           active
-                            ? "bg-slate-950 text-white shadow-sm"
-                            : "text-slate-600 hover:bg-slate-100 hover:text-slate-950"
+                            ? "bg-indigo-600 text-white shadow-sm"
+                            : "text-white hover:bg-slate-800 hover:text-white"
                         }`}
                       >
-                        <span className={`text-base ${active ? "text-white" : "text-current"}`}>
+                        <span className={`text-base`}>
                           {item.icon}
                         </span>
-                        <span className={active ? "text-white" : "text-current"}>{item.label}</span>
+                        <span>{item.label}</span>
                       </Link>
                     );
                   })}
@@ -92,7 +93,7 @@ export async function AppShell({
 
                   return (
                     <div key={groupName}>
-                      <p className="px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">
+                      <p className="px-4 py-2 text-xs font-semibold uppercase tracking-widest text-slate-500">
                         {groupName}
                       </p>
                       <div className="space-y-1">
@@ -102,16 +103,16 @@ export async function AppShell({
                             <Link
                               key={item.key}
                               href={item.href}
-                              className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-medium transition ${
+                              className={`flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left text-sm font-medium transition ${
                                 active
-                                  ? "bg-slate-950 text-white shadow-sm"
-                                  : "text-slate-600 hover:bg-slate-100 hover:text-slate-950"
+                                  ? "bg-indigo-600 text-white shadow-sm"
+                                  : "text-white hover:bg-slate-800 hover:text-white"
                               }`}
                             >
-                              <span className={`text-base ${active ? "text-white" : "text-current"}`}>
+                              <span className={`text-base`}>
                                 {item.icon}
                               </span>
-                              <span className={active ? "text-white" : "text-current"}>{item.label}</span>
+                              <span>{item.label}</span>
                             </Link>
                           );
                         })}
@@ -123,6 +124,15 @@ export async function AppShell({
             );
           })()}
         </nav>
+
+        {/* Motivation Block */}
+        <div className="mt-auto pt-6 border-t border-slate-700">
+          <MotivationBlock
+            title="You're doing great!"
+            subtitle="Keep collecting those reviews."
+            icon="🏆"
+          />
+        </div>
 
       </aside>
 

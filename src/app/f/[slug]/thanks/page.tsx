@@ -22,7 +22,7 @@ export default async function PublicFunnelThanksPage({
   }
 
   const { location, reviewLink } = data;
-  const isPrivate = mode === "private" || rating < 4;
+  const isPrivate = mode === "private";
 
   return (
     <main className="min-h-screen bg-slate-50 px-4 py-10 text-slate-900 sm:px-6">
