@@ -1460,7 +1460,7 @@ export async function connectYelp(formData: FormData) {
 
   redirect(
     `/locations/${locationId}?flash=${encodeURIComponent(
-      `Yelp connected: ${result!.business.name} (${result!.business.reviewCount} reviews found)`
+      `Yelp connected: ${result!.business.name}. Click "Sync Yelp Reviews" to import reviews.`
     )}&tone=success`
   );
 }
