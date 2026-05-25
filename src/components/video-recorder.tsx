@@ -34,6 +34,7 @@ export function VideoRecorder({ token, prompt, businessName, logoUrl }: Props) {
   const [email, setEmail] = useState("");
   const [elapsed, setElapsed] = useState(0);
   const [countdown, setCountdown] = useState(3);
+  const [script, setScript] = useState("");
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -248,6 +249,18 @@ export function VideoRecorder({ token, prompt, businessName, logoUrl }: Props) {
             <li>• Find a quiet, well-lit spot</li>
             <li>• Speak naturally — 60–90 seconds is perfect</li>
           </ul>
+          <div className="flex flex-col gap-1">
+            <label className="text-xs font-semibold text-slate-600">
+              Your script <span className="font-normal text-slate-400">(optional — shown while you record)</span>
+            </label>
+            <textarea
+              value={script}
+              onChange={(e) => setScript(e.target.value)}
+              placeholder={`e.g. "I've been working with ${businessName} for two years and the results have been amazing…"`}
+              rows={4}
+              className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100 resize-none"
+            />
+          </div>
           <video
             ref={videoRef}
             autoPlay
@@ -292,14 +305,22 @@ export function VideoRecorder({ token, prompt, businessName, logoUrl }: Props) {
               playsInline
               muted
               className="w-full rounded-2xl bg-slate-900"
-              style={{ maxHeight: "320px" }}
+              style={{ maxHeight: "260px" }}
             />
-            <div className="absolute bottom-3 left-0 right-0 px-3">
-              <div className="mx-auto max-w-xs rounded-lg bg-black/60 px-3 py-1.5 text-center text-xs text-white/90 backdrop-blur-sm">
-                {prompt}
+            {!script && (
+              <div className="absolute bottom-3 left-0 right-0 px-3">
+                <div className="mx-auto max-w-xs rounded-lg bg-black/60 px-3 py-1.5 text-center text-xs text-white/90 backdrop-blur-sm">
+                  {prompt}
+                </div>
               </div>
-            </div>
+            )}
           </div>
+          {script && (
+            <div className="rounded-2xl bg-slate-900 px-5 py-4 max-h-40 overflow-y-auto">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">Your script</p>
+              <p className="text-lg font-medium leading-relaxed text-white whitespace-pre-wrap">{script}</p>
+            </div>
+          )}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="h-3 w-3 animate-pulse rounded-full bg-rose-500" />
