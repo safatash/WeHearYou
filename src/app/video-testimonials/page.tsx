@@ -58,7 +58,10 @@ export default async function VideoTestimonialsPage() {
       orderBy: { name: "asc" },
     }),
     prisma.contact.findMany({
-      where: { location: { organizationId: membership.organizationId } },
+      where: {
+        location: { organizationId: membership.organizationId },
+        status: { not: "ARCHIVED" },
+      },
       select: { id: true, name: true, email: true, phone: true, locationId: true },
       orderBy: { name: "asc" },
     }),
