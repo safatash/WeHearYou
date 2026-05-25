@@ -482,6 +482,7 @@ model ReviewWidget {
   name             String
   publicToken      String       @unique
   isActive         Boolean      @default(true)
+  contentType      String       @default("TEXT")
 
   layout           String       @default("grid")
   theme            String       @default("light")
@@ -578,6 +579,7 @@ model VideoTestimonial {
   id              String                 @id @default(cuid())
   locationId      String
   token           String                 @unique
+  prompt          String?
   submitterName   String?
   submitterEmail  String?
   videoUrl        String?
