@@ -25,7 +25,7 @@ export default async function VideoTestimonialRecorderPage({ params }: { params:
       <div className="w-full max-w-lg">
         <VideoRecorder
           token={token}
-          prompt={testimonial.prompt ?? "What did you love most about your experience with us?"}
+          prompt={testimonial.prompt ?? `Share your experience with ${testimonial.location.name}`}
           businessName={testimonial.location.name}
           logoUrl={testimonial.location.publicProfile?.logoUrl ?? undefined}
         />
