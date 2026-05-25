@@ -23,16 +23,12 @@ export default async function VideoTestimonialRecorderPage({ params }: { params:
   return (
     <div className="flex min-h-screen flex-col items-center bg-slate-50 px-4 py-8">
       <div className="w-full max-w-lg">
-        {testimonial.location.publicProfile?.logoUrl && (
-          <div className="mb-6 flex justify-center">
-            <img src={testimonial.location.publicProfile.logoUrl} alt={testimonial.location.name} className="h-12 object-contain" />
-          </div>
-        )}
-        <div className="mb-6 text-center">
-          <h1 className="text-2xl font-semibold text-slate-950">Share your experience</h1>
-          <p className="mt-2 text-sm text-slate-600">Record a short video for <span className="font-semibold">{testimonial.location.name}</span>. Max 90 seconds.</p>
-        </div>
-        <VideoRecorder token={token} />
+        <VideoRecorder
+          token={token}
+          prompt={testimonial.prompt ?? "What did you love most about your experience with us?"}
+          businessName={testimonial.location.name}
+          logoUrl={testimonial.location.publicProfile?.logoUrl ?? undefined}
+        />
       </div>
     </div>
   );
