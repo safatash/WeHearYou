@@ -547,7 +547,7 @@ export default async function LocationDetailPage({
                 {location.yelpLastSyncAt && (
                   <p>
                     <span className="font-semibold">Last synced:</span>{" "}
-                    {new Date(location.yelpLastSyncAt).toLocaleString()}
+                    {formatDateTime(location.yelpLastSyncAt)}
                     {location.yelpLastSyncStatus === "error" && (
                       <span className="ml-2 text-rose-600 font-semibold">— sync error</span>
                     )}
