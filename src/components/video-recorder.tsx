@@ -307,13 +307,11 @@ export function VideoRecorder({ token, prompt, businessName, logoUrl }: Props) {
               className="w-full rounded-2xl bg-slate-900"
               style={{ maxHeight: "260px" }}
             />
-            {!script && (
-              <div className="absolute bottom-3 left-0 right-0 px-3">
-                <div className="mx-auto max-w-xs rounded-lg bg-black/60 px-3 py-1.5 text-center text-xs text-white/90 backdrop-blur-sm">
-                  {prompt}
-                </div>
+            <div className="absolute bottom-3 left-0 right-0 px-3">
+              <div className="mx-auto max-w-xs rounded-lg bg-black/60 px-3 py-1.5 text-center text-xs text-white/90 backdrop-blur-sm">
+                {prompt}
               </div>
-            )}
+            </div>
           </div>
           {script && (
             <div className="rounded-2xl bg-slate-900 px-5 py-4 max-h-40 overflow-y-auto">
