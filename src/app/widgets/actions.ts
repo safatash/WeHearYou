@@ -14,6 +14,10 @@ export async function createReviewWidget(formData: FormData) {
   const rawLayout = String(formData.get("layout") ?? "").trim();
   const layout = ALLOWED_LAYOUTS.has(rawLayout) ? rawLayout : "grid";
 
+  const ALLOWED_CONTENT_TYPES = new Set(["TEXT", "VIDEO", "MIXED"]);
+  const rawContentType = String(formData.get("contentType") ?? "TEXT").trim();
+  const contentType = ALLOWED_CONTENT_TYPES.has(rawContentType) ? rawContentType : "TEXT";
+
   if (!membership) {
     throw new Error("Organization is required");
   }
@@ -27,35 +31,33 @@ export async function createReviewWidget(formData: FormData) {
   await requireOrganizationAccess(organizationId);
 
   const location = await prisma.location.findFirst({
-    where: {
-      id: locationId,
-      organizationId,
-    },
-    select: {
-      id: true,
-      googleLocationName: true,
-      name: true,
-    },
+    where: { id: locationId, organizationId },
+    select: { id: true, googleLocationName: true, name: true },
   });
 
   if (!location) {
     throw new Error("Location not found for this organization");
   }
 
-  if (!location.googleLocationName) {
-    redirect(`/widgets?flash=${encodeURIComponent(`Map ${location.name} to Google before creating a widget`)}&tone=error`);
-  }
+  if (contentType === "VIDEO") {
+    const videoCount = await prisma.videoTestimonial.count({
+      where: { locationId: location.id, status: "APPROVED" },
+    });
+    if (videoCount === 0) {
+      redirect(`/widgets?flash=${encodeURIComponent(`Publish at least one video testimonial for ${location.name} before creating a video widget`)}&tone=error`);
+    }
+  } else {
+    if (!location.googleLocationName) {
+      redirect(`/widgets?flash=${encodeURIComponent(`Map ${location.name} to Google before creating a widget`)}&tone=error`);
+    }
 
-  const reviewCount = await prisma.review.count({
-    where: {
-      locationId: location.id,
-      source: "GOOGLE",
-      status: "PUBLISHED",
-    },
-  });
+    const reviewCount = await prisma.review.count({
+      where: { locationId: location.id, source: "GOOGLE", status: "PUBLISHED" },
+    });
 
-  if (reviewCount === 0) {
-    redirect(`/widgets?flash=${encodeURIComponent(`Sync Google reviews for ${location.name} before creating a widget`)}&tone=error`);
+    if (reviewCount === 0) {
+      redirect(`/widgets?flash=${encodeURIComponent(`Sync Google reviews for ${location.name} before creating a widget`)}&tone=error`);
+    }
   }
 
   const widget = await prisma.reviewWidget.create({
@@ -64,6 +66,7 @@ export async function createReviewWidget(formData: FormData) {
       locationId,
       name,
       layout,
+      contentType,
       publicToken: generateReviewWidgetToken(),
     },
   });
