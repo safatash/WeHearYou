@@ -84,6 +84,26 @@ export function VideoRecorder({ token, prompt, businessName, logoUrl }: Props) {
     return () => clearTimeout(t);
   }, [stage, countdown]);
 
+  useEffect(() => {
+    if (
+      (stage === "idle" || stage === "countdown" || stage === "recording") &&
+      streamRef.current &&
+      videoRef.current
+    ) {
+      videoRef.current.srcObject = streamRef.current;
+      videoRef.current.muted = true;
+      videoRef.current.play().catch(() => {});
+    }
+  }, [stage]);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+      stopStream();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   function startActualRecording() {
     if (!streamRef.current) return;
 
