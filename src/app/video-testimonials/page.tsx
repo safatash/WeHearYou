@@ -88,7 +88,7 @@ export default async function VideoTestimonialsPage() {
 
   return (
     <AppShell activeScreen="video-testimonials">
-      <div className="space-y-6">
+      <div className="mx-auto max-w-5xl space-y-6">
         <div>
           <p className="text-sm font-semibold uppercase tracking-[0.22em] text-indigo-600">Video Testimonials</p>
           <h2 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">Collect and publish video testimonials</h2>

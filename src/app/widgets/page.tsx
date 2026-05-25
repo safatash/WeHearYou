@@ -4,6 +4,7 @@ import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { requireActiveMembershipPage } from "@/lib/page-guards";
 import { getOrganizationReviewWidgets } from "@/lib/review-widgets";
+import { deleteReviewWidget } from "@/app/widgets/actions";
 
 export default async function WidgetsPage() {
   const membership = await requireActiveMembershipPage();
@@ -50,42 +51,52 @@ export default async function WidgetsPage() {
 
                 <div className="space-y-2">
                   {widgets.map((widget) => (
-                    <Link
-                      key={widget.id}
-                      href={`/widgets/${widget.id}`}
-                      className="group block rounded-lg border border-slate-200 bg-white p-4 shadow-sm hover:shadow-md hover:border-indigo-300 transition-all duration-200"
-                    >
-                      <div className="space-y-2">
-                        {/* Title and Location */}
-                        <div>
-                          <p className="text-sm text-slate-600">
-                            {widget.name}
-                          </p>
-                          <h4 className="text-lg font-semibold text-slate-950 group-hover:text-indigo-600 transition-colors flex items-center gap-1.5">
-                            📍 {widget.location.name}
-                          </h4>
-                        </div>
-
-                        {/* Status and Reviews */}
-                        <div className="flex items-center gap-6 text-xs">
+                    <div key={widget.id} className="flex items-stretch gap-2">
+                      <Link
+                        href={`/widgets/${widget.id}`}
+                        className="group flex-1 block rounded-lg border border-slate-200 bg-white p-4 shadow-sm hover:shadow-md hover:border-indigo-300 transition-all duration-200"
+                      >
+                        <div className="space-y-2">
+                          {/* Title and Location */}
                           <div>
-                            <p className="text-slate-600 uppercase tracking-wide font-medium">Status</p>
-                            <p className="text-slate-900 font-medium">{widget.health.message}</p>
+                            <p className="text-sm text-slate-600">
+                              {widget.name}
+                            </p>
+                            <h4 className="text-lg font-semibold text-slate-950 group-hover:text-indigo-600 transition-colors flex items-center gap-1.5">
+                              📍 {widget.location.name}
+                            </h4>
                           </div>
-                          <div>
-                            <p className="text-slate-600 uppercase tracking-wide font-medium">Reviews</p>
-                            <p className="text-slate-900 font-medium">⭐ {widget.health.reviewCount}</p>
-                          </div>
-                        </div>
 
-                        {/* CTA */}
-                        <div className="pt-1.5 border-t border-slate-100">
-                          <span className="text-xs font-semibold text-indigo-600 group-hover:text-indigo-700 transition-colors flex items-center gap-1.5">
-                            Manage widget →
-                          </span>
+                          {/* Status and Reviews */}
+                          <div className="flex items-center gap-6 text-xs">
+                            <div>
+                              <p className="text-slate-600 uppercase tracking-wide font-medium">Status</p>
+                              <p className="text-slate-900 font-medium">{widget.health.message}</p>
+                            </div>
+                            <div>
+                              <p className="text-slate-600 uppercase tracking-wide font-medium">Reviews</p>
+                              <p className="text-slate-900 font-medium">⭐ {widget.health.reviewCount}</p>
+                            </div>
+                          </div>
+
+                          {/* CTA */}
+                          <div className="pt-1.5 border-t border-slate-100">
+                            <span className="text-xs font-semibold text-indigo-600 group-hover:text-indigo-700 transition-colors flex items-center gap-1.5">
+                              Manage widget →
+                            </span>
+                          </div>
                         </div>
-                      </div>
-                    </Link>
+                      </Link>
+                      <form action={deleteReviewWidget} className="flex-shrink-0">
+                        <input type="hidden" name="widgetId" value={widget.id} />
+                        <button
+                          type="submit"
+                          className="h-full rounded-lg border border-rose-200 bg-rose-50 px-3 text-sm font-medium text-rose-600 hover:bg-rose-100 hover:border-rose-300 transition-colors"
+                        >
+                          Delete
+                        </button>
+                      </form>
+                    </div>
                   ))}
                 </div>
               </div>

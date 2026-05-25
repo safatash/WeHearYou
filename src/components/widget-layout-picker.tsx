@@ -43,12 +43,8 @@ export function WidgetLayoutPicker({ locations }: WidgetLayoutPickerProps) {
   const [locationId, setLocationId] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [step, setStep] = useState<"content-type" | "layout">("content-type");
-  const [contentType, setContentType] = useState<"TEXT" | "VIDEO" | "MIXED" | null>(null);
 
-  const eligibleLocations = contentType === "VIDEO"
-    ? locations.filter((l) => (l.videoTestimonialCount ?? 0) > 0)
-    : locations.filter((l) => l.canCreateWidget);
+  const eligibleLocations = locations.filter((l) => l.canCreateWidget);
 
   const visibleLayouts =
     activeTab === "All"
@@ -68,7 +64,7 @@ export function WidgetLayoutPicker({ locations }: WidgetLayoutPickerProps) {
     formData.append("layout", selectedLayout);
     formData.append("name", widgetName.trim());
     formData.append("locationId", locationId);
-    formData.append("contentType", contentType ?? "TEXT");
+    formData.append("contentType", "TEXT");
     try {
       await createReviewWidget(formData);
     } catch (err) {
@@ -80,90 +76,45 @@ export function WidgetLayoutPicker({ locations }: WidgetLayoutPickerProps) {
 
   return (
     <div className="pb-32">
-      {/* Step 1: Content Type Picker */}
-      {step === "content-type" && (
-        <div className="mb-10">
-          <h2 className="text-xl font-semibold text-slate-900 mb-2">What content should this widget show?</h2>
-          <p className="text-sm text-slate-500 mb-6">You can mix text reviews and video testimonials, or keep them separate.</p>
-          <div className="grid gap-4 sm:grid-cols-3">
-            {([
-              { value: "TEXT" as const, icon: "⭐", label: "Text Reviews", desc: "Google reviews synced from Google Business Profile" },
-              { value: "VIDEO" as const, icon: "🎥", label: "Video Testimonials", desc: "Published video testimonials for the location" },
-              { value: "MIXED" as const, icon: "⭐🎥", label: "Both", desc: "Text reviews and video testimonials mixed by date" },
-            ] as const).map((opt) => (
-              <button
-                key={opt.value}
-                type="button"
-                onClick={() => { setContentType(opt.value); setStep("layout"); }}
-                className="rounded-2xl border-2 border-slate-200 bg-white p-5 text-left hover:border-indigo-400 hover:shadow-md transition-all"
-              >
-                <div className="text-2xl mb-2">{opt.icon}</div>
-                <div className="font-semibold text-slate-900">{opt.label}</div>
-                <div className="text-xs text-slate-500 mt-1">{opt.desc}</div>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
+      {/* Tabs */}
+      <div className="flex gap-1 border-b border-slate-200 mb-8 overflow-x-auto">
+        {TABS.map((tab) => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            type="button"
+            className={`flex-shrink-0 px-4 py-2 text-sm font-medium rounded-t-md border border-transparent border-b-0 transition-colors ${
+              activeTab === tab
+                ? "bg-white border-slate-200 text-indigo-600 font-semibold -mb-px relative z-10"
+                : "text-slate-500 hover:text-slate-900 hover:bg-slate-50"
+            }`}
+          >
+            {tab}
+          </button>
+        ))}
+      </div>
 
-      {/* Step 2: Layout Picker */}
-      {step === "layout" && (
-        <>
-          <div className="flex items-center gap-3 mb-6">
-            <button
-              type="button"
-              onClick={() => { setStep("content-type"); setSelectedLayout(null); }}
-              className="text-sm text-slate-500 hover:text-slate-700"
-            >
-              ← Back
-            </button>
-            <span className="text-sm text-slate-400">|</span>
-            <span className="text-sm font-medium text-slate-700">
-              {contentType === "TEXT" ? "⭐ Text Reviews" : contentType === "VIDEO" ? "🎥 Video Testimonials" : "⭐🎥 Both"}
-            </span>
-          </div>
+      {/* Count */}
+      <p className="text-sm text-slate-500 mb-6">
+        <span className="font-semibold text-slate-900">{visibleLayouts.length} layout{visibleLayouts.length !== 1 ? "s" : ""}</span> available
+      </p>
 
-          {/* Tabs */}
-          <div className="flex gap-1 border-b border-slate-200 mb-8 overflow-x-auto">
-            {TABS.map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                type="button"
-                className={`flex-shrink-0 px-4 py-2 text-sm font-medium rounded-t-md border border-transparent border-b-0 transition-colors ${
-                  activeTab === tab
-                    ? "bg-white border-slate-200 text-indigo-600 font-semibold -mb-px relative z-10"
-                    : "text-slate-500 hover:text-slate-900 hover:bg-slate-50"
-                }`}
-              >
-                {tab}
-              </button>
-            ))}
-          </div>
+      {/* Cards grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+        {visibleLayouts.map((layout) => (
+          <LayoutCard
+            key={layout.value}
+            layout={layout}
+            isSelected={selectedLayout === layout.value}
+            onSelect={handleSelectLayout}
+          />
+        ))}
+      </div>
 
-          {/* Count */}
-          <p className="text-sm text-slate-500 mb-6">
-            <span className="font-semibold text-slate-900">{visibleLayouts.length} layout{visibleLayouts.length !== 1 ? "s" : ""}</span> available
-          </p>
-
-          {/* Cards grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {visibleLayouts.map((layout) => (
-              <LayoutCard
-                key={layout.value}
-                layout={layout}
-                isSelected={selectedLayout === layout.value}
-                onSelect={handleSelectLayout}
-              />
-            ))}
-          </div>
-        </>
-      )}
-
-      {/* Slide-up bottom panel — only shown in layout step */}
+      {/* Slide-up bottom panel */}
       <div
         className={`fixed bottom-0 left-0 right-0 z-50 bg-white border-t-2 border-indigo-500 shadow-2xl transition-transform duration-300 ${
-          step === "layout" && selectedLayout ? "translate-y-0" : "translate-y-full"
+          selectedLayout ? "translate-y-0" : "translate-y-full"
         }`}
       >
         <form onSubmit={handleSubmit} className="max-w-6xl mx-auto px-6 py-4 flex items-center gap-4 flex-wrap">
@@ -185,9 +136,7 @@ export function WidgetLayoutPicker({ locations }: WidgetLayoutPickerProps) {
             />
             {eligibleLocations.length === 0 ? (
               <p className="flex-1 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-4 py-2.5">
-                {contentType === "VIDEO"
-                  ? "No published video testimonials yet — publish some first."
-                  : "No eligible locations yet — sync Google reviews first."}
+                No eligible locations yet — sync Google reviews first.
               </p>
             ) : (
               <select
