@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
     const extension = videoFile.type === "video/mp4" || videoFile.type === "video/quicktime" ? "mp4" : "webm";
     const filename = `video-testimonials/${testimonial.locationId}/${testimonial.id}.${extension}`;
 
-    const blob = await put(filename, videoFile, { access: "public", contentType: videoFile.type });
+    const blob = await put(filename, videoFile, { access: "public", contentType: videoFile.type, token: process.env.BLOB_Public_READ_WRITE_TOKEN });
 
     await prisma.videoTestimonial.update({
       where: { id: testimonial.id },

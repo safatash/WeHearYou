@@ -98,7 +98,7 @@ async function saveUploadedLocationImage(file: File | null, locationId: string, 
   const filename = `uploads/${imageKind}s/${locationId}-${Date.now()}.${safeExtension}`;
 
   const { put } = await import("@vercel/blob");
-  const blob = await put(filename, file, { access: "public", contentType: file.type });
+  const blob = await put(filename, file, { access: "public", contentType: file.type, token: process.env.BLOB_Public_READ_WRITE_TOKEN });
 
   return blob.url;
 }
