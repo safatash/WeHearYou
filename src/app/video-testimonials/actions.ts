@@ -112,6 +112,10 @@ export async function sendVideoTestimonialRequest(formData: FormData) {
   const channel = String(formData.get("channel") ?? "EMAIL").trim();
   const prompt = String(formData.get("prompt") ?? "").trim() || null;
 
+  if (prompt && prompt.length > 300) {
+    throw new Error("Recording prompt must be 300 characters or fewer.");
+  }
+
   if (!locationId) throw new Error("Location is required");
   if (!recipientName) throw new Error("Recipient name is required");
   if (channel === "EMAIL" && !recipientEmail) throw new Error("Email is required");
