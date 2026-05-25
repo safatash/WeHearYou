@@ -1,5 +1,6 @@
 export const dynamic = "force-dynamic";
 
+import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { WidgetCustomizer } from "@/components/widget-customizer";
@@ -25,8 +26,11 @@ export default async function WidgetDetailPage({
     typeof query.tone === "string" && ["success", "error", "info"].includes(query.tone)
       ? (query.tone as "success" | "error" | "info")
       : "success";
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ?? "";
-  const embedScriptUrl = appUrl ? `${appUrl}/embed/widget.js` : "/embed/widget.js";
+  const hdrs = await headers();
+  const host = hdrs.get("host") ?? "";
+  const proto = hdrs.get("x-forwarded-proto") ?? "https";
+  const appUrl = host ? `${proto}://${host}` : (process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ?? "");
+  const embedScriptUrl = `${appUrl}/embed/widget.js`;
   const localTestUrl = `/widgets/${widget.id}/test`;
   const preview = await getPublicReviewWidgetPayload(widget.publicToken, 10);
 

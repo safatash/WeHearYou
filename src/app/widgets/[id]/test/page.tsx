@@ -1,5 +1,6 @@
 export const dynamic = "force-dynamic";
 
+import { headers } from "next/headers";
 import Link from "next/link";
 import Script from "next/script";
 import { notFound } from "next/navigation";
@@ -14,8 +15,11 @@ export default async function WidgetTestPage({ params }: { params: Promise<{ id:
     notFound();
   }
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ?? "";
-  const embedScriptUrl = appUrl ? `${appUrl}/embed/widget.js` : "/embed/widget.js";
+  const hdrs = await headers();
+  const host = hdrs.get("host") ?? "";
+  const proto = hdrs.get("x-forwarded-proto") ?? "https";
+  const appUrl = host ? `${proto}://${host}` : (process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ?? "");
+  const embedScriptUrl = `${appUrl}/embed/widget.js`;
 
   return (
     <AppShell activeScreen="widgets">
