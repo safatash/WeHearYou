@@ -3,8 +3,10 @@ export const dynamic = "force-dynamic";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
+import { FormSubmitButton } from "@/components/form-submit-button";
 import { WidgetCustomizer } from "@/components/widget-customizer";
 import { getPublicReviewWidgetPayload, getReviewWidgetById } from "@/lib/review-widgets";
+import { deleteReviewWidget } from "@/app/widgets/actions";
 
 export default async function WidgetDetailPage({
   params,
@@ -48,13 +50,23 @@ export default async function WidgetDetailPage({
                 <span className="font-medium text-slate-900">{widget.name}</span> widget
               </p>
             </div>
-            <div className="flex-shrink-0">
-              <div className={`flex items-center justify-center rounded-full p-3 ${widget.health.status === "healthy" ? "bg-emerald-100" : "bg-amber-100"}`}>
-                <span className="text-2xl">{widget.health.status === "healthy" ? "✓" : "⚠"}</span>
+            <div className="flex items-center gap-4 flex-shrink-0">
+              <form action={deleteReviewWidget}>
+                <input type="hidden" name="widgetId" value={widget.id} />
+                <FormSubmitButton
+                  idleLabel="Delete widget"
+                  pendingLabel="Deleting…"
+                  className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-medium text-rose-700 hover:border-rose-300 hover:bg-rose-100"
+                />
+              </form>
+              <div>
+                <div className={`flex items-center justify-center rounded-full p-3 ${widget.health.status === "healthy" ? "bg-emerald-100" : "bg-amber-100"}`}>
+                  <span className="text-2xl">{widget.health.status === "healthy" ? "✓" : "⚠"}</span>
+                </div>
+                <p className="mt-2 text-xs font-semibold text-center uppercase tracking-wide text-slate-600">
+                  {widget.health.status.replace("_", " ")}
+                </p>
               </div>
-              <p className="mt-2 text-xs font-semibold text-center uppercase tracking-wide text-slate-600">
-                {widget.health.status.replace("_", " ")}
-              </p>
             </div>
           </div>
         </div>

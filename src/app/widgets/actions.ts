@@ -145,6 +145,22 @@ export async function updateReviewWidget(formData: FormData) {
   redirect(`/widgets/${widgetId}?flash=Widget+updated&tone=success`);
 }
 
+export async function deleteReviewWidget(formData: FormData) {
+  const widgetId = String(formData.get("widgetId") ?? "").trim();
+  if (!widgetId) throw new Error("Widget is required");
+
+  const existing = await prisma.reviewWidget.findUnique({
+    where: { id: widgetId },
+    select: { id: true, organizationId: true },
+  });
+  if (!existing) throw new Error("Widget not found");
+
+  await requireOrganizationAccess(existing.organizationId);
+  await prisma.reviewWidget.delete({ where: { id: widgetId } });
+
+  redirect("/widgets?flash=Widget+deleted&tone=success");
+}
+
 export async function regenerateReviewWidgetToken(formData: FormData) {
   const widgetId = String(formData.get("widgetId") ?? "").trim();
 
