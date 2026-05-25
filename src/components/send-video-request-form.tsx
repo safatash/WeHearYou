@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { sendVideoTestimonialRequest } from "@/app/video-testimonials/actions";
 
@@ -37,8 +37,6 @@ export function SendVideoRequestForm({ locations, contacts }: SendVideoRequestFo
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  const dropdownRef = useRef<HTMLDivElement>(null);
-
   const selectedLocation = locations.find((l) => l.id === locationId);
   const defaultPrompt = selectedLocation ? `How has ${selectedLocation.name} helped you?` : "";
 
@@ -74,6 +72,11 @@ export function SendVideoRequestForm({ locations, contacts }: SendVideoRequestFo
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    const effectiveName = selectedContact ? selectedContact.name : recipientName;
+    if (!effectiveName.trim()) {
+      setErrorMessage("Recipient name is required.");
+      return;
+    }
     setErrorMessage(null);
     const fd = new FormData();
     fd.append("locationId", locationId);
@@ -135,7 +138,7 @@ export function SendVideoRequestForm({ locations, contacts }: SendVideoRequestFo
             )}
           </div>
           {showDropdown && filteredContacts.length > 0 && (
-            <div ref={dropdownRef} className="absolute top-full left-0 right-0 z-10 mt-1 rounded-xl border border-slate-200 bg-white shadow-lg overflow-hidden">
+            <div className="absolute top-full left-0 right-0 z-10 mt-1 rounded-xl border border-slate-200 bg-white shadow-lg overflow-hidden">
               {filteredContacts.map((c) => (
                 <button
                   key={c.id}
