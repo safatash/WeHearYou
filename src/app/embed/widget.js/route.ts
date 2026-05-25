@@ -309,7 +309,8 @@ const script = `
 
       try {
         var response = await fetch(apiBaseUrl + "?page=" + encodeURIComponent(String(nextPage)), { credentials: "omit" });
-        if (!response.ok) throw new Error("Failed to load widget");
+        if (response.status === 404) throw new Error("not_found");
+        if (!response.ok) throw new Error("failed");
         var data = await response.json();
         widgetConfig = data.widget;
 
@@ -432,7 +433,10 @@ const script = `
         setLoadingState(false);
       } catch (error) {
         if (nextPage === 1) {
-          mount.innerHTML = '<div class="why-widget">Unable to load reviews right now.</div>';
+          var msg = (error && error.message === "not_found")
+            ? "This widget is currently unavailable."
+            : "Unable to load reviews right now.";
+          mount.innerHTML = '<div class="why-widget" style="font-size:14px;color:#64748b;padding:12px">' + msg + '</div>';
         }
         setLoadingState(false);
       }

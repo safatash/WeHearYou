@@ -193,6 +193,27 @@ export function WidgetCustomizer({
             <h4 className="text-sm font-semibold text-slate-900 mb-5 uppercase tracking-wide">Basic Settings</h4>
 
             <div className="space-y-5">
+              {/* Active */}
+              <div className="flex items-start justify-between pb-5 border-b border-slate-200">
+                <div className="flex-1">
+                  <p className="font-semibold text-slate-900">Widget active</p>
+                  <p className="text-sm text-slate-600">Public embed shows reviews</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsActive(!isActive)}
+                  className={`ml-4 w-10 h-6 rounded-full transition-colors ${
+                    isActive ? "bg-indigo-600" : "bg-slate-200"
+                  }`}
+                >
+                  <div
+                    className={`w-4 h-4 rounded-full bg-white transition-all ${
+                      isActive ? "translate-x-5" : "translate-x-1"
+                    }`}
+                  />
+                </button>
+              </div>
+
               {/* Theme */}
               <div className="flex items-start justify-between pb-5 border-b border-slate-200">
                 <div className="flex-1">
@@ -438,7 +459,7 @@ export function WidgetCustomizer({
 
             {!isActive ? (
               <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-                ⚠ Widget is inactive. Turn it on above to make it public.
+                ⚠ Widget is inactive. Toggle &ldquo;Widget active&rdquo; and save to make it public.
               </div>
             ) : null}
 
