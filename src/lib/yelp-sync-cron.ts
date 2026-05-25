@@ -64,7 +64,7 @@ export async function syncAllYelpLocations(): Promise<{ synced: number; failed: 
       console.error(`[yelp-cron] ${location.id} failed:`, err instanceof Error ? err.message : err);
       await prisma.location.update({
         where: { id: location.id },
-        data: { yelpLastSyncAt: new Date(), yelpLastSyncStatus: "error" },
+        data: { yelpLastSyncAt: new Date(), yelpLastSyncStatus: "error", yelpLastSyncCount: 0 },
       });
       failed++;
     }
