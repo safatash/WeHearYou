@@ -52,6 +52,7 @@ enum CampaignStatus {
 enum ReviewSource {
   GOOGLE
   FACEBOOK
+  YELP
   INTERNAL
 }
 
@@ -203,6 +204,13 @@ model Location {
   googlePlaceId         String?
   googleLocationName    String?
   googleConnectedAt     DateTime?
+  yelpBusinessUrl       String?
+  yelpBusinessName      String?
+  yelpBusinessId        String?
+  yelpConnectedAt       DateTime?
+  yelpLastSyncAt        DateTime?
+  yelpLastSyncStatus    String?
+  yelpLastSyncCount     Int?
   lastSyncStatus        String?
   lastSyncMessage       String?
   lastSyncImportedCount Int?
