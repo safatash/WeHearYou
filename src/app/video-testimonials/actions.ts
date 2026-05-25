@@ -110,6 +110,7 @@ export async function sendVideoTestimonialRequest(formData: FormData) {
   const recipientEmail = String(formData.get("recipientEmail") ?? "").trim();
   const recipientPhone = String(formData.get("recipientPhone") ?? "").trim();
   const channel = String(formData.get("channel") ?? "EMAIL").trim();
+  const prompt = String(formData.get("prompt") ?? "").trim() || null;
 
   if (!locationId) throw new Error("Location is required");
   if (!recipientName) throw new Error("Recipient name is required");
@@ -128,7 +129,7 @@ export async function sendVideoTestimonialRequest(formData: FormData) {
   const token = nanoid(24);
 
   await prisma.videoTestimonial.create({
-    data: { locationId, token, submitterName: recipientName, submitterEmail: recipientEmail || null },
+    data: { locationId, token, submitterName: recipientName, submitterEmail: recipientEmail || null, prompt },
   });
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
@@ -141,6 +142,7 @@ export async function sendVideoTestimonialRequest(formData: FormData) {
       recipientName,
       locationName: location.name,
       recorderUrl,
+      prompt: prompt ?? undefined,
     });
   }
 
@@ -151,6 +153,7 @@ export async function sendVideoTestimonialRequest(formData: FormData) {
       recipientName,
       locationName: location.name,
       recorderUrl,
+      prompt: prompt ?? undefined,
     });
   }
 

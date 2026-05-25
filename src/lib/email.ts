@@ -62,11 +62,13 @@ export async function sendVideoTestimonialRequestEmail({
   recipientName,
   locationName,
   recorderUrl,
+  prompt,
 }: {
   to: string;
   recipientName: string;
   locationName: string;
   recorderUrl: string;
+  prompt?: string;
 }) {
   const config = getResendConfig();
 
@@ -86,6 +88,7 @@ export async function sendVideoTestimonialRequestEmail({
         <h1 style="font-size: 28px; line-height: 1.2; margin: 16px 0;">We'd love to hear from you, ${recipientName}!</h1>
         <p>Hi ${recipientName}, thanks for choosing ${locationName}. Would you mind recording a short video sharing your experience?</p>
         <p>It only takes 30–60 seconds and means the world to us.</p>
+        ${prompt ? `<div style="border-left:3px solid #4f46e5;background:#eef2ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:16px 0;font-style:italic;color:#3730a3;">${prompt}</div>` : ''}
         <p style="margin: 32px 0;">
           <a href="${recorderUrl}" style="display: inline-block; background: #4f46e5; color: #ffffff; text-decoration: none; padding: 14px 20px; border-radius: 14px; font-weight: 700;">
             Record My Testimonial 🎥

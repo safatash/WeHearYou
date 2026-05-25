@@ -54,12 +54,15 @@ export async function sendVideoTestimonialRequestSMS({
   recipientName,
   locationName,
   recorderUrl,
+  prompt,
 }: {
   to: string;
   recipientName: string;
   locationName: string;
   recorderUrl: string;
+  prompt?: string;
 }) {
-  const body = `Hi ${recipientName}, ${locationName} would love a short video testimonial from you! Record here (30-60 sec): ${recorderUrl}`;
+  const promptPart = prompt ? ` "${prompt}"` : "";
+  const body = `Hi ${recipientName}, ${locationName} would love a short video testimonial from you!${promptPart} Record here (90 sec): ${recorderUrl}`;
   await sendSMS({ to, body });
 }
