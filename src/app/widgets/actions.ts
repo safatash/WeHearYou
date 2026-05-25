@@ -93,8 +93,12 @@ export async function updateReviewWidget(formData: FormData) {
   await requireOrganizationAccess(existing.organizationId);
 
   const allowedLayouts = new Set(["grid", "list", "slider", "badge", "carousel", "masonry", "floating"]);
+  const allowedContentTypes = new Set(["TEXT", "VIDEO", "MIXED"]);
   const allowedAligns = new Set(["left", "center"]);
   const allowedFonts = new Set(["system", "sans", "serif"]);
+
+  const rawContentType = String(formData.get("contentType") ?? "TEXT").trim();
+  const contentType = allowedContentTypes.has(rawContentType) ? rawContentType : "TEXT";
 
   const rawLayout = String(formData.get("layout") ?? "grid");
   const rawAlign = String(formData.get("headerAlign") ?? "left");
@@ -113,6 +117,7 @@ export async function updateReviewWidget(formData: FormData) {
     data: {
       name: String(formData.get("name") ?? "").trim(),
       layout: allowedLayouts.has(rawLayout) ? rawLayout : "grid",
+      contentType,
       theme: String(formData.get("theme") ?? "light"),
       sort: String(formData.get("sort") ?? "newest"),
       minRating: Number.isFinite(rawMinRating) ? Math.max(1, Math.min(5, Math.floor(rawMinRating))) : 1,

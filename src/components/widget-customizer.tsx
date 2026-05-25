@@ -73,6 +73,7 @@ export function WidgetCustomizer({
   localTestUrl,
 }: WidgetCustomizerProps) {
   const [layout, setLayout] = useState(widget.layout);
+  const [contentType, setContentType] = useState<"TEXT" | "VIDEO" | "MIXED">(widget.contentType ?? "TEXT");
   const [darkTheme, setDarkTheme] = useState(widget.theme === "dark");
   const [title, setTitle] = useState(widget.name);
   const [showNav, setShowNav] = useState(true);
@@ -118,6 +119,7 @@ export function WidgetCustomizer({
     const formData = new FormData();
     formData.append("widgetId", widget.id);
     formData.append("layout", layout);
+    formData.append("contentType", contentType);
     formData.append("name", title);
     formData.append("theme", darkTheme ? "dark" : "light");
     formData.append("isActive", isActive ? "on" : "off");
@@ -325,6 +327,34 @@ export function WidgetCustomizer({
             <h4 className="text-sm font-semibold text-slate-900 mb-5 uppercase tracking-wide">Display Options</h4>
 
             <div className="space-y-4 text-sm">
+              {/* Content type */}
+              <div>
+                <p className="font-semibold text-slate-900 mb-2">Content to show</p>
+                <div className="grid grid-cols-3 gap-2">
+                  {([
+                    { value: "TEXT", icon: "⭐", label: "Reviews" },
+                    { value: "VIDEO", icon: "🎥", label: "Videos" },
+                    { value: "MIXED", icon: "⭐🎥", label: "Both" },
+                  ] as const).map((opt) => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => setContentType(opt.value)}
+                      className={`flex flex-col items-center gap-1 rounded-lg border-2 px-2 py-2.5 text-xs font-medium transition-colors ${
+                        contentType === opt.value
+                          ? "border-indigo-500 bg-indigo-50 text-indigo-700"
+                          : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
+                      }`}
+                    >
+                      <span className="text-base">{opt.icon}</span>
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="border-t border-slate-100 pt-4" />
+
               {/* Show Header */}
               <div className="flex items-center justify-between">
                 <label className="flex-1 cursor-pointer">
