@@ -99,12 +99,12 @@ export async function sendVideoTestimonialRequestEmail({
         <p>It only takes 30–60 seconds and means the world to us.</p>
         ${prompt ? `<div style="border-left:3px solid #4f46e5;background:#eef2ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:16px 0;font-style:italic;color:#3730a3;">${escapeHtml(prompt)}</div>` : ''}
         <p style="margin: 32px 0;">
-          <a href="${recorderUrl}" style="display: inline-block; background: #4f46e5; color: #ffffff; text-decoration: none; padding: 14px 20px; border-radius: 14px; font-weight: 700;">
+          <a href="${escapeHtml(recorderUrl)}" style="display: inline-block; background: #4f46e5; color: #ffffff; text-decoration: none; padding: 14px 20px; border-radius: 14px; font-weight: 700;">
             Record My Testimonial 🎥
           </a>
         </p>
         <p style="font-size: 14px; color: #475569;">If the button doesn't work, copy and paste this link:</p>
-        <p style="font-size: 14px; color: #475569; word-break: break-all;">${recorderUrl}</p>
+        <p style="font-size: 14px; color: #475569; word-break: break-all;">${escapeHtml(recorderUrl)}</p>
         <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 32px 0;" />
         <p style="font-size: 12px; color: #94a3b8;">Powered by WeHearYou</p>
       </div>
