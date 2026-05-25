@@ -14,12 +14,21 @@ export type PublicWidgetReview = {
   reviewedAt: string | null;
 };
 
+export type PublicWidgetVideoTestimonial = {
+  id: string;
+  submitterName: string | null;
+  videoUrl: string;
+  durationSeconds: number | null;
+  publishedAt: string | null;
+};
+
 export type PublicWidgetPayload = {
   widget: {
     name: string;
     layout: string;
     theme: string;
     pageSize: number;
+    contentType: string;
     // Header
     showHeader: boolean;
     showAvgRating: boolean;
@@ -52,6 +61,7 @@ export type PublicWidgetPayload = {
     total: number;
     hasMore: boolean;
   };
+  videoTestimonials?: PublicWidgetVideoTestimonial[];
 };
 
 export type ReviewWidgetHealth = {
@@ -223,12 +233,43 @@ export async function getPublicReviewWidgetPayload(publicToken: string, page = 1
     prisma.review.count({ where }),
   ]);
 
+  const videoTestimonials: PublicWidgetVideoTestimonial[] = [];
+  if (widget.contentType === "VIDEO" || widget.contentType === "MIXED") {
+    const vts = await prisma.videoTestimonial.findMany({
+      where: {
+        locationId: widget.locationId,
+        status: "APPROVED",
+        videoUrl: { not: null },
+      },
+      orderBy: { publishedAt: "desc" },
+      select: {
+        id: true,
+        submitterName: true,
+        videoUrl: true,
+        durationSeconds: true,
+        publishedAt: true,
+      },
+    });
+    videoTestimonials.push(
+      ...vts
+        .filter((v): v is typeof v & { videoUrl: string } => v.videoUrl !== null)
+        .map((v) => ({
+          id: v.id,
+          submitterName: v.submitterName,
+          videoUrl: v.videoUrl,
+          durationSeconds: v.durationSeconds,
+          publishedAt: v.publishedAt ? v.publishedAt.toISOString() : null,
+        }))
+    );
+  }
+
   return {
     widget: {
       name: widget.name,
       layout: widget.layout,
       theme: widget.theme,
       pageSize,
+      contentType: widget.contentType,
       showHeader: widget.showHeader,
       showAvgRating: widget.showAvgRating,
       showReviewCount: widget.showReviewCount,
@@ -267,6 +308,7 @@ export async function getPublicReviewWidgetPayload(publicToken: string, page = 1
       total,
       hasMore: skip + reviews.length < total,
     },
+    ...(videoTestimonials.length > 0 ? { videoTestimonials } : {}),
   };
 }
 
@@ -327,12 +369,17 @@ export async function getWidgetEligibleLocations(organizationId: string) {
         },
       });
 
+      const videoTestimonialCount = await prisma.videoTestimonial.count({
+        where: { locationId: location.id, status: "APPROVED" },
+      });
+
       const hasMappedGoogleLocation = Boolean(location.googleLocationName);
       const canCreateWidget = hasMappedGoogleLocation && reviewCount > 0;
 
       return {
         ...location,
         reviewCount,
+        videoTestimonialCount,
         hasMappedGoogleLocation,
         canCreateWidget,
         guidance: !hasMappedGoogleLocation
