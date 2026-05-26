@@ -4,7 +4,7 @@ import { ContactSource, PreferredChannel } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { requireTeamManagement, requireLocationAccess } from "@/lib/authz";
+import { requireTeamManagement, requireLocationAccess, requireContactManagement } from "@/lib/authz";
 import { getCurrentAccessibleLocationIds } from "@/lib/current-scope";
 
 function normalize(value: FormDataEntryValue | null | undefined) {
@@ -92,6 +92,7 @@ export async function createContactForOnboarding(formData: FormData) {
   }
 
   const locationId = allowedLocationIds[0];
+  await requireContactManagement(locationId);
   const firstName = normalize(formData.get("firstName"));
   const lastName = normalize(formData.get("lastName"));
   const email = normalize(formData.get("email"));
@@ -141,13 +142,18 @@ export async function mapLocationToGoogleForOnboarding(formData: FormData) {
     redirect("/onboarding/google?error=" + encodeURIComponent("Google connection not found."));
   }
 
-  const parsed = JSON.parse(googleLocationPayload) as {
+  let parsed: {
     googleLocationId: string;
     googleLocationName: string;
     googlePlaceId?: string;
     reviewLink?: string;
     mapsUri?: string;
   };
+  try {
+    parsed = JSON.parse(googleLocationPayload);
+  } catch {
+    redirect("/onboarding/google?error=" + encodeURIComponent("Invalid location data. Please try again."));
+  }
 
   await prisma.location.update({
     where: { id: locationId },
