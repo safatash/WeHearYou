@@ -572,6 +572,16 @@ export async function createLocation(formData: FormData) {
     revalidatePath("/locations");
     revalidatePath("/integrations");
     revalidatePath("/settings");
+
+    if (hasMappedGoogleLocation) {
+      try {
+        const syncResult = await performGoogleReviewSync(location.id);
+        redirect(buildLocationDetailSyncSuccessPath(location.id, syncResult));
+      } catch {
+        redirect(`/locations/${location.id}`);
+      }
+    }
+
     redirect(`/locations/${location.id}`);
   }
 
@@ -977,7 +987,13 @@ export async function mapLocationToGoogle(formData: FormData) {
 
   revalidatePath("/integrations");
   revalidatePath(`/locations/${locationId}`);
-  redirect(`/locations/${locationId}`);
+
+  try {
+    const syncResult = await performGoogleReviewSync(locationId);
+    redirect(buildLocationDetailSyncSuccessPath(locationId, syncResult));
+  } catch {
+    redirect(`/locations/${locationId}`);
+  }
 }
 
 export async function refreshGoogleLocationDetails(formData: FormData) {
