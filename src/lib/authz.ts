@@ -1,4 +1,5 @@
 import { MembershipStatus } from "@prisma/client";
+import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import {
@@ -58,6 +59,10 @@ async function requireMembership() {
 
   if (!membership) {
     throw new Error("No active membership found");
+  }
+
+  if (membership.organization.suspendedAt) {
+    redirect("/suspended");
   }
 
   return membership as TeamMemberWithRelations;
@@ -141,4 +146,24 @@ export async function requireOrganizationAccess(organizationId: string) {
   }
 
   return membership;
+}
+
+export async function requireSuperAdmin() {
+  const session = await auth();
+  const userId = session?.user?.id;
+
+  if (!userId) {
+    redirect("/login");
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true, name: true, email: true, isSuperAdmin: true },
+  });
+
+  if (!user?.isSuperAdmin) {
+    redirect("/login");
+  }
+
+  return user;
 }
