@@ -43,7 +43,10 @@ export async function GET(request: NextRequest) {
       expiresIn: tokens.expires_in,
     });
 
-    return redirectToIntegrations("/integrations?google=connected");
+    const successPath = parsedState.returnTo
+      ? `${parsedState.returnTo}?connected=1`
+      : "/integrations?google=connected";
+    return redirectToIntegrations(successPath);
   } catch (callbackError) {
     const message = callbackError instanceof Error ? callbackError.message : "unknown_error";
     return redirectToIntegrations(`/integrations?google=callback_failed&reason=${encodeURIComponent(message)}`);

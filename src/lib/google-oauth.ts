@@ -102,9 +102,9 @@ export function getGooglePlacesConfig() {
   };
 }
 
-export function buildGoogleOAuthUrl({ organizationId, connectionId }: { organizationId: string; connectionId?: string }) {
+export function buildGoogleOAuthUrl({ organizationId, connectionId, returnTo }: { organizationId: string; connectionId?: string; returnTo?: string }) {
   const { clientId, redirectUri } = getGoogleOAuthConfig();
-  const state = createOAuthState({ organizationId, connectionId });
+  const state = createOAuthState({ organizationId, connectionId, returnTo });
 
   const params = new URLSearchParams({
     client_id: clientId,
@@ -119,7 +119,7 @@ export function buildGoogleOAuthUrl({ organizationId, connectionId }: { organiza
   return `${GOOGLE_AUTH_URL}?${params.toString()}`;
 }
 
-export function createOAuthState(payload: { organizationId: string; connectionId?: string }) {
+export function createOAuthState(payload: { organizationId: string; connectionId?: string; returnTo?: string }) {
   return Buffer.from(JSON.stringify({ ...payload, nonce: crypto.randomUUID() })).toString("base64url");
 }
 
@@ -128,6 +128,7 @@ export function parseOAuthState(state: string) {
     return JSON.parse(Buffer.from(state, "base64url").toString("utf8")) as {
       organizationId: string;
       connectionId?: string;
+      returnTo?: string;
       nonce: string;
     };
   } catch {
