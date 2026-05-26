@@ -1,0 +1,98 @@
+<h2>Testimonials list — with video thumbnails</h2>
+<p class="subtitle">Each card gets a video thumbnail so you can spot-check before approving. No inline player — clicking "Watch" still opens the video URL in a new tab.</p>
+
+<div class="mockup">
+  <div class="mockup-header">All Testimonials</div>
+  <div class="mockup-body" style="display:flex; flex-direction:column; gap:10px; font-size:11px;">
+
+    <!-- Card 1: Pending with video -->
+    <div style="border:1px solid #e2e8f0; border-radius:12px; padding:14px; display:flex; gap:14px; align-items:start;">
+      <!-- Thumbnail -->
+      <div style="width:96px; height:64px; background:#0f172a; border-radius:8px; flex-shrink:0; display:flex; align-items:center; justify-content:center; position:relative; border:1px solid #1e293b;">
+        <div style="width:26px; height:26px; background:rgba(255,255,255,.15); border-radius:50%; display:flex; align-items:center; justify-content:center;">
+          <span style="color:white; font-size:12px; margin-left:2px;">▶</span>
+        </div>
+        <div style="position:absolute; bottom:4px; right:6px; font-size:8px; color:#94a3b8;">0:12</div>
+      </div>
+      <!-- Info -->
+      <div style="flex:1; min-width:0;">
+        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:3px;">
+          <span style="font-weight:700; color:#0f172a;">Jane Smith</span>
+          <span style="background:#fffbeb; color:#92400e; border-radius:20px; padding:1px 8px; font-size:9px; font-weight:700;">PENDING</span>
+          <span style="color:#94a3b8; font-size:9px;">0:12 · May 24</span>
+        </div>
+        <div style="color:#64748b; font-size:10px; margin-bottom:2px;">Nova Advertising · Chicago, IL</div>
+        <div style="color:#94a3b8; font-size:9px; font-style:italic; margin-bottom:8px;">"How has Nova Advertising helped your business?"</div>
+        <div style="display:flex; gap:6px; flex-wrap:wrap;">
+          <div style="border:1px solid #e2e8f0; border-radius:7px; padding:4px 10px; font-size:9px; color:#475569; font-weight:600;">Watch ↗</div>
+          <div style="background:#dcfce7; border:1px solid #bbf7d0; border-radius:7px; padding:4px 10px; font-size:9px; color:#15803d; font-weight:600;">Publish</div>
+          <div style="background:#fef2f2; border:1px solid #fecaca; border-radius:7px; padding:4px 10px; font-size:9px; color:#dc2626; font-weight:600;">Reject</div>
+          <div style="border:1px solid #e2e8f0; border-radius:7px; padding:4px 10px; font-size:9px; color:#94a3b8;">Delete</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Card 2: Published -->
+    <div style="border:1px solid #e2e8f0; border-radius:12px; padding:14px; display:flex; gap:14px; align-items:start; background:#fafffe;">
+      <!-- Thumbnail -->
+      <div style="width:96px; height:64px; background:#0f172a; border-radius:8px; flex-shrink:0; display:flex; align-items:center; justify-content:center; position:relative; border:1px solid #1e293b;">
+        <div style="width:26px; height:26px; background:rgba(255,255,255,.15); border-radius:50%; display:flex; align-items:center; justify-content:center;">
+          <span style="color:white; font-size:12px; margin-left:2px;">▶</span>
+        </div>
+        <div style="position:absolute; bottom:4px; right:6px; font-size:8px; color:#94a3b8;">0:47</div>
+      </div>
+      <!-- Info -->
+      <div style="flex:1; min-width:0;">
+        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:3px;">
+          <span style="font-weight:700; color:#0f172a;">Mark Johnson</span>
+          <span style="background:#f0fdf4; color:#15803d; border-radius:20px; padding:1px 8px; font-size:9px; font-weight:700;">PUBLISHED</span>
+          <span style="color:#94a3b8; font-size:9px;">0:47 · May 22</span>
+        </div>
+        <div style="color:#64748b; font-size:10px; margin-bottom:2px;">Nova Advertising · Chicago, IL</div>
+        <div style="color:#94a3b8; font-size:9px; font-style:italic; margin-bottom:8px;">"How has Nova Advertising helped your business?"</div>
+        <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:8px;">
+          <div style="border:1px solid #e2e8f0; border-radius:7px; padding:4px 10px; font-size:9px; color:#475569; font-weight:600;">Watch ↗</div>
+          <div style="border:1px solid #e2e8f0; border-radius:7px; padding:4px 10px; font-size:9px; color:#94a3b8;">Delete</div>
+        </div>
+        <!-- Embed code -->
+        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:7px; padding:7px 10px; display:flex; justify-content:space-between; align-items:center;">
+          <code style="font-size:8px; color:#475569; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:240px;">&lt;iframe src="https://app.../embed/vt/abc123"…&gt;</code>
+          <span style="font-size:9px; color:#4f46e5; font-weight:600; flex-shrink:0; margin-left:8px;">Copy</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Card 3: Awaiting recording (no video yet) -->
+    <div style="border:1px dashed #e2e8f0; border-radius:12px; padding:14px; display:flex; gap:14px; align-items:start; opacity:.7;">
+      <!-- Placeholder thumbnail -->
+      <div style="width:96px; height:64px; background:#f1f5f9; border-radius:8px; flex-shrink:0; display:flex; align-items:center; justify-content:center; border:1px dashed #cbd5e1;">
+        <span style="font-size:20px;">🎥</span>
+      </div>
+      <!-- Info -->
+      <div style="flex:1;">
+        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:3px;">
+          <span style="font-weight:700; color:#0f172a;">Sarah Lee</span>
+          <span style="background:#f1f5f9; color:#64748b; border-radius:20px; padding:1px 8px; font-size:9px; font-weight:700;">AWAITING</span>
+          <span style="color:#94a3b8; font-size:9px;">Sent May 23</span>
+        </div>
+        <div style="color:#64748b; font-size:10px; margin-bottom:8px;">Nova Advertising · Chicago, IL</div>
+        <div style="display:flex; gap:6px;">
+          <div style="border:1px solid #e2e8f0; border-radius:7px; padding:4px 10px; font-size:9px; color:#475569; font-weight:600;">Open recorder link ↗</div>
+          <div style="border:1px solid #e2e8f0; border-radius:7px; padding:4px 10px; font-size:9px; color:#94a3b8;">Delete</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div style="margin-top:16px; background:#eff6ff; border:1px solid #bfdbfe; border-radius:10px; padding:12px; font-size:11px; color:#1e3a5f;">
+  <strong>What changes:</strong>
+  <ul style="margin:6px 0 0 16px; display:flex; flex-direction:column; gap:3px; color:#1e40af;">
+    <li>Thumbnail area (96×64) uses a <code>&lt;video&gt;</code> element with <code>preload="metadata"</code> to grab the first frame — no extra processing needed</li>
+    <li>Prompt shown as an italic quote below the name — useful for spotting which question they answered</li>
+    <li>"Awaiting" state (no video yet) shown with a dashed card + camera placeholder instead of blank</li>
+    <li>Embed code row gets a <strong>Copy</strong> button (copies to clipboard) instead of just showing the code</li>
+    <li>No new DB queries — thumbnail comes from the existing <code>videoUrl</code></li>
+  </ul>
+</div>

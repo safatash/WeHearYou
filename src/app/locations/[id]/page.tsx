@@ -5,9 +5,8 @@ import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { FormSubmitButton } from "@/components/form-submit-button";
 import { Field, OutcomeCard, StatCard } from "@/components/ui";
-import { connectYelp, deleteLocation, disconnectYelp, mapLocationToGoogle, refreshGoogleLocationDetails, saveLocationSettings, syncGoogleReviews, syncYelpReviews } from "@/app/locations/actions";
+import { deleteLocation, mapLocationToGoogle, refreshGoogleLocationDetails, saveLocationSettings, syncGoogleReviews } from "@/app/locations/actions";
 import { formatCampaignStatus, formatDateTime } from "@/lib/campaigns";
-import { prisma } from "@/lib/prisma";
 import { formatPreferredChannel } from "@/lib/contacts";
 import { buildGoogleLastSyncResultSummary, buildGoogleSyncSummary, buildLocationSyncErrorMessage } from "@/lib/google-sync-summary";
 import { buildGoogleWriteReviewLink, formatRelativeSyncTime, getLocationById, getLocationMappingOptions } from "@/lib/locations";
@@ -28,10 +27,6 @@ export default async function LocationDetailPage({
   if (!location) {
     notFound();
   }
-
-  const yelpReviewCount = await prisma.review.count({
-    where: { locationId: location.id, source: "YELP" },
-  });
 
   const mappingOptions = await getLocationMappingOptions(location.id);
   const requestCount = location.campaigns.reduce((sum, campaign) => sum + campaign.recipients.length, 0);
@@ -523,85 +518,6 @@ export default async function LocationDetailPage({
             </section>
           </aside>
         </div>
-
-        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="flex items-center gap-3 mb-1">
-            <span className="text-lg">🍽</span>
-            <h3 className="text-xl font-semibold text-slate-950">Yelp Reviews</h3>
-          </div>
-          <p className="mt-1 mb-6 text-sm text-slate-600">
-            Connect your Yelp business page to import reviews. Paste your Yelp business URL below.
-          </p>
-
-          {location.yelpBusinessUrl ? (
-            <div className="space-y-4">
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-700 space-y-1.5">
-                <p><span className="font-semibold">Business:</span> {location.yelpBusinessName}</p>
-                <p>
-                  <span className="font-semibold">Yelp URL:</span>{" "}
-                  <a href={location.yelpBusinessUrl} target="_blank" rel="noreferrer" className="text-indigo-600 underline">
-                    {location.yelpBusinessUrl}
-                  </a>
-                </p>
-                <p><span className="font-semibold">Yelp reviews imported:</span> {yelpReviewCount}</p>
-                {location.yelpLastSyncAt && (
-                  <p>
-                    <span className="font-semibold">Last synced:</span>{" "}
-                    {formatDateTime(location.yelpLastSyncAt)}
-                    {location.yelpLastSyncStatus === "error" && (
-                      <span className="ml-2 text-rose-600 font-semibold">— sync error</span>
-                    )}
-                  </p>
-                )}
-                {location.yelpLastSyncCount !== null && location.yelpLastSyncCount !== undefined && (
-                  <p><span className="font-semibold">Last sync found:</span> {location.yelpLastSyncCount} reviews on page</p>
-                )}
-              </div>
-
-              <div className="flex gap-3 flex-wrap">
-                <form action={syncYelpReviews}>
-                  <input type="hidden" name="locationId" value={location.id} />
-                  <FormSubmitButton
-                    idleLabel="Sync Yelp Reviews"
-                    pendingLabel="Syncing..."
-                    className="rounded-2xl bg-rose-600 px-4 py-3 text-sm font-semibold !text-white shadow-sm visited:!text-white hover:!text-white"
-                  />
-                </form>
-
-                <form action={disconnectYelp}>
-                  <input type="hidden" name="locationId" value={location.id} />
-                  <FormSubmitButton
-                    idleLabel="Disconnect Yelp"
-                    pendingLabel="Disconnecting..."
-                    className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-600 shadow-sm"
-                  />
-                </form>
-              </div>
-            </div>
-          ) : (
-            <form action={connectYelp} className="space-y-4">
-              <input type="hidden" name="locationId" value={location.id} />
-              <label className="grid gap-2 text-sm font-semibold text-slate-700">
-                Yelp Business URL
-                <input
-                  name="yelpUrl"
-                  type="url"
-                  required
-                  placeholder="https://www.yelp.com/biz/your-business-name"
-                  className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-normal text-slate-700 placeholder:font-normal placeholder:text-slate-400"
-                />
-                <span className="text-xs font-normal text-slate-400">
-                  Find your URL by searching your business on yelp.com and copying the address bar URL.
-                </span>
-              </label>
-              <FormSubmitButton
-                idleLabel="Connect Yelp"
-                pendingLabel="Connecting..."
-                className="rounded-2xl bg-rose-600 px-5 py-3 text-sm font-semibold !text-white shadow-sm visited:!text-white hover:!text-white"
-              />
-            </form>
-          )}
-        </section>
 
         <section className="rounded-3xl border border-rose-200 bg-rose-50 p-6 shadow-sm">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">

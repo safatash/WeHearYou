@@ -27,7 +27,7 @@ Video testimonials remain a **fully separate section** from the review request f
 
 | Step | Name | Content |
 |------|------|---------|
-| 1 | Intro | Business name + logo, "Share your experience in ~60 seconds", "Let's Go" CTA, "How it Works" bullet list |
+| 1 | Intro | Business name + logo, "Share your experience in ~90 seconds", "Let's Go" CTA, "How it Works" bullet list |
 | 2 | Prompt + Preview | Custom prompt question, 3 recording tips, live camera preview, "Start Recording" button |
 | 3 | Recording | Full camera feed, recording timer, prompt as a small overlay reminder, "Stop" button |
 | 4 | Playback | Video playback, "Re-record" + "Looks good →" buttons |
@@ -37,7 +37,7 @@ Video testimonials remain a **fully separate section** from the review request f
 ### Component changes — `VideoRecorder`
 
 **New props:**
-- `prompt: string` — shown on step 2 and as an overlay during recording. Falls back to `"Share your experience with [businessName]"` when the stored value is null (pre-migration testimonials).
+- `prompt: string` — shown on step 2 and as an overlay during recording. Falls back to `"Share your experience with [businessName]"` when the stored value is null (pre-migration testimonials). Max recording length is 90 seconds (matches existing `MAX_SECONDS = 90` in the component).
 - `businessName: string` — shown on intro card
 - `logoUrl?: string` — shown on intro card (fallback to initials avatar)
 
