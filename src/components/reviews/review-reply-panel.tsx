@@ -44,7 +44,7 @@ export function ReviewReplyPanel({
   const statusLabel = formatReviewStatus(review.status, review.isTestimonial);
 
   return (
-    <div className="flex h-full flex-col gap-6 p-6">
+    <div className="flex flex-col gap-6 p-6">
       {/* Review header */}
       <div>
         <div className="flex flex-wrap items-center gap-2">
@@ -108,14 +108,14 @@ export function ReviewReplyPanel({
       </div>
 
       {/* Reply form */}
-      <form action={saveReviewReply} className="flex flex-1 flex-col gap-4">
+      <form action={saveReviewReply} className="flex flex-col gap-4">
         <input type="hidden" name="reviewId" value={review.id} />
         <textarea
           name="replyDraft"
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           placeholder="Write your reply..."
-          className="min-h-36 flex-1 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm leading-7 text-slate-700 outline-none focus:border-indigo-300"
+          className="min-h-36 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm leading-7 text-slate-700 outline-none focus:border-indigo-300"
         />
 
         {review.replySentAt && (

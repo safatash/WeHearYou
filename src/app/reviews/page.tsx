@@ -76,7 +76,7 @@ export default async function ReviewsPage({
 
   return (
     <AppShell activeScreen="reviews">
-      <div className="flex h-full flex-col gap-6">
+      <div className="flex flex-col gap-6">
         {/* Header */}
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
@@ -178,9 +178,9 @@ export default async function ReviewsPage({
         </section>
 
         {/* Panel layout */}
-        <div className="flex min-h-0 flex-1 gap-6">
+        <div className="flex gap-6 items-start">
           {/* Left: review list */}
-          <div className={`flex flex-col gap-2 overflow-y-auto ${selectedReview ? "hidden xl:flex xl:w-2/5" : "w-full"}`}>
+          <div className={`flex flex-col gap-2 ${selectedReview ? "hidden xl:flex xl:w-2/5" : "w-full"}`}>
             {reviews.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-sm text-slate-600">
                 No reviews yet. Sync Google or collect direct feedback to start populating the inbox.
@@ -199,7 +199,7 @@ export default async function ReviewsPage({
 
           {/* Right: reply panel */}
           {selectedReview ? (
-            <div className="flex-1 overflow-y-auto rounded-3xl border border-slate-200 bg-white shadow-sm xl:w-3/5">
+            <div className="flex-1 rounded-3xl border border-slate-200 bg-white shadow-sm xl:w-3/5">
               <div className="mb-2 border-b border-slate-100 px-6 pt-4 pb-3 xl:hidden">
                 <Link href={baseFilterHref} className="text-sm font-semibold text-indigo-600">
                   ← Back to inbox
@@ -212,7 +212,7 @@ export default async function ReviewsPage({
               />
             </div>
           ) : (
-            <div className="hidden xl:flex xl:w-3/5 items-center justify-center rounded-3xl border border-dashed border-slate-200 bg-slate-50 text-sm text-slate-400">
+            <div className="hidden xl:flex xl:w-3/5 h-48 items-center justify-center rounded-3xl border border-dashed border-slate-200 bg-slate-50 text-sm text-slate-400">
               Select a review to reply
             </div>
           )}
