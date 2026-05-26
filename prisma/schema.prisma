@@ -90,6 +90,7 @@ model Organization {
   website           String?
   aiReplyEnabled    Boolean                 @default(false)
   suspendedAt       DateTime?
+  onboardingDismissedAt DateTime?
   createdAt         DateTime                @default(now())
   updatedAt         DateTime                @updatedAt
 
