@@ -89,6 +89,7 @@ model Organization {
   slug              String                  @unique
   website           String?
   aiReplyEnabled    Boolean                 @default(false)
+  suspendedAt       DateTime?
   createdAt         DateTime                @default(now())
   updatedAt         DateTime                @updatedAt
 
@@ -106,6 +107,7 @@ model User {
   passwordHash String?
   emailVerified DateTime?
   avatarUrl   String?
+  isSuperAdmin Boolean          @default(false)
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
 
