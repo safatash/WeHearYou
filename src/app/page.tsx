@@ -9,6 +9,7 @@ import { getCurrentAccessibleLocationIds } from "@/lib/current-scope";
 import { getCurrentMembership } from "@/lib/authz";
 import { prisma } from "@/lib/prisma";
 import { OnboardingChecklist } from "@/components/onboarding-checklist";
+import { canManageTeam } from "@/lib/team";
 
 export default async function DashboardPage() {
   const membership = await getCurrentMembership();
@@ -40,6 +41,7 @@ export default async function DashboardPage() {
   const dismissed = Boolean(org?.onboardingDismissedAt);
   const allDone = hasLocation && hasGoogle && hasContacts;
   const showChecklist = !dismissed && !allDone;
+  const canDismiss = canManageTeam(membership);
 
   if (!hasLocation && !dismissed) {
     redirect("/onboarding");
@@ -56,6 +58,7 @@ export default async function DashboardPage() {
             hasLocation={hasLocation}
             hasGoogle={hasGoogle}
             hasContacts={hasContacts}
+            canDismiss={canDismiss}
           />
         )}
 

@@ -44,6 +44,16 @@ export async function dismissOnboarding() {
   revalidatePath("/");
 }
 
+export async function skipOnboarding() {
+  const membership = await requireTeamManagement();
+  await prisma.organization.update({
+    where: { id: membership.organizationId },
+    data: { onboardingDismissedAt: new Date() },
+  });
+  revalidatePath("/");
+  redirect("/");
+}
+
 export async function createLocationForOnboarding(formData: FormData) {
   const membership = await requireTeamManagement();
   const name = normalize(formData.get("name"));
@@ -153,6 +163,10 @@ export async function mapLocationToGoogleForOnboarding(formData: FormData) {
     parsed = JSON.parse(googleLocationPayload);
   } catch {
     redirect("/onboarding/google?error=" + encodeURIComponent("Invalid location data. Please try again."));
+  }
+
+  if (!parsed.googleLocationId || !parsed.googleLocationName) {
+    redirect("/onboarding/google?error=" + encodeURIComponent("Invalid location data. Please select a location and try again."));
   }
 
   await prisma.location.update({

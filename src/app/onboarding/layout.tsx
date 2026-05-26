@@ -1,7 +1,7 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentMembership } from "@/lib/authz";
 import { prisma } from "@/lib/prisma";
+import { skipOnboarding } from "@/app/onboarding/actions";
 
 export default async function OnboardingLayout({ children }: { children: React.ReactNode }) {
   const membership = await getCurrentMembership();
@@ -42,9 +42,11 @@ export default async function OnboardingLayout({ children }: { children: React.R
     <div className="min-h-screen bg-slate-50">
       <header className="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-white">
         <span className="text-[15px] font-bold tracking-tight text-slate-950">WeHearYou</span>
-        <Link href="/" className="text-[13px] font-medium text-slate-500 hover:text-slate-900">
-          Skip for now →
-        </Link>
+        <form action={skipOnboarding}>
+          <button type="submit" className="text-[13px] font-medium text-slate-500 hover:text-slate-900">
+            Skip for now →
+          </button>
+        </form>
       </header>
 
       <div className="mx-auto max-w-xl px-4 pt-10">

@@ -5,9 +5,10 @@ type Props = {
   hasLocation: boolean;
   hasGoogle: boolean;
   hasContacts: boolean;
+  canDismiss: boolean;
 };
 
-export function OnboardingChecklist({ hasLocation, hasGoogle, hasContacts }: Props) {
+export function OnboardingChecklist({ hasLocation, hasGoogle, hasContacts, canDismiss }: Props) {
   const doneCount = [hasLocation, hasGoogle, hasContacts].filter(Boolean).length;
   const pct = Math.round((doneCount / 3) * 100);
   const subtitle =
@@ -99,14 +100,16 @@ export function OnboardingChecklist({ hasLocation, hasGoogle, hasContacts }: Pro
         ))}
       </div>
 
-      <form action={dismissOnboarding} className="mt-4">
-        <button
-          type="submit"
-          className="text-xs text-slate-400 hover:text-slate-600 font-medium"
-        >
-          Dismiss
-        </button>
-      </form>
+      {canDismiss && (
+        <form action={dismissOnboarding} className="mt-4">
+          <button
+            type="submit"
+            className="text-xs text-slate-400 hover:text-slate-600 font-medium"
+          >
+            Dismiss
+          </button>
+        </form>
+      )}
     </div>
   );
 }
