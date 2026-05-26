@@ -1,18 +1,64 @@
 export const dynamic = "force-dynamic";
 
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { OutcomeCard, PrimaryButton, SectionHeading, SecondaryButton, StatCard } from "@/components/ui";
 import { getDashboardData } from "@/lib/dashboard";
 import { getCurrentAccessibleLocationIds } from "@/lib/current-scope";
+import { getCurrentMembership } from "@/lib/authz";
+import { prisma } from "@/lib/prisma";
+import { OnboardingChecklist } from "@/components/onboarding-checklist";
 
 export default async function DashboardPage() {
+  const membership = await getCurrentMembership();
+
+  if (!membership) {
+    redirect("/login");
+  }
+
+  const org = await prisma.organization.findUnique({
+    where: { id: membership.organizationId },
+    select: {
+      onboardingDismissedAt: true,
+      locations: {
+        select: { id: true, googleLocationName: true },
+        orderBy: { createdAt: "asc" },
+        take: 1,
+      },
+      _count: { select: { locations: true } },
+    },
+  });
+
+  const hasLocation = (org?._count.locations ?? 0) > 0;
+  const hasGoogle = (org?.locations[0]?.googleLocationName ?? null) !== null;
+  const contactCount = hasLocation
+    ? await prisma.contact.count({ where: { locationId: org!.locations[0].id } })
+    : 0;
+  const hasContacts = contactCount > 0;
+
+  const dismissed = Boolean(org?.onboardingDismissedAt);
+  const allDone = hasLocation && hasGoogle && hasContacts;
+  const showChecklist = !dismissed && !allDone;
+
+  if (!hasLocation && !dismissed) {
+    redirect("/onboarding");
+  }
+
   const locationIds = await getCurrentAccessibleLocationIds();
   const dashboard = await getDashboardData(locationIds);
 
   return (
     <AppShell activeScreen="dashboard">
       <div className="space-y-6">
+        {showChecklist && (
+          <OnboardingChecklist
+            hasLocation={hasLocation}
+            hasGoogle={hasGoogle}
+            hasContacts={hasContacts}
+          />
+        )}
+
         <SectionHeading
           eyebrow="Dashboard Overview"
           title="Review funnel performance across requests, redirects, and feedback"
