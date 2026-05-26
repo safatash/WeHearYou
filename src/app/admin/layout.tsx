@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { requireSuperAdmin } from "@/lib/authz";
+import { AdminSignOutButton } from "./sign-out-button";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   await requireSuperAdmin();
@@ -36,12 +37,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
               Users
             </Link>
           </nav>
-          <a
-            href="/api/auth/signout"
-            className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-medium text-slate-600 hover:border-slate-300 hover:text-slate-900"
-          >
-            Sign out
-          </a>
+          <AdminSignOutButton />
         </div>
       </header>
       <main className="mx-auto max-w-7xl px-6 py-8">{children}</main>

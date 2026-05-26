@@ -3,8 +3,9 @@ export const dynamic = "force-dynamic";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { updateOrgAsAdmin, suspendOrg, unsuspendOrg, deleteOrg } from "@/app/admin/actions";
+import { updateOrgAsAdmin, suspendOrg, unsuspendOrg } from "@/app/admin/actions";
 import { FormSubmitButton } from "@/components/form-submit-button";
+import { DeleteOrgButton } from "./delete-org-button";
 
 export default async function AdminOrgDetailPage({
   params,
@@ -151,21 +152,7 @@ export default async function AdminOrgDetailPage({
                 }`}
               />
             </form>
-            <form
-              action={deleteOrg}
-              onSubmit={(e) => {
-                if (!confirm(`Permanently delete "${org.name}" and all its data? This cannot be undone.`)) {
-                  e.preventDefault();
-                }
-              }}
-            >
-              <input type="hidden" name="orgId" value={org.id} />
-              <FormSubmitButton
-                idleLabel="Delete organization"
-                pendingLabel="Deleting..."
-                className="rounded-2xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-rose-700"
-              />
-            </form>
+            <DeleteOrgButton orgId={org.id} orgName={org.name} />
           </div>
         </section>
       </div>

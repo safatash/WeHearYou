@@ -86,10 +86,14 @@ export async function promoteToSuperAdmin(formData: FormData) {
 }
 
 export async function revokeSuperAdmin(formData: FormData) {
-  await requireSuperAdmin();
+  const caller = await requireSuperAdmin();
 
   const userId = String(formData.get("userId") ?? "").trim();
   if (!userId) throw new Error("User ID is required");
+
+  if (caller.id === userId) {
+    throw new Error("You cannot revoke your own superadmin access");
+  }
 
   await prisma.user.update({
     where: { id: userId },
