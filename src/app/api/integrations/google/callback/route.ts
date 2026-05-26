@@ -43,8 +43,10 @@ export async function GET(request: NextRequest) {
       expiresIn: tokens.expires_in,
     });
 
-    const successPath = parsedState.returnTo
-      ? `${parsedState.returnTo}?connected=1`
+    const returnTo = parsedState.returnTo;
+    const isSafeReturnTo = typeof returnTo === "string" && returnTo.startsWith("/") && !returnTo.startsWith("//");
+    const successPath = isSafeReturnTo
+      ? `${returnTo}?connected=1`
       : "/integrations?google=connected";
     return redirectToIntegrations(successPath);
   } catch (callbackError) {
