@@ -206,6 +206,7 @@ export default async function ReviewsPage({
                 </Link>
               </div>
               <ReviewReplyPanel
+                key={selectedReview.id}
                 review={selectedReview}
                 aiReplyEnabled={aiReplyEnabled}
                 initialDraft={selectedReview.replyDraft ?? buildReviewReplyDraft(selectedReview.reviewerName, selectedReview.rating)}
