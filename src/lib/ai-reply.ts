@@ -1,12 +1,11 @@
 import OpenAI from "openai";
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-
 export async function generateReplyDraft(review: {
   reviewerName: string;
   rating: number;
   body: string;
 }): Promise<string> {
+  const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
   const firstName = review.reviewerName.trim().split(/\s+/)[0] || "there";
 
   const prompt = `You are a professional business owner responding to a customer review. Write a warm, professional reply (2-4 sentences) to this ${review.rating}-star review from ${firstName}:
