@@ -66,11 +66,10 @@ export default async function NewCampaignPage() {
 
                 <fieldset>
                   <legend className="text-sm font-semibold text-slate-700">Delivery channels</legend>
-                  <div className="mt-2 grid gap-3 md:grid-cols-3">
+                  <div className="mt-2 grid gap-3 sm:grid-cols-2">
                     {[
                       { value: "SMS", label: "SMS" },
                       { value: "EMAIL", label: "Email" },
-                      { value: "VIDEO_TESTIMONIAL", label: "Video testimonial" },
                     ].map(({ value, label }) => (
                       <label
                         key={value}
