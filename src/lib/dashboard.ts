@@ -2,6 +2,14 @@ import { CampaignStatus, ReviewSource, ReviewStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { buildWeeklyBuckets } from "@/lib/time-series";
 
+type ActivityItem = {
+  reviewerName: string;
+  rating: number;
+  sourceLabel: string;
+  isPrivate: boolean;
+  createdAt: Date;
+};
+
 const completedCampaignStatuses = new Set<CampaignStatus>([
   CampaignStatus.COMPLETED,
   CampaignStatus.CLICKED,
@@ -32,13 +40,7 @@ export async function getDashboardData(locationIds?: string[]) {
       locations: [],
       googleAvgRating: "0.0",
       googleReviewsThisMonth: 0,
-      recentActivity: [] as {
-        reviewerName: string;
-        rating: number;
-        sourceLabel: string;
-        isPrivate: boolean;
-        createdAt: Date;
-      }[],
+      recentActivity: [] as ActivityItem[],
     };
   }
 
@@ -110,9 +112,8 @@ export async function getDashboardData(locationIds?: string[]) {
   const googleReviewCount = reviews.filter((review) => review.source === ReviewSource.GOOGLE).length;
   const facebookReviewCount = reviews.filter((review) => review.source === ReviewSource.FACEBOOK).length;
 
-  const startOfMonth = new Date();
-  startOfMonth.setDate(1);
-  startOfMonth.setHours(0, 0, 0, 0);
+  const now = new Date();
+  const startOfMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
 
   const googleReviewsOnly = reviews.filter(
     (r) => r.source === ReviewSource.GOOGLE && !r.isTestimonial,
