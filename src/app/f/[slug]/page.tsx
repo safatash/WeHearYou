@@ -54,12 +54,14 @@ export default async function PublicFunnelPage({ params }: { params: Promise<{ s
         </p>
 
         <FunnelRatingForm
-        slug={slug}
-        submitAction={submitPublicFunnelRating}
-        reviewLink={location.reviewLink}
-        filterEnabled={profile?.negativeFilterEnabled ?? false}
-        filterThreshold={profile?.negativeFilterThreshold ?? 4}
-      />
+          slug={slug}
+          submitAction={submitPublicFunnelRating}
+          reviewLink={location.reviewLink}
+          filterEnabled={profile?.negativeFilterEnabled ?? false}
+          filterThreshold={profile?.negativeFilterThreshold ?? 4}
+          ratingMode={ratingMode}
+          ratingOptions={ratingOptions}
+        />
       </div>
     </main>
   );
