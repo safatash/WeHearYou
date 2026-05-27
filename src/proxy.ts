@@ -16,8 +16,7 @@ export default auth((req) => {
     req.nextUrl.pathname.startsWith("/api/cron") ||
     req.nextUrl.pathname.startsWith("/api/automation/") ||
     req.nextUrl.pathname.startsWith("/vt/") ||
-    req.nextUrl.pathname.startsWith("/embed/vt/") ||
-    req.nextUrl.pathname.startsWith("/api/admin/set-superadmin");
+    req.nextUrl.pathname.startsWith("/embed/vt/");
 
   if (!isLoggedIn && !isPublicPath) {
     const loginUrl = new URL("/login", req.nextUrl.origin);
