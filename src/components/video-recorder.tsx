@@ -183,8 +183,6 @@ export function VideoRecorder({ token, prompt, businessName, logoUrl }: Props) {
           submitterName: name.trim(),
           submitterEmail: email.trim() || null,
         }),
-        multipart: true,
-        onUploadProgress: ({ percentage }) => setUploadProgress(Math.round(percentage)),
       });
 
       setStage("done");
@@ -405,17 +403,9 @@ export function VideoRecorder({ token, prompt, businessName, logoUrl }: Props) {
           </div>
           {error && <p className="text-sm text-rose-600">{error}</p>}
           {stage === "uploading" && (
-            <div className="space-y-1">
-              <div className="flex justify-between text-xs text-slate-500">
-                <span>Uploading…</span>
-                <span>{uploadProgress}%</span>
-              </div>
-              <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
-                <div
-                  className="h-full rounded-full bg-indigo-600 transition-all duration-300"
-                  style={{ width: `${uploadProgress}%` }}
-                />
-              </div>
+            <div className="flex items-center gap-2 text-xs text-slate-500">
+              <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-indigo-300 border-t-indigo-600" />
+              <span>Uploading your video…</span>
             </div>
           )}
           <div className="flex gap-3">
