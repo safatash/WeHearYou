@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, useEffect } from "react";
+import { upload } from "@vercel/blob/client";
 
 type Props = {
   token: string;
@@ -162,16 +163,27 @@ export function VideoRecorder({ token, prompt, businessName, logoUrl }: Props) {
     setStage("uploading");
     setError(null);
     try {
-      const fd = new FormData();
-      fd.append("token", token);
-      fd.append("video", videoBlob, "testimonial.webm");
-      fd.append("durationSeconds", String(duration));
-      fd.append("submitterName", name.trim());
-      if (email.trim()) fd.append("submitterEmail", email.trim());
+      // Normalize codec-specific MIME types so Vercel Blob accepts them
+      const rawType = videoBlob.type;
+      const normalizedType = rawType.startsWith("video/webm")
+        ? "video/webm"
+        : rawType.startsWith("video/mp4") || rawType.startsWith("video/quicktime")
+        ? "video/mp4"
+        : "video/webm";
+      const ext = normalizedType === "video/mp4" ? "mp4" : "webm";
+      const file = new File([videoBlob], `testimonial.${ext}`, { type: normalizedType });
 
-      const res = await fetch("/api/video-testimonials/upload", { method: "POST", body: fd });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error ?? "Upload failed");
+      await upload(file.name, file, {
+        access: "public",
+        handleUploadUrl: "/api/video-testimonials/upload",
+        clientPayload: JSON.stringify({
+          token,
+          durationSeconds: duration,
+          submitterName: name.trim(),
+          submitterEmail: email.trim() || null,
+        }),
+      });
+
       setStage("done");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upload failed. Please try again.");

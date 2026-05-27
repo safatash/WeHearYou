@@ -1,74 +1,69 @@
+import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
 import { NextRequest, NextResponse } from "next/server";
-import { put } from "@vercel/blob";
 import { prisma } from "@/lib/prisma";
-
-const MAX_DURATION_SECONDS = 90;
-const MAX_FILE_SIZE_BYTES = 150 * 1024 * 1024; // 150MB
 
 export const maxDuration = 60;
 
-export async function POST(request: NextRequest) {
+export async function POST(request: NextRequest): Promise<NextResponse> {
+  const body = (await request.json()) as HandleUploadBody;
+
   try {
-    const formData = await request.formData();
-    const token = String(formData.get("token") ?? "").trim();
-    const videoFile = formData.get("video");
-    const submitterName = String(formData.get("submitterName") ?? "").trim() || null;
-    const submitterEmail = String(formData.get("submitterEmail") ?? "").trim() || null;
-    const durationSeconds = parseInt(String(formData.get("durationSeconds") ?? "0"), 10) || null;
+    const jsonResponse = await handleUpload({
+      body,
+      request,
+      onBeforeGenerateToken: async (pathname, clientPayload) => {
+        const payload = JSON.parse(clientPayload ?? "{}") as {
+          token?: string;
+          durationSeconds?: number;
+          submitterName?: string;
+          submitterEmail?: string;
+        };
 
-    if (!token) {
-      return NextResponse.json({ error: "Token is required" }, { status: 400 });
-    }
+        if (!payload.token) throw new Error("Token is required");
 
-    if (!(videoFile instanceof File)) {
-      return NextResponse.json({ error: "Video file is required" }, { status: 400 });
-    }
+        const testimonial = await prisma.videoTestimonial.findUnique({
+          where: { token: payload.token },
+          select: { id: true, videoUrl: true, locationId: true },
+        });
 
-    if (videoFile.size > MAX_FILE_SIZE_BYTES) {
-      return NextResponse.json({ error: "Video file is too large (max 150MB)" }, { status: 400 });
-    }
+        if (!testimonial) throw new Error("Invalid or expired link");
+        if (testimonial.videoUrl) throw new Error("This link has already been used");
 
-    if (!videoFile.type.startsWith("video/")) {
-      return NextResponse.json({ error: "Unsupported video format" }, { status: 400 });
-    }
+        return {
+          allowedContentTypes: ["video/webm", "video/mp4", "video/quicktime"],
+          maximumSizeInBytes: 150 * 1024 * 1024,
+          tokenPayload: JSON.stringify({
+            testimonialId: testimonial.id,
+            durationSeconds: payload.durationSeconds ?? null,
+            submitterName: payload.submitterName ?? null,
+            submitterEmail: payload.submitterEmail ?? null,
+          }),
+        };
+      },
+      onUploadCompleted: async ({ blob, tokenPayload }) => {
+        const payload = JSON.parse(tokenPayload ?? "{}") as {
+          testimonialId: string;
+          durationSeconds: number | null;
+          submitterName: string | null;
+          submitterEmail: string | null;
+        };
 
-    if (durationSeconds && durationSeconds > MAX_DURATION_SECONDS) {
-      return NextResponse.json({ error: `Video must be ${MAX_DURATION_SECONDS} seconds or shorter` }, { status: 400 });
-    }
-
-    const testimonial = await prisma.videoTestimonial.findUnique({
-      where: { token },
-      select: { id: true, videoUrl: true, locationId: true },
-    });
-
-    if (!testimonial) {
-      return NextResponse.json({ error: "Invalid or expired link" }, { status: 404 });
-    }
-
-    if (testimonial.videoUrl) {
-      return NextResponse.json({ error: "This link has already been used" }, { status: 409 });
-    }
-
-    const extension = videoFile.type === "video/mp4" || videoFile.type === "video/quicktime" ? "mp4" : "webm";
-    const filename = `video-testimonials/${testimonial.locationId}/${testimonial.id}.${extension}`;
-
-    const blob = await put(filename, videoFile, { access: "public", contentType: videoFile.type, token: process.env.BLOB_Public_READ_WRITE_TOKEN });
-
-    await prisma.videoTestimonial.update({
-      where: { id: testimonial.id },
-      data: {
-        videoUrl: blob.url,
-        mimeType: videoFile.type,
-        durationSeconds: durationSeconds ?? null,
-        submitterName,
-        submitterEmail,
-        status: "PENDING",
+        await prisma.videoTestimonial.update({
+          where: { id: payload.testimonialId },
+          data: {
+            videoUrl: blob.url,
+            mimeType: blob.contentType,
+            durationSeconds: payload.durationSeconds,
+            submitterName: payload.submitterName,
+            submitterEmail: payload.submitterEmail,
+            status: "PENDING",
+          },
+        });
       },
     });
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json(jsonResponse);
   } catch (error) {
-    console.error("Video testimonial upload error:", error);
-    return NextResponse.json({ error: "Upload failed. Please try again." }, { status: 500 });
+    return NextResponse.json({ error: (error as Error).message }, { status: 400 });
   }
 }
