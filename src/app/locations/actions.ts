@@ -168,7 +168,7 @@ async function persistConnectionBatchSyncResult({
   });
 }
 
-async function performGoogleReviewSync(locationId: string) {
+export async function performGoogleReviewSync(locationId: string) {
   await requireLocationAccess(locationId);
 
   const location = await prisma.location.findUnique({

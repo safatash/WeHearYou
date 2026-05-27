@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireTeamManagement, requireLocationAccess, requireContactManagement } from "@/lib/authz";
 import { getCurrentAccessibleLocationIds } from "@/lib/current-scope";
+import { performGoogleReviewSync } from "@/app/locations/actions";
 
 function normalize(value: FormDataEntryValue | null | undefined) {
   const text = typeof value === "string" ? value.trim() : "";
@@ -189,5 +190,12 @@ export async function mapLocationToGoogleForOnboarding(formData: FormData) {
 
   revalidatePath("/");
   revalidatePath("/integrations");
+
+  try {
+    await performGoogleReviewSync(locationId);
+  } catch {
+    // Sync failure is non-fatal — reviews will sync on next scheduled run
+  }
+
   redirect("/onboarding/contacts");
 }
