@@ -11,6 +11,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const jsonResponse = await handleUpload({
       body,
       request,
+      token: process.env.BLOB_Public_READ_WRITE_TOKEN,
       onBeforeGenerateToken: async (_pathname, clientPayload) => {
         const payload = JSON.parse(clientPayload ?? "{}") as {
           token?: string;
