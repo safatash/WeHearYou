@@ -30,6 +30,15 @@ export async function getDashboardData(locationIds?: string[]) {
         privateFeedback: 0,
       },
       locations: [],
+      googleAvgRating: "0.0",
+      googleReviewsThisMonth: 0,
+      recentActivity: [] as {
+        reviewerName: string;
+        rating: number;
+        sourceLabel: string;
+        isPrivate: boolean;
+        createdAt: Date;
+      }[],
     };
   }
 
@@ -45,6 +54,7 @@ export async function getDashboardData(locationIds?: string[]) {
         status: true,
         isTestimonial: true,
         isWidgetVisible: true,
+        reviewerName: true,
         reviewedAt: true,
         createdAt: true,
       },
@@ -70,6 +80,7 @@ export async function getDashboardData(locationIds?: string[]) {
         name: true,
         status: true,
         avgRating: true,
+        _count: { select: { reviews: { where: { isTestimonial: false } } } },
       },
     }),
   ]);
@@ -99,6 +110,40 @@ export async function getDashboardData(locationIds?: string[]) {
   const googleReviewCount = reviews.filter((review) => review.source === ReviewSource.GOOGLE).length;
   const facebookReviewCount = reviews.filter((review) => review.source === ReviewSource.FACEBOOK).length;
 
+  const startOfMonth = new Date();
+  startOfMonth.setDate(1);
+  startOfMonth.setHours(0, 0, 0, 0);
+
+  const googleReviewsOnly = reviews.filter(
+    (r) => r.source === ReviewSource.GOOGLE && !r.isTestimonial,
+  );
+  const googleAvgRating =
+    googleReviewsOnly.length > 0
+      ? (
+          googleReviewsOnly.reduce((sum, r) => sum + r.rating, 0) /
+          googleReviewsOnly.length
+        ).toFixed(1)
+      : "0.0";
+  const googleReviewsThisMonth = googleReviewsOnly.filter(
+    (r) => (r.reviewedAt ?? r.createdAt) >= startOfMonth,
+  ).length;
+
+  const recentActivity = reviews
+    .filter((r) => !r.isTestimonial)
+    .slice(0, 10)
+    .map((r) => ({
+      reviewerName: r.reviewerName,
+      rating: r.rating,
+      sourceLabel:
+        r.source === ReviewSource.GOOGLE
+          ? "Google"
+          : r.source === ReviewSource.FACEBOOK
+            ? "Facebook"
+            : "Review",
+      isPrivate: r.status === ReviewStatus.PRIVATE_FEEDBACK,
+      createdAt: r.createdAt,
+    }));
+
   return {
     totalReviews,
     averageRating: `${averageRating} ★`,
@@ -118,5 +163,8 @@ export async function getDashboardData(locationIds?: string[]) {
       privateFeedback,
     },
     locations,
+    googleAvgRating,
+    googleReviewsThisMonth,
+    recentActivity,
   };
 }
