@@ -174,16 +174,30 @@ export function VideoRecorder({ token, prompt, businessName, logoUrl }: Props) {
       const ext = normalizedType === "video/mp4" ? "mp4" : "webm";
       const file = new File([videoBlob], `testimonial.${ext}`, { type: normalizedType });
 
-      await upload(file.name, file, {
+      const blobResult = await upload(file.name, file, {
         access: "public",
         handleUploadUrl: "/api/video-testimonials/upload",
-        clientPayload: JSON.stringify({
+        clientPayload: JSON.stringify({ token }),
+      });
+
+      // Blob upload done — now record the submission in our DB
+      const completeRes = await fetch("/api/video-testimonials/complete", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
           token,
+          videoUrl: blobResult.url,
+          mimeType: file.type,
           durationSeconds: duration,
           submitterName: name.trim(),
           submitterEmail: email.trim() || null,
         }),
       });
+
+      if (!completeRes.ok) {
+        const { error } = await completeRes.json().catch(() => ({ error: "Unknown error" }));
+        throw new Error(error ?? "Failed to save submission");
+      }
 
       setStage("done");
     } catch (err) {

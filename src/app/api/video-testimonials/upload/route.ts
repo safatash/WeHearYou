@@ -11,60 +11,31 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const jsonResponse = await handleUpload({
       body,
       request,
-      onBeforeGenerateToken: async (pathname, clientPayload) => {
+      onBeforeGenerateToken: async (_pathname, clientPayload) => {
         const payload = JSON.parse(clientPayload ?? "{}") as {
           token?: string;
-          durationSeconds?: number;
-          submitterName?: string;
-          submitterEmail?: string;
         };
 
         if (!payload.token) throw new Error("Token is required");
 
         const testimonial = await prisma.videoTestimonial.findUnique({
           where: { token: payload.token },
-          select: { id: true, videoUrl: true, locationId: true },
+          select: { id: true, videoUrl: true },
         });
 
         if (!testimonial) throw new Error("Invalid or expired link");
         if (testimonial.videoUrl) throw new Error("This link has already been used");
 
+        // Store the testimonial token in tokenPayload so the /complete endpoint can look it up
         return {
           allowedContentTypes: ["video/webm", "video/mp4", "video/quicktime"],
           maximumSizeInBytes: 150 * 1024 * 1024,
-          tokenPayload: JSON.stringify({
-            testimonialId: testimonial.id,
-            durationSeconds: payload.durationSeconds ?? null,
-            submitterName: payload.submitterName ?? null,
-            submitterEmail: payload.submitterEmail ?? null,
-          }),
+          tokenPayload: payload.token,
         };
       },
-      onUploadCompleted: async ({ blob, tokenPayload }) => {
-        try {
-          const payload = JSON.parse(tokenPayload ?? "{}") as {
-            testimonialId: string;
-            durationSeconds: number | null;
-            submitterName: string | null;
-            submitterEmail: string | null;
-          };
-
-          await prisma.videoTestimonial.update({
-            where: { id: payload.testimonialId },
-            data: {
-              videoUrl: blob.url,
-              mimeType: blob.contentType,
-              durationSeconds: payload.durationSeconds,
-              submitterName: payload.submitterName,
-              submitterEmail: payload.submitterEmail,
-              status: "PENDING",
-            },
-          });
-        } catch (err) {
-          console.error("[video-upload] onUploadCompleted failed:", err);
-          throw err;
-        }
-      },
+      // No onUploadCompleted — Vercel Blob will respond to the PUT immediately
+      // without waiting for a callback. The client calls /complete after upload.
+      onUploadCompleted: async () => { /* intentionally empty */ },
     });
 
     return NextResponse.json(jsonResponse);
