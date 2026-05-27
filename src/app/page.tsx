@@ -89,7 +89,7 @@ export default async function DashboardPage() {
         </div>
 
         {/* Stat cards */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 xl:grid-cols-[1.4fr_1fr_1fr]">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-[1.4fr_1fr_1fr]">
           {/* Google Reviews — hero */}
           <div className="rounded-2xl border border-indigo-100 bg-white p-6 shadow-sm">
             <p className="text-xs font-bold uppercase tracking-widest text-slate-400">
@@ -133,7 +133,7 @@ export default async function DashboardPage() {
             >
               {dashboard.funnelOutcomes.privateFeedback}
             </p>
-            <p className="mt-1 text-sm text-slate-400">unread messages</p>
+            <p className="mt-1 text-sm text-slate-400">private feedback</p>
             {dashboard.funnelOutcomes.privateFeedback > 0 ? (
               <p className="mt-1 text-xs font-semibold text-amber-500">needs attention</p>
             ) : (
@@ -143,7 +143,7 @@ export default async function DashboardPage() {
         </div>
 
         {/* Body grid */}
-        <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1.4fr_1fr]">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1.4fr_1fr]">
           {/* Recent Activity */}
           <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
             <div className="mb-4 flex items-center justify-between">
@@ -159,9 +159,9 @@ export default async function DashboardPage() {
               {dashboard.recentActivity.length === 0 ? (
                 <p className="text-sm text-slate-400">No reviews yet.</p>
               ) : (
-                dashboard.recentActivity.map((item, i) => (
+                dashboard.recentActivity.map((item) => (
                   <div
-                    key={i}
+                    key={item.createdAt.toISOString()}
                     className={`flex items-start gap-3 rounded-xl px-3 py-2.5 ${
                       item.isPrivate
                         ? "border-l-2 border-amber-400 bg-amber-50"
@@ -172,7 +172,7 @@ export default async function DashboardPage() {
                       <p className="text-sm font-semibold text-slate-900">
                         {item.reviewerName || "Anonymous"}
                       </p>
-                      <p className="text-xs text-amber-400">{"★".repeat(item.rating)}</p>
+                      <p className="text-xs text-amber-400">{item.rating > 0 ? "★".repeat(item.rating) : "—"}</p>
                       <p className="text-xs text-slate-400">
                         {item.sourceLabel} · {formatRelativeSyncTime(item.createdAt)}
                       </p>
@@ -184,7 +184,7 @@ export default async function DashboardPage() {
                           : "bg-emerald-100 text-emerald-700"
                       }`}
                     >
-                      {item.isPrivate ? "Unread" : item.sourceLabel}
+                      {item.isPrivate ? "Private" : item.sourceLabel}
                     </span>
                   </div>
                 ))
