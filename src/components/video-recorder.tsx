@@ -36,6 +36,7 @@ export function VideoRecorder({ token, prompt, businessName, logoUrl }: Props) {
   const [elapsed, setElapsed] = useState(0);
   const [countdown, setCountdown] = useState(3);
   const [script, setScript] = useState("");
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -161,9 +162,9 @@ export function VideoRecorder({ token, prompt, businessName, logoUrl }: Props) {
   async function submitVideo() {
     if (!videoBlob || !name.trim()) return;
     setStage("uploading");
+    setUploadProgress(0);
     setError(null);
     try {
-      // Normalize codec-specific MIME types so Vercel Blob accepts them
       const rawType = videoBlob.type;
       const normalizedType = rawType.startsWith("video/webm")
         ? "video/webm"
@@ -182,6 +183,8 @@ export function VideoRecorder({ token, prompt, businessName, logoUrl }: Props) {
           submitterName: name.trim(),
           submitterEmail: email.trim() || null,
         }),
+        multipart: true,
+        onUploadProgress: ({ percentage }) => setUploadProgress(Math.round(percentage)),
       });
 
       setStage("done");
@@ -401,6 +404,20 @@ export function VideoRecorder({ token, prompt, businessName, logoUrl }: Props) {
             />
           </div>
           {error && <p className="text-sm text-rose-600">{error}</p>}
+          {stage === "uploading" && (
+            <div className="space-y-1">
+              <div className="flex justify-between text-xs text-slate-500">
+                <span>Uploading…</span>
+                <span>{uploadProgress}%</span>
+              </div>
+              <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
+                <div
+                  className="h-full rounded-full bg-indigo-600 transition-all duration-300"
+                  style={{ width: `${uploadProgress}%` }}
+                />
+              </div>
+            </div>
+          )}
           <div className="flex gap-3">
             <button
               onClick={reRecord}

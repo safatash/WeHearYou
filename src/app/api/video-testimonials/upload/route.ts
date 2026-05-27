@@ -41,24 +41,29 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         };
       },
       onUploadCompleted: async ({ blob, tokenPayload }) => {
-        const payload = JSON.parse(tokenPayload ?? "{}") as {
-          testimonialId: string;
-          durationSeconds: number | null;
-          submitterName: string | null;
-          submitterEmail: string | null;
-        };
+        try {
+          const payload = JSON.parse(tokenPayload ?? "{}") as {
+            testimonialId: string;
+            durationSeconds: number | null;
+            submitterName: string | null;
+            submitterEmail: string | null;
+          };
 
-        await prisma.videoTestimonial.update({
-          where: { id: payload.testimonialId },
-          data: {
-            videoUrl: blob.url,
-            mimeType: blob.contentType,
-            durationSeconds: payload.durationSeconds,
-            submitterName: payload.submitterName,
-            submitterEmail: payload.submitterEmail,
-            status: "PENDING",
-          },
-        });
+          await prisma.videoTestimonial.update({
+            where: { id: payload.testimonialId },
+            data: {
+              videoUrl: blob.url,
+              mimeType: blob.contentType,
+              durationSeconds: payload.durationSeconds,
+              submitterName: payload.submitterName,
+              submitterEmail: payload.submitterEmail,
+              status: "PENDING",
+            },
+          });
+        } catch (err) {
+          console.error("[video-upload] onUploadCompleted failed:", err);
+          throw err;
+        }
       },
     });
 
