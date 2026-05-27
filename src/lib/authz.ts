@@ -1,5 +1,6 @@
 import { MembershipStatus } from "@prisma/client";
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import {
@@ -13,6 +14,19 @@ import {
   type TeamMemberWithRelations,
 } from "@/lib/team";
 
+const MEMBERSHIP_INCLUDE = {
+  user: true,
+  organization: {
+    include: {
+      locations: { orderBy: { createdAt: "asc" as const } },
+    },
+  },
+  locationAccess: {
+    include: { location: true },
+    orderBy: { location: { createdAt: "asc" as const } },
+  },
+} as const;
+
 export async function getCurrentMembership() {
   const session = await auth();
   const userId = session?.user?.id;
@@ -21,36 +35,27 @@ export async function getCurrentMembership() {
     return null;
   }
 
+  // Impersonation: superadmin viewing as a client user
+  const jar = await cookies();
+  const impersonateId = jar.get("why_impersonate")?.value;
+  if (impersonateId) {
+    const realUser = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { isSuperAdmin: true },
+    });
+    if (realUser?.isSuperAdmin) {
+      return prisma.userMembership.findFirst({
+        where: { userId: impersonateId, status: MembershipStatus.ACTIVE },
+        include: MEMBERSHIP_INCLUDE,
+        orderBy: { createdAt: "asc" },
+      });
+    }
+  }
+
   return prisma.userMembership.findFirst({
-    where: {
-      userId,
-      status: MembershipStatus.ACTIVE,
-    },
-    include: {
-      user: true,
-      organization: {
-        include: {
-          locations: {
-            orderBy: {
-              createdAt: "asc",
-            },
-          },
-        },
-      },
-      locationAccess: {
-        include: {
-          location: true,
-        },
-        orderBy: {
-          location: {
-            createdAt: "asc",
-          },
-        },
-      },
-    },
-    orderBy: {
-      createdAt: "asc",
-    },
+    where: { userId, status: MembershipStatus.ACTIVE },
+    include: MEMBERSHIP_INCLUDE,
+    orderBy: { createdAt: "asc" },
   });
 }
 

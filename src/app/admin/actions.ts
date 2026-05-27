@@ -2,6 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
+import { MembershipStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireSuperAdmin } from "@/lib/authz";
 
@@ -68,6 +70,35 @@ export async function deleteOrg(formData: FormData) {
 
   revalidatePath("/admin/orgs");
   redirect("/admin/orgs?flash=Organization+deleted");
+}
+
+export async function startImpersonation(formData: FormData) {
+  await requireSuperAdmin();
+  const userId = String(formData.get("userId") ?? "").trim();
+  if (!userId) throw new Error("User ID required");
+
+  const membership = await prisma.userMembership.findFirst({
+    where: { userId, status: MembershipStatus.ACTIVE },
+    select: { id: true },
+  });
+  if (!membership) throw new Error("User has no active membership");
+
+  const jar = await cookies();
+  jar.set("why_impersonate", userId, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: 60 * 60 * 8,
+  });
+
+  redirect("/");
+}
+
+export async function stopImpersonation() {
+  const jar = await cookies();
+  jar.delete("why_impersonate");
+  redirect("/admin/orgs");
 }
 
 export async function promoteToSuperAdmin(formData: FormData) {

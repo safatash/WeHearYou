@@ -3,7 +3,7 @@ export const dynamic = "force-dynamic";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { updateOrgAsAdmin, suspendOrg, unsuspendOrg } from "@/app/admin/actions";
+import { updateOrgAsAdmin, suspendOrg, unsuspendOrg, startImpersonation } from "@/app/admin/actions";
 import { FormSubmitButton } from "@/components/form-submit-button";
 import { DeleteOrgButton } from "./delete-org-button";
 
@@ -106,14 +106,22 @@ export default async function AdminOrgDetailPage({
           <h2 className="text-lg font-semibold text-slate-950">Members ({org.users.length})</h2>
           <div className="mt-4 divide-y divide-slate-100">
             {org.users.map((m) => (
-              <div key={m.id} className="flex items-center justify-between py-3">
+              <div key={m.id} className="flex items-center justify-between gap-3 py-3">
                 <div>
                   <Link href={`/admin/users/${m.userId}`} className="font-medium text-slate-900 hover:text-indigo-600">
                     {m.user.name}
                   </Link>
                   <p className="text-xs text-slate-400">{m.user.email}</p>
                 </div>
-                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">{m.role}</span>
+                <div className="flex items-center gap-3">
+                  <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">{m.role}</span>
+                  <form action={startImpersonation}>
+                    <input type="hidden" name="userId" value={m.userId} />
+                    <button type="submit" className="rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-100 transition">
+                      Log in as client
+                    </button>
+                  </form>
+                </div>
               </div>
             ))}
           </div>

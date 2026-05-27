@@ -1,9 +1,11 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { auth } from "@/auth";
 import { FlashToast } from "@/components/flash-toast";
 import { SignOutButton } from "@/components/sign-out-button";
 import { MotivationBlock } from "@/components/motivation-block";
 import { getCurrentMembership } from "@/lib/authz";
+import { stopImpersonation } from "@/app/admin/actions";
 import { navItems, type ScreenKey } from "@/lib/navigation";
 
 export async function AppShell({
@@ -15,6 +17,8 @@ export async function AppShell({
   activeScreen: ScreenKey;
   flash?: { tone?: "success" | "error" | "info"; message: string } | null;
 }) {
+  const jar = await cookies();
+  const isImpersonating = Boolean(jar.get("why_impersonate")?.value);
   const [session, membership] = await Promise.all([auth(), getCurrentMembership()]);
   const userName = membership?.user.name ?? session?.user?.name ?? "Unknown User";
   const userEmail = membership?.user.email ?? session?.user?.email ?? "No email";
@@ -160,6 +164,18 @@ export async function AppShell({
           </div>
         </header>
 
+        {isImpersonating && (
+          <div className="flex items-center justify-between gap-4 border-b border-amber-300 bg-amber-100 px-4 py-2.5 lg:px-8">
+            <p className="text-sm font-semibold text-amber-900">
+              👁 Viewing as <span className="text-amber-700">{membership?.user.name ?? membership?.user.email}</span> · {membership?.organization.name}
+            </p>
+            <form action={stopImpersonation}>
+              <button type="submit" className="rounded-xl bg-amber-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-800 transition">
+                Exit impersonation
+              </button>
+            </form>
+          </div>
+        )}
         <main className="flex-1 px-4 py-6 lg:px-8">
           {flash ? <div className="mb-4"><FlashToast tone={flash.tone} message={flash.message} /></div> : null}
           {children}
