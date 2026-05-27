@@ -310,7 +310,11 @@ export function CampaignWizard({
                       <button
                         key={opt.value}
                         type="button"
-                        onClick={() => setRatingStyle(opt.value)}
+                        onClick={() => {
+                          setRatingStyle(opt.value);
+                          if (opt.value === "thumbs") setThreshold(5);
+                          else if (opt.value === "faces" && ![3, 5].includes(threshold)) setThreshold(5);
+                        }}
                         className={`rounded-2xl border p-3 text-center transition ${
                           ratingStyle === opt.value
                             ? "border-indigo-300 bg-indigo-50"
@@ -413,7 +417,7 @@ export function CampaignWizard({
                   <p className="mt-1 text-sm text-slate-500">All ratings go to Google. Maximum public reviews.</p>
                   <div className="mt-3 space-y-1.5">
                     <div className="flex items-center gap-2 text-xs text-slate-600">
-                      <span>1-5★</span>
+                      <span>{ratingStyle === "faces" ? "😞 😐 😊" : ratingStyle === "thumbs" ? "👎 👍" : "1-5★"}</span>
                       <span>→</span>
                       <span className="font-semibold text-indigo-600">Google review</span>
                     </div>
@@ -432,12 +436,16 @@ export function CampaignWizard({
                   <p className="mt-1 text-sm text-slate-500">Low ratings stay private in WHY. High ratings go to Google.</p>
                   <div className="mt-3 space-y-1.5">
                     <div className="flex items-center gap-2 text-xs text-slate-600">
-                      <span className="text-orange-600">Below {threshold}★</span>
+                      <span className="text-orange-600">
+                        {ratingStyle === "thumbs" ? "👎" : ratingStyle === "faces" ? (threshold >= 5 ? "😞 😐" : "😞") : `Below ${threshold}★`}
+                      </span>
                       <span>→</span>
                       <span className="font-semibold text-orange-600">Private in WHY</span>
                     </div>
                     <div className="flex items-center gap-2 text-xs text-slate-600">
-                      <span className="text-indigo-600">{threshold}★ and above</span>
+                      <span className="text-indigo-600">
+                        {ratingStyle === "thumbs" ? "👍" : ratingStyle === "faces" ? (threshold >= 5 ? "😊" : "😐 😊") : `${threshold}★ and above`}
+                      </span>
                       <span>→</span>
                       <span className="font-semibold text-indigo-600">Google review</span>
                     </div>
@@ -445,7 +453,7 @@ export function CampaignWizard({
                 </button>
               </div>
 
-              {filterEnabled && (
+              {filterEnabled && ratingStyle === "stars" && (
                 <div className="rounded-2xl border border-indigo-100 bg-indigo-50 p-4">
                   <label className="mb-3 block text-sm font-semibold text-slate-700">
                     Threshold — send to Google at <span className="text-indigo-600">{threshold} stars</span> and above
@@ -467,6 +475,47 @@ export function CampaignWizard({
                   <p className="mt-3 text-xs text-slate-500">
                     Reviews below {threshold}★ are saved privately in WHY and can be shown in your review widget alongside Google reviews.
                   </p>
+                </div>
+              )}
+
+              {filterEnabled && ratingStyle === "faces" && (
+                <div className="rounded-2xl border border-indigo-100 bg-indigo-50 p-4">
+                  <p className="mb-3 text-sm font-semibold text-slate-700">Which faces go to Google?</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setThreshold(5)}
+                      className={`rounded-2xl border p-3 text-center transition ${threshold >= 5 ? "border-indigo-300 bg-white" : "border-slate-200 bg-white/60 hover:border-slate-300"}`}
+                    >
+                      <div className="text-2xl">😊</div>
+                      <div className="mt-1 text-xs font-semibold text-slate-700">Only happy</div>
+                      <div className="mt-0.5 text-xs text-slate-400">😞 😐 → Private</div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setThreshold(3)}
+                      className={`rounded-2xl border p-3 text-center transition ${threshold < 5 ? "border-indigo-300 bg-white" : "border-slate-200 bg-white/60 hover:border-slate-300"}`}
+                    >
+                      <div className="text-2xl">😐 😊</div>
+                      <div className="mt-1 text-xs font-semibold text-slate-700">Neutral + happy</div>
+                      <div className="mt-0.5 text-xs text-slate-400">😞 → Private</div>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {filterEnabled && ratingStyle === "thumbs" && (
+                <div className="rounded-2xl border border-indigo-100 bg-indigo-50 p-4">
+                  <p className="mb-2 text-sm font-semibold text-slate-700">Fixed threshold</p>
+                  <div className="space-y-1.5">
+                    <div className="flex items-center gap-2 text-sm text-slate-600">
+                      <span>👎</span><span>→</span><span className="font-semibold text-orange-600">Private in WHY</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-slate-600">
+                      <span>👍</span><span>→</span><span className="font-semibold text-indigo-600">Google review</span>
+                    </div>
+                  </div>
+                  <p className="mt-3 text-xs text-slate-500">With thumbs, negative feedback stays private and positive goes to Google automatically.</p>
                 </div>
               )}
             </div>
