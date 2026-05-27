@@ -147,7 +147,7 @@ export async function AppShell({
             <button className="rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600 shadow-sm">
               Notifications
             </button>
-            <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-3 py-2 shadow-sm">
+            <Link href="/profile" className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-3 py-2 shadow-sm transition hover:border-indigo-200 hover:bg-indigo-50">
               <div className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-900 text-sm font-semibold text-white">
                 {initials || "WU"}
               </div>
@@ -155,7 +155,7 @@ export async function AppShell({
                 <p className="text-sm font-semibold text-slate-900">{userName}</p>
                 <p className="text-xs text-slate-500">{userEmail}</p>
               </div>
-            </div>
+            </Link>
             <SignOutButton />
           </div>
         </header>

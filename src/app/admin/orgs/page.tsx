@@ -45,6 +45,7 @@ export default async function AdminOrgsPage({
           <thead className="border-b border-slate-200 bg-slate-50">
             <tr>
               <th className="px-6 py-4 font-semibold text-slate-700">Name</th>
+              <th className="px-6 py-4 font-semibold text-slate-700">Client ID</th>
               <th className="px-6 py-4 font-semibold text-slate-700">Slug</th>
               <th className="px-6 py-4 font-semibold text-slate-700">Users</th>
               <th className="px-6 py-4 font-semibold text-slate-700">Locations</th>
@@ -59,6 +60,9 @@ export default async function AdminOrgsPage({
                   <Link href={`/admin/orgs/${org.id}`} className="font-medium text-slate-900 hover:text-indigo-600">
                     {org.name}
                   </Link>
+                </td>
+                <td className="px-6 py-4 font-mono text-xs font-semibold text-indigo-700 tracking-wider">
+                  {"WHY-" + org.id.slice(0, 8).toUpperCase()}
                 </td>
                 <td className="px-6 py-4 text-slate-500">{org.slug}</td>
                 <td className="px-6 py-4 text-slate-700">{org._count.users}</td>

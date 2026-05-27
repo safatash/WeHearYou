@@ -52,6 +52,9 @@ export default async function AdminOrgDetailPage({
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-slate-950">{org.name}</h1>
           <p className="mt-1 text-sm text-slate-500">/{org.slug}</p>
+          <p className="mt-1 font-mono text-sm font-semibold text-indigo-700 tracking-wider">
+            {"WHY-" + org.id.slice(0, 8).toUpperCase()}
+          </p>
         </div>
         {org.suspendedAt && (
           <span className="rounded-full bg-rose-100 px-3 py-1 text-xs font-bold uppercase tracking-wide text-rose-700">
