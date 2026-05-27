@@ -40,6 +40,7 @@ export async function getDashboardData(locationIds?: string[]) {
       locations: [],
       googleAvgRating: "0.0",
       googleReviewsThisMonth: 0,
+      googleReviewCount: 0,
       recentActivity: [] as ActivityItem[],
     };
   }
@@ -166,6 +167,7 @@ export async function getDashboardData(locationIds?: string[]) {
     locations,
     googleAvgRating,
     googleReviewsThisMonth,
+    googleReviewCount: googleReviewsOnly.length,
     recentActivity,
   };
 }
