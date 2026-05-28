@@ -111,13 +111,13 @@ function slugifyLocationName(value: string) {
     .replace(/-{2,}/g, "-");
 }
 
-async function createUniqueLocationSlug(organizationId: string, name: string, excludeLocationId?: string) {
+async function createUniqueLocationSlug(_organizationId: string, name: string, excludeLocationId?: string) {
   const baseSlug = slugifyLocationName(name) || "location";
   let slug = baseSlug;
   let suffix = 2;
 
   while (true) {
-    const existing = await prisma.location.findUnique({ where: { organizationId_slug: { organizationId, slug } }, select: { id: true } });
+    const existing = await prisma.location.findUnique({ where: { slug }, select: { id: true } });
 
     if (!existing || existing.id === excludeLocationId) {
       return slug;

@@ -197,7 +197,7 @@ model Location {
   organizationId        String
   googleConnectionId    String?
   name                  String
-  slug                  String
+  slug                  String        @unique
   city                  String
   state                 String
   status                String
@@ -236,7 +236,6 @@ model Location {
   reviewWidgets         ReviewWidget[]
   videoTestimonials     VideoTestimonial[]
 
-  @@unique([organizationId, slug])
   @@index([organizationId])
   @@index([googleConnectionId])
   @@index([googleLocationId])

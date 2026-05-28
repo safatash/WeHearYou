@@ -21,13 +21,13 @@ function slugify(value: string) {
     .replace(/-{2,}/g, "-");
 }
 
-async function createUniqueSlug(organizationId: string, name: string) {
+async function createUniqueSlug(_organizationId: string, name: string) {
   const base = slugify(name) || "location";
   let slug = base;
   let suffix = 2;
   while (true) {
     const existing = await prisma.location.findUnique({
-      where: { organizationId_slug: { organizationId, slug } },
+      where: { slug },
       select: { id: true },
     });
     if (!existing) return slug;

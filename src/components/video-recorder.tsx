@@ -172,7 +172,7 @@ export function VideoRecorder({ token, prompt, businessName, logoUrl }: Props) {
         ? "video/mp4"
         : "video/webm";
       const ext = normalizedType === "video/mp4" ? "mp4" : "webm";
-      const file = new File([videoBlob], `testimonial.${ext}`, { type: normalizedType });
+      const file = new File([videoBlob], `testimonial-${token}-${Date.now()}.${ext}`, { type: normalizedType });
 
       const blobResult = await upload(file.name, file, {
         access: "public",
