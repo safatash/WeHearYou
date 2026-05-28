@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma";
 export async function submitReviewRating(formData: FormData) {
   const token = String(formData.get("token") ?? "").trim();
   const ratingValue = Number(formData.get("rating"));
+  const ratingMode = String(formData.get("ratingMode") ?? "").trim();
 
   if (!token || !Number.isInteger(ratingValue) || ratingValue < 1 || ratingValue > 5) {
     redirect(`/r/${token}?error=invalid_rating`);
@@ -35,7 +36,8 @@ export async function submitReviewRating(formData: FormData) {
   const profile = recipient.campaign.location.publicProfile;
   const filterEnabled = profile?.negativeFilterEnabled ?? false;
   const filterThreshold = profile?.negativeFilterThreshold ?? 4;
-  const highRating = !filterEnabled || ratingValue >= filterThreshold;
+  const isThumbsDown = ratingMode === "thumbs" && ratingValue === 1;
+  const highRating = !isThumbsDown && (!filterEnabled || ratingValue >= filterThreshold);
 
   await prisma.campaignRecipient.update({
     where: { id: recipient.id },

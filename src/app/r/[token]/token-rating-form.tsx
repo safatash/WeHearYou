@@ -22,6 +22,7 @@ export function TokenRatingForm({
     const formData = new FormData();
     formData.append("token", token);
     formData.append("rating", String(rating));
+    formData.append("ratingMode", ratingMode ?? "stars");
     await submitReviewRating(formData);
   };
 
