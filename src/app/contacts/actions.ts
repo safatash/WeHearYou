@@ -6,6 +6,86 @@ import { prisma } from "@/lib/prisma";
 import { requireContactManagement } from "@/lib/authz";
 import { getCurrentAccessibleLocationIds } from "@/lib/current-scope";
 
+export async function importContacts(formData: FormData): Promise<{ imported: number; duplicates: number; skipped: number }> {
+  const locationId = normalize(formData.get("locationId"));
+  const contactsRaw = formData.get("contacts");
+  const allowedLocationIds = await getCurrentAccessibleLocationIds();
+
+  if (!locationId) throw new Error("Location is required.");
+  if (!contactsRaw || typeof contactsRaw !== "string") throw new Error("No contacts provided.");
+
+  await requireContactManagement(locationId);
+
+  const location = await prisma.location.findFirst({
+    where: {
+      AND: [
+        { id: locationId },
+        ...(allowedLocationIds.length > 0 ? [{ id: { in: allowedLocationIds } }] : []),
+      ],
+    },
+    select: { id: true },
+  });
+
+  if (!location) throw new Error("Location not found.");
+
+  const rows: Array<{ name: string | null; email: string | null; phone: string | null }> = JSON.parse(contactsRaw);
+  const validRows = rows.filter((r) => r.name || r.email || r.phone);
+  const skipped = rows.length - validRows.length;
+
+  if (validRows.length === 0) return { imported: 0, duplicates: 0, skipped };
+
+  const emails = validRows.map((r) => r.email).filter((e): e is string => !!e);
+  const phones = validRows.map((r) => r.phone).filter((p): p is string => !!p);
+
+  const existingContacts =
+    emails.length > 0 || phones.length > 0
+      ? await prisma.contact.findMany({
+          where: {
+            locationId,
+            OR: [
+              ...(emails.length > 0 ? [{ email: { in: emails } }] : []),
+              ...(phones.length > 0 ? [{ phone: { in: phones } }] : []),
+            ],
+          },
+          select: { email: true, phone: true },
+        })
+      : [];
+
+  const existingEmails = new Set(existingContacts.map((c) => c.email).filter(Boolean));
+  const existingPhones = new Set(existingContacts.map((c) => c.phone).filter(Boolean));
+
+  const toCreate: Array<{
+    locationId: string;
+    name: string;
+    email: string | null;
+    phone: string | null;
+    source: ContactSource;
+    preferredChannel: PreferredChannel;
+  }> = [];
+  let duplicates = 0;
+
+  for (const row of validRows) {
+    if ((row.email && existingEmails.has(row.email)) || (row.phone && existingPhones.has(row.phone))) {
+      duplicates++;
+      continue;
+    }
+    toCreate.push({
+      locationId,
+      name: row.name || row.email || row.phone || "Unnamed Contact",
+      email: row.email ?? null,
+      phone: row.phone ?? null,
+      source: ContactSource.CSV_IMPORT,
+      preferredChannel: row.email ? PreferredChannel.EMAIL : PreferredChannel.SMS,
+    });
+  }
+
+  if (toCreate.length > 0) {
+    await prisma.contact.createMany({ data: toCreate });
+  }
+
+  return { imported: toCreate.length, duplicates, skipped };
+}
+
 function normalize(value: FormDataEntryValue | null) {
   const text = typeof value === "string" ? value.trim() : "";
   return text.length > 0 ? text : null;
