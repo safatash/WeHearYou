@@ -4,33 +4,49 @@ import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { prisma } from "@/lib/prisma";
 import { getCurrentMembership } from "@/lib/authz";
+import { getCurrentAccessibleLocationIds } from "@/lib/current-scope";
 import { formatStepType, formatTriggerType } from "@/lib/automation";
 import { updateAutomation } from "@/app/automation/actions";
-import { AddStepForm, DeleteStepButton, DeleteAutomationButton } from "@/app/automation/automation-client";
+import { AddStepForm, DeleteStepButton, DeleteAutomationButton, EnrollContactForm } from "@/app/automation/automation-client";
 
 export default async function AutomationDetailPage({
   params,
   searchParams,
 }: {
-  params: { id: string };
-  searchParams: { flash?: string };
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ flash?: string }>;
 }) {
+  const { id } = await params;
+  const query = await searchParams;
   const membership = await getCurrentMembership();
   if (!membership) notFound();
 
   const automation = await prisma.automation.findFirst({
-    where: { id: params.id, organizationId: membership.organizationId },
+    where: { id, organizationId: membership.organizationId },
     include: { steps: { orderBy: { orderIndex: "asc" } } },
   });
 
   if (!automation) notFound();
 
-  const flash = searchParams.flash;
+  const flash = query.flash;
   const flashMessage =
     flash === "saved" ? "Automation saved." :
     flash === "step-added" ? "Step added." :
     flash === "step-deleted" ? "Step deleted." :
+    flash === "enrolled" ? "Contact enrolled successfully." :
     null;
+
+  // Load contacts for manual enrollment
+  let enrollContacts: Array<{ id: string; name: string; email: string | null; phone: string | null }> = [];
+  if (automation.triggerType === "MANUAL_ENROLLMENT") {
+    const locationIds = await getCurrentAccessibleLocationIds();
+    enrollContacts = await prisma.contact.findMany({
+      where: locationIds.length > 0 ? { locationId: { in: locationIds } } : {},
+      select: { id: true, name: true, email: true, phone: true },
+      orderBy: { name: "asc" },
+      take: 200,
+    });
+  }
 
   return (
     <AppShell activeScreen="automation" flash={flashMessage ? { tone: "success", message: flashMessage } : null}>
@@ -101,6 +117,17 @@ export default async function AutomationDetailPage({
               <h3 className="mt-2 text-xl font-semibold text-slate-950">New step</h3>
               <AddStepForm automationId={automation.id} />
             </section>
+
+            {automation.triggerType === "MANUAL_ENROLLMENT" && (
+              <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                <p className="text-sm font-semibold uppercase tracking-[0.22em] text-indigo-600">Manual Enrollment</p>
+                <h3 className="mt-2 text-xl font-semibold text-slate-950">Enroll a contact</h3>
+                <p className="mt-2 text-sm text-slate-500">
+                  Run this automation immediately for a specific contact.
+                </p>
+                <EnrollContactForm automationId={automation.id} contacts={enrollContacts} />
+              </section>
+            )}
           </div>
 
           <aside className="space-y-6">

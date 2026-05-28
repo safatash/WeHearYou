@@ -66,6 +66,40 @@ export async function sendReviewRequestEmail({
   });
 }
 
+export async function sendTeamNotificationEmail({
+  to,
+  contactName,
+  locationName,
+  eventType,
+}: {
+  to: string;
+  contactName: string;
+  locationName: string;
+  eventType: string;
+}) {
+  const config = getResendConfig();
+  if (!config.apiKey) return;
+
+  const resend = new Resend(config.apiKey);
+  const safeContactName = escapeHtml(contactName);
+  const safeLocationName = escapeHtml(locationName);
+  const safeEventType = escapeHtml(eventType.replace(/_/g, " "));
+
+  await resend.emails.send({
+    from: config.from,
+    to,
+    subject: `Team alert: ${safeEventType} at ${safeLocationName}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #0f172a; max-width: 600px; margin: 0 auto;">
+        <p style="font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase; color: #4f46e5; font-weight: 700;">WeHearYou Automation</p>
+        <h1 style="font-size: 24px; line-height: 1.2; margin: 16px 0;">Team notification</h1>
+        <p><strong>${safeContactName}</strong> triggered a <strong>${safeEventType}</strong> event at <strong>${safeLocationName}</strong>.</p>
+        <p style="font-size: 14px; color: #64748b; margin-top: 24px;">This is an automated notification from WeHearYou.</p>
+      </div>
+    `,
+  });
+}
+
 export async function sendVideoTestimonialRequestEmail({
   to,
   recipientName,

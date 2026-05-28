@@ -5,6 +5,7 @@ type AutomationTriggerType = "APPOINTMENT_COMPLETED" | "PROJECT_COMPLETED" | "MA
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireAutomationManagement } from "@/lib/authz";
+import { executeManualEnrollment } from "@/lib/automation-engine";
 
 function normalize(value: FormDataEntryValue | null) {
   const text = typeof value === "string" ? value.trim() : "";
@@ -107,6 +108,11 @@ export async function addStep(formData: FormData) {
     if (channel) configJson.channel = channel;
   }
 
+  if (stepType === "TAG_CONTACT") {
+    const tagName = normalize(formData.get("tagName"));
+    if (tagName) configJson.tagName = tagName;
+  }
+
   if (stepType === "NOTIFY_TEAM") {
     const notifyEmail = normalize(formData.get("notifyEmail"));
     if (notifyEmail) configJson.notifyEmail = notifyEmail;
@@ -129,6 +135,19 @@ export async function addStep(formData: FormData) {
   });
 
   redirect(`/automation/${automationId}?flash=step-added`);
+}
+
+export async function enrollContact(formData: FormData) {
+  const membership = await requireAutomationManagement();
+  const automationId = normalize(formData.get("automationId"));
+  const contactId = normalize(formData.get("contactId"));
+
+  if (!automationId) throw new Error("Automation ID is required.");
+  if (!contactId) throw new Error("Contact is required.");
+
+  await executeManualEnrollment({ automationId, contactId, organizationId: membership.organizationId });
+
+  redirect(`/automation/${automationId}?flash=enrolled`);
 }
 
 export async function deleteStep(formData: FormData) {

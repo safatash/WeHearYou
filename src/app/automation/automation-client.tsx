@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { addStep, deleteStep, deleteAutomation } from "@/app/automation/actions";
+import { addStep, deleteStep, deleteAutomation, enrollContact } from "@/app/automation/actions";
 
 export function AddStepForm({ automationId }: { automationId: string }) {
   const [stepType, setStepType] = useState("");
@@ -81,6 +81,19 @@ export function AddStepForm({ automationId }: { automationId: string }) {
         </div>
       )}
 
+      {stepType === "TAG_CONTACT" && (
+        <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+          <label className="mb-2 block text-sm font-semibold text-slate-700">Tag Name</label>
+          <input
+            name="tagName"
+            type="text"
+            placeholder="e.g. VIP, Follow-up, Appointment"
+            className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+          />
+          <p className="mt-2 text-xs text-slate-500">The tag will be created automatically if it doesn&apos;t exist.</p>
+        </div>
+      )}
+
       {stepType === "NOTIFY_TEAM" && (
         <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
           <label className="mb-2 block text-sm font-semibold text-slate-700">Notify Email</label>
@@ -129,6 +142,56 @@ export function DeleteStepButton({ stepId, automationId }: { stepId: string; aut
       <button type="submit" className="rounded-xl px-2 py-1 text-xs text-slate-400 hover:bg-red-50 hover:text-red-600 transition">
         ✕
       </button>
+    </form>
+  );
+}
+
+export function EnrollContactForm({
+  automationId,
+  contacts,
+}: {
+  automationId: string;
+  contacts: Array<{ id: string; name: string; email: string | null; phone: string | null }>;
+}) {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  return (
+    <form
+      action={async (fd) => {
+        setIsSubmitting(true);
+        await enrollContact(fd);
+      }}
+      className="mt-5 space-y-4"
+    >
+      <input type="hidden" name="automationId" value={automationId} />
+      <div>
+        <label className="mb-2 block text-sm font-semibold text-slate-700">Select contact</label>
+        {contacts.length === 0 ? (
+          <p className="text-sm text-slate-500">No contacts found. <a href="/contacts/new" className="text-indigo-600 hover:underline">Add a contact</a> first.</p>
+        ) : (
+          <select
+            name="contactId"
+            required
+            className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+          >
+            <option value="">Choose a contact…</option>
+            {contacts.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}{c.email ? ` — ${c.email}` : c.phone ? ` — ${c.phone}` : ""}
+              </option>
+            ))}
+          </select>
+        )}
+      </div>
+      {contacts.length > 0 && (
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          className="rounded-2xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 transition disabled:opacity-50"
+        >
+          {isSubmitting ? "Enrolling…" : "Enroll contact"}
+        </button>
+      )}
     </form>
   );
 }
