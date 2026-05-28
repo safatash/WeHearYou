@@ -1,7 +1,7 @@
 "use server";
 
 import crypto from "node:crypto";
-import { CampaignStatus, PreferredChannel } from "@prisma/client";
+import { CampaignStatus, ContactSource, PreferredChannel } from "@prisma/client";
 import { redirect } from "next/navigation";
 import { sendReviewRequestEmail } from "@/lib/email";
 import { prisma } from "@/lib/prisma";
@@ -168,6 +168,40 @@ export async function createCampaign(formData: FormData) {
   }
 
   redirect(`/campaigns/${campaigns[0]?.id}?flash=${encodeURIComponent(`${campaigns[0]?.channel} campaign created`)}&tone=success`);
+}
+
+export async function quickCreateContact(formData: FormData): Promise<{
+  id: string;
+  name: string;
+  email: string | null;
+  phone: string | null;
+}> {
+  const name = normalize(formData.get("name"));
+  const email = normalize(formData.get("email"));
+  const phone = normalize(formData.get("phone"));
+  const locationId = normalize(formData.get("locationId"));
+  const allowedLocationIds = await getCurrentAccessibleLocationIds();
+
+  if (!name) throw new Error("Name is required.");
+  if (!email && !phone) throw new Error("Email or phone is required.");
+  if (!locationId) throw new Error("Location is required.");
+  if (allowedLocationIds.length > 0 && !allowedLocationIds.includes(locationId)) {
+    throw new Error("Access denied.");
+  }
+
+  await requireContactManagement(locationId);
+
+  return prisma.contact.create({
+    data: {
+      locationId,
+      name,
+      email,
+      phone,
+      source: ContactSource.MANUAL,
+      preferredChannel: email ? PreferredChannel.EMAIL : PreferredChannel.SMS,
+    },
+    select: { id: true, name: true, email: true, phone: true },
+  });
 }
 
 export async function resendCampaignInvites(formData: FormData) {

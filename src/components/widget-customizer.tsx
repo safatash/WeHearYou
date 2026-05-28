@@ -59,6 +59,23 @@ const MOCK_REVIEWS = [
   },
 ];
 
+const MOCK_VIDEO_TESTIMONIALS = [
+  {
+    id: "v1",
+    submitterName: "Alex Rivera",
+    videoUrl: "",
+    durationSeconds: 42,
+    publishedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: "v2",
+    submitterName: "Priya Patel",
+    videoUrl: "",
+    durationSeconds: 65,
+    publishedAt: new Date(Date.now() - 12 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+];
+
 interface WidgetCustomizerProps {
   widget: any;
   preview: any;
@@ -526,6 +543,12 @@ export function WidgetCustomizer({
                 showPagination={showPagination}
                 showBranding={showBranding}
                 widgetTitle={title}
+                contentType={contentType}
+                videoTestimonials={
+                  preview?.videoTestimonials && preview.videoTestimonials.length > 0
+                    ? preview.videoTestimonials
+                    : MOCK_VIDEO_TESTIMONIALS
+                }
               />
             </div>
           </div>

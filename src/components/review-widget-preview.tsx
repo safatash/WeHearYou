@@ -13,6 +13,14 @@ type ReviewItem = {
   reviewedAt?: string | null;
 };
 
+type VideoTestimonialItem = {
+  id: string;
+  submitterName: string;
+  videoUrl: string;
+  durationSeconds?: number | null;
+  publishedAt?: string | null;
+};
+
 type ReviewWidgetPreviewProps = {
   businessName: string;
   avgRating?: number | null;
@@ -44,6 +52,8 @@ type ReviewWidgetPreviewProps = {
   showPagination?: boolean;
   showBranding?: boolean;
   widgetTitle?: string;
+  videoTestimonials?: VideoTestimonialItem[];
+  contentType?: string;
 };
 
 const FONT_STACKS: Record<string, string> = {
@@ -281,75 +291,119 @@ function CarouselLayout({ cards, showNav = true, showPagination = true }: { card
 }
 
 function VideoLayout({
-  children,
-  starColor,
+  videos,
+  primaryColor,
   textColor,
   mutedColor,
-  primaryColor,
   showNav = true,
   showPagination = true,
 }: {
-  children: React.ReactNode[];
-  starColor: string;
+  videos: VideoTestimonialItem[];
+  primaryColor: string;
   textColor: string;
   mutedColor: string;
-  primaryColor: string;
   showNav?: boolean;
   showPagination?: boolean;
 }) {
   const [index, setIndex] = useState(0);
-  const childrenArray = Array.isArray(children) ? children : [];
-  if (childrenArray.length === 0) return null;
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
 
-  const goToPrevious = () => setIndex((i) => (i - 1 + childrenArray.length) % childrenArray.length);
-  const goToNext = () => setIndex((i) => (i + 1) % childrenArray.length);
+  if (videos.length === 0) return null;
+
+  const current = videos[index];
+  const goToPrevious = () => setIndex((i) => (i - 1 + videos.length) % videos.length);
+  const goToNext = () => setIndex((i) => (i + 1) % videos.length);
+
+  const formatDuration = (seconds: number | null | undefined): string | null => {
+    if (!seconds) return null;
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}:${s.toString().padStart(2, "0")}`;
+  };
 
   return (
-    <div>
-      <div className="relative flex items-center justify-center gap-4 min-h-[400px]">
-        {showNav && (
-          <button onClick={goToPrevious} className="absolute left-0 z-10 p-2 rounded-full hover:bg-slate-200 transition text-lg">
+    <>
+      {lightboxUrl && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90"
+          onClick={() => setLightboxUrl(null)}
+        >
+          <video
+            src={lightboxUrl}
+            controls
+            autoPlay
+            className="max-h-[80vh] max-w-3xl rounded-xl"
+            onClick={(e) => e.stopPropagation()}
+          />
+          <button
+            onClick={() => setLightboxUrl(null)}
+            className="absolute right-4 top-4 text-2xl text-white"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+      <div className="relative">
+        {showNav && videos.length > 1 && (
+          <button
+            onClick={goToPrevious}
+            className="absolute left-0 top-1/2 z-10 -translate-x-3 -translate-y-1/2 rounded-full bg-slate-900 p-2 text-sm text-white hover:bg-slate-800"
+          >
             ←
           </button>
         )}
-        <div className="flex-1 flex flex-col justify-center items-center">
-          {/* Video Placeholder */}
-          <div className="w-full relative aspect-video bg-gradient-to-br from-slate-900 to-slate-800 rounded-lg flex items-center justify-center mb-4 overflow-hidden">
-            {childrenArray[index] ? (
-              <div className="relative w-full h-full flex items-center justify-center">
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div
-                    className="w-16 h-16 rounded-full flex items-center justify-center opacity-80 hover:opacity-100 transition cursor-pointer"
-                    style={{ backgroundColor: primaryColor }}
-                  >
-                    <span className="text-white text-2xl">▶</span>
-                  </div>
-                </div>
-                <div className="relative z-10 p-8 text-white text-center">
-                  <p className="text-sm font-semibold">Video Testimonial</p>
-                </div>
-              </div>
-            ) : null}
+        <div
+          className="relative overflow-hidden rounded-xl bg-gradient-to-br from-slate-800 to-slate-900"
+          style={{ aspectRatio: "16/9", cursor: current.videoUrl ? "pointer" : "default" }}
+          onClick={() => (current.videoUrl ? setLightboxUrl(current.videoUrl) : undefined)}
+        >
+          {current.videoUrl ? (
+            <video
+              key={current.videoUrl}
+              src={`${current.videoUrl}#t=0.1`}
+              className="h-full w-full object-cover"
+              muted
+              preload="metadata"
+            />
+          ) : null}
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div
+              className="flex h-14 w-14 items-center justify-center rounded-full opacity-90 transition hover:opacity-100"
+              style={{ backgroundColor: primaryColor }}
+            >
+              <span className="ml-0.5 text-xl text-white">▶</span>
+            </div>
           </div>
-          {/* Review Card Below Video */}
-          <div className="w-full">
-            {childrenArray[index]}
-          </div>
+          {formatDuration(current.durationSeconds) && (
+            <span className="absolute bottom-2 right-2 rounded bg-black/60 px-1.5 py-0.5 text-xs text-white">
+              {formatDuration(current.durationSeconds)}
+            </span>
+          )}
         </div>
-        {showNav && (
-          <button onClick={goToNext} className="absolute right-0 z-10 p-2 rounded-full hover:bg-slate-200 transition text-lg">
+        {showNav && videos.length > 1 && (
+          <button
+            onClick={goToNext}
+            className="absolute right-0 top-1/2 z-10 translate-x-3 -translate-y-1/2 rounded-full bg-slate-900 p-2 text-sm text-white hover:bg-slate-800"
+          >
             →
           </button>
         )}
       </div>
-      {showPagination && (
-        <div className="flex justify-center gap-2 mt-4">
-          {childrenArray.map((_, i) => (
-            <button key={i} onClick={() => setIndex(i)} className={`w-2 h-2 rounded-full transition ${i === index ? "bg-slate-900" : "bg-slate-300"}`} />
+      <p className="mt-3 text-sm font-semibold" style={{ color: textColor }}>
+        {current.submitterName}
+      </p>
+      {showPagination && videos.length > 1 && (
+        <div className="mt-3 flex justify-center gap-2">
+          {videos.map((_, i) => (
+            <button
+              key={i}
+              onClick={() => setIndex(i)}
+              className={`h-2 w-2 rounded-full transition ${i === index ? "bg-slate-900" : "bg-slate-300"}`}
+            />
           ))}
         </div>
       )}
-    </div>
+    </>
   );
 }
 
@@ -379,9 +433,15 @@ export function ReviewWidgetPreview({
   showPagination = true,
   showBranding = true,
   widgetTitle,
+  videoTestimonials,
+  contentType,
 }: ReviewWidgetPreviewProps) {
   const mutedColor = "#475569";
   const safeLayout = ["grid", "list", "slider", "badge", "carousel", "masonry", "video"].includes(layout) ? layout : "grid";
+  const safeVideos = videoTestimonials ?? [];
+  const hasVideos = safeVideos.length > 0;
+  const isVideoOnly = safeLayout === "video" || contentType === "VIDEO";
+  const isMixed = contentType === "MIXED" && !isVideoOnly;
 
   if (safeLayout === "badge") {
     return (
@@ -459,12 +519,27 @@ export function ReviewWidgetPreview({
           />
         ) : null}
 
-        {reviews.length === 0 ? (
+        {isVideoOnly ? (
+          hasVideos ? (
+            <VideoLayout videos={safeVideos} primaryColor={primaryColor} textColor={textColor} mutedColor={mutedColor} showNav={showNav} showPagination={showPagination} />
+          ) : (
+            <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6 text-sm" style={{ color: mutedColor }}>
+              No published video testimonials match this widget yet.
+            </div>
+          )
+        ) : isMixed ? (
+          <div className="space-y-6">
+            {hasVideos && (
+              <VideoLayout videos={safeVideos} primaryColor={primaryColor} textColor={textColor} mutedColor={mutedColor} showNav={showNav} showPagination={showPagination} />
+            )}
+            {reviews.length > 0 ? (
+              <div className="grid gap-4 md:grid-cols-2">{cards}</div>
+            ) : null}
+          </div>
+        ) : reviews.length === 0 ? (
           emptyState
         ) : safeLayout === "carousel" ? (
           <CarouselLayout cards={cards} showNav={showNav} showPagination={showPagination} />
-        ) : safeLayout === "video" ? (
-          <VideoLayout cards={cards} starColor={starColor} textColor={textColor} mutedColor={mutedColor} primaryColor={primaryColor} showNav={showNav} showPagination={showPagination} />
         ) : safeLayout === "masonry" ? (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 auto-rows-max">
             {cards}
