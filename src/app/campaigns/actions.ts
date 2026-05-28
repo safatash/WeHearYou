@@ -77,8 +77,10 @@ export async function createCampaign(formData: FormData) {
 
   const location = await prisma.location.findFirst({
     where: {
-      id: locationId,
-      ...(allowedLocationIds.length > 0 ? { id: { in: allowedLocationIds } } : {}),
+      AND: [
+        { id: locationId },
+        ...(allowedLocationIds.length > 0 ? [{ id: { in: allowedLocationIds } }] : []),
+      ],
     },
     select: { id: true, name: true },
   });
