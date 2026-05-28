@@ -7,7 +7,11 @@ export async function getRecipientByToken(token: string) {
       contact: true,
       campaign: {
         include: {
-          location: true,
+          location: {
+            include: {
+              publicProfile: true,
+            },
+          },
         },
       },
     },

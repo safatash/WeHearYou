@@ -18,7 +18,11 @@ export async function submitReviewRating(formData: FormData) {
       contact: true,
       campaign: {
         include: {
-          location: true,
+          location: {
+            include: {
+              publicProfile: true,
+            },
+          },
         },
       },
     },
@@ -28,7 +32,10 @@ export async function submitReviewRating(formData: FormData) {
     redirect(`/r/${token}?error=missing_token`);
   }
 
-  const highRating = ratingValue >= 4;
+  const profile = recipient.campaign.location.publicProfile;
+  const filterEnabled = profile?.negativeFilterEnabled ?? false;
+  const filterThreshold = profile?.negativeFilterThreshold ?? 4;
+  const highRating = !filterEnabled || ratingValue >= filterThreshold;
 
   await prisma.campaignRecipient.update({
     where: { id: recipient.id },
