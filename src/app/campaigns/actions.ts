@@ -80,13 +80,7 @@ export async function createCampaign(formData: FormData) {
       id: locationId,
       ...(allowedLocationIds.length > 0 ? { id: { in: allowedLocationIds } } : {}),
     },
-    select: {
-      id: true,
-      name: true,
-      publicProfile: {
-        select: { funnelPromptTitle: true },
-      },
-    },
+    select: { id: true, name: true },
   });
 
   if (!location) {
@@ -148,7 +142,7 @@ export async function createCampaign(formData: FormData) {
     if (channel === PreferredChannel.EMAIL) {
       await sendCampaignEmailInvites({
         locationName: location.name,
-        emailSubject: emailSubject ?? location.publicProfile?.funnelPromptTitle ?? null,
+        emailSubject,
         recipients: recipientTokens.map((recipient) => ({
           token: recipient.token,
           contact: contacts.find((entry) => entry.id === recipient.contactId)!,
