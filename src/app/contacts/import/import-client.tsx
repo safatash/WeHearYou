@@ -336,6 +336,13 @@ export function ImportClient({ locations }: { locations: Location[] }) {
           onChange={(e) => { const f = e.target.files?.[0]; if (f) loadFile(f); }}
         />
         <p className="mt-4 text-xs text-slate-400">CSV format · name, email, and/or phone columns</p>
+        <a
+          href="/sample-contacts.csv"
+          download
+          className="mt-3 text-xs font-medium text-indigo-600 hover:underline"
+        >
+          Download sample CSV
+        </a>
       </div>
 
       <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
