@@ -11,7 +11,11 @@ export type ScreenKey =
   | "automation"
   | "team"
   | "analytics"
-  | "integrations";
+  | "integrations"
+  | "gbp-manager"
+  | "gbp-posts"
+  | "gbp-photos"
+  | "gbp-qa";
 
 export interface NavItem {
   key: ScreenKey;
@@ -19,6 +23,7 @@ export interface NavItem {
   icon: string;
   href: string;
   group?: string;
+  comingSoon?: boolean;
 }
 
 export const navItems: NavItem[] = [
@@ -37,6 +42,12 @@ export const navItems: NavItem[] = [
   { key: "locations", label: "Locations", icon: "⌂", href: "/locations", group: "WEBSITE DISPLAYS" },
   { key: "widgets", label: "Widgets", icon: "▣", href: "/widgets", group: "WEBSITE DISPLAYS" },
   { key: "video-testimonials", label: "Video Testimonials", icon: "▶", href: "/video-testimonials", group: "WEBSITE DISPLAYS" },
+
+  // Google Local SEO
+  { key: "gbp-manager", label: "GBP Manager", icon: "🗺", href: "/gbp", group: "GOOGLE LOCAL SEO" },
+  { key: "gbp-posts", label: "Rank Tracker", icon: "📊", href: "/gbp/rank", group: "GOOGLE LOCAL SEO", comingSoon: true },
+  { key: "gbp-photos", label: "Competitors", icon: "🏆", href: "/gbp/competitors", group: "GOOGLE LOCAL SEO", comingSoon: true },
+  { key: "gbp-qa", label: "Reports", icon: "📋", href: "/gbp/reports", group: "GOOGLE LOCAL SEO", comingSoon: true },
 
   // Settings
   { key: "automation", label: "Automation", icon: "⟲", href: "/automation", group: "SETTINGS" },

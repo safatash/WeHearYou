@@ -62,6 +62,7 @@ export async function AppShell({
               "REQUESTS & FEEDBACK",
               "FUNNEL SETUP",
               "WEBSITE DISPLAYS",
+              "GOOGLE LOCAL SEO",
               "SETTINGS",
             ];
 
@@ -103,6 +104,18 @@ export async function AppShell({
                       <div className="space-y-1">
                         {items.map((item) => {
                           const active = item.key === activeScreen;
+                          if (item.comingSoon) {
+                            return (
+                              <div
+                                key={item.key}
+                                className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left text-sm font-medium opacity-40 cursor-not-allowed"
+                              >
+                                <span className="text-base">{item.icon}</span>
+                                <span>{item.label}</span>
+                                <span className="ml-auto text-[10px] font-bold uppercase tracking-wider opacity-70">Soon</span>
+                              </div>
+                            );
+                          }
                           return (
                             <Link
                               key={item.key}
