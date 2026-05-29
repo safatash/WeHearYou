@@ -641,6 +641,7 @@ model GbpPost {
   gbpPostId     String?
   failureReason String?
   createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
 
   location      Location         @relation(fields: [locationId], references: [id], onDelete: Cascade)
 
@@ -660,6 +661,7 @@ model GbpPhoto {
   gbpMediaId    String?
   failureReason String?
   createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
 
   location      Location         @relation(fields: [locationId], references: [id], onDelete: Cascade)
 
