@@ -75,12 +75,26 @@ enum AutomationStepType {
   TAG_CONTACT
   NOTIFY_TEAM
   WEBHOOK
+  PUBLISH_GBP_REPLY
 }
 
 enum VideoTestimonialStatus {
   PENDING
   APPROVED
   REJECTED
+}
+
+enum GbpPostType {
+  WHATS_NEW
+  OFFER
+  EVENT
+}
+
+enum GbpPublishStatus {
+  DRAFT
+  SCHEDULED
+  PUBLISHED
+  FAILED
 }
 
 model Organization {
@@ -235,6 +249,10 @@ model Location {
   membershipAccess      MembershipLocationAccess[]
   reviewWidgets         ReviewWidget[]
   videoTestimonials     VideoTestimonial[]
+  gbpPosts              GbpPost[]
+  gbpPhotos             GbpPhoto[]
+  gbpQuestions          GbpQuestion[]
+  gbpSyncLogs           GbpSyncLog[]
 
   @@index([organizationId])
   @@index([googleConnectionId])
@@ -351,6 +369,8 @@ model Review {
   body                  String
   internalNotes         String?
   replyDraft            String?
+  replyPublishedAt      DateTime?
+  replyGbpId            String?
   replySentAt           DateTime?
   replySentByMembershipId String?
   isTestimonial         Boolean       @default(false)
@@ -606,4 +626,74 @@ model VideoTestimonial {
   @@index([locationId])
   @@index([token])
   @@index([status])
+}
+
+model GbpPost {
+  id            String           @id @default(cuid())
+  locationId    String
+  postType      GbpPostType
+  content       String
+  callToAction  Json?
+  imageUrl      String?
+  status        GbpPublishStatus @default(DRAFT)
+  scheduledAt   DateTime?
+  publishedAt   DateTime?
+  gbpPostId     String?
+  failureReason String?
+  createdAt     DateTime         @default(now())
+
+  location      Location         @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  @@index([locationId])
+  @@index([status, scheduledAt])
+}
+
+model GbpPhoto {
+  id            String           @id @default(cuid())
+  locationId    String
+  storageUrl    String
+  category      String
+  caption       String?
+  status        GbpPublishStatus @default(DRAFT)
+  scheduledAt   DateTime?
+  publishedAt   DateTime?
+  gbpMediaId    String?
+  failureReason String?
+  createdAt     DateTime         @default(now())
+
+  location      Location         @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  @@index([locationId])
+  @@index([status, scheduledAt])
+}
+
+model GbpQuestion {
+  id              String    @id @default(cuid())
+  locationId      String
+  gbpQuestionId   String    @unique
+  questionText    String
+  askedAt         DateTime
+  answerText      String?
+  answeredAt      DateTime?
+  gbpAnswerId     String?
+  syncedAt        DateTime
+
+  location        Location  @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  @@index([locationId])
+  @@index([answeredAt])
+}
+
+model GbpSyncLog {
+  id           String   @id @default(cuid())
+  locationId   String
+  syncType     String
+  status       String
+  itemsSynced  Int      @default(0)
+  error        String?
+  syncedAt     DateTime @default(now())
+
+  location     Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  @@index([locationId])
 }
