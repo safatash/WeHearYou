@@ -33,7 +33,15 @@ export async function runGbpSync(): Promise<{ locationsProcessed: number; questi
         const isNew = !existing;
         const upserted = await prisma.gbpQuestion.upsert({
           where: { gbpQuestionId: q.name },
-          update: { questionText: q.text, syncedAt },
+          update: {
+            questionText: q.text,
+            syncedAt,
+            ...(existingAnswer ? {
+              answerText: existingAnswer.text,
+              answeredAt: syncedAt,
+              gbpAnswerId: existingAnswer.name,
+            } : {}),
+          },
           create: {
             locationId: location.id,
             gbpQuestionId: q.name,
