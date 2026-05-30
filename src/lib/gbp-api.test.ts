@@ -94,6 +94,22 @@ test("deleteGbpPost does not throw on 404", async () => {
   await assert.doesNotReject(() => deleteGbpPost(TOKEN, "posts/notfound"));
 });
 
+test("deleteGbpPhoto sends DELETE to the media name", async () => {
+  let calledUrl = "";
+  global.fetch = async (url: string | URL | Request) => {
+    calledUrl = url.toString();
+    return { ok: true, status: 200, text: async () => "", json: async () => ({}) } as Response;
+  };
+
+  await deleteGbpPhoto(TOKEN, "accounts/123/locations/456/media/m1");
+  assert.equal(calledUrl, "https://mybusiness.googleapis.com/v4/accounts/123/locations/456/media/m1");
+});
+
+test("deleteGbpPhoto does not throw on 404", async () => {
+  global.fetch = mockFetch(404, {}) as typeof fetch;
+  await assert.doesNotReject(() => deleteGbpPhoto(TOKEN, "media/notfound"));
+});
+
 test("uploadGbpPhoto sends correct body and returns media name", async () => {
   let parsedBody: unknown;
   global.fetch = async (_url: string | URL | Request, options?: RequestInit) => {
