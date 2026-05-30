@@ -3,6 +3,14 @@
     {
       "path": "/api/cron",
       "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/cron/gbp",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/gbp?sync=true",
+      "schedule": "0 2 * * *"
     }
   ]
 }
