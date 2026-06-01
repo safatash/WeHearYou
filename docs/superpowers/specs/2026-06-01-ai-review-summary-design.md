@@ -17,12 +17,13 @@ Generate an AI-written 2–4 sentence summary of all public reviews for a locati
 
 ### Schema changes — `PublicProfile`
 
-Add three fields:
+Add four fields:
 
 ```prisma
-showAiReviewSummary  Boolean   @default(false)
-aiReviewSummary      String?
-aiReviewSummaryAt    DateTime?
+showAiReviewSummary        Boolean   @default(false)
+aiReviewSummary            String?
+aiReviewSummaryAt          DateTime?
+aiReviewSummaryReviewCount Int?
 ```
 
 Migration: `prisma/migrations/20260601_ai_review_summary/migration.sql`
@@ -50,7 +51,7 @@ Add `regenerateAiReviewSummaryAction(formData: FormData)`:
 4. Fetch up to 50 published Google/Facebook reviews for the location (body must be non-null, non-empty)
 5. If fewer than 3 reviews, return `{ error: "Not enough reviews to summarize (need at least 3)" }`
 6. Call `generateAiReviewSummary(reviews)`
-7. `prisma.publicProfile.upsert` — write `aiReviewSummary`, `aiReviewSummaryAt: new Date()`
+7. `prisma.publicProfile.upsert` — write `aiReviewSummary`, `aiReviewSummaryAt: new Date()`, `aiReviewSummaryReviewCount: reviews.length`
 8. `revalidatePath("/locations/[id]")`, `revalidatePath("/b/[slug]")`
 9. Return `{ ok: true, summary }`
 
@@ -73,15 +74,15 @@ Add a new "AI Review Summary" card in the location settings page (after the exis
 │ [toggle] Show on public profile         │
 │          and all widgets                │
 │                                         │
-│ Last generated: Jun 1, 2026 at 2:14 PM  │
-│                                         │
-│ ╔═════════════════════════════════════╗ │
-│ ║ Customers consistently praise the  ║ │
-│ ║ fast service and friendly staff…   ║ │
-│ ╚═════════════════════════════════════╝ │
-│                                         │
-│ [Regenerate Summary]                    │
-│ (uses ~50 most recent public reviews)   │
+│ Last generated: Jun 1, 2026 · 42 reviews │
+│                                          │
+│ ╔══════════════════════════════════════╗ │
+│ ║ Customers consistently praise the   ║ │
+│ ║ fast service and friendly staff…    ║ │
+│ ╚══════════════════════════════════════╝ │
+│                                          │
+│ [Regenerate Summary]                     │
+│ (uses up to 50 most recent public reviews) │
 └─────────────────────────────────────────┘
 ```
 
@@ -95,7 +96,12 @@ When `profile.showAiReviewSummary && profile.aiReviewSummary`, render above the 
 
 ```tsx
 <div className="rounded-2xl bg-indigo-50 border border-indigo-100 px-4 py-3">
-  <p className="text-xs font-semibold text-indigo-600 mb-1">✦ AI Summary</p>
+  <div className="flex items-center justify-between mb-1">
+    <p className="text-xs font-semibold text-indigo-600">✦ AI Summary</p>
+    {profile.aiReviewSummaryReviewCount && (
+      <p className="text-xs text-indigo-400">Based on {profile.aiReviewSummaryReviewCount} reviews</p>
+    )}
+  </div>
   <p className="text-sm leading-7 text-indigo-900">{profile.aiReviewSummary}</p>
 </div>
 ```
@@ -114,18 +120,34 @@ aiReviewSummary: widget.location.publicProfile?.showAiReviewSummary
 
 The location query already includes `publicProfile` — no additional DB query needed.
 
-Add `aiReviewSummary: string | null` to `PublicWidgetPayload` type.
+Add `aiReviewSummary: string | null` and `aiReviewSummaryReviewCount: number | null` to `PublicWidgetPayload` type.
+
+Include both in the payload:
+
+```ts
+aiReviewSummary: widget.location.publicProfile?.showAiReviewSummary
+  ? (widget.location.publicProfile.aiReviewSummary ?? null)
+  : null,
+aiReviewSummaryReviewCount: widget.location.publicProfile?.showAiReviewSummary
+  ? (widget.location.publicProfile.aiReviewSummaryReviewCount ?? null)
+  : null,
+```
 
 ### Widget renderer — `src/components/review-widget-preview.tsx`
 
-Add `aiReviewSummary?: string | null` to `ReviewWidgetPreviewProps`.
+Add `aiReviewSummary?: string | null` and `aiReviewSummaryReviewCount?: number | null` to `ReviewWidgetPreviewProps`.
 
 In the header section (below the avg rating / review count row), render when present:
 
 ```tsx
 {aiReviewSummary && (
   <div style={{ background: "#eef2ff", border: "1px solid #c7d2fe", borderRadius: 10, padding: "10px 12px", marginTop: 10, textAlign: "left" }}>
-    <p style={{ margin: 0, fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".1em", color: "#4f46e5", marginBottom: 4 }}>✦ AI Summary</p>
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+      <p style={{ margin: 0, fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".1em", color: "#4f46e5" }}>✦ AI Summary</p>
+      {aiReviewSummaryReviewCount && (
+        <p style={{ margin: 0, fontSize: 10, color: "#a5b4fc" }}>Based on {aiReviewSummaryReviewCount} reviews</p>
+      )}
+    </div>
     <p style={{ margin: 0, color: "#3730a3", fontSize: 12, lineHeight: 1.6 }}>{aiReviewSummary}</p>
   </div>
 )}
@@ -178,7 +200,7 @@ Widget renderer
 |--------|------|
 | Create | `src/lib/ai-summary.ts` |
 | Create | `prisma/migrations/20260601_ai_review_summary/migration.sql` |
-| Modify | `prisma/schema.prisma` — add 3 fields to `PublicProfile` |
+| Modify | `prisma/schema.prisma` — add 4 fields to `PublicProfile` |
 | Modify | `src/app/locations/actions.ts` — add 2 server actions |
 | Modify | `src/app/locations/[id]/page.tsx` — add AI Summary card |
 | Modify | `src/app/b/[slug]/page.tsx` — render summary block |
