@@ -312,6 +312,12 @@ export default async function BusinessMiniSitePage({
                               View on Google →
                             </a>
                           )}
+                          {(review.replyPublishedAt || review.replySentAt) && review.replyDraft && (
+                            <div className="mt-4 rounded-2xl bg-slate-50 border border-slate-100 px-4 py-3">
+                              <p className="text-xs font-semibold text-slate-500 mb-1">Response from the owner</p>
+                              <p className="text-sm leading-7 text-slate-700">{review.replyDraft}</p>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </article>
