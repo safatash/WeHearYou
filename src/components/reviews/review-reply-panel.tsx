@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { saveReviewReply } from "@/app/reviews/actions";
+import { publishGbpReplyAction } from "@/app/gbp/actions";
 import { formatReviewDate, formatReviewSource, formatReviewStatus, stars, type ReviewWithRelations } from "@/lib/reviews";
 
 export function ReviewReplyPanel({
@@ -16,6 +17,8 @@ export function ReviewReplyPanel({
   const [draft, setDraft] = useState(initialDraft);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
+  const [publishing, setPublishing] = useState(false);
+  const [publishError, setPublishError] = useState<string | null>(null);
 
   async function handleGenerateReply() {
     setAiLoading(true);
@@ -144,6 +147,38 @@ export function ReviewReplyPanel({
           </button>
         </div>
       </form>
+
+      {review.source === "GOOGLE" && !review.replyPublishedAt && (
+        <form
+          onSubmit={async (e) => {
+            e.preventDefault();
+            setPublishing(true);
+            setPublishError(null);
+            const fd = new FormData();
+            fd.append("reviewId", review.id);
+            fd.append("replyText", draft);
+            const result = await publishGbpReplyAction(fd);
+            setPublishing(false);
+            if (result?.error) {
+              setPublishError(result.error);
+            }
+          }}
+        >
+          <button
+            type="submit"
+            disabled={!draft || publishing}
+            className="rounded-2xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+          >
+            {publishing ? "Publishing…" : "Publish to Google ↗"}
+          </button>
+          {publishError && <p className="mt-2 text-xs text-rose-600">{publishError}</p>}
+        </form>
+      )}
+      {review.source === "GOOGLE" && review.replyPublishedAt && (
+        <p className="text-xs text-emerald-600 font-semibold">
+          ✓ Published to Google {new Date(review.replyPublishedAt).toLocaleDateString()}
+        </p>
+      )}
 
       <div className="border-t border-slate-100 pt-3">
         <a
