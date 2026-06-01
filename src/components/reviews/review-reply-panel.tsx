@@ -78,6 +78,18 @@ export function ReviewReplyPanel({
         {review.body}
       </div>
 
+      {/* Existing sent/published reply */}
+      {(review.replyPublishedAt || review.replySentAt) && review.replyDraft && (
+        <div className="rounded-2xl bg-emerald-50 border border-emerald-100 px-4 py-3">
+          <p className="text-xs font-semibold text-emerald-700 mb-1">
+            {review.replyPublishedAt
+              ? `Published to Google · ${new Date(review.replyPublishedAt).toLocaleDateString()}`
+              : `Replied · ${new Date(review.replySentAt!).toLocaleDateString()}`}
+          </p>
+          <p className="text-sm leading-6 text-slate-700 whitespace-pre-wrap">{review.replyDraft}</p>
+        </div>
+      )}
+
       {/* AI reply button */}
       <div>
         <button
