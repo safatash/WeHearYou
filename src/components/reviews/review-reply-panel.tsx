@@ -79,14 +79,18 @@ export function ReviewReplyPanel({
       </div>
 
       {/* Existing sent/published reply */}
-      {(review.replyPublishedAt || review.replySentAt) && review.replyDraft && (
+      {(review.sourceReplyText || ((review.replyPublishedAt || review.replySentAt) && review.replyDraft)) && (
         <div className="rounded-2xl bg-emerald-50 border border-emerald-100 px-4 py-3">
           <p className="text-xs font-semibold text-emerald-700 mb-1">
             {review.replyPublishedAt
               ? `Published to Google · ${new Date(review.replyPublishedAt).toLocaleDateString()}`
-              : `Replied · ${new Date(review.replySentAt!).toLocaleDateString()}`}
+              : review.replySentAt
+              ? `Replied · ${new Date(review.replySentAt).toLocaleDateString()}`
+              : "Response from owner (via Google)"}
           </p>
-          <p className="text-sm leading-6 text-slate-700 whitespace-pre-wrap">{review.replyDraft}</p>
+          <p className="text-sm leading-6 text-slate-700 whitespace-pre-wrap">
+            {review.sourceReplyText ?? review.replyDraft}
+          </p>
         </div>
       )}
 

@@ -48,7 +48,7 @@ export function ReviewListItem({
             {review.location.name}
           </span>
         )}
-        {(review.replyPublishedAt || review.replySentAt) && (
+        {(review.sourceReplyText || review.replyPublishedAt || review.replySentAt) && (
           <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-700">
             {review.replyPublishedAt ? "Published" : "Replied"}
           </span>
