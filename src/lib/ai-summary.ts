@@ -1,9 +1,10 @@
-import OpenAI from "openai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 export async function generateAiReviewSummary(
   reviews: { rating: number; body: string }[]
 ): Promise<string> {
-  const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+  const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
   const reviewList = reviews
     .map((r, i) => `${i + 1}. [${r.rating} stars] ${r.body}`)
@@ -14,14 +15,8 @@ export async function generateAiReviewSummary(
 Reviews:
 ${reviewList}`;
 
-  const completion = await openai.chat.completions.create({
-    model: "gpt-4o-mini",
-    messages: [{ role: "user", content: prompt }],
-    max_tokens: 300,
-    temperature: 0.5,
-  });
-
-  const text = completion.choices[0]?.message?.content?.trim();
-  if (!text) throw new Error("OpenAI returned an empty response");
+  const result = await model.generateContent(prompt);
+  const text = result.response.text().trim();
+  if (!text) throw new Error("Gemini returned an empty response");
   return text;
 }

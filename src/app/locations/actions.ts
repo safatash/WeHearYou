@@ -1448,8 +1448,8 @@ export async function regenerateAiReviewSummaryAction(formData: FormData) {
     select: { slug: true },
   });
 
-  if (!process.env.OPENAI_API_KEY) {
-    redirect(`/locations/${locationId}?flash=${encodeURIComponent("AI summary is not configured — set OPENAI_API_KEY")}&tone=error`);
+  if (!process.env.GEMINI_API_KEY) {
+    redirect(`/locations/${locationId}?flash=${encodeURIComponent("AI summary is not configured — set GEMINI_API_KEY")}&tone=error`);
   }
 
   const reviews = await prisma.review.findMany({
