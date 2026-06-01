@@ -8,6 +8,7 @@ export type FunnelBuilderActionState = {
   success: boolean;
   error?: string;
 };
+import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { generateAiReviewSummary } from "@/lib/ai-summary";
 import { buildGoogleOAuthUrl, fetchGoogleBusinessLocations, fetchGoogleLocationReviews, getValidGoogleAccessToken, normalizeGoogleStarRating } from "@/lib/google-oauth";
 import { buildBulkGoogleSyncRedirect, buildRetryGoogleSyncRedirect } from "@/lib/google-batch-sync-actions";
@@ -1474,6 +1475,7 @@ export async function regenerateAiReviewSummaryAction(formData: FormData) {
   try {
     summary = await generateAiReviewSummary(nonEmpty);
   } catch (err) {
+    if (isRedirectError(err)) throw err;
     const msg = err instanceof Error ? err.message : "AI generation failed";
     redirect(`/locations/${locationId}?flash=${encodeURIComponent(msg)}&tone=error`);
   }

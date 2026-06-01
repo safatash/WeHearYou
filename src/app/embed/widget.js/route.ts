@@ -142,6 +142,20 @@ const script = `
     '</div>';
   }
 
+  function renderAiSummary(data) {
+    if (!data.location.aiReviewSummary) return "";
+    var countHtml = data.location.aiReviewSummaryReviewCount
+      ? '<p style="margin:0;font-size:10px;color:#a5b4fc">Based on ' + escapeHtml(String(data.location.aiReviewSummaryReviewCount)) + ' reviews</p>'
+      : '';
+    return '<div style="background:#eef2ff;border:1px solid #c7d2fe;border-radius:10px;padding:10px 12px;margin-top:10px;text-align:left">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">' +
+        '<p style="margin:0;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#4f46e5">✶ AI Summary</p>' +
+        countHtml +
+      '</div>' +
+      '<p style="margin:0;color:#3730a3;font-size:12px;line-height:1.6">' + escapeHtml(data.location.aiReviewSummary) + '</p>' +
+    '</div>';
+  }
+
   function renderCard(review, widget) {
     var reviewerHtml = '';
     if (widget.showReviewerName) {
@@ -437,6 +451,7 @@ const script = `
           mount.innerHTML = '<div class="why-widget" style="font-family:' + fontStack(data.widget.fontFamily) + ';background:' + escapeHtml(data.widget.backgroundColor) + ';color:' + escapeHtml(data.widget.textColor) + ';border-radius:18px;padding:20px;border:1px solid rgba(0,0,0,.06)">' +
             titleHtml +
             renderHeader(data) +
+            renderAiSummary(data) +
             listWrapper +
             '<div class="why-widget-footer"></div>' +
           '</div>';
