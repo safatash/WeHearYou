@@ -5,7 +5,7 @@ import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { FormSubmitButton } from "@/components/form-submit-button";
 import { Field, OutcomeCard, StatCard } from "@/components/ui";
-import { deleteLocation, mapLocationToGoogle, refreshGoogleLocationDetails, saveLocationSettings, syncGoogleReviews } from "@/app/locations/actions";
+import { deleteLocation, mapLocationToGoogle, refreshGoogleLocationDetails, regenerateAiReviewSummaryAction, saveLocationSettings, syncGoogleReviews, toggleAiReviewSummaryAction } from "@/app/locations/actions";
 import { formatCampaignStatus, formatDateTime } from "@/lib/campaigns";
 import { formatPreferredChannel } from "@/lib/contacts";
 import { buildGoogleLastSyncResultSummary, buildGoogleSyncSummary, buildLocationSyncErrorMessage } from "@/lib/google-sync-summary";
@@ -518,6 +518,65 @@ export default async function LocationDetailPage({
             </section>
           </aside>
         </div>
+
+        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <h3 className="text-xl font-semibold text-slate-950">AI Review Summary</h3>
+              <p className="mt-2 text-sm text-slate-600">
+                Generate a 2–4 sentence AI summary of all public reviews. Controls both the public profile page and all widgets for this location.
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-6 space-y-5">
+            {/* Toggle */}
+            <form action={async (fd) => { await toggleAiReviewSummaryAction(fd); }} className="flex items-center gap-4">
+              <input type="hidden" name="locationId" value={location.id} />
+              <input type="hidden" name="enabled" value={publicProfile?.showAiReviewSummary ? "false" : "true"} />
+              <label className="flex cursor-pointer items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">
+                <span className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${publicProfile?.showAiReviewSummary ? "bg-indigo-600" : "bg-slate-300"}`}>
+                  <span className={`inline-block h-3 w-3 rounded-full bg-white shadow transition-transform ${publicProfile?.showAiReviewSummary ? "translate-x-5" : "translate-x-1"}`} />
+                </span>
+                Show on public profile and all widgets
+              </label>
+              <FormSubmitButton
+                idleLabel="Save"
+                pendingLabel="Saving…"
+                className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm"
+              />
+            </form>
+
+            {/* Last generated metadata */}
+            {publicProfile?.aiReviewSummaryAt && (
+              <p className="text-sm text-slate-500">
+                Last generated: {new Date(publicProfile.aiReviewSummaryAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                {publicProfile.aiReviewSummaryReviewCount ? ` · ${publicProfile.aiReviewSummaryReviewCount} reviews` : ""}
+              </p>
+            )}
+
+            {/* Summary preview */}
+            {publicProfile?.aiReviewSummary ? (
+              <div className="rounded-2xl border border-indigo-100 bg-indigo-50 px-4 py-3">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-indigo-500 mb-2">Preview</p>
+                <p className="text-sm leading-7 text-indigo-900">{publicProfile.aiReviewSummary}</p>
+              </div>
+            ) : (
+              <p className="text-sm text-slate-400">No summary yet — click Regenerate to generate one.</p>
+            )}
+
+            {/* Regenerate form */}
+            <form action={regenerateAiReviewSummaryAction} className="space-y-2">
+              <input type="hidden" name="locationId" value={location.id} />
+              <FormSubmitButton
+                idleLabel="Regenerate Summary"
+                pendingLabel="Generating…"
+                className="rounded-2xl bg-indigo-600 px-5 py-3 text-sm font-semibold !text-white shadow-sm visited:!text-white hover:!text-white"
+              />
+              <p className="text-xs text-slate-400">Uses up to 50 most recent public Google and Facebook reviews</p>
+            </form>
+          </div>
+        </section>
 
         <section className="rounded-3xl border border-rose-200 bg-rose-50 p-6 shadow-sm">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
