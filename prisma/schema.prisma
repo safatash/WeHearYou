@@ -598,6 +598,10 @@ model LocationPublicProfile {
   showMap              Boolean     @default(true)
   showHours            Boolean     @default(false)
   schemaEnabled        Boolean     @default(true)
+  showAiReviewSummary        Boolean   @default(false)
+  aiReviewSummary            String?
+  aiReviewSummaryAt          DateTime?
+  aiReviewSummaryReviewCount Int?
   createdAt            DateTime    @default(now())
   updatedAt            DateTime    @updatedAt
 
