@@ -8,6 +8,7 @@ export type FunnelBuilderActionState = {
   success: boolean;
   error?: string;
 };
+import { generateAiReviewSummary } from "@/lib/ai-summary";
 import { buildGoogleOAuthUrl, fetchGoogleBusinessLocations, fetchGoogleLocationReviews, getValidGoogleAccessToken, normalizeGoogleStarRating } from "@/lib/google-oauth";
 import { buildBulkGoogleSyncRedirect, buildRetryGoogleSyncRedirect } from "@/lib/google-batch-sync-actions";
 import { buildLocationDetailSyncSuccessPath } from "@/lib/google-sync-action-paths";
@@ -1435,3 +1436,89 @@ export async function retryFailedGoogleSyncs(formData: FormData) {
   }
 }
 
+export async function regenerateAiReviewSummaryAction(formData: FormData) {
+  const locationId = String(formData.get("locationId") ?? "").trim();
+  if (!locationId) throw new Error("Location is required");
+
+  await requireLocationAccess(locationId);
+
+  const location = await prisma.location.findUnique({
+    where: { id: locationId },
+    select: { slug: true },
+  });
+
+  if (!process.env.OPENAI_API_KEY) {
+    redirect(`/locations/${locationId}?flash=${encodeURIComponent("AI summary is not configured — set OPENAI_API_KEY")}&tone=error`);
+  }
+
+  const reviews = await prisma.review.findMany({
+    where: {
+      locationId,
+      OR: [
+        { source: ReviewSource.GOOGLE, status: ReviewStatus.PUBLISHED },
+        { source: ReviewSource.FACEBOOK, status: ReviewStatus.PUBLISHED },
+      ],
+      body: { not: "" },
+    },
+    orderBy: [{ reviewedAt: "desc" }, { createdAt: "desc" }],
+    take: 50,
+    select: { rating: true, body: true },
+  });
+
+  const nonEmpty = reviews.filter((r) => r.body.trim().length > 0);
+  if (nonEmpty.length < 3) {
+    redirect(`/locations/${locationId}?flash=${encodeURIComponent("Not enough reviews to summarize (need at least 3)")}&tone=error`);
+  }
+
+  let summary = "";
+  try {
+    summary = await generateAiReviewSummary(nonEmpty);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "AI generation failed";
+    redirect(`/locations/${locationId}?flash=${encodeURIComponent(msg)}&tone=error`);
+  }
+
+  await prisma.locationPublicProfile.upsert({
+    where: { locationId },
+    update: {
+      aiReviewSummary: summary,
+      aiReviewSummaryAt: new Date(),
+      aiReviewSummaryReviewCount: nonEmpty.length,
+    },
+    create: {
+      locationId,
+      aiReviewSummary: summary,
+      aiReviewSummaryAt: new Date(),
+      aiReviewSummaryReviewCount: nonEmpty.length,
+    },
+  });
+
+  revalidatePath(`/locations/${locationId}`);
+  if (location?.slug) revalidatePath(`/b/${location.slug}`);
+
+  redirect(`/locations/${locationId}?flash=${encodeURIComponent("AI summary regenerated")}&tone=success`);
+}
+
+export async function toggleAiReviewSummaryAction(formData: FormData) {
+  const locationId = String(formData.get("locationId") ?? "").trim();
+  const enabled = formData.get("enabled") === "true";
+  if (!locationId) return { error: "Location is required" };
+
+  await requireLocationAccess(locationId);
+
+  const location = await prisma.location.findUnique({
+    where: { id: locationId },
+    select: { slug: true },
+  });
+
+  await prisma.locationPublicProfile.upsert({
+    where: { locationId },
+    update: { showAiReviewSummary: enabled },
+    create: { locationId, showAiReviewSummary: enabled },
+  });
+
+  revalidatePath(`/locations/${locationId}`);
+  if (location?.slug) revalidatePath(`/b/${location.slug}`);
+
+  return { ok: true };
+}
