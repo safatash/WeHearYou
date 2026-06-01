@@ -549,6 +549,8 @@ export function WidgetCustomizer({
                     ? preview.videoTestimonials
                     : MOCK_VIDEO_TESTIMONIALS
                 }
+                aiReviewSummary={preview?.location.aiReviewSummary ?? null}
+                aiReviewSummaryReviewCount={preview?.location.aiReviewSummaryReviewCount ?? null}
               />
             </div>
           </div>

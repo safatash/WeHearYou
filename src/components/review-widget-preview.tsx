@@ -54,6 +54,8 @@ type ReviewWidgetPreviewProps = {
   widgetTitle?: string;
   videoTestimonials?: VideoTestimonialItem[];
   contentType?: string;
+  aiReviewSummary?: string | null;
+  aiReviewSummaryReviewCount?: number | null;
 };
 
 const FONT_STACKS: Record<string, string> = {
@@ -435,6 +437,8 @@ export function ReviewWidgetPreview({
   widgetTitle,
   videoTestimonials,
   contentType,
+  aiReviewSummary,
+  aiReviewSummaryReviewCount,
 }: ReviewWidgetPreviewProps) {
   const mutedColor = "#475569";
   const safeLayout = ["grid", "list", "slider", "badge", "carousel", "masonry", "video"].includes(layout) ? layout : "grid";
@@ -518,6 +522,18 @@ export function ReviewWidgetPreview({
             mutedColor={mutedColor}
           />
         ) : null}
+
+        {aiReviewSummary && (
+          <div style={{ background: "#eef2ff", border: "1px solid #c7d2fe", borderRadius: 10, padding: "10px 12px", marginTop: 10, textAlign: "left" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+              <p style={{ margin: 0, fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".1em", color: "#4f46e5" }}>✦ AI Summary</p>
+              {aiReviewSummaryReviewCount && (
+                <p style={{ margin: 0, fontSize: 10, color: "#a5b4fc" }}>Based on {aiReviewSummaryReviewCount} reviews</p>
+              )}
+            </div>
+            <p style={{ margin: 0, color: "#3730a3", fontSize: 12, lineHeight: 1.6 }}>{aiReviewSummary}</p>
+          </div>
+        )}
 
         {isVideoOnly ? (
           hasVideos ? (
