@@ -53,6 +53,8 @@ export type PublicWidgetPayload = {
     avgRating: number | null;
     reviewCount: number;
     reviewLink: string | null;
+    aiReviewSummary: string | null;
+    aiReviewSummaryReviewCount: number | null;
   };
   reviews: PublicWidgetReview[];
   pagination: {
@@ -294,6 +296,12 @@ export async function getPublicReviewWidgetPayload(publicToken: string, page = 1
       avgRating: widget.location.avgRating ?? null,
       reviewCount: total,
       reviewLink: widget.location.reviewLink ?? null,
+      aiReviewSummary: widget.location.publicProfile?.showAiReviewSummary
+        ? (widget.location.publicProfile.aiReviewSummary ?? null)
+        : null,
+      aiReviewSummaryReviewCount: widget.location.publicProfile?.showAiReviewSummary
+        ? (widget.location.publicProfile.aiReviewSummaryReviewCount ?? null)
+        : null,
     },
     reviews: reviews.map((review) => ({
       id: review.id,
