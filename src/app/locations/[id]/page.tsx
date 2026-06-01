@@ -107,7 +107,7 @@ export default async function LocationDetailPage({
               </Link>
             </div>
 
-            <form action={saveLocationSettings} encType="multipart/form-data" className="mt-6 space-y-8">
+            <form action={saveLocationSettings} className="mt-6 space-y-8">
               <input type="hidden" name="locationId" value={location.id} />
 
               <div className="space-y-4">
@@ -531,20 +531,15 @@ export default async function LocationDetailPage({
 
           <div className="mt-6 space-y-5">
             {/* Toggle */}
-            <form action={async (fd) => { await toggleAiReviewSummaryAction(fd); }} className="flex items-center gap-4">
+            <form action={toggleAiReviewSummaryAction}>
               <input type="hidden" name="locationId" value={location.id} />
               <input type="hidden" name="enabled" value={publicProfile?.showAiReviewSummary ? "false" : "true"} />
-              <label className="flex cursor-pointer items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">
-                <span className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${publicProfile?.showAiReviewSummary ? "bg-indigo-600" : "bg-slate-300"}`}>
+              <button type="submit" className="flex w-full cursor-pointer items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-left text-sm font-semibold text-slate-700 hover:bg-slate-100 transition-colors">
+                <span className={`relative inline-flex h-5 w-9 flex-shrink-0 items-center rounded-full transition-colors ${publicProfile?.showAiReviewSummary ? "bg-indigo-600" : "bg-slate-300"}`}>
                   <span className={`inline-block h-3 w-3 rounded-full bg-white shadow transition-transform ${publicProfile?.showAiReviewSummary ? "translate-x-5" : "translate-x-1"}`} />
                 </span>
                 Show on public profile and all widgets
-              </label>
-              <FormSubmitButton
-                idleLabel="Save"
-                pendingLabel="Saving…"
-                className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm"
-              />
+              </button>
             </form>
 
             {/* Last generated metadata */}

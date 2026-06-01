@@ -1504,7 +1504,7 @@ export async function regenerateAiReviewSummaryAction(formData: FormData) {
 export async function toggleAiReviewSummaryAction(formData: FormData) {
   const locationId = String(formData.get("locationId") ?? "").trim();
   const enabled = formData.get("enabled") === "true";
-  if (!locationId) return { error: "Location is required" };
+  if (!locationId) return;
 
   await requireLocationAccess(locationId);
 
@@ -1521,6 +1521,4 @@ export async function toggleAiReviewSummaryAction(formData: FormData) {
 
   revalidatePath(`/locations/${locationId}`);
   if (location?.slug) revalidatePath(`/b/${location.slug}`);
-
-  return { ok: true };
 }
