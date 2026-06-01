@@ -275,6 +275,17 @@ export default async function BusinessMiniSitePage({
 
           {/* REVIEWS */}
           <div className="space-y-5">
+            {profile?.showAiReviewSummary && profile?.aiReviewSummary && (
+              <div className="rounded-2xl bg-indigo-50 border border-indigo-100 px-4 py-3">
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-xs font-semibold text-indigo-600">✦ AI Summary</p>
+                  {profile.aiReviewSummaryReviewCount && (
+                    <p className="text-xs text-indigo-400">Based on {profile.aiReviewSummaryReviewCount} reviews</p>
+                  )}
+                </div>
+                <p className="text-sm leading-7 text-indigo-900">{profile.aiReviewSummary}</p>
+              </div>
+            )}
             <div className="flex items-center justify-between gap-4">
               <h2 className="text-xl font-semibold text-slate-950">
                 Reviews {totalReviews > 0 && <span className="text-slate-400">({totalReviews})</span>}
