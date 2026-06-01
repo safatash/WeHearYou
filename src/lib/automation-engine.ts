@@ -3,6 +3,8 @@ import { AutomationStepType, AutomationTriggerType, CampaignStatus, ContactSourc
 import { prisma } from "@/lib/prisma";
 import { sendReviewRequestEmail, sendTeamNotificationEmail, isEmailSendingConfigured } from "@/lib/email";
 import { sendReviewRequestSMS, isSMSSendingConfigured } from "@/lib/sms";
+import { getValidGoogleAccessToken } from "@/lib/google-oauth";
+import { publishGbpReply } from "@/lib/gbp-api";
 
 export type AutomationWebhookEventType = "appointment_completed" | "project_completed";
 
@@ -344,6 +346,50 @@ async function executeSteps({
         }
       } else {
         stepsExecuted.push({ stepId: step.id, stepType: step.stepType, status: "skipped", detail: "No webhook URL configured" });
+      }
+      continue;
+    }
+
+    if (step.stepType === AutomationStepType.PUBLISH_GBP_REPLY) {
+      const review = await prisma.review.findFirst({
+        where: {
+          locationId: location.id,
+          contactId: contact.id,
+          source: "GOOGLE",
+          replyDraft: { not: null },
+          replyPublishedAt: null,
+          externalId: { not: null },
+        },
+        include: {
+          location: {
+            select: {
+              googleLocationName: true,
+              googleConnection: {
+                select: { id: true, accessToken: true, refreshToken: true, expiresAt: true, scope: true, tokenType: true },
+              },
+            },
+          },
+        },
+        orderBy: { reviewedAt: "desc" },
+      });
+
+      if (!review || !review.location.googleConnection || !review.location.googleLocationName || !review.externalId) {
+        stepsExecuted.push({ stepId: step.id, stepType: step.stepType, status: "skipped", detail: "No eligible Google review with draft found for contact" });
+        continue;
+      }
+
+      try {
+        const accessToken = await getValidGoogleAccessToken(review.location.googleConnection);
+        const reviewName = `${review.location.googleLocationName}/reviews/${review.externalId}`;
+        await publishGbpReply(accessToken, reviewName, review.replyDraft!);
+        await prisma.review.update({
+          where: { id: review.id },
+          data: { replyPublishedAt: new Date(), replyGbpId: reviewName },
+        });
+        stepsExecuted.push({ stepId: step.id, stepType: step.stepType, status: "executed", detail: `Published GBP reply for review ${review.id}` });
+      } catch (error) {
+        const msg = error instanceof Error ? error.message : "Failed to publish GBP reply";
+        stepsExecuted.push({ stepId: step.id, stepType: step.stepType, status: "skipped", detail: msg });
       }
       continue;
     }
