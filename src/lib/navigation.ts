@@ -17,6 +17,7 @@ export type ScreenKey =
   | "gbp-photos"
   | "gbp-qa"
   | "funnel-preview"
+  | "review-links"
   | "settings";
 
 export interface NavItem {
@@ -34,6 +35,7 @@ export const navItems: NavItem[] = [
   // Requests & Feedback
   { key: "contacts", label: "Contacts", icon: "☰", href: "/contacts", group: "REQUESTS & FEEDBACK" },
   { key: "campaigns", label: "Review Requests", icon: "➜", href: "/campaigns", group: "REQUESTS & FEEDBACK" },
+  { key: "review-links", label: "Review Links", icon: "🔗", href: "/review-links", group: "REQUESTS & FEEDBACK" },
   { key: "reviews", label: "Reviews Inbox", icon: "✦", href: "/reviews", group: "REQUESTS & FEEDBACK" },
 
   // Funnel Setup
