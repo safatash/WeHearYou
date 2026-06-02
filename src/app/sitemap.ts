@@ -29,7 +29,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
   });
 
-  const sitemapEntries = locations
+  return locations
     .filter((loc) =>
       isPublicProfileIndexable({
         name: loc.name,
@@ -43,6 +43,4 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "weekly" as const,
       priority: 0.8,
     }));
-
-  return sitemapEntries;
 }
