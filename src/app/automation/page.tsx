@@ -1,5 +1,6 @@
 export const dynamic = "force-dynamic";
 
+import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { Field, StatCard } from "@/components/ui";
 import { formatConfig, formatStepType, formatTriggerType, getAutomations } from "@/lib/automation";
@@ -24,13 +25,13 @@ export default async function AutomationPage() {
               Build and manage automated workflows that trigger review requests and follow-ups.
             </p>
           </div>
-          <a
+          <Link
             href="/automation/new"
             className="inline-flex rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-slate-800 transition whitespace-nowrap"
             style={{ color: "white" }}
           >
             + New Automation
-          </a>
+          </Link>
         </div>
 
         <div className="grid gap-4 xl:grid-cols-3">
@@ -63,13 +64,13 @@ export default async function AutomationPage() {
             <p className="mt-2 text-sm text-slate-600">
               Create your first automation to start sending automated review requests.
             </p>
-            <a
+            <Link
               href="/automation/new"
               className="mt-4 inline-flex rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-slate-800 transition"
               style={{ color: "white" }}
             >
               + New Automation
-            </a>
+            </Link>
           </div>
         )}
       </div>

@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { prisma } from "@/lib/prisma";
 import { getCurrentMembership } from "@/lib/authz";
@@ -53,7 +54,7 @@ export default async function AutomationDetailPage({
       <div className="space-y-6">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <a href="/automation" className="text-sm text-indigo-600 hover:underline">← All Automations</a>
+            <Link href="/automation" className="text-sm text-indigo-600 hover:underline">← All Automations</Link>
             <h2 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">{automation.name}</h2>
             <p className="mt-1 text-sm text-slate-500">Trigger: {formatTriggerType(automation.triggerType)}</p>
           </div>

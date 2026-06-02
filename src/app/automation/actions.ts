@@ -92,7 +92,7 @@ export async function addStep(formData: FormData) {
   const nextIndex = (automation.steps[0]?.orderIndex ?? -1) + 1;
 
   // Build configJson from step type
-  let configJson: Record<string, string> = {};
+  const configJson: Record<string, string> = {};
 
   if (stepType === "DELAY") {
     const delayHours = normalize(formData.get("delayHours"));

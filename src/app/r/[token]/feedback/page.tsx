@@ -61,7 +61,7 @@ export default async function PrivateFeedbackPage({
             <p className="text-lg font-semibold text-slate-900 mb-4">Send a message directly to our team</p>
             <div className="mb-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
               <p className="text-sm text-slate-600 leading-relaxed">
-                We're sorry you had a bad experience. You can use this form to contact our customer service team and give us an opportunity to resolve any problem or complaint you have before leaving a review.
+                We&apos;re sorry you had a bad experience. You can use this form to contact our customer service team and give us an opportunity to resolve any problem or complaint you have before leaving a review.
               </p>
             </div>
             <form action={submitPrivateFeedback} className="space-y-4">

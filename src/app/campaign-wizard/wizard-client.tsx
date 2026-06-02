@@ -357,7 +357,7 @@ export function CampaignWizard({
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.22em] text-indigo-600">Step 3 of 5</p>
                 <h3 className="mt-2 text-2xl font-semibold text-slate-950">Request message</h3>
-                <p className="mt-2 text-sm text-slate-500">Used when sending review requests via Email or SMS through automations. Use <code className="rounded bg-slate-100 px-1">{"{name}"}</code> for the customer's name.</p>
+                <p className="mt-2 text-sm text-slate-500">Used when sending review requests via Email or SMS through automations. Use <code className="rounded bg-slate-100 px-1">{"{name}"}</code> for the customer&apos;s name.</p>
               </div>
               <div className="space-y-4">
                 <div>

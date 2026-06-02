@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { addStep, deleteStep, deleteAutomation, enrollContact } from "@/app/automation/actions";
 
 export function AddStepForm({ automationId }: { automationId: string }) {
@@ -76,7 +77,7 @@ export function AddStepForm({ automationId }: { automationId: string }) {
             </select>
           </div>
           <p className="text-xs text-slate-500">
-            Email subject and message are configured in each location's Funnel Settings.
+            Email subject and message are configured in each location&apos;s Funnel Settings.
           </p>
         </div>
       )}
@@ -167,7 +168,7 @@ export function EnrollContactForm({
       <div>
         <label className="mb-2 block text-sm font-semibold text-slate-700">Select contact</label>
         {contacts.length === 0 ? (
-          <p className="text-sm text-slate-500">No contacts found. <a href="/contacts/new" className="text-indigo-600 hover:underline">Add a contact</a> first.</p>
+          <p className="text-sm text-slate-500">No contacts found. <Link href="/contacts/new" className="text-indigo-600 hover:underline">Add a contact</Link> first.</p>
         ) : (
           <select
             name="contactId"

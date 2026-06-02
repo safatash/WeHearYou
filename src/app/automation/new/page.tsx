@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { createAutomation } from "@/app/automation/actions";
 
@@ -55,12 +56,12 @@ export default function NewAutomationPage() {
               >
                 Create Automation
               </button>
-              <a
+              <Link
                 href="/automation"
                 className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 transition"
               >
                 Cancel
-              </a>
+              </Link>
             </div>
           </form>
         </div>

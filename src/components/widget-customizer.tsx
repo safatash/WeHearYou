@@ -4,6 +4,8 @@ import { useState } from "react";
 import { CopyButton } from "@/components/copy-button";
 import { ReviewWidgetPreview } from "@/components/review-widget-preview";
 import { updateReviewWidget } from "@/app/widgets/actions";
+import type { PublicWidgetPayload } from "@/lib/review-widgets";
+import type { getReviewWidgetById } from "@/lib/review-widgets";
 
 const LAYOUT_OPTIONS: Array<{ value: string; label: string; description: string }> = [
   { value: "carousel", label: "Carousel", description: "Rotating slides with navigation arrows" },
@@ -77,8 +79,8 @@ const MOCK_VIDEO_TESTIMONIALS = [
 ];
 
 interface WidgetCustomizerProps {
-  widget: any;
-  preview: any;
+  widget: NonNullable<Awaited<ReturnType<typeof getReviewWidgetById>>>;
+  preview: PublicWidgetPayload | null;
   embedScriptUrl: string;
   localTestUrl: string;
 }
@@ -605,7 +607,7 @@ export function WidgetCustomizer({
                 <h4 className="font-semibold text-blue-900 mb-2">How to use:</h4>
                 <ol className="text-sm text-blue-800 space-y-1 list-decimal list-inside">
                   <li>Copy the code above</li>
-                  <li>Go to your website's HTML editor or theme customizer</li>
+                  <li>Go to your website&apos;s HTML editor or theme customizer</li>
                   <li>Paste the code where you want the widget to appear</li>
                   <li>Save your changes</li>
                 </ol>
@@ -614,7 +616,7 @@ export function WidgetCustomizer({
               {/* Note */}
               <div className="text-xs text-slate-600 bg-slate-50 border border-slate-200 rounded-lg p-4">
                 <p>
-                  <strong>💡 Note:</strong> The embed code includes data attributes that reflect your current configuration. When you change settings in this panel, the embed code updates automatically. You'll need to re-copy and paste the updated code to apply new changes to your website.
+                  <strong>💡 Note:</strong> The embed code includes data attributes that reflect your current configuration. When you change settings in this panel, the embed code updates automatically. You&apos;ll need to re-copy and paste the updated code to apply new changes to your website.
                 </p>
               </div>
             </div>

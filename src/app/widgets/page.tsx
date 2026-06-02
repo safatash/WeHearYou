@@ -108,7 +108,7 @@ export default async function WidgetsPage() {
                   Create your first widget to start showcasing customer reviews on your website.
                 </p>
                 <p className="mt-2 text-sm text-slate-500">
-                  You'll need a location with synced Google reviews to get started.
+                  You&apos;ll need a location with synced Google reviews to get started.
                 </p>
               </div>
             )}

@@ -27,7 +27,7 @@ export default async function NewCampaignPage() {
             <p className="text-sm font-semibold uppercase tracking-[0.22em] text-indigo-600">Campaigns</p>
             <h2 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">Send review requests</h2>
             <p className="mt-2 text-sm text-slate-500">
-              Choose your recipients and channel — we'll send each contact a personalized link.
+              Choose your recipients and channel — we&apos;ll send each contact a personalized link.
             </p>
           </div>
         </div>
