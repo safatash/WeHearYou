@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { executePendingAutomationJobs } from "@/lib/automation-engine";
 
@@ -9,30 +10,29 @@ function extractRunnerSecret(request: NextRequest) {
   return request.headers.get("x-automation-runner-secret")?.trim() || request.headers.get("x-automation-secret")?.trim() || "";
 }
 
+function timingSafeStringEqual(a: string, b: string): boolean {
+  const aBuf = Buffer.from(a);
+  const bBuf = Buffer.from(b);
+  if (aBuf.length !== bBuf.length) {
+    crypto.timingSafeEqual(aBuf, aBuf);
+    return false;
+  }
+  return crypto.timingSafeEqual(aBuf, bBuf);
+}
+
 export async function POST(request: NextRequest) {
   try {
     const expectedSecret = getExpectedRunnerSecret();
 
     if (!expectedSecret) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error: "AUTOMATION_RUNNER_SECRET is not configured",
-        },
-        { status: 503 },
-      );
+      return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 503 });
     }
 
     const providedSecret = extractRunnerSecret(request);
 
-    if (!providedSecret || providedSecret !== expectedSecret) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error: "Unauthorized runner request",
-        },
-        { status: 401 },
-      );
+    if (!providedSecret || !timingSafeStringEqual(providedSecret, expectedSecret)) {
+      console.warn("[automation/run-pending] Rejected unauthorized request");
+      return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
     }
 
     const result = await executePendingAutomationJobs();

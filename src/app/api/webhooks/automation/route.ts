@@ -1,12 +1,67 @@
+import crypto from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { executeAutomationWebhook, type AutomationWebhookPayload } from "@/lib/automation-engine";
 
-function getExpectedWebhookSecret() {
-  return process.env.AUTOMATION_WEBHOOK_SECRET?.trim() || "";
+const TIMESTAMP_TOLERANCE_SECONDS = 300; // 5 minutes
+
+function getWebhookSecret(): string {
+  return process.env.AUTOMATION_WEBHOOK_SECRET?.trim() ?? "";
 }
 
-function extractWebhookSecret(request: NextRequest) {
-  return request.headers.get("x-automation-secret")?.trim() || "";
+function timingSafeEqual(a: string, b: string): boolean {
+  const aBuf = Buffer.from(a);
+  const bBuf = Buffer.from(b);
+  if (aBuf.length !== bBuf.length) {
+    // Still run comparison to avoid length-based timing leaks
+    crypto.timingSafeEqual(aBuf, aBuf);
+    return false;
+  }
+  return crypto.timingSafeEqual(aBuf, bBuf);
+}
+
+type AuthResult = { ok: true } | { ok: false; status: 401 | 503; reason: string };
+
+function verifyRequest(request: NextRequest, rawBody: string, secret: string): AuthResult {
+  if (!secret) {
+    return { ok: false, status: 503, reason: "Webhook secret is not configured" };
+  }
+
+  const signature = request.headers.get("x-automation-signature");
+  const timestampHeader = request.headers.get("x-automation-timestamp");
+
+  if (signature && timestampHeader) {
+    // HMAC path: x-automation-signature = sha256=<hex>, x-automation-timestamp = unix seconds
+    const timestamp = parseInt(timestampHeader, 10);
+    if (!Number.isFinite(timestamp)) {
+      return { ok: false, status: 401, reason: "Invalid timestamp" };
+    }
+
+    const ageSeconds = Math.abs(Date.now() / 1000 - timestamp);
+    if (ageSeconds > TIMESTAMP_TOLERANCE_SECONDS) {
+      return { ok: false, status: 401, reason: "Request timestamp is too old" };
+    }
+
+    const expected = `sha256=${crypto.createHmac("sha256", secret).update(`${timestamp}.${rawBody}`).digest("hex")}`;
+    if (!timingSafeEqual(signature, expected)) {
+      return { ok: false, status: 401, reason: "Invalid signature" };
+    }
+
+    return { ok: true };
+  }
+
+  // Legacy path: x-automation-secret header (static shared secret).
+  // Deprecated — switch to HMAC signing. This path will be removed in a future release.
+  const legacySecret = request.headers.get("x-automation-secret")?.trim() ?? "";
+  if (!legacySecret) {
+    return { ok: false, status: 401, reason: "Unauthorized" };
+  }
+
+  if (!timingSafeEqual(legacySecret, secret)) {
+    return { ok: false, status: 401, reason: "Unauthorized" };
+  }
+
+  console.warn("[automation/webhook] Legacy x-automation-secret header in use. Migrate to HMAC signing (x-automation-signature + x-automation-timestamp).");
+  return { ok: true };
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -74,48 +129,29 @@ function parsePayload(body: unknown): AutomationWebhookPayload {
 }
 
 export async function POST(request: NextRequest) {
+  const secret = getWebhookSecret();
+
+  // Read raw body once — needed for HMAC verification before JSON parsing.
+  let rawBody: string;
   try {
-    const expectedSecret = getExpectedWebhookSecret();
+    rawBody = await request.text();
+  } catch {
+    return NextResponse.json({ ok: false, error: "Failed to read request body" }, { status: 400 });
+  }
 
-    if (!expectedSecret) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error: "AUTOMATION_WEBHOOK_SECRET is not configured",
-        },
-        { status: 503 },
-      );
-    }
+  const auth = verifyRequest(request, rawBody, secret);
+  if (!auth.ok) {
+    console.warn(`[automation/webhook] Rejected request: ${auth.reason}`);
+    return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: auth.status });
+  }
 
-    const providedSecret = extractWebhookSecret(request);
-
-    if (!providedSecret || providedSecret !== expectedSecret) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error: "Unauthorized webhook request",
-        },
-        { status: 401 },
-      );
-    }
-
-    const body = await request.json();
+  try {
+    const body: unknown = JSON.parse(rawBody);
     const payload = parsePayload(body);
     const result = await executeAutomationWebhook(payload);
-
-    return NextResponse.json({
-      ok: true,
-      result,
-    });
+    return NextResponse.json({ ok: true, result });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Automation webhook failed";
-
-    return NextResponse.json(
-      {
-        ok: false,
-        error: message,
-      },
-      { status: 400 },
-    );
+    return NextResponse.json({ ok: false, error: message }, { status: 400 });
   }
 }
