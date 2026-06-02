@@ -97,6 +97,15 @@ enum GbpPublishStatus {
   FAILED
 }
 
+enum ReviewLinkEventType {
+  LINK_VIEWED
+  HAPPY_CLICKED
+  UNHAPPY_CLICKED
+  GOOGLE_REDIRECT_CLICKED
+  FEEDBACK_STARTED
+  FEEDBACK_SUBMITTED
+}
+
 model Organization {
   id                String                  @id @default(cuid())
   name              String
@@ -113,6 +122,7 @@ model Organization {
   automations       Automation[]
   googleConnections GoogleAccountConnection[]
   reviewWidgets     ReviewWidget[]
+  reviewLinkEvents  ReviewLinkEvent[]
 }
 
 model User {
@@ -253,6 +263,7 @@ model Location {
   gbpPhotos             GbpPhoto[]
   gbpQuestions          GbpQuestion[]
   gbpSyncLogs           GbpSyncLog[]
+  reviewLinkEvents      ReviewLinkEvent[]
 
   @@index([organizationId])
   @@index([googleConnectionId])
@@ -364,7 +375,7 @@ model Review {
   reviewerPhotoUrl      String?
   sourceReviewUrl       String?
   sourceReplyText       String?
-  rating                Int
+  rating                Int?
   status                ReviewStatus
   sentiment             String?
   title                 String?
@@ -707,4 +718,29 @@ model GbpSyncLog {
   location     Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
 
   @@index([locationId])
+}
+
+model ReviewLinkEvent {
+  id             String              @id @default(cuid())
+  organizationId String
+  locationId     String
+  eventType      ReviewLinkEventType
+  source         String?
+  medium         String?
+  placement      String?
+  referrer       String?
+  sessionId      String?
+  clientIp       String?
+  reviewLinkId   String?
+  createdAt      DateTime            @default(now())
+
+  organization   Organization        @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  location       Location            @relation(fields: [locationId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId, createdAt])
+  @@index([locationId, createdAt])
+  @@index([locationId, eventType, createdAt])
+  @@index([locationId, source, createdAt])
+  @@index([locationId, sessionId, createdAt])
+  @@index([locationId, clientIp, createdAt])
 }
