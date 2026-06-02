@@ -209,7 +209,7 @@ export default async function ReviewsPage({
                 key={selectedReview.id}
                 review={selectedReview}
                 aiReplyEnabled={aiReplyEnabled}
-                initialDraft={selectedReview.replyDraft ?? buildReviewReplyDraft(selectedReview.reviewerName, selectedReview.rating)}
+                initialDraft={selectedReview.replyDraft ?? buildReviewReplyDraft(selectedReview.reviewerName, selectedReview.rating ?? 0)}
               />
             </div>
           ) : (

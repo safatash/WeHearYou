@@ -70,7 +70,7 @@ export function ReviewReplyPanel({
             </span>
           )}
         </div>
-        <p className="mt-2 text-lg font-medium text-amber-500">{stars(review.rating)}</p>
+        <p className="mt-2 text-lg font-medium text-amber-500">{stars(review.rating ?? 0)}</p>
       </div>
 
       {/* Review body */}

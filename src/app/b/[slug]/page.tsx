@@ -322,7 +322,7 @@ export default async function BusinessMiniSitePage({
                             <div>
                               <p className="font-semibold text-slate-900">{review.reviewerName}</p>
                               <div className="mt-0.5 flex items-center gap-2">
-                                <StarRating rating={review.rating} />
+                                <StarRating rating={review.rating ?? 0} />
                                 <span className="text-xs text-slate-400">{formatReviewSource(review.source, review.isTestimonial)}</span>
                               </div>
                             </div>

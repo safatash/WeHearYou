@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
   try {
     const draft = await generateReplyDraft({
       reviewerName: review.reviewerName,
-      rating: review.rating,
+      rating: review.rating ?? 0,
       body: review.body,
     });
     return NextResponse.json({ draft });

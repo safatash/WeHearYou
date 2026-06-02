@@ -28,7 +28,7 @@ export function ReviewListItem({
           </div>
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold text-slate-900">{review.reviewerName}</p>
-            <p className="text-xs text-amber-500">{stars(review.rating)}</p>
+            <p className="text-xs text-amber-500">{stars(review.rating ?? 0)}</p>
           </div>
         </div>
         <p className="flex-shrink-0 text-xs text-slate-400">{formatReviewDate(review.reviewedAt)}</p>

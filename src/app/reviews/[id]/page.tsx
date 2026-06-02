@@ -27,11 +27,11 @@ export default async function ReviewDetailPage({
   await requireReviewAccessPage(review.locationId);
   const { owners } = await getReviewFilterOptions();
 
-  const isPublicRoute = review.rating >= 4;
+  const isPublicRoute = (review.rating ?? 0) >= 4;
   const sentiment = formatSentiment(review.sentiment);
   const sourceLabel = formatReviewSource(review.source, review.isTestimonial);
   const statusLabel = formatReviewStatus(review.status, review.isTestimonial);
-  const replyDraft = review.replyDraft ?? buildReviewReplyDraft(review.reviewerName, review.rating);
+  const replyDraft = review.replyDraft ?? buildReviewReplyDraft(review.reviewerName, review.rating ?? 0);
   const flash = typeof query.flash === "string" ? query.flash : null;
   const tone = typeof query.tone === "string" && ["success", "error", "info"].includes(query.tone) ? query.tone as "success" | "error" | "info" : "success";
 
@@ -62,7 +62,7 @@ export default async function ReviewDetailPage({
         </div>
 
         <div className="grid gap-4 xl:grid-cols-4">
-          <StatCard title="Rating" value={`${review.rating}.0 / 5`} meta={stars(review.rating)} />
+          <StatCard title="Rating" value={`${review.rating ?? 0}.0 / 5`} meta={stars(review.rating ?? 0)} />
           <StatCard title="Source" value={sourceLabel} meta={formatReviewDate(review.reviewedAt)} />
           <StatCard title="Status" value={statusLabel} meta={isPublicRoute ? "Visible in public reputation flow" : "Needs careful follow-up"} />
           <StatCard title="Sentiment" value={sentiment} meta={review.location.name} />
@@ -83,7 +83,7 @@ export default async function ReviewDetailPage({
                 </div>
                 <div className="rounded-2xl bg-amber-50 px-4 py-3 text-right text-amber-700">
                   <p className="text-sm font-semibold uppercase tracking-[0.18em]">Rating</p>
-                  <p className="mt-1 text-lg font-semibold">{stars(review.rating)}</p>
+                  <p className="mt-1 text-lg font-semibold">{stars(review.rating ?? 0)}</p>
                 </div>
               </div>
 

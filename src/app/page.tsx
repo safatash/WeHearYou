@@ -172,8 +172,8 @@ export default async function DashboardPage() {
                       <p className="text-sm font-semibold text-slate-900">
                         {item.reviewerName || "Anonymous"}
                       </p>
-                      <p className="text-xs text-amber-400" aria-label={item.rating > 0 ? `${item.rating} out of 5 stars` : "No rating"}>
-                        {item.rating > 0 ? "★".repeat(item.rating) : "—"}
+                      <p className="text-xs text-amber-400" aria-label={(item.rating ?? 0) > 0 ? `${item.rating} out of 5 stars` : "No rating"}>
+                        {(item.rating ?? 0) > 0 ? "★".repeat(item.rating ?? 0) : "—"}
                       </p>
                       <p className="text-xs text-slate-400">
                         {item.sourceLabel} · {formatRelativeSyncTime(item.createdAt)}

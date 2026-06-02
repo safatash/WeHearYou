@@ -276,7 +276,7 @@ export async function performGoogleReviewSync(locationId: string) {
     });
 
     if (existingReview) {
-      const changed = hasGoogleReviewChanged(existingReview, {
+      const changed = hasGoogleReviewChanged({ ...existingReview, rating: existingReview.rating ?? 0 }, {
         reviewerName: normalizedReviewerName,
         rating: normalizedRating,
         body: normalizedBody,
@@ -340,7 +340,7 @@ export async function performGoogleReviewSync(locationId: string) {
   });
 
   const avgRating = publishedReviews.length
-    ? publishedReviews.reduce((sum, review) => sum + review.rating, 0) / publishedReviews.length
+    ? publishedReviews.reduce((sum, review) => sum + (review.rating ?? 0), 0) / publishedReviews.length
     : null;
 
   await prisma.location.update({
@@ -1473,7 +1473,7 @@ export async function regenerateAiReviewSummaryAction(formData: FormData) {
 
   let summary = "";
   try {
-    summary = await generateAiReviewSummary(nonEmpty);
+    summary = await generateAiReviewSummary(nonEmpty.map((r) => ({ ...r, rating: r.rating ?? 0 })));
   } catch (err) {
     if (isRedirectError(err)) throw err;
     const msg = err instanceof Error ? err.message : "AI generation failed";
