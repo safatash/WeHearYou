@@ -91,7 +91,7 @@ export async function publishVideoTestimonial(id: string) {
   return prisma.videoTestimonial.update({
     where: { id },
     data: {
-      status: VideoTestimonialStatus.PUBLISHED,
+      status: VideoTestimonialStatus.APPROVED,
       publishedAt: new Date(),
     },
   });

@@ -8,7 +8,7 @@ export default async function EmbedVideoTestimonialPage({ params }: { params: Pr
     select: { id: true, videoUrl: true, status: true, submitterName: true },
   });
 
-  if (!testimonial || !testimonial.videoUrl || (testimonial.status !== "PUBLISHED" && testimonial.status !== "APPROVED")) {
+  if (!testimonial || !testimonial.videoUrl || testimonial.status !== "APPROVED") {
     notFound();
   }
 

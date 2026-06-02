@@ -15,7 +15,9 @@ export type ScreenKey =
   | "gbp-manager"
   | "gbp-posts"
   | "gbp-photos"
-  | "gbp-qa";
+  | "gbp-qa"
+  | "funnel-preview"
+  | "settings";
 
 export interface NavItem {
   key: ScreenKey;
