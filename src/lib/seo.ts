@@ -65,7 +65,7 @@ export const VALID_SCHEMA_TYPES = new Set([
 // ─── Pure helper functions ────────────────────────────────────────────────────
 
 export function isPublicProfileIndexable(
-  location: Pick<SeoLocation, "name" | "slug" | "publicProfile">,
+  location: { name: string; slug: string; publicProfile: { schemaEnabled: boolean } | null },
 ): boolean {
   if (!location.publicProfile) return false;
   if (!location.publicProfile.schemaEnabled) return false;

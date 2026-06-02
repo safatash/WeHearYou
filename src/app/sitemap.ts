@@ -34,7 +34,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       isPublicProfileIndexable({
         name: loc.name,
         slug: loc.slug,
-        publicProfile: loc.publicProfile as any,
+        publicProfile: loc.publicProfile,
       })
     )
     .map((loc) => ({
