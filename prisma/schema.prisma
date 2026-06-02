@@ -339,6 +339,8 @@ model CampaignRecipient {
   sentAt         DateTime?
   openedAt       DateTime?
   completedAt    DateTime?
+  expiresAt      DateTime?
+  revokedAt      DateTime?
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
 
@@ -622,6 +624,9 @@ model VideoTestimonial {
   durationSeconds Int?
   status          VideoTestimonialStatus @default(PENDING)
   publishedAt     DateTime?
+  expiresAt       DateTime?
+  usedAt          DateTime?
+  revokedAt       DateTime?
   createdAt       DateTime               @default(now())
   updatedAt       DateTime               @updatedAt
 

@@ -32,6 +32,12 @@ export async function submitReviewRating(formData: FormData) {
   if (!recipient) {
     redirect(`/r/${token}?error=missing_token`);
   }
+  if (recipient.revokedAt) {
+    redirect(`/r/${token}?error=revoked`);
+  }
+  if (recipient.expiresAt && recipient.expiresAt < new Date()) {
+    redirect(`/r/${token}?error=expired`);
+  }
 
   const profile = recipient.campaign.location.publicProfile;
   const filterEnabled = profile?.negativeFilterEnabled ?? false;
@@ -79,6 +85,12 @@ export async function submitPrivateFeedback(formData: FormData) {
 
   if (!recipient) {
     redirect(`/r/${token}?error=missing_token`);
+  }
+  if (recipient.revokedAt) {
+    redirect(`/r/${token}?error=revoked`);
+  }
+  if (recipient.expiresAt && recipient.expiresAt < new Date()) {
+    redirect(`/r/${token}?error=expired`);
   }
 
   await prisma.review.create({

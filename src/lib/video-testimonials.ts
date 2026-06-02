@@ -51,10 +51,13 @@ export async function getVideoTestimonialById(id: string) {
   });
 }
 
+const VIDEO_TOKEN_TTL_DAYS = 7;
+
 export async function createVideoTestimonialToken(locationId: string) {
   const token = randomBytes(16).toString("hex");
+  const expiresAt = new Date(Date.now() + VIDEO_TOKEN_TTL_DAYS * 24 * 60 * 60 * 1000);
   return prisma.videoTestimonial.create({
-    data: { locationId, token },
+    data: { locationId, token, expiresAt },
     select: { id: true, token: true },
   });
 }

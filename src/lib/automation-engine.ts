@@ -181,6 +181,7 @@ async function createCampaignFromStep({
   const channel = parsePreferredChannel(config.channel ?? payload.contact.preferredChannel ?? null);
   const sentAt = new Date();
   const token = `rr_tok_${crypto.randomBytes(6).toString("hex")}`;
+  const recipientExpiresAt = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000);
   const workflowName = normalizeText(payload.metadata?.workflowName) ?? normalizeText(step.title) ?? `${payload.eventType.replace(/_/g, " ")} automation`;
   const messageBody = normalizeText(payload.metadata?.messageBody) ?? normalizeText(config.messageBody) ?? null;
   const emailSubject = normalizeText(payload.metadata?.emailSubject) ?? normalizeText(config.emailSubject) ?? null;
@@ -204,6 +205,7 @@ async function createCampaignFromStep({
           status: CampaignStatus.SENT,
           outcome: channel === PreferredChannel.EMAIL ? "Email queued by automation" : "SMS token created by automation",
           sentAt,
+          expiresAt: recipientExpiresAt,
         },
       },
     },

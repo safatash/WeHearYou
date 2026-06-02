@@ -52,11 +52,17 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     const testimonial = await prisma.videoTestimonial.findUnique({
       where: { token },
-      select: { id: true, videoUrl: true },
+      select: { id: true, videoUrl: true, expiresAt: true, revokedAt: true },
     });
 
     if (!testimonial) {
       return NextResponse.json({ error: "Invalid token" }, { status: 400 });
+    }
+    if (testimonial.revokedAt) {
+      return NextResponse.json({ error: "This link has been revoked" }, { status: 400 });
+    }
+    if (testimonial.expiresAt && testimonial.expiresAt < new Date()) {
+      return NextResponse.json({ error: "This link has expired" }, { status: 400 });
     }
 
     // Atomic update: only succeeds if videoUrl is still null.
@@ -70,6 +76,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         submitterName: submitterName ?? null,
         submitterEmail: submitterEmail ?? null,
         status: "PENDING",
+        usedAt: new Date(),
       },
     });
 
