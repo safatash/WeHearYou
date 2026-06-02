@@ -5,7 +5,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { FacebookIcon, InstagramIcon, LinkedInIcon, TikTokIcon, XIcon, YouTubeIcon } from "@/components/social-icons";
 import { PublicShareButton } from "@/components/public-share-button";
-import { buildLocalBusinessSchema, getPublicLocationBySlug, getPublicProfileStats, getVisiblePublicReviews, getVisibleTestimonials } from "@/lib/public-profile";
+import type { Metadata } from "next";
+import { getPublicLocationBySlug, getPublicProfileStats, getVisiblePublicReviews, getVisibleTestimonials } from "@/lib/public-profile";
+import { buildLocalBusinessSchema, buildLocationMetadata } from "@/lib/seo";
 import { formatReviewDate, formatReviewSource, truncateReviewBody } from "@/lib/reviews";
 
 const REVIEWS_PER_PAGE = 5;
@@ -53,6 +55,15 @@ const GoogleIcon = () => (
   </svg>
 );
 
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  const location = await getPublicLocationBySlug(slug);
+  if (!location) return { robots: { index: false, follow: false } };
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://wehearyou.vercel.app";
+  const defaultOgImage = process.env.NEXT_PUBLIC_OG_IMAGE ?? null;
+  return buildLocationMetadata(location, baseUrl, defaultOgImage);
+}
+
 export default async function BusinessMiniSitePage({
   params,
   searchParams,
@@ -71,7 +82,8 @@ export default async function BusinessMiniSitePage({
   const stats = getPublicProfileStats(location);
   const publicReviews = getVisiblePublicReviews(location);
   const testimonials = getVisibleTestimonials(location);
-  const schema = buildLocalBusinessSchema(location);
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://wehearyou.vercel.app";
+  const schema = buildLocalBusinessSchema(location, baseUrl);
   const reviewDestination = location.reviewLink || profile?.ctaUrl || null;
   const hours = parseHoursLines(profile?.googleHours);
   const mapUrl = profile?.googleMapsUrl ?? null;
