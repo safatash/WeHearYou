@@ -3,6 +3,25 @@ import { prisma } from "@/lib/prisma";
 
 export const maxDuration = 30;
 
+const ALLOWED_MIME_TYPES = new Set(["video/webm", "video/mp4", "video/quicktime"]);
+const MAX_DURATION_SECONDS = 600;
+
+function isValidBlobUrl(rawUrl: string): boolean {
+  try {
+    const url = new URL(rawUrl);
+    if (url.protocol !== "https:") return false;
+    // Hostname must be exactly <store-id>.public.blob.vercel-storage.com
+    // with no extra labels (prevents subdomain tricks like evil.public.blob.vercel-storage.com.attacker.com)
+    const suffix = ".public.blob.vercel-storage.com";
+    if (!url.hostname.endsWith(suffix)) return false;
+    const storeId = url.hostname.slice(0, -suffix.length);
+    if (!storeId || storeId.includes(".")) return false;
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     const { token, videoUrl, mimeType, durationSeconds, submitterName, submitterEmail } =
@@ -19,9 +38,16 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ error: "token and videoUrl are required" }, { status: 400 });
     }
 
-    // Sanity-check: the URL must be a Vercel Blob URL
-    if (!videoUrl.includes("blob.vercel-storage.com")) {
+    if (!isValidBlobUrl(videoUrl)) {
       return NextResponse.json({ error: "Invalid video URL" }, { status: 400 });
+    }
+
+    if (mimeType && !ALLOWED_MIME_TYPES.has(mimeType)) {
+      return NextResponse.json({ error: "Unsupported video type" }, { status: 400 });
+    }
+
+    if (durationSeconds != null && (durationSeconds < 0 || durationSeconds > MAX_DURATION_SECONDS)) {
+      return NextResponse.json({ error: "Invalid duration" }, { status: 400 });
     }
 
     const testimonial = await prisma.videoTestimonial.findUnique({
@@ -32,12 +58,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     if (!testimonial) {
       return NextResponse.json({ error: "Invalid token" }, { status: 400 });
     }
-    if (testimonial.videoUrl) {
-      return NextResponse.json({ error: "Already submitted" }, { status: 400 });
-    }
 
-    await prisma.videoTestimonial.update({
-      where: { id: testimonial.id },
+    // Atomic update: only succeeds if videoUrl is still null.
+    // Prevents double-submission under concurrent requests (race condition).
+    const result = await prisma.videoTestimonial.updateMany({
+      where: { id: testimonial.id, videoUrl: null },
       data: {
         videoUrl,
         mimeType: mimeType ?? null,
@@ -47,6 +72,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         status: "PENDING",
       },
     });
+
+    if (result.count === 0) {
+      return NextResponse.json({ error: "Already submitted" }, { status: 400 });
+    }
 
     return NextResponse.json({ ok: true });
   } catch (error) {
