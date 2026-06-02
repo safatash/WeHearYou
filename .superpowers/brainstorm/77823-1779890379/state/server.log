@@ -1,7 +1,0 @@
-{"type":"server-started","port":51732,"host":"127.0.0.1","url_host":"localhost","url":"http://localhost:51732","screen_dir":"/Users/safatash/.openclaw/workspace/wehearyou/.superpowers/brainstorm/77823-1779890379/content","state_dir":"/Users/safatash/.openclaw/workspace/wehearyou/.superpowers/brainstorm/77823-1779890379/state"}
-{"type":"screen-added","file":"/Users/safatash/.openclaw/workspace/wehearyou/.superpowers/brainstorm/77823-1779890379/content/layout-directions.html"}
-{"type":"screen-added","file":"/Users/safatash/.openclaw/workspace/wehearyou/.superpowers/brainstorm/77823-1779890379/content/metric-cards.html"}
-{"type":"screen-added","file":"/Users/safatash/.openclaw/workspace/wehearyou/.superpowers/brainstorm/77823-1779890379/content/visual-style.html"}
-{"type":"screen-added","file":"/Users/safatash/.openclaw/workspace/wehearyou/.superpowers/brainstorm/77823-1779890379/content/body-layout.html"}
-{"type":"screen-added","file":"/Users/safatash/.openclaw/workspace/wehearyou/.superpowers/brainstorm/77823-1779890379/content/full-mockup.html"}
-{"type":"server-stopped","reason":"idle timeout"}
