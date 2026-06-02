@@ -1,0 +1,90 @@
+<h2>Platform C = 5 independent sub-projects</h2>
+<p class="subtitle">Too large for one spec. Here's how it decomposes — each one ships real value on its own. We'll spec and build them in order.</p>
+
+<div style="display: flex; flex-direction: column; gap: 12px; max-width: 780px; margin: 0 auto;">
+
+  <div style="display:flex; align-items:stretch; gap:0; border-radius:20px; overflow:hidden; border:2px solid #4f46e5; box-shadow:0 4px 20px rgba(79,70,229,0.15);">
+    <div style="background:#4f46e5; color:white; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:20px 24px; min-width:72px;">
+      <div style="font-size:1.4rem;">1</div>
+      <div style="font-size:10px; font-weight:700; letter-spacing:0.1em; margin-top:4px; opacity:0.8;">START</div>
+    </div>
+    <div style="background:white; padding:20px 24px; flex:1;">
+      <div style="font-size:11px; font-weight:700; letter-spacing:0.15em; color:#4f46e5; text-transform:uppercase;">GBP Management</div>
+      <div style="font-size:15px; font-weight:600; color:#0f172a; margin-top:4px;">Google Business Profile actions</div>
+      <div style="font-size:13px; color:#64748b; margin-top:6px; line-height:1.6;">Publish review replies to Google · Schedule GBP posts (offers, events, news) · Upload photos · Manage Q&amp;A. All through the GBP API — uses your existing OAuth connection.</div>
+      <div style="margin-top:10px; font-size:12px; font-weight:600; color:#4f46e5;">~6–8 weeks · Existing Google OAuth ✓</div>
+    </div>
+  </div>
+
+  <div style="display:flex; align-items:center; padding-left:36px; gap:8px;">
+    <div style="width:2px; height:24px; background:#e2e8f0;"></div>
+    <div style="font-size:11px; color:#94a3b8; font-weight:500;">builds on phase 1 data</div>
+  </div>
+
+  <div style="display:flex; align-items:stretch; gap:0; border-radius:20px; overflow:hidden; border:2px solid #0ea5e9; box-shadow:0 4px 16px rgba(14,165,233,0.1);">
+    <div style="background:#0ea5e9; color:white; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:20px 24px; min-width:72px;">
+      <div style="font-size:1.4rem;">2</div>
+    </div>
+    <div style="background:white; padding:20px 24px; flex:1;">
+      <div style="font-size:11px; font-weight:700; letter-spacing:0.15em; color:#0ea5e9; text-transform:uppercase;">Local Rank Tracking</div>
+      <div style="font-size:15px; font-weight:600; color:#0f172a; margin-top:4px;">Where do you show up on Google Maps?</div>
+      <div style="font-size:13px; color:#64748b; margin-top:6px; line-height:1.6;">Track keyword positions in the Google Maps local pack over time. Per-location, per-keyword history charts. Alerts when ranking drops. Powered by SerpApi or DataForSEO.</div>
+      <div style="margin-top:10px; font-size:12px; font-weight:600; color:#0ea5e9;">~4–6 weeks · Requires SerpApi (~$50/mo)</div>
+    </div>
+  </div>
+
+  <div style="display:flex; align-items:center; padding-left:36px; gap:8px;">
+    <div style="width:2px; height:24px; background:#e2e8f0;"></div>
+    <div style="font-size:11px; color:#94a3b8; font-weight:500;">extends rank data</div>
+  </div>
+
+  <div style="display:flex; align-items:stretch; gap:0; border-radius:20px; overflow:hidden; border:2px solid #10b981; box-shadow:0 4px 16px rgba(16,185,129,0.1);">
+    <div style="background:#10b981; color:white; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:20px 24px; min-width:72px;">
+      <div style="font-size:1.4rem;">3</div>
+    </div>
+    <div style="background:white; padding:20px 24px; flex:1;">
+      <div style="font-size:11px; font-weight:700; letter-spacing:0.15em; color:#10b981; text-transform:uppercase;">Competitor Monitoring</div>
+      <div style="font-size:15px; font-weight:600; color:#0f172a; margin-top:4px;">How do you stack up?</div>
+      <div style="font-size:13px; color:#64748b; margin-top:6px; line-height:1.6;">Track competitor Google ratings, review velocity, and local pack rankings side by side. Add competitors by Google Place ID. Uses existing Places API. Weekly comparison snapshots.</div>
+      <div style="margin-top:10px; font-size:12px; font-weight:600; color:#10b981;">~3–4 weeks · Existing Places API ✓</div>
+    </div>
+  </div>
+
+  <div style="display:flex; align-items:center; padding-left:36px; gap:8px;">
+    <div style="width:2px; height:24px; background:#e2e8f0;"></div>
+  </div>
+
+  <div style="display:flex; align-items:stretch; gap:0; border-radius:20px; overflow:hidden; border:2px solid #f59e0b; box-shadow:0 4px 16px rgba(245,158,11,0.1);">
+    <div style="background:#f59e0b; color:white; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:20px 24px; min-width:72px;">
+      <div style="font-size:1.4rem;">4</div>
+    </div>
+    <div style="background:white; padding:20px 24px; flex:1;">
+      <div style="font-size:11px; font-weight:700; letter-spacing:0.15em; color:#d97706; text-transform:uppercase;">Citation Auditing</div>
+      <div style="font-size:15px; font-weight:600; color:#0f172a; margin-top:4px;">Is your NAP consistent everywhere?</div>
+      <div style="font-size:13px; color:#64748b; margin-top:6px; line-height:1.6;">Check name, address, and phone number consistency across 50+ directories (Yelp, Bing, Apple Maps, Facebook, etc.). Surface errors and suppression opportunities. Powered by Moz Local or Yext API.</div>
+      <div style="margin-top:10px; font-size:12px; font-weight:600; color:#d97706;">~4–5 weeks · Requires Moz Local or Yext API</div>
+    </div>
+  </div>
+
+  <div style="display:flex; align-items:center; padding-left:36px; gap:8px;">
+    <div style="width:2px; height:24px; background:#e2e8f0;"></div>
+    <div style="font-size:11px; color:#94a3b8; font-weight:500;">aggregates everything</div>
+  </div>
+
+  <div style="display:flex; align-items:stretch; gap:0; border-radius:20px; overflow:hidden; border:2px solid #8b5cf6; box-shadow:0 4px 16px rgba(139,92,246,0.1);">
+    <div style="background:#8b5cf6; color:white; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:20px 24px; min-width:72px;">
+      <div style="font-size:1.4rem;">5</div>
+    </div>
+    <div style="background:white; padding:20px 24px; flex:1;">
+      <div style="font-size:11px; font-weight:700; letter-spacing:0.15em; color:#8b5cf6; text-transform:uppercase;">White-Label Reporting</div>
+      <div style="font-size:15px; font-weight:600; color:#0f172a; margin-top:4px;">Client-ready PDF reports</div>
+      <div style="font-size:13px; color:#64748b; margin-top:6px; line-height:1.6;">Monthly PDF reports covering reviews, rankings, citations, and GBP activity. Branded with agency logo. Scheduled email delivery. The capstone that makes this an agency tool.</div>
+      <div style="margin-top:10px; font-size:12px; font-weight:600; color:#8b5cf6;">~3–4 weeks · Pulls from phases 1–4</div>
+    </div>
+  </div>
+
+</div>
+
+<div style="margin-top:28px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:16px; padding:16px 20px; max-width:780px; margin-left:auto; margin-right:auto;">
+  <p style="font-size:13px; color:#475569; margin:0;"><strong style="color:#0f172a;">Today's session:</strong> We'll fully spec Phase 1 (GBP Management) — it's the natural first step, uses existing infrastructure, and delivers immediate value. The others follow in sequence.</p>
+</div>

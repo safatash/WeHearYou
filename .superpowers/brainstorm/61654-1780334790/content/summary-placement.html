@@ -1,0 +1,64 @@
+<h2>Where should the AI summary appear?</h2>
+<p class="subtitle">The summary is a 2–4 sentence AI-generated snapshot of what customers say overall — e.g. "Customers consistently praise the fast service and friendly staff. A few mention parking as a pain point."</p>
+
+<div class="cards">
+  <div class="card" data-choice="above" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="font-family:sans-serif;padding:16px;background:#f8fafc;border-radius:12px;font-size:13px;color:#334155;">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#6366f1;margin-bottom:6px">AI Summary</div>
+        <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:12px;color:#475569;line-height:1.6">
+          Customers consistently praise the fast service and friendly staff. A few mention parking as a pain point.
+        </div>
+        <div style="margin-top:14px;font-weight:600;color:#0f172a;font-size:13px">Reviews (42)</div>
+        <div style="margin-top:8px;display:flex;flex-direction:column;gap:8px">
+          <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:10px;">★★★★★ Jane S. · Great experience…</div>
+          <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:10px;">★★★★☆ Tom M. · Very friendly staff…</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A — Above the review list</h3>
+      <p>Summary banner sits above individual reviews. First thing visitors read before the reviews.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="stats" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="font-family:sans-serif;padding:16px;background:#f8fafc;border-radius:12px;font-size:13px;color:#334155;">
+        <div style="display:flex;gap:10px;align-items:center;margin-bottom:12px">
+          <div style="text-align:center;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:10px 14px">
+            <div style="font-size:22px;font-weight:700;color:#0f172a">4.8</div>
+            <div style="font-size:10px;color:#94a3b8;text-transform:uppercase;letter-spacing:.05em">Avg rating</div>
+          </div>
+          <div style="flex:1;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:10px 14px">
+            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#6366f1;margin-bottom:4px">AI Summary</div>
+            <div style="color:#475569;line-height:1.5;font-size:12px">Customers consistently praise the fast service and friendly staff. A few mention parking.</div>
+          </div>
+        </div>
+        <div style="font-weight:600;color:#0f172a;font-size:13px">Reviews (42)</div>
+        <div style="margin-top:8px;display:flex;flex-direction:column;gap:8px">
+          <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:10px;">★★★★★ Jane S. · Great experience…</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B — Inline with the stats header</h3>
+      <p>Summary sits next to the average rating and review count. Compact, feels like part of the score.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="both" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="font-family:sans-serif;padding:16px;background:#f8fafc;border-radius:12px;font-size:13px;color:#334155;text-align:center;color:#64748b;padding:30px 16px">
+        <div style="font-size:24px;margin-bottom:8px">A + B</div>
+        <div>Show it in both places — on the public profile page above reviews, and in the widget inline with stats</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C — Both locations</h3>
+      <p>Public profile uses Option A layout; widget uses Option B (space-efficient). Best of both.</p>
+    </div>
+  </div>
+</div>
+
+<p class="subtitle" style="margin-top:16px">Take a look and click to select. Let me know your pick in the terminal too.</p>

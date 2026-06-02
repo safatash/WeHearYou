@@ -1,0 +1,58 @@
+<h2>Design: Public Profile SEO</h2>
+<p class="subtitle">5 files touched — 3 new, 2 modified. All SEO logic flows through one place.</p>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px">
+
+  <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:16px">
+    <div class="label" style="color:#4f46e5;margin-bottom:10px">New files</div>
+    <div style="font-family:monospace;font-size:12px;display:flex;flex-direction:column;gap:8px">
+      <div style="background:#eef2ff;border-radius:6px;padding:8px 10px">
+        <div style="color:#3730a3;font-weight:600">src/lib/seo.ts</div>
+        <div style="color:#6366f1;margin-top:2px">buildLocationMetadata() · buildLocalBusinessSchema()</div>
+      </div>
+      <div style="background:#f0fdf4;border-radius:6px;padding:8px 10px">
+        <div style="color:#166534;font-weight:600">src/app/sitemap.ts</div>
+        <div style="color:#16a34a;margin-top:2px">Lists all /b/[slug] pages for Google</div>
+      </div>
+      <div style="background:#f0fdf4;border-radius:6px;padding:8px 10px">
+        <div style="color:#166534;font-weight:600">src/app/robots.ts</div>
+        <div style="color:#16a34a;margin-top:2px">Allow all · points to /sitemap.xml</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:16px">
+    <div class="label" style="color:#0369a1;margin-bottom:10px">Modified files</div>
+    <div style="font-family:monospace;font-size:12px;display:flex;flex-direction:column;gap:8px">
+      <div style="background:#eff6ff;border-radius:6px;padding:8px 10px">
+        <div style="color:#1e40af;font-weight:600">src/app/b/[slug]/page.tsx</div>
+        <div style="color:#3b82f6;margin-top:2px">+ export generateMetadata()</div>
+      </div>
+      <div style="background:#eff6ff;border-radius:6px;padding:8px 10px">
+        <div style="color:#1e40af;font-weight:600">src/lib/public-profile.ts</div>
+        <div style="color:#3b82f6;margin-top:2px">Remove buildLocalBusinessSchema (moved to seo.ts)</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div style="background:#fff;border:1px solid #dfe1e5;border-radius:8px;padding:20px 24px;font-family:arial,sans-serif">
+  <div style="font-size:12px;color:#202124;margin-bottom:12px;font-weight:600">Google Search Result Preview</div>
+  <div style="font-size:11px;color:#4d5156">wehearyou.com › b › acme-dental</div>
+  <div style="font-size:18px;color:#1a0dab;margin:2px 0">Acme Dental Reviews | Miami, FL</div>
+  <div style="font-size:13px;color:#4d5156;line-height:1.5">Customers love the fast service and friendly, knowledgeable staff at Acme Dental. The location is easy to find and consistently praised for professionalism. <span style="color:#188038">★★★★★</span> 4.8 · 47 reviews</div>
+</div>
+
+<div style="margin-top:16px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:16px">
+  <div class="label" style="margin-bottom:10px">What gets injected into every /b/[slug] page</div>
+  <div style="font-family:monospace;font-size:11px;color:#334155;line-height:1.8">
+    &lt;title&gt;Acme Dental Reviews | Miami, FL&lt;/title&gt;<br>
+    &lt;meta name="description" content="<span style="color:#4f46e5">AI summary or fallback template</span>"&gt;<br>
+    &lt;link rel="canonical" href="https://wehearyou.com/b/acme-dental"&gt;<br>
+    &lt;meta property="og:title" content="Acme Dental Reviews | Miami, FL"&gt;<br>
+    &lt;meta property="og:image" content="<span style="color:#4f46e5">logoUrl or heroImageUrl</span>"&gt;<br>
+    &lt;script type="application/ld+json"&gt; LocalBusiness + AggregateRating + Reviews &lt;/script&gt;
+  </div>
+</div>
+
+<p class="subtitle" style="margin-top:16px">Does this architecture look right? Let me know in the terminal.</p>

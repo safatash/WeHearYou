@@ -1,0 +1,94 @@
+<h2>Three ways to build Phase 1</h2>
+<p class="subtitle">Same four features, meaningfully different data architectures. The choice affects how fast it is to build, how much you can scale, and what Phase 2–5 looks like.</p>
+
+<div style="display:flex; flex-direction:column; gap:16px; max-width:780px; margin:0 auto;">
+
+  <div class="mockup" data-choice="minimal" onclick="toggleSelect(this)" style="cursor:pointer;">
+    <div class="mockup-header">Option A — Minimal footprint (fastest to ship)</div>
+    <div class="mockup-body" style="padding:20px;">
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; font-size:12px;">
+        <div style="background:#f8fafc; border-radius:12px; padding:14px; border:1px solid #e2e8f0;">
+          <div style="font-weight:700; color:#0f172a; margin-bottom:6px;">💬 Reply publishing</div>
+          <div style="color:#475569;">Add <code style="background:#f1f5f9; padding:1px 4px; border-radius:4px;">replyPublishedAt</code> + <code style="background:#f1f5f9; padding:1px 4px; border-radius:4px;">replyGbpId</code> to existing <strong>Review</strong> model. "Publish" button calls GBP API.</div>
+        </div>
+        <div style="background:#f8fafc; border-radius:12px; padding:14px; border:1px solid #e2e8f0;">
+          <div style="font-weight:700; color:#0f172a; margin-bottom:6px;">📝 GBP Posts</div>
+          <div style="color:#475569;">New <strong>GbpPost</strong> table with draft/scheduled/published status. Cron job publishes scheduled items.</div>
+        </div>
+        <div style="background:#f8fafc; border-radius:12px; padding:14px; border:1px solid #e2e8f0;">
+          <div style="font-weight:700; color:#0f172a; margin-bottom:6px;">🖼 Photos</div>
+          <div style="color:#475569;">Stateless API bridge only. Upload → GBP API. View live photos fetched on demand. No local storage.</div>
+        </div>
+        <div style="background:#f8fafc; border-radius:12px; padding:14px; border:1px solid #e2e8f0;">
+          <div style="font-weight:700; color:#0f172a; margin-bottom:6px;">❓ Q&amp;A</div>
+          <div style="color:#475569;">Stateless API bridge. Fetch questions live, submit answers via API. No local storage.</div>
+        </div>
+      </div>
+      <div style="margin-top:14px; background:#f0fdf4; border-radius:10px; padding:12px 14px; font-size:12px; color:#166534; border:1px solid #bbf7d0;">
+        <strong>Auto-publish:</strong> New <code>PUBLISH_GBP_REPLY</code> automation step type — plugs into existing automation engine.
+      </div>
+    </div>
+    <div style="padding:12px 16px; background:#eff6ff; border-top:1px solid #bfdbfe;">
+      <p style="font-size:12px; color:#1e40af; margin:0;"><strong>Pros:</strong> Ships fastest (~4–5 weeks). Minimal schema changes. <strong>Cons:</strong> Photos and Q&A have no history. UX is inconsistent — some data is live, some is local. Hard to add analytics later.</p>
+    </div>
+  </div>
+
+  <div class="mockup" data-choice="unified" onclick="toggleSelect(this)" style="cursor:pointer; border:2px solid #4f46e5;">
+    <div class="mockup-header" style="background:#4f46e5; color:white;">Option B — Unified GBP content model ★ Recommended</div>
+    <div class="mockup-body" style="padding:20px;">
+      <div style="font-size:12px; color:#475569; margin-bottom:12px;">All four content types get a local record. Everything follows the same lifecycle: <strong>draft → scheduled → published → synced</strong>.</div>
+
+      <div style="background:#f8fafc; border-radius:12px; padding:14px; border:1px solid #e2e8f0; font-size:12px; margin-bottom:10px;">
+        <div style="font-weight:700; color:#0f172a; margin-bottom:8px;">New database tables</div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+          <div style="background:white; border-radius:8px; padding:8px 10px; border:1px solid #e2e8f0;">
+            <div style="font-weight:600; color:#4f46e5;">GbpPost</div>
+            <div style="color:#64748b; font-size:11px; margin-top:2px;">type · content · scheduledAt · publishedAt · gbpPostId</div>
+          </div>
+          <div style="background:white; border-radius:8px; padding:8px 10px; border:1px solid #e2e8f0;">
+            <div style="font-weight:600; color:#4f46e5;">GbpPhoto</div>
+            <div style="color:#64748b; font-size:11px; margin-top:2px;">url · category · scheduledAt · publishedAt · gbpMediaId</div>
+          </div>
+          <div style="background:white; border-radius:8px; padding:8px 10px; border:1px solid #e2e8f0;">
+            <div style="font-weight:600; color:#4f46e5;">GbpQuestion</div>
+            <div style="color:#64748b; font-size:11px; margin-top:2px;">questionText · answerText · answeredAt · gbpQuestionId</div>
+          </div>
+          <div style="background:white; border-radius:8px; padding:8px 10px; border:1px solid #e2e8f0;">
+            <div style="font-weight:600; color:#4f46e5;">Review (extended)</div>
+            <div style="color:#64748b; font-size:11px; margin-top:2px;">+ replyPublishedAt · replyGbpId (already has replyDraft)</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="background:#f0fdf4; border-radius:10px; padding:12px 14px; font-size:12px; color:#166534; border:1px solid #bbf7d0;">
+        <strong>One cron job</strong> handles all scheduled items across all types. One <code>PUBLISH_GBP_REPLY</code> automation step. Consistent history &amp; audit trail across the whole GBP hub.
+      </div>
+    </div>
+    <div style="padding:12px 16px; background:#eff6ff; border-top:1px solid #bfdbfe;">
+      <p style="font-size:12px; color:#1e40af; margin:0;"><strong>Pros:</strong> Consistent UX, full history, enables analytics in Phase 2+, clean foundation for rank tracking. <strong>Cons:</strong> ~1–2 weeks more upfront. Must handle "items published directly on Google" with periodic re-sync.</p>
+    </div>
+  </div>
+
+  <div class="mockup" data-choice="queue" onclick="toggleSelect(this)" style="cursor:pointer;">
+    <div class="mockup-header">Option C — Action queue (most scalable)</div>
+    <div class="mockup-body" style="padding:20px;">
+      <div style="font-size:12px; color:#475569; margin-bottom:12px;">Every GBP write becomes an event in a <strong>GbpActionQueue</strong> table. A single worker processes all of them.</div>
+      <div style="background:#f8fafc; border-radius:12px; padding:14px; border:1px solid #e2e8f0; font-size:12px; font-family:monospace; color:#334155;">
+        GbpActionQueue {<br/>
+        &nbsp;&nbsp;type: PUBLISH_REPLY | CREATE_POST | UPLOAD_PHOTO | ANSWER_QA<br/>
+        &nbsp;&nbsp;payload: JSON<br/>
+        &nbsp;&nbsp;status: pending | processing | done | failed<br/>
+        &nbsp;&nbsp;scheduledAt: DateTime?<br/>
+        &nbsp;&nbsp;retryCount: Int<br/>
+        }
+      </div>
+      <div style="margin-top:10px; background:#fff7ed; border-radius:10px; padding:10px 12px; font-size:12px; color:#9a3412; border:1px solid #fed7aa;">
+        Works well at scale — but for Phase 1, querying "what posts are scheduled?" means joining through the queue payload, which is awkward. Better suited once you have 1000s of daily actions.
+      </div>
+    </div>
+    <div style="padding:12px 16px; background:#fff7ed; border-top:1px solid #fed7aa;">
+      <p style="font-size:12px; color:#9a3412; margin:0;"><strong>Pros:</strong> Unified audit log, retryable, handles failures gracefully. <strong>Cons:</strong> Over-engineered for Phase 1. Harder to query current state for the UI. We'd likely refactor toward B anyway.</p>
+    </div>
+  </div>
+
+</div>

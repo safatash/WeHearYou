@@ -1,0 +1,5 @@
+{"type":"server-started","port":52731,"host":"127.0.0.1","url_host":"localhost","url":"http://localhost:52731","screen_dir":"/Users/safatash/.openclaw/workspace/wehearyou/.superpowers/brainstorm/10193-1779901839/content","state_dir":"/Users/safatash/.openclaw/workspace/wehearyou/.superpowers/brainstorm/10193-1779901839/state"}
+{"type":"screen-added","file":"/Users/safatash/.openclaw/workspace/wehearyou/.superpowers/brainstorm/10193-1779901839/content/campaign-row-style.html"}
+{"type":"screen-added","file":"/Users/safatash/.openclaw/workspace/wehearyou/.superpowers/brainstorm/10193-1779901839/content/campaigns-full-mockup.html"}
+{"type":"screen-added","file":"/Users/safatash/.openclaw/workspace/wehearyou/.superpowers/brainstorm/10193-1779901839/content/waiting-1.html"}
+{"type":"server-stopped","reason":"idle timeout"}

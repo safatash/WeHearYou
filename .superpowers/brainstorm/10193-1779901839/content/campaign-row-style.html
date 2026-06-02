@@ -1,0 +1,144 @@
+<h2>How should campaign rows look?</h2>
+<p class="subtitle">Same data as today — Contact, Status, Channel, Date, Outcome. Pick the visual treatment.</p>
+
+<div class="cards">
+
+  <!-- Option A: Refined table -->
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#f8fafc;padding:14px;">
+      <div style="background:white;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;">
+        <!-- Header row -->
+        <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1.2fr 1.5fr;padding:8px 14px;border-bottom:1px solid #f1f5f9;background:#f8fafc;">
+          <span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#94a3b8;">Contact</span>
+          <span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#94a3b8;">Status</span>
+          <span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#94a3b8;">Channel</span>
+          <span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#94a3b8;">Sent</span>
+          <span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#94a3b8;">Outcome</span>
+        </div>
+        <!-- Row 1 -->
+        <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1.2fr 1.5fr;padding:10px 14px;border-bottom:1px solid #f8fafc;align-items:center;">
+          <div>
+            <div style="font-size:11px;font-weight:600;color:#0f172a;">Jane Davidson</div>
+            <div style="font-size:9px;color:#94a3b8;margin-top:1px;">Review request</div>
+          </div>
+          <span style="font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;background:#dcfce7;color:#166534;border-radius:20px;padding:3px 7px;display:inline-block;">Completed</span>
+          <span style="font-size:10px;color:#475569;">Email</span>
+          <span style="font-size:10px;color:#475569;">May 26, 2pm</span>
+          <span style="font-size:10px;color:#10b981;font-weight:600;">→ Google</span>
+        </div>
+        <!-- Row 2 -->
+        <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1.2fr 1.5fr;padding:10px 14px;border-bottom:1px solid #f8fafc;align-items:center;">
+          <div>
+            <div style="font-size:11px;font-weight:600;color:#0f172a;">Mark Torres</div>
+          </div>
+          <span style="font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;background:#fef3c7;color:#92400e;border-radius:20px;padding:3px 7px;display:inline-block;">Opened</span>
+          <span style="font-size:10px;color:#475569;">SMS</span>
+          <span style="font-size:10px;color:#475569;">May 26, 11am</span>
+          <span style="font-size:10px;color:#94a3b8;">—</span>
+        </div>
+        <!-- Row 3 -->
+        <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1.2fr 1.5fr;padding:10px 14px;align-items:center;">
+          <div>
+            <div style="font-size:11px;font-weight:600;color:#0f172a;">Sarah Kim</div>
+          </div>
+          <span style="font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;background:#e0e7ff;color:#3730a3;border-radius:20px;padding:3px 7px;display:inline-block;">Sent</span>
+          <span style="font-size:10px;color:#475569;">Email</span>
+          <span style="font-size:10px;color:#475569;">May 25, 4pm</span>
+          <span style="font-size:10px;color:#94a3b8;">Awaiting</span>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A — Refined table</h3>
+      <p>Same table layout with color-coded status pills, subtler typography, and cleaner spacing. Matches the white card container from the dashboard.</p>
+    </div>
+  </div>
+
+  <!-- Option B: Card rows -->
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#f8fafc;padding:14px;">
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <!-- Card row 1 -->
+        <div style="background:white;border:1px solid #e2e8f0;border-radius:10px;padding:12px 14px;display:flex;align-items:center;gap:10px;border-left:3px solid #10b981;">
+          <div style="flex:1;">
+            <div style="display:flex;align-items:center;gap:6px;">
+              <span style="font-size:11px;font-weight:600;color:#0f172a;">Jane Davidson</span>
+              <span style="font-size:8px;font-weight:700;background:#dcfce7;color:#166534;border-radius:20px;padding:2px 6px;">Completed</span>
+            </div>
+            <div style="font-size:9px;color:#94a3b8;margin-top:3px;">Email · May 26, 2pm</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:10px;font-weight:600;color:#10b981;">→ Google</div>
+          </div>
+        </div>
+        <!-- Card row 2 -->
+        <div style="background:white;border:1px solid #e2e8f0;border-radius:10px;padding:12px 14px;display:flex;align-items:center;gap:10px;border-left:3px solid #f59e0b;">
+          <div style="flex:1;">
+            <div style="display:flex;align-items:center;gap:6px;">
+              <span style="font-size:11px;font-weight:600;color:#0f172a;">Mark Torres</span>
+              <span style="font-size:8px;font-weight:700;background:#fef3c7;color:#92400e;border-radius:20px;padding:2px 6px;">Opened</span>
+            </div>
+            <div style="font-size:9px;color:#94a3b8;margin-top:3px;">SMS · May 26, 11am</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:10px;color:#94a3b8;">—</div>
+          </div>
+        </div>
+        <!-- Card row 3 -->
+        <div style="background:white;border:1px solid #e2e8f0;border-radius:10px;padding:12px 14px;display:flex;align-items:center;gap:10px;border-left:3px solid #6366f1;">
+          <div style="flex:1;">
+            <div style="display:flex;align-items:center;gap:6px;">
+              <span style="font-size:11px;font-weight:600;color:#0f172a;">Sarah Kim</span>
+              <span style="font-size:8px;font-weight:700;background:#e0e7ff;color:#3730a3;border-radius:20px;padding:2px 6px;">Sent</span>
+            </div>
+            <div style="font-size:9px;color:#94a3b8;margin-top:3px;">Email · May 25, 4pm</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:10px;color:#94a3b8;">Awaiting</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B — Card rows</h3>
+      <p>Each campaign is a horizontal card with a left accent border colored by status. Channel and date collapse into a single meta line. More visual breathing room.</p>
+    </div>
+  </div>
+
+  <!-- Option C: Grouped by status -->
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#f8fafc;padding:14px;">
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <!-- Needs attention group -->
+        <div>
+          <div style="font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:#f59e0b;margin-bottom:5px;">Opened · 2</div>
+          <div style="background:white;border:1px solid #fde68a;border-radius:8px;overflow:hidden;">
+            <div style="padding:8px 12px;border-bottom:1px solid #fef9c3;display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-size:10px;font-weight:600;color:#0f172a;">Mark Torres</span>
+              <span style="font-size:9px;color:#94a3b8;">SMS · May 26</span>
+            </div>
+            <div style="padding:8px 12px;display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-size:10px;font-weight:600;color:#0f172a;">Alex Chen</span>
+              <span style="font-size:9px;color:#94a3b8;">Email · May 25</span>
+            </div>
+          </div>
+        </div>
+        <!-- Completed group -->
+        <div>
+          <div style="font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:#10b981;margin-bottom:5px;">Completed · 1</div>
+          <div style="background:white;border:1px solid #bbf7d0;border-radius:8px;overflow:hidden;">
+            <div style="padding:8px 12px;display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-size:10px;font-weight:600;color:#0f172a;">Jane Davidson</span>
+              <span style="font-size:10px;font-weight:600;color:#10b981;">→ Google</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C — Grouped by status</h3>
+      <p>Campaigns grouped into sections by status (Opened, Sent, Completed). Immediately shows what needs attention vs. what's resolved. More structured but changes the layout significantly.</p>
+    </div>
+  </div>
+
+</div>

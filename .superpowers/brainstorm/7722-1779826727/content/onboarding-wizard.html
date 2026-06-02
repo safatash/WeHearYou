@@ -1,0 +1,369 @@
+<style>
+  .wizard-frame {
+    max-width: 560px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+  .wizard-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 40px;
+  }
+  .wizard-logo {
+    font-size: 15px;
+    font-weight: 700;
+    color: #0f172a;
+    letter-spacing: -0.02em;
+  }
+  .wizard-skip {
+    font-size: 13px;
+    color: #64748b;
+    text-decoration: none;
+    font-weight: 500;
+  }
+  .wizard-skip:hover { color: #0f172a; }
+
+  /* Progress steps */
+  .steps {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin-bottom: 40px;
+  }
+  .step {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+  }
+  .step-circle {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .step.done .step-circle {
+    background: #4f46e5;
+    color: white;
+  }
+  .step.active .step-circle {
+    background: #4f46e5;
+    color: white;
+    box-shadow: 0 0 0 4px #e0e7ff;
+  }
+  .step.pending .step-circle {
+    background: #f1f5f9;
+    color: #94a3b8;
+  }
+  .step-label {
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .step.done .step-label { color: #4f46e5; }
+  .step.active .step-label { color: #0f172a; }
+  .step.pending .step-label { color: #94a3b8; }
+  .step-connector {
+    height: 2px;
+    flex: 1;
+    margin: 0 8px;
+    border-radius: 2px;
+  }
+  .step-connector.done { background: #4f46e5; }
+  .step-connector.pending { background: #e2e8f0; }
+
+  /* Card */
+  .wizard-card {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 24px;
+    padding: 32px;
+    box-shadow: 0 12px 32px rgba(15,23,42,0.06);
+  }
+  .eyebrow {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    color: #4f46e5;
+    margin-bottom: 8px;
+  }
+  .wizard-card h2 {
+    font-size: 22px;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0 0 6px;
+    letter-spacing: -0.02em;
+  }
+  .wizard-card .desc {
+    font-size: 14px;
+    color: #64748b;
+    margin: 0 0 28px;
+    line-height: 1.6;
+  }
+
+  /* Form */
+  .field { margin-bottom: 16px; }
+  .field label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 6px;
+  }
+  .field input, .field select {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 11px 16px;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    background: #f8fafc;
+    font-size: 14px;
+    color: #0f172a;
+    outline: none;
+  }
+  .field-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  /* Actions */
+  .wizard-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 28px;
+  }
+  .btn-primary {
+    background: #0f172a;
+    color: white;
+    border: none;
+    border-radius: 14px;
+    padding: 12px 24px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .btn-ghost {
+    background: none;
+    border: none;
+    font-size: 13px;
+    color: #94a3b8;
+    cursor: pointer;
+    font-weight: 500;
+    padding: 0;
+  }
+  .btn-ghost:hover { color: #64748b; }
+
+  /* Tabs for step variations */
+  .tab-bar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  .tab {
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1.5px solid #e2e8f0;
+    color: #64748b;
+    background: white;
+  }
+  .tab.active {
+    background: #0f172a;
+    color: white;
+    border-color: #0f172a;
+  }
+</style>
+
+<h2>Onboarding wizard — step layouts</h2>
+<p class="subtitle">Three step designs. Click each tab to preview. This is a text question — let me know in the terminal what feels right or what to adjust.</p>
+
+<div class="tab-bar">
+  <div class="tab active" onclick="showStep('location', this)">Step 1 — Location</div>
+  <div class="tab" onclick="showStep('google', this)">Step 2 — Google</div>
+  <div class="tab" onclick="showStep('contacts', this)">Step 3 — Contacts</div>
+</div>
+
+<!-- STEP 1: LOCATION -->
+<div id="step-location" class="wizard-frame">
+  <div class="wizard-top">
+    <div class="wizard-logo">WeHearYou</div>
+    <a class="wizard-skip" href="#">Skip for now →</a>
+  </div>
+
+  <div class="steps">
+    <div class="step active">
+      <div class="step-circle">1</div>
+      <div class="step-label">Location</div>
+    </div>
+    <div class="step-connector pending"></div>
+    <div class="step active" style="opacity:0.4">
+      <div class="step-circle" style="background:#f1f5f9;color:#94a3b8">2</div>
+      <div class="step-label" style="color:#94a3b8">Google</div>
+    </div>
+    <div class="step-connector pending"></div>
+    <div class="step" style="opacity:0.4">
+      <div class="step-circle" style="background:#f1f5f9;color:#94a3b8">3</div>
+      <div class="step-label" style="color:#94a3b8">Contacts</div>
+    </div>
+  </div>
+
+  <div class="wizard-card">
+    <div class="eyebrow">Step 1 of 3</div>
+    <h2>Add your first location</h2>
+    <p class="desc">Each location gets its own review funnel, contacts, and Google connection.</p>
+
+    <div class="field">
+      <label>Location name</label>
+      <input placeholder="e.g. Downtown Clinic" />
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>City</label>
+        <input placeholder="Austin" />
+      </div>
+      <div class="field">
+        <label>State</label>
+        <input placeholder="TX" />
+      </div>
+    </div>
+    <div class="field">
+      <label>Address <span style="font-weight:400;color:#94a3b8">(optional)</span></label>
+      <input placeholder="123 Main St" />
+    </div>
+
+    <div class="wizard-actions">
+      <button class="btn-ghost">← Back</button>
+      <button class="btn-primary">Continue →</button>
+    </div>
+  </div>
+</div>
+
+<!-- STEP 2: GOOGLE -->
+<div id="step-google" class="wizard-frame" style="display:none">
+  <div class="wizard-top">
+    <div class="wizard-logo">WeHearYou</div>
+    <a class="wizard-skip" href="#">Skip for now →</a>
+  </div>
+
+  <div class="steps">
+    <div class="step done">
+      <div class="step-circle">✓</div>
+      <div class="step-label">Location</div>
+    </div>
+    <div class="step-connector done"></div>
+    <div class="step active">
+      <div class="step-circle">2</div>
+      <div class="step-label">Google</div>
+    </div>
+    <div class="step-connector pending"></div>
+    <div class="step" style="opacity:0.4">
+      <div class="step-circle" style="background:#f1f5f9;color:#94a3b8">3</div>
+      <div class="step-label" style="color:#94a3b8">Contacts</div>
+    </div>
+  </div>
+
+  <div class="wizard-card">
+    <div class="eyebrow">Step 2 of 3</div>
+    <h2>Connect Google Business</h2>
+    <p class="desc">Link your Google Business Profile so WeHearYou can sync your reviews and route customers to leave new ones.</p>
+
+    <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:16px;padding:20px;text-align:center;margin-bottom:24px">
+      <div style="width:40px;height:40px;background:#4285F4;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;font-weight:700;color:white;font-size:18px">G</div>
+      <p style="font-size:14px;font-weight:600;color:#0f172a;margin:0 0 4px">Connect with Google</p>
+      <p style="font-size:12px;color:#64748b;margin:0 0 16px">You'll be redirected to sign in and grant access to your Business Profile.</p>
+      <button class="btn-primary" style="background:#4285F4">Connect Google account →</button>
+    </div>
+
+    <p style="font-size:12px;color:#94a3b8;text-align:center">WeHearYou only reads reviews and business info. We never post on your behalf.</p>
+
+    <div class="wizard-actions">
+      <button class="btn-ghost">← Back</button>
+      <span></span>
+    </div>
+  </div>
+</div>
+
+<!-- STEP 3: CONTACTS -->
+<div id="step-contacts" class="wizard-frame" style="display:none">
+  <div class="wizard-top">
+    <div class="wizard-logo">WeHearYou</div>
+    <a class="wizard-skip" href="#">Skip for now →</a>
+  </div>
+
+  <div class="steps">
+    <div class="step done">
+      <div class="step-circle">✓</div>
+      <div class="step-label">Location</div>
+    </div>
+    <div class="step-connector done"></div>
+    <div class="step done">
+      <div class="step-circle">✓</div>
+      <div class="step-label">Google</div>
+    </div>
+    <div class="step-connector done"></div>
+    <div class="step active">
+      <div class="step-circle">3</div>
+      <div class="step-label">Contacts</div>
+    </div>
+  </div>
+
+  <div class="wizard-card">
+    <div class="eyebrow">Step 3 of 3</div>
+    <h2>Add your first contacts</h2>
+    <p class="desc">Add customers you'd like to reach out to for reviews. You can import a CSV or add them one by one.</p>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px">
+      <div style="border:1.5px solid #4f46e5;border-radius:16px;padding:16px;background:#eef2ff;cursor:pointer">
+        <p style="font-size:13px;font-weight:700;color:#4f46e5;margin:0 0 4px">📋 Import CSV</p>
+        <p style="font-size:12px;color:#6366f1;margin:0">Upload a spreadsheet with names, emails, and phone numbers</p>
+      </div>
+      <div style="border:1.5px solid #e2e8f0;border-radius:16px;padding:16px;background:#f8fafc;cursor:pointer">
+        <p style="font-size:13px;font-weight:700;color:#0f172a;margin:0 0 4px">✏️ Add manually</p>
+        <p style="font-size:12px;color:#64748b;margin:0">Enter a few contacts by hand to get started quickly</p>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Name</label>
+      <input placeholder="Jane Smith" />
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Email</label>
+        <input placeholder="jane@example.com" />
+      </div>
+      <div class="field">
+        <label>Phone</label>
+        <input placeholder="+1 555 000 0000" />
+      </div>
+    </div>
+
+    <div class="wizard-actions">
+      <button class="btn-ghost">← Back</button>
+      <button class="btn-primary">Finish setup →</button>
+    </div>
+  </div>
+</div>
+
+<script>
+function showStep(step, tabEl) {
+  document.getElementById('step-location').style.display = 'none';
+  document.getElementById('step-google').style.display = 'none';
+  document.getElementById('step-contacts').style.display = 'none';
+  document.getElementById('step-' + step).style.display = 'block';
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  tabEl.classList.add('active');
+}
+</script>

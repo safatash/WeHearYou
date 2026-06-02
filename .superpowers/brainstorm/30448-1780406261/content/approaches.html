@@ -1,0 +1,38 @@
+<h2>Three approaches to the SEO architecture</h2>
+<p class="subtitle">The main decision is where SEO logic lives — this affects how maintainable it is as more pages are added</p>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Extend in place <span style="font-size:11px;color:#94a3b8;font-weight:400">(minimal change)</span></h3>
+      <p>Add <code>generateMetadata</code> directly to <code>/b/[slug]/page.tsx</code>, extend <code>buildLocalBusinessSchema</code> in <code>public-profile.ts</code>, add <code>app/sitemap.ts</code> as a standalone file.</p>
+      <div class="pros-cons" style="margin-top:8px">
+        <div class="pros"><h4>Pros</h4><ul><li>Least code change</li><li>Follows existing pattern</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>SEO logic scattered across files</li><li>Harder to reuse for other pages later</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Dedicated SEO lib <span style="font-size:11px;color:#4f46e5;font-weight:600">★ Recommended</span></h3>
+      <p>Create <code>src/lib/seo.ts</code> with <code>buildLocationMetadata()</code> and the enhanced <code>buildLocalBusinessSchema()</code>. The page and sitemap both import from this one place.</p>
+      <div class="pros-cons" style="margin-top:8px">
+        <div class="pros"><h4>Pros</h4><ul><li>All SEO logic in one file</li><li>Easy to extend to other pages</li><li>Clean page file</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>New file to maintain</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>next-sitemap package</h3>
+      <p>Use the <code>next-sitemap</code> npm package for automatic sitemap + robots.txt generation at build time. Add <code>generateMetadata</code> and schema enhancements separately.</p>
+      <div class="pros-cons" style="margin-top:8px">
+        <div class="pros"><h4>Pros</h4><ul><li>Handles robots.txt automatically</li><li>Battle-tested package</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>Adds a dependency</li><li>Static — misses newly created locations until next build</li><li>Overkill for what we need</li></ul></div>
+      </div>
+    </div>
+  </div>
+</div>

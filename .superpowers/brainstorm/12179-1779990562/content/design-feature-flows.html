@@ -1,0 +1,97 @@
+<h2>Design · Section 2 of 4 — Feature flows</h2>
+<p class="subtitle">How each of the four features works end-to-end, from user action to Google.</p>
+
+<div style="max-width:780px; margin:0 auto; display:flex; flex-direction:column; gap:16px;">
+
+  <!-- Review replies -->
+  <div style="background:white; border-radius:20px; border:1px solid #e2e8f0; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,0.04);">
+    <div style="background:#0f172a; color:#a5b4fc; padding:12px 20px; font-size:12px; font-weight:700; letter-spacing:0.1em;">💬 REVIEW REPLY PUBLISHING</div>
+    <div style="padding:16px 20px;">
+      <div style="display:flex; align-items:center; gap:8px; font-size:12px; flex-wrap:wrap;">
+        <div style="background:#f1f5f9; border-radius:8px; padding:6px 12px; color:#475569; font-weight:600;">Reviews Inbox</div>
+        <div style="color:#94a3b8;">→</div>
+        <div style="background:#f1f5f9; border-radius:8px; padding:6px 12px; color:#475569; font-weight:600;">AI drafts reply (existing)</div>
+        <div style="color:#94a3b8;">→</div>
+        <div style="background:#4f46e5; border-radius:8px; padding:6px 12px; color:white; font-weight:600;">Publish to Google ↗</div>
+        <div style="color:#94a3b8;">→</div>
+        <div style="background:#f0fdf4; border-radius:8px; padding:6px 12px; color:#16a34a; font-weight:600;">Review.replyPublishedAt set</div>
+      </div>
+      <div style="margin-top:12px; display:grid; grid-template-columns:1fr 1fr; gap:10px; font-size:11px;">
+        <div style="background:#f8fafc; border-radius:10px; padding:10px 12px; border:1px solid #e2e8f0;">
+          <div style="font-weight:700; color:#0f172a; margin-bottom:4px;">Manual publish</div>
+          <div style="color:#475569;">User edits draft → clicks "Publish to Google" → server action calls <code style="background:#f1f5f9; padding:1px 3px; border-radius:3px;">accounts.locations.reviews.updateReply</code> → stores replyGbpId + timestamp</div>
+        </div>
+        <div style="background:#f8fafc; border-radius:10px; padding:10px 12px; border:1px solid #e2e8f0;">
+          <div style="font-weight:700; color:#0f172a; margin-bottom:4px;">Auto-publish (new automation step)</div>
+          <div style="color:#475569;">New <code style="background:#f1f5f9; padding:1px 3px; border-radius:3px;">PUBLISH_GBP_REPLY</code> step type in automation engine. Triggered after a review is synced. Publishes the AI draft directly — no human click needed.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- GBP Posts -->
+  <div style="background:white; border-radius:20px; border:1px solid #e2e8f0; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,0.04);">
+    <div style="background:#0f172a; color:#a5b4fc; padding:12px 20px; font-size:12px; font-weight:700; letter-spacing:0.1em;">📝 GBP POST SCHEDULER</div>
+    <div style="padding:16px 20px;">
+      <div style="display:flex; align-items:center; gap:8px; font-size:12px; flex-wrap:wrap;">
+        <div style="background:#f1f5f9; border-radius:8px; padding:6px 12px; color:#475569; font-weight:600;">GBP Manager → Posts</div>
+        <div style="color:#94a3b8;">→</div>
+        <div style="background:#f1f5f9; border-radius:8px; padding:6px 12px; color:#475569; font-weight:600;">Write content + pick type</div>
+        <div style="color:#94a3b8;">→</div>
+        <div style="background:#f1f5f9; border-radius:8px; padding:6px 12px; color:#475569; font-weight:600;">Set schedule or "Publish now"</div>
+        <div style="color:#94a3b8;">→</div>
+        <div style="background:#4f46e5; border-radius:8px; padding:6px 12px; color:white; font-weight:600;">Cron publishes ↗</div>
+      </div>
+      <div style="margin-top:12px; font-size:11px; color:#475569; background:#f8fafc; border-radius:10px; padding:10px 12px; border:1px solid #e2e8f0;">
+        <strong style="color:#0f172a;">Post types:</strong> What's New · Offer (with coupon code + expiry) · Event (with start/end date + title). Calls <code style="background:#f1f5f9; padding:1px 3px; border-radius:3px;">accounts.locations.localPosts.create</code>. Stores <code>gbpPostId</code> for later edit/delete.
+        <div style="margin-top:6px;"><strong style="color:#0f172a;">Image support:</strong> Optional image upload → stored to Vercel Blob → URL passed to GBP API.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Photos -->
+  <div style="background:white; border-radius:20px; border:1px solid #e2e8f0; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,0.04);">
+    <div style="background:#0f172a; color:#a5b4fc; padding:12px 20px; font-size:12px; font-weight:700; letter-spacing:0.1em;">🖼 PHOTO MANAGEMENT</div>
+    <div style="padding:16px 20px;">
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; font-size:11px;">
+        <div style="background:#f8fafc; border-radius:10px; padding:10px 12px; border:1px solid #e2e8f0;">
+          <div style="font-weight:700; color:#0f172a; margin-bottom:4px;">Upload flow</div>
+          <div style="color:#475569;">File picker → upload to Vercel Blob → create GbpPhoto (DRAFT) → pick category → schedule or publish now → cron calls <code style="background:#f1f5f9; padding:1px 3px; border-radius:3px;">accounts.locations.media.create</code></div>
+        </div>
+        <div style="background:#f8fafc; border-radius:10px; padding:10px 12px; border:1px solid #e2e8f0;">
+          <div style="font-weight:700; color:#0f172a; margin-bottom:4px;">View live photos</div>
+          <div style="color:#475569;">Gallery tab fetches all published GbpPhotos from DB (we stored them). Shows which are live on Google. Delete button calls <code style="background:#f1f5f9; padding:1px 3px; border-radius:3px;">media.delete</code> + marks record deleted.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Q&A -->
+  <div style="background:white; border-radius:20px; border:1px solid #e2e8f0; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,0.04);">
+    <div style="background:#0f172a; color:#a5b4fc; padding:12px 20px; font-size:12px; font-weight:700; letter-spacing:0.1em;">❓ Q&amp;A MANAGEMENT</div>
+    <div style="padding:16px 20px;">
+      <div style="display:flex; align-items:center; gap:8px; font-size:12px; flex-wrap:wrap;">
+        <div style="background:#f1f5f9; border-radius:8px; padding:6px 12px; color:#475569; font-weight:600;">Nightly sync pulls questions</div>
+        <div style="color:#94a3b8;">→</div>
+        <div style="background:#f1f5f9; border-radius:8px; padding:6px 12px; color:#475569; font-weight:600;">Unanswered ones surface in GBP Manager</div>
+        <div style="color:#94a3b8;">→</div>
+        <div style="background:#4f46e5; border-radius:8px; padding:6px 12px; color:white; font-weight:600;">User answers → pushed to Google</div>
+      </div>
+      <div style="margin-top:12px; font-size:11px; color:#475569; background:#fef9c3; border-radius:10px; padding:10px 12px; border:1px solid #fde68a;">
+        <strong style="color:#854d0e;">New question alert:</strong> When the nightly sync finds a question with no answer and <code>syncedAt</code> is within the last 24h, send a team notification email (same <code>sendTeamNotificationEmail</code> function already used by automation). No separate webhook needed.
+      </div>
+    </div>
+  </div>
+
+  <!-- GBP API note -->
+  <div style="background:#f8fafc; border-radius:14px; padding:14px 18px; border:1px solid #e2e8f0; font-size:12px; color:#475569;">
+    <strong style="color:#0f172a;">GBP API surface used:</strong>
+    <span style="background:#f1f5f9; border-radius:6px; padding:2px 6px; font-family:monospace; font-size:11px; margin:0 4px;">reviews.updateReply</span>
+    <span style="background:#f1f5f9; border-radius:6px; padding:2px 6px; font-family:monospace; font-size:11px; margin:0 4px;">localPosts.create/patch/delete</span>
+    <span style="background:#f1f5f9; border-radius:6px; padding:2px 6px; font-family:monospace; font-size:11px; margin:0 4px;">media.create/delete/list</span>
+    <span style="background:#f1f5f9; border-radius:6px; padding:2px 6px; font-family:monospace; font-size:11px; margin:0 4px;">questions.list</span>
+    <span style="background:#f1f5f9; border-radius:6px; padding:2px 6px; font-family:monospace; font-size:11px; margin:0 4px;">answers.upsert</span>
+    — all under the existing Google OAuth connection.
+  </div>
+
+</div>

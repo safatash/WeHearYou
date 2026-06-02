@@ -1,0 +1,92 @@
+<h2>Design · Section 1 of 4 — Data model</h2>
+<p class="subtitle">Four new tables + two fields added to Review. Everything follows the same draft → scheduled → published lifecycle.</p>
+
+<div style="max-width:780px; margin:0 auto; display:flex; flex-direction:column; gap:16px;">
+
+  <!-- Review extensions -->
+  <div style="background:white; border-radius:20px; border:2px solid #4f46e5; overflow:hidden; box-shadow:0 4px 20px rgba(79,70,229,0.1);">
+    <div style="background:#4f46e5; color:white; padding:12px 20px; font-size:12px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase;">Review model — 2 new fields (already has replyDraft)</div>
+    <div style="padding:16px 20px; font-family:monospace; font-size:12px; color:#334155; line-height:1.8;">
+      <span style="color:#94a3b8;">// existing</span><br/>
+      replyDraft &nbsp;&nbsp;&nbsp;String?<br/>
+      <br/>
+      <span style="color:#4f46e5; font-weight:700;">// new</span><br/>
+      replyPublishedAt &nbsp;DateTime?<br/>
+      replyGbpId &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;String?&nbsp;&nbsp;&nbsp;<span style="color:#94a3b8;">// Google's reply ID for deletion/editing</span>
+    </div>
+  </div>
+
+  <!-- New tables grid -->
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+
+    <div style="background:white; border-radius:16px; border:1px solid #e2e8f0; overflow:hidden;">
+      <div style="background:#0f172a; color:#a5b4fc; padding:10px 16px; font-size:11px; font-weight:700; letter-spacing:0.1em;">GbpPost</div>
+      <div style="padding:14px 16px; font-family:monospace; font-size:11px; color:#334155; line-height:1.9;">
+        id<br/>
+        locationId &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#94a3b8;">→ Location</span><br/>
+        postType &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#94a3b8;">WHATS_NEW | OFFER | EVENT</span><br/>
+        content &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#94a3b8;">String</span><br/>
+        callToAction &nbsp;&nbsp;&nbsp;<span style="color:#94a3b8;">JSON? (type + url)</span><br/>
+        imageUrl &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#94a3b8;">String?</span><br/>
+        status &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#16a34a; font-weight:600;">DRAFT | SCHEDULED | PUBLISHED | FAILED</span><br/>
+        scheduledAt &nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#94a3b8;">DateTime?</span><br/>
+        publishedAt &nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#94a3b8;">DateTime?</span><br/>
+        gbpPostId &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#94a3b8;">String? (Google's ID)</span><br/>
+        createdAt
+      </div>
+    </div>
+
+    <div style="background:white; border-radius:16px; border:1px solid #e2e8f0; overflow:hidden;">
+      <div style="background:#0f172a; color:#a5b4fc; padding:10px 16px; font-size:11px; font-weight:700; letter-spacing:0.1em;">GbpPhoto</div>
+      <div style="padding:14px 16px; font-family:monospace; font-size:11px; color:#334155; line-height:1.9;">
+        id<br/>
+        locationId &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#94a3b8;">→ Location</span><br/>
+        storageUrl &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#94a3b8;">String (Vercel Blob)</span><br/>
+        category &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#94a3b8;">EXTERIOR | INTERIOR | FOOD | TEAM | …</span><br/>
+        caption &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#94a3b8;">String?</span><br/>
+        status &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#16a34a; font-weight:600;">DRAFT | SCHEDULED | PUBLISHED | FAILED</span><br/>
+        scheduledAt &nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#94a3b8;">DateTime?</span><br/>
+        publishedAt &nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#94a3b8;">DateTime?</span><br/>
+        gbpMediaId &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#94a3b8;">String? (Google's ID)</span><br/>
+        createdAt
+      </div>
+    </div>
+
+    <div style="background:white; border-radius:16px; border:1px solid #e2e8f0; overflow:hidden;">
+      <div style="background:#0f172a; color:#a5b4fc; padding:10px 16px; font-size:11px; font-weight:700; letter-spacing:0.1em;">GbpQuestion</div>
+      <div style="padding:14px 16px; font-family:monospace; font-size:11px; color:#334155; line-height:1.9;">
+        id<br/>
+        locationId &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#94a3b8;">→ Location</span><br/>
+        gbpQuestionId &nbsp;&nbsp;<span style="color:#94a3b8;">String (Google's ID, unique)</span><br/>
+        questionText &nbsp;&nbsp;&nbsp;<span style="color:#94a3b8;">String</span><br/>
+        askedAt &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#94a3b8;">DateTime</span><br/>
+        answerText &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#94a3b8;">String?</span><br/>
+        answeredAt &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#94a3b8;">DateTime?</span><br/>
+        gbpAnswerId &nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#94a3b8;">String?</span><br/>
+        syncedAt &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#94a3b8;">DateTime</span>
+      </div>
+    </div>
+
+    <div style="background:white; border-radius:16px; border:1px solid #e2e8f0; overflow:hidden;">
+      <div style="background:#0f172a; color:#a5b4fc; padding:10px 16px; font-size:11px; font-weight:700; letter-spacing:0.1em;">GbpSyncLog</div>
+      <div style="padding:14px 16px; font-family:monospace; font-size:11px; color:#334155; line-height:1.9;">
+        id<br/>
+        locationId &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#94a3b8;">→ Location</span><br/>
+        syncType &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#94a3b8;">QUESTIONS | REVIEWS | PHOTOS</span><br/>
+        status &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#94a3b8;">SUCCESS | FAILED</span><br/>
+        itemsSynced &nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#94a3b8;">Int</span><br/>
+        error &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#94a3b8;">String?</span><br/>
+        syncedAt &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#94a3b8;">DateTime</span><br/>
+        <br/>
+        <span style="color:#94a3b8;">// lightweight audit trail for the nightly sync</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Cron note -->
+  <div style="background:#f0fdf4; border-radius:14px; padding:14px 18px; border:1px solid #bbf7d0; font-size:12px; color:#166534;">
+    <strong>One cron job, two schedules:</strong> Every 5 minutes — pick up any GbpPost/GbpPhoto where <code>status = SCHEDULED AND scheduledAt &lt;= NOW()</code> and publish. Every night — sync new GbpQuestions from the GBP API + update review counts.
+  </div>
+
+</div>

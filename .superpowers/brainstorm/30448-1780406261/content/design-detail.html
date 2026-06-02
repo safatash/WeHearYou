@@ -1,0 +1,73 @@
+<h2>Detailed Design</h2>
+<p class="subtitle">Section by section — let me know if anything needs adjusting</p>
+
+<div style="display:flex;flex-direction:column;gap:16px">
+
+  <!-- seo.ts -->
+  <div style="background:#eef2ff;border:1px solid #c7d2fe;border-radius:10px;padding:16px">
+    <div class="label" style="color:#4f46e5;margin-bottom:8px">src/lib/seo.ts — two exports</div>
+    <div style="font-family:monospace;font-size:11px;color:#1e1b4b;line-height:1.9">
+      <div style="color:#6366f1;margin-bottom:4px">// 1. Metadata for generateMetadata()</div>
+      buildLocationMetadata(location, baseUrl) → Metadata<br>
+      &nbsp;&nbsp;title: "{name} Reviews | {city}, {state}"<br>
+      &nbsp;&nbsp;description: aiReviewSummary ?? "Read {n} reviews for {name} in {city}, {state}. Rated {avg} stars."<br>
+      &nbsp;&nbsp;canonical: baseUrl + /b/{slug}<br>
+      &nbsp;&nbsp;og:title, og:description, og:url → same as above<br>
+      &nbsp;&nbsp;og:image → logoUrl ?? heroImageUrl (if set)<br>
+      &nbsp;&nbsp;twitter:card → "summary_large_image" if image, else "summary"<br><br>
+      <div style="color:#6366f1;margin-bottom:4px">// 2. JSON-LD schema (moved + enhanced from public-profile.ts)</div>
+      buildLocalBusinessSchema(location, baseUrl) → JSON-LD<br>
+      &nbsp;&nbsp;+ url: canonical URL <span style="color:#818cf8">(new)</span><br>
+      &nbsp;&nbsp;+ image: logoUrl ?? heroImageUrl <span style="color:#818cf8">(new)</span><br>
+      &nbsp;&nbsp;+ sameAs: [googleMapsUrl] if set <span style="color:#818cf8">(new)</span><br>
+      &nbsp;&nbsp;(existing: name, address, phone, email, aggregateRating, reviews)
+    </div>
+  </div>
+
+  <!-- generateMetadata -->
+  <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:16px">
+    <div class="label" style="color:#166534;margin-bottom:8px">src/app/b/[slug]/page.tsx — add generateMetadata</div>
+    <div style="font-family:monospace;font-size:11px;color:#14532d;line-height:1.7">
+      export async function generateMetadata({ params }) {<br>
+      &nbsp;&nbsp;const location = await getPublicLocationBySlug(params.slug)<br>
+      &nbsp;&nbsp;if (!location) return {}<br>
+      &nbsp;&nbsp;const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://wehearyou.vercel.app"<br>
+      &nbsp;&nbsp;return buildLocationMetadata(location, baseUrl)<br>
+      }
+    </div>
+  </div>
+
+  <!-- sitemap -->
+  <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:16px">
+    <div class="label" style="color:#166534;margin-bottom:8px">src/app/sitemap.ts — dynamic sitemap</div>
+    <div style="font-family:monospace;font-size:11px;color:#14532d;line-height:1.7">
+      Fetches all locations where publicProfile exists<br>
+      Returns one entry per location:<br>
+      &nbsp;&nbsp;url: {baseUrl}/b/{slug}<br>
+      &nbsp;&nbsp;lastModified: location.updatedAt<br>
+      &nbsp;&nbsp;changeFrequency: "weekly"<br>
+      &nbsp;&nbsp;priority: 0.8
+    </div>
+  </div>
+
+  <!-- robots -->
+  <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:16px">
+    <div class="label" style="color:#166534;margin-bottom:8px">src/app/robots.ts</div>
+    <div style="font-family:monospace;font-size:11px;color:#14532d;line-height:1.7">
+      rules: { userAgent: "*", allow: "/" }<br>
+      sitemap: {baseUrl}/sitemap.xml
+    </div>
+  </div>
+
+  <!-- public-profile.ts -->
+  <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;padding:16px">
+    <div class="label" style="color:#9a3412;margin-bottom:8px">src/lib/public-profile.ts — minor cleanup</div>
+    <div style="font-family:monospace;font-size:11px;color:#7c2d12;line-height:1.7">
+      Remove buildLocalBusinessSchema export (moved to seo.ts)<br>
+      Update the import in /b/[slug]/page.tsx accordingly
+    </div>
+  </div>
+
+</div>
+
+<p class="subtitle" style="margin-top:16px">Does this all look right? Any changes before I write the spec?</p>

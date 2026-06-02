@@ -1,0 +1,5 @@
+{"type":"server-started","port":57245,"host":"127.0.0.1","url_host":"localhost","url":"http://localhost:57245","screen_dir":"/Users/safatash/.openclaw/workspace/wehearyou/.superpowers/brainstorm/7722-1779826727/content","state_dir":"/Users/safatash/.openclaw/workspace/wehearyou/.superpowers/brainstorm/7722-1779826727/state"}
+{"type":"screen-added","file":"/Users/safatash/.openclaw/workspace/wehearyou/.superpowers/brainstorm/7722-1779826727/content/onboarding-wizard.html"}
+{"type":"screen-added","file":"/Users/safatash/.openclaw/workspace/wehearyou/.superpowers/brainstorm/7722-1779826727/content/dashboard-checklist.html"}
+{"type":"screen-added","file":"/Users/safatash/.openclaw/workspace/wehearyou/.superpowers/brainstorm/7722-1779826727/content/waiting-1.html"}
+{"type":"server-stopped","reason":"idle timeout"}
