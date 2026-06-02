@@ -25,8 +25,8 @@ type SeoPublicProfile = {
   postalCode: string | null;
   showAiReviewSummary: boolean;
   aiReviewSummary: string | null;
-  showReviews: boolean | null;
-  showTestimonials: boolean | null;
+  showReviews: boolean;
+  showTestimonials: boolean;
 };
 
 export type SeoLocation = {
@@ -148,10 +148,10 @@ function computeSeoStats(location: SeoLocation): {
 
   const visibleReviews = location.reviews.filter((review) => {
     if (review.isTestimonial) {
-      return showTestimonials !== false && review.isWidgetVisible;
+      return showTestimonials && review.isWidgetVisible && review.status === "PUBLISHED";
     }
     return (
-      showReviews !== false &&
+      showReviews &&
       (review.source === "GOOGLE" || review.source === "FACEBOOK") &&
       review.status === "PUBLISHED"
     );
@@ -254,7 +254,7 @@ export function buildLocalBusinessSchema(
     stats.ratingCount > 0
       ? {
           "@type": "AggregateRating",
-          ratingValue: stats.averageRating,
+          ratingValue: parseFloat(stats.averageRating),
           reviewCount: stats.ratingCount,
         }
       : undefined;
@@ -266,7 +266,7 @@ export function buildLocalBusinessSchema(
         review.status === "PUBLISHED" &&
         !review.isTestimonial;
       const isVisibleTestimonial =
-        review.isTestimonial && review.isWidgetVisible;
+        review.isTestimonial && review.isWidgetVisible && review.status === "PUBLISHED";
       if (!isPublicSource && !isVisibleTestimonial) return false;
       if (!review.reviewerName) return false;
       const sanitized = sanitizeReviewText(review.body);
@@ -300,6 +300,6 @@ export function buildLocalBusinessSchema(
     image: image ?? undefined,
     sameAs: profile?.googleMapsUrl ? [profile.googleMapsUrl] : undefined,
     aggregateRating,
-    review: jsonLdReviews,
+    ...(jsonLdReviews.length > 0 ? { review: jsonLdReviews } : {}),
   };
 }

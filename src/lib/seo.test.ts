@@ -473,8 +473,7 @@ test("buildLocalBusinessSchema: review array excludes reviews with empty body af
     ],
   };
   const schema = buildLocalBusinessSchema(location, BASE_URL);
-  const reviews = schema.review as unknown[];
-  assert.equal(reviews.length, 0);
+  assert.equal(schema.review, undefined, "review key should be omitted when no reviews pass filter");
 });
 
 test("buildLocalBusinessSchema: sanitizes review body (strips HTML)", () => {
@@ -522,4 +521,56 @@ test("buildLocalBusinessSchema: takes at most 5 reviews", () => {
   const schema = buildLocalBusinessSchema(location, BASE_URL);
   const reviews = schema.review as unknown[];
   assert.equal(reviews.length, 5);
+});
+
+test("buildLocalBusinessSchema: aggregateRating.ratingValue is a number, not a string", () => {
+  const location: SeoLocation = {
+    ...baseLocation,
+    reviews: [
+      {
+        source: "GOOGLE",
+        status: "PUBLISHED",
+        isTestimonial: false,
+        isWidgetVisible: false,
+        reviewerName: "Jane Doe",
+        body: "Great!",
+        rating: 5,
+      },
+    ],
+  };
+  const schema = buildLocalBusinessSchema(location, BASE_URL);
+  const ag = schema.aggregateRating as { ratingValue: unknown };
+  assert.equal(typeof ag.ratingValue, "number", "ratingValue should be a number");
+});
+
+test("buildLocalBusinessSchema: PENDING testimonial with isWidgetVisible true is excluded", () => {
+  const location: SeoLocation = {
+    ...baseLocation,
+    reviews: [
+      {
+        source: "INTERNAL",
+        status: "PENDING",
+        isTestimonial: true,
+        isWidgetVisible: true,
+        reviewerName: "Pending Customer",
+        body: "This is pending!",
+        rating: 5,
+      },
+    ],
+  };
+  const schema = buildLocalBusinessSchema(location, BASE_URL);
+  assert.equal(schema.review, undefined, "PENDING testimonial should not appear in review array");
+});
+
+test("buildLocalBusinessSchema: review key is omitted when no reviews pass the filter", () => {
+  const schema = buildLocalBusinessSchema(baseLocation, BASE_URL);
+  assert.equal(schema.review, undefined, "review key should be absent when reviews array would be empty");
+});
+
+test("buildPageDescription: empty-string aiSummary falls through to template", () => {
+  const result = buildPageDescription("Acme Dental", "Austin", "TX", 10, 4.5, "");
+  assert.ok(result !== "", "should not return empty string");
+  assert.ok(result.includes("Acme Dental"), "should use template, not empty aiSummary");
+  assert.ok(result.includes("10"), "should include review count from template");
+  assert.ok(result.includes("stars"), "should include stars from template");
 });
