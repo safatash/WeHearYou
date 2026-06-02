@@ -49,7 +49,7 @@ export function getPublicProfileStats(location: PublicLocationProfile) {
   const visibleReviews = [...getVisiblePublicReviews(location), ...getVisibleTestimonials(location)];
   const ratingCount = visibleReviews.length;
   const averageRating = ratingCount
-    ? (visibleReviews.reduce((sum, review) => sum + review.rating, 0) / ratingCount).toFixed(1)
+    ? (visibleReviews.reduce((sum, review) => sum + (review.rating ?? 0), 0) / ratingCount).toFixed(1)
     : location.avgRating?.toFixed(1) ?? "0.0";
 
   return {

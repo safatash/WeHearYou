@@ -9,7 +9,7 @@ type SeoReview = {
   isWidgetVisible: boolean;
   reviewerName: string;
   body: string | null;
-  rating: number;
+  rating: number | null;
 };
 
 type SeoPublicProfile = {
@@ -161,7 +161,7 @@ function computeSeoStats(location: SeoLocation): {
   const averageRating =
     ratingCount > 0
       ? (
-          visibleReviews.reduce((sum, r) => sum + r.rating, 0) / ratingCount
+          visibleReviews.reduce((sum, r) => sum + (r.rating ?? 0), 0) / ratingCount
         ).toFixed(1)
       : (location.avgRating?.toFixed(1) ?? "0.0");
 

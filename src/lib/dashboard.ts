@@ -4,7 +4,7 @@ import { buildWeeklyBuckets } from "@/lib/time-series";
 
 type ActivityItem = {
   reviewerName: string;
-  rating: number;
+  rating: number | null;
   sourceLabel: string;
   isPrivate: boolean;
   createdAt: Date;
@@ -88,11 +88,14 @@ export async function getDashboardData(locationIds?: string[]) {
     }),
   ]);
 
-  const totalReviews = reviews.filter((review) => !review.isTestimonial).length;
   const testimonials = reviews.filter((review) => review.isTestimonial).length;
+  const nonTestimonialReviews = reviews.filter(
+    (review) => !review.isTestimonial && review.status !== ReviewStatus.PRIVATE_FEEDBACK,
+  );
+  const totalReviews = nonTestimonialReviews.length;
   const averageRating =
     totalReviews > 0
-      ? (reviews.filter((review) => !review.isTestimonial).reduce((sum, review) => sum + review.rating, 0) / totalReviews).toFixed(1)
+      ? (nonTestimonialReviews.reduce((sum, review) => sum + (review.rating ?? 0), 0) / totalReviews).toFixed(1)
       : "0.0";
 
   const completedRequests = campaigns.filter((campaign) => completedCampaignStatuses.has(campaign.status)).length;
@@ -117,12 +120,12 @@ export async function getDashboardData(locationIds?: string[]) {
   const startOfMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
 
   const googleReviewsOnly = reviews.filter(
-    (r) => r.source === ReviewSource.GOOGLE && !r.isTestimonial,
+    (r) => r.source === ReviewSource.GOOGLE && !r.isTestimonial && r.status !== ReviewStatus.PRIVATE_FEEDBACK,
   );
   const googleAvgRating =
     googleReviewsOnly.length > 0
       ? (
-          googleReviewsOnly.reduce((sum, r) => sum + r.rating, 0) /
+          googleReviewsOnly.reduce((sum, r) => sum + (r.rating ?? 0), 0) /
           googleReviewsOnly.length
         ).toFixed(1)
       : "0.0";

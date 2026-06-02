@@ -9,8 +9,9 @@ const engagedCampaignStatuses = new Set<CampaignStatus>([
 ]);
 
 export async function getAnalyticsData() {
-  const [reviews, recipients] = await Promise.all([
+  const [reviews, recipients, privateFeedbackCount] = await Promise.all([
     prisma.review.findMany({
+      where: { status: { not: "PRIVATE_FEEDBACK" } },
       orderBy: [{ reviewedAt: "desc" }, { createdAt: "desc" }],
       select: {
         rating: true,
@@ -31,10 +32,11 @@ export async function getAnalyticsData() {
         outcome: true,
       },
     }),
+    prisma.review.count({ where: { status: "PRIVATE_FEEDBACK" } }),
   ]);
 
   const reviewVolume = reviews.length;
-  const averageRating = reviewVolume ? `${(reviews.reduce((sum, review) => sum + review.rating, 0) / reviewVolume).toFixed(1)} ★` : "0.0 ★";
+  const averageRating = reviewVolume ? `${(reviews.reduce((sum, review) => sum + (review.rating ?? 0), 0) / reviewVolume).toFixed(1)} ★` : "0.0 ★";
   const responseRate = recipients.length
     ? `${((recipients.filter((recipient) => engagedCampaignStatuses.has(recipient.status)).length / recipients.length) * 100).toFixed(1)}%`
     : "0.0%";
@@ -68,7 +70,6 @@ export async function getAnalyticsData() {
 
   const googleCount = reviews.filter((review) => review.source === ReviewSource.GOOGLE).length;
   const facebookCount = reviews.filter((review) => review.source === ReviewSource.FACEBOOK).length;
-  const privateFeedbackCount = reviews.filter((review) => review.status === "PRIVATE_FEEDBACK").length;
 
   return {
     reviewVolume: String(reviewVolume),

@@ -309,7 +309,7 @@ export async function getPublicReviewWidgetPayload(publicToken: string, page = 1
       reviewerPhotoUrl: review.reviewerPhotoUrl ?? null,
       sourceReviewUrl: review.sourceReviewUrl ?? null,
       sourceReplyText: review.sourceReplyText ?? ((review.replyPublishedAt || review.replySentAt) ? review.replyDraft : null) ?? null,
-      rating: review.rating,
+      rating: review.rating ?? 0,
       body: review.body,
       reviewedAt: review.reviewedAt ? review.reviewedAt.toISOString() : null,
     })),

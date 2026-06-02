@@ -174,7 +174,7 @@ export function buildReviewPageStats(reviews: ReviewWithRelations[]) {
   const ratedReviews = reviews.filter((review) => typeof review.rating === "number");
 
   const averageRating = ratedReviews.length
-    ? (ratedReviews.reduce((sum, review) => sum + review.rating, 0) / ratedReviews.length).toFixed(1)
+    ? (ratedReviews.reduce((sum, review) => sum + (review.rating ?? 0), 0) / ratedReviews.length).toFixed(1)
     : "0.0";
 
   return {
