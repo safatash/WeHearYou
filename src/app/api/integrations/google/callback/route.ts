@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { exchangeGoogleCodeForTokens, fetchGoogleUserInfo, parseOAuthState, upsertGoogleConnection } from "@/lib/google-oauth";
+import { exchangeGoogleCodeForTokens, fetchGoogleUserInfo, verifyOAuthState, upsertGoogleConnection } from "@/lib/google-oauth";
+import { requireOrganizationAccess } from "@/lib/authz";
 
 function redirectToIntegrations(pathAndQuery: string) {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
@@ -22,13 +23,17 @@ export async function GET(request: NextRequest) {
     return redirectToIntegrations("/integrations?google=missing_params");
   }
 
-  const parsedState = parseOAuthState(state);
+  const parsedState = verifyOAuthState(state);
 
   if (!parsedState) {
     return redirectToIntegrations("/integrations?google=invalid_state");
   }
 
   try {
+    // Verify the current authenticated session owns the organization in the state.
+    // This prevents a stolen/replayed state from being used by a different user.
+    await requireOrganizationAccess(parsedState.organizationId);
+
     const tokens = await exchangeGoogleCodeForTokens(code);
     const userInfo = await fetchGoogleUserInfo(tokens.access_token);
 
@@ -51,6 +56,8 @@ export async function GET(request: NextRequest) {
     return redirectToIntegrations(successPath);
   } catch (callbackError) {
     const message = callbackError instanceof Error ? callbackError.message : "unknown_error";
-    return redirectToIntegrations(`/integrations?google=callback_failed&reason=${encodeURIComponent(message)}`);
+    // Don't expose internal error details in the redirect URL
+    console.error("[google/callback] OAuth callback error:", message);
+    return redirectToIntegrations("/integrations?google=callback_failed");
   }
 }

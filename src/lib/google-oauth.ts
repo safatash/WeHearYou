@@ -102,6 +102,19 @@ export function getGooglePlacesConfig() {
   };
 }
 
+const OAUTH_STATE_TTL_MS = 10 * 60 * 1000; // 10 minutes
+
+function getOAuthStateSecret(): string {
+  const secret = process.env.OAUTH_STATE_SECRET;
+  if (!secret) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("OAUTH_STATE_SECRET environment variable is required in production");
+    }
+    return "dev-oauth-state-secret-not-for-production";
+  }
+  return secret;
+}
+
 export function buildGoogleOAuthUrl({ organizationId, connectionId, returnTo }: { organizationId: string; connectionId?: string; returnTo?: string }) {
   const { clientId, redirectUri } = getGoogleOAuthConfig();
   const state = createOAuthState({ organizationId, connectionId, returnTo });
@@ -119,18 +132,46 @@ export function buildGoogleOAuthUrl({ organizationId, connectionId, returnTo }: 
   return `${GOOGLE_AUTH_URL}?${params.toString()}`;
 }
 
-export function createOAuthState(payload: { organizationId: string; connectionId?: string; returnTo?: string }) {
-  return Buffer.from(JSON.stringify({ ...payload, nonce: crypto.randomUUID() })).toString("base64url");
+export function createOAuthState(payload: { organizationId: string; connectionId?: string; returnTo?: string }): string {
+  const secret = getOAuthStateSecret();
+  const fullPayload = { ...payload, nonce: crypto.randomUUID(), expiresAt: Date.now() + OAUTH_STATE_TTL_MS };
+  const encoded = Buffer.from(JSON.stringify(fullPayload)).toString("base64url");
+  const sig = crypto.createHmac("sha256", secret).update(encoded).digest("base64url");
+  return `${encoded}.${sig}`;
 }
 
-export function parseOAuthState(state: string) {
+export type OAuthStatePayload = {
+  organizationId: string;
+  connectionId?: string;
+  returnTo?: string;
+  nonce: string;
+  expiresAt: number;
+};
+
+export function verifyOAuthState(state: string): OAuthStatePayload | null {
   try {
-    return JSON.parse(Buffer.from(state, "base64url").toString("utf8")) as {
-      organizationId: string;
-      connectionId?: string;
-      returnTo?: string;
-      nonce: string;
-    };
+    const secret = getOAuthStateSecret();
+    const dot = state.lastIndexOf(".");
+    if (dot === -1) return null;
+
+    const encoded = state.slice(0, dot);
+    const sig = state.slice(dot + 1);
+
+    const expectedSig = crypto.createHmac("sha256", secret).update(encoded).digest("base64url");
+    const sigBuf = Buffer.from(sig, "base64url");
+    const expectedBuf = Buffer.from(expectedSig, "base64url");
+
+    if (sigBuf.length !== expectedBuf.length || !crypto.timingSafeEqual(sigBuf, expectedBuf)) {
+      return null;
+    }
+
+    const parsed = JSON.parse(Buffer.from(encoded, "base64url").toString("utf8")) as OAuthStatePayload;
+
+    if (!parsed.expiresAt || Date.now() > parsed.expiresAt) {
+      return null;
+    }
+
+    return parsed;
   } catch {
     return null;
   }
