@@ -92,7 +92,7 @@ export function WidgetCustomizer({
   localTestUrl,
 }: WidgetCustomizerProps) {
   const [layout, setLayout] = useState(widget.layout);
-  const [contentType, setContentType] = useState<"TEXT" | "VIDEO" | "MIXED">(widget.contentType ?? "TEXT");
+  const [contentType, setContentType] = useState<"TEXT" | "VIDEO" | "MIXED">((widget.contentType as "TEXT" | "VIDEO" | "MIXED") ?? "TEXT");
   const [darkTheme, setDarkTheme] = useState(widget.theme === "dark");
   const [title, setTitle] = useState(widget.name);
   const [showNav, setShowNav] = useState(true);
@@ -522,7 +522,7 @@ export function WidgetCustomizer({
               <ReviewWidgetPreview
                 businessName={preview?.location.name ?? widget.location.name}
                 avgRating={preview?.location.avgRating ?? widget.location.avgRating ?? 4.8}
-                reviewCount={preview?.reviewCount ?? 5}
+                reviewCount={preview?.location.reviewCount ?? 5}
                 reviews={(preview?.reviews && preview.reviews.length > 0) ? preview.reviews : MOCK_REVIEWS}
                 layout={layout}
                 showHeader={showHeader}
@@ -548,7 +548,7 @@ export function WidgetCustomizer({
                 contentType={contentType}
                 videoTestimonials={
                   preview?.videoTestimonials && preview.videoTestimonials.length > 0
-                    ? preview.videoTestimonials
+                    ? preview.videoTestimonials.map((v) => ({ ...v, submitterName: v.submitterName ?? "" }))
                     : MOCK_VIDEO_TESTIMONIALS
                 }
                 aiReviewSummary={preview?.location.aiReviewSummary ?? null}
