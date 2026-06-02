@@ -15,7 +15,7 @@ Anonymous location-level review links for distribution via email signatures, QR 
 | `GET /review/[slug]/feedback` | None | Anonymous private feedback form |
 | `POST /review/[slug]/feedback` | None | Form submit — validates, rate-limits, stores, redirects |
 | `GET /review/[slug]/thanks` | None | Confirmation after feedback submitted |
-| `GET /admin/review-links` | Required | Admin page — links, snippets, QR, analytics |
+| `GET /review-links` | Required (org member) | Admin page — links, snippets, QR, analytics |
 | `POST /api/review-links/[slug]/event` | None | Records a single validated analytics event |
 
 `/r/[token]` remains unchanged as the personalized campaign/contact route.
@@ -47,8 +47,15 @@ Anonymous location-level review links for distribution via email signatures, QR 
 - `LINK_VIEWED` event recorded on page load, deduplicated to once per `sessionId` (if same session already has a `LINK_VIEWED` for this location, skip)
 - `sessionId` — random UUID generated on first load, stored in `sessionStorage` (not a persistent cookie, no PII), expires when tab closes
 
+**Google review URL resolution:**
+The `Location` model has two relevant fields:
+- `reviewLink: String?` — manually configured Google review URL
+- `googlePlaceId: String?` — Google Place ID, used to construct `https://search.google.com/local/writereview?placeid=...` via `buildGoogleWriteReviewLink(googlePlaceId)` from `src/lib/locations.ts`
+
+Resolution order: use `location.reviewLink` if set; else use `buildGoogleWriteReviewLink(location.googlePlaceId)` if `googlePlaceId` is set; else the location has no Google URL.
+
 **Missing Google URL behavior:**
-- If the location has no configured Google review URL, render the landing page with the happy card disabled and copy: "Google review link is not yet configured — please contact us." Only the unhappy/feedback path is active.
+- If no Google URL can be resolved (both `reviewLink` and `googlePlaceId` are null), render the landing page with the happy card disabled and copy: "Google review link is not yet configured — please contact us." Only the unhappy/feedback path is active.
 - If the `slug` does not match any active location, return 404.
 
 **Accessibility:**
@@ -230,7 +237,7 @@ model ReviewLinkEvent {
 
 ---
 
-## Admin UI — `GET /admin/review-links`
+## Admin UI — `GET /review-links`
 
 ### Page Structure
 
@@ -261,11 +268,11 @@ model ReviewLinkEvent {
 - Date range: last 7 / 30 / 90 days
 - Timezone: UTC with note; org timezone support deferred
 
-Analytics endpoint: `GET /api/admin/review-links/[slug]/analytics?range=30` — protected, scoped to authenticated user's organization, returns grouped counts.
+Analytics endpoint: `GET /api/review-links/[slug]/analytics?range=30` — protected via `getCurrentMembership()`, scoped to authenticated user's organization, returns grouped counts.
 
 ### Secondary Location Section
 
-A "Review Link" section on each `/locations/[id]` page shows the default URL with a copy button and a link to the full admin Review Links page.
+A "Review Link" section on each `/locations/[id]` page shows the default URL with a copy button and a link to `/review-links`.
 
 ---
 
