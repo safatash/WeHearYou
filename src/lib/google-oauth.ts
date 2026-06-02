@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 import { prisma } from "@/lib/prisma";
+import { encryptToken, decryptToken } from "@/lib/token-encryption";
 
 const GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
 const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
@@ -267,28 +268,30 @@ export async function getValidGoogleAccessToken(connection: {
   scope?: string | null;
   tokenType?: string | null;
 }) {
+  const accessToken = decryptToken(connection.accessToken);
+  const refreshToken = decryptToken(connection.refreshToken);
   const expiresSoon = connection.expiresAt ? connection.expiresAt.getTime() <= Date.now() + 60_000 : false;
 
-  if (connection.accessToken && !expiresSoon) {
-    return connection.accessToken;
+  if (accessToken && !expiresSoon) {
+    return accessToken;
   }
 
-  if (!connection.refreshToken) {
-    if (connection.accessToken) {
-      return connection.accessToken;
+  if (!refreshToken) {
+    if (accessToken) {
+      return accessToken;
     }
 
     throw new Error("Google access token is missing and no refresh token is available");
   }
 
-  const refreshed = await refreshGoogleAccessToken(connection.refreshToken);
+  const refreshed = await refreshGoogleAccessToken(refreshToken);
   const expiresAt = refreshed.expires_in ? new Date(Date.now() + refreshed.expires_in * 1000) : null;
 
   await prisma.googleAccountConnection.update({
     where: { id: connection.id },
     data: {
-      accessToken: refreshed.access_token,
-      refreshToken: refreshed.refresh_token ?? connection.refreshToken,
+      accessToken: encryptToken(refreshed.access_token),
+      refreshToken: encryptToken(refreshed.refresh_token ?? refreshToken),
       scope: refreshed.scope ?? connection.scope ?? null,
       tokenType: refreshed.token_type ?? connection.tokenType ?? null,
       expiresAt,
@@ -477,8 +480,8 @@ export async function upsertGoogleConnection({
       where: { id: existing.id },
       data: {
         email,
-        accessToken,
-        refreshToken: refreshToken ?? existing.refreshToken,
+        accessToken: encryptToken(accessToken),
+        refreshToken: encryptToken(refreshToken ?? decryptToken(existing.refreshToken)),
         tokenType,
         scope,
         expiresAt,
@@ -491,8 +494,8 @@ export async function upsertGoogleConnection({
       organizationId,
       providerAccountId,
       email,
-      accessToken,
-      refreshToken,
+      accessToken: encryptToken(accessToken),
+      refreshToken: encryptToken(refreshToken),
       tokenType,
       scope,
       expiresAt,
