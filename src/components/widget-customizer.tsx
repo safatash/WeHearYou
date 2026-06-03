@@ -405,7 +405,11 @@ export function WidgetCustomizer({
   };
 
   const mountId = `why-widget-${widget.publicToken}`;
-  const embedCode = `<div id="${mountId}"></div>\n<script src="${embedScriptUrl}" data-token="${widget.publicToken}" data-mount="#${mountId}"></script>`;
+  // Add token as a query param so each widget gets a distinct script URL.
+  // This prevents browsers and caching plugins from deduplicating the script
+  // when multiple widgets share the same src on one page.
+  const scriptSrc = `${embedScriptUrl}?t=${widget.publicToken}`;
+  const embedCode = `<div id="${mountId}"></div>\n<script src="${scriptSrc}" data-token="${widget.publicToken}" data-mount="#${mountId}"></script>`;
 
   const saveBtnLabel =
     saveState === "saving"
