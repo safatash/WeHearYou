@@ -334,15 +334,17 @@ const script = `
     updateView();
   }
 
-  async function init() {
-    var scriptEl = currentScript();
-    if (!scriptEl) return;
+  // Track initialized mount selectors so we never double-init a widget
+  var _initializedMounts = {};
 
+  async function init(scriptEl) {
     var token = scriptEl.getAttribute("data-token");
     var mountSelector = scriptEl.getAttribute("data-mount");
     var mount = mountSelector ? document.querySelector(mountSelector) : null;
 
     if (!token || !mount) return;
+    if (_initializedMounts[mountSelector]) return;
+    _initializedMounts[mountSelector] = true;
 
     // Extract optional data attributes for configuration overrides
     var overrides = {
@@ -357,8 +359,6 @@ const script = `
       showDate: scriptEl.getAttribute("data-show-date"),
       showWriteReview: scriptEl.getAttribute("data-show-write-review"),
     };
-
-    ensureStyles();
 
     var baseUrl = new URL(scriptEl.src, window.location.href);
     var apiBaseUrl = baseUrl.origin + "/api/public/widgets/" + encodeURIComponent(token);
@@ -540,7 +540,25 @@ const script = `
     void loadPage(1);
   }
 
-  init();
+  // Initialise every WHY widget script tag on the page in one pass.
+  // This handles the case where browsers or optimisers deduplicate the
+  // same script src and only execute it once — we still find all tokens.
+  function initAll() {
+    ensureStyles();
+    var scripts = document.querySelectorAll("script[data-token]");
+    for (var i = 0; i < scripts.length; i++) {
+      var s = scripts[i];
+      if (!s.src || s.src.indexOf("widget.js") === -1) continue;
+      void init(s);
+    }
+  }
+
+  // Run immediately if DOM is ready, otherwise wait.
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initAll);
+  } else {
+    initAll();
+  }
 })();
 `;
 
