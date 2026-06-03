@@ -24,41 +24,41 @@ export function FunnelRatingForm({
   const [selectedRating, setSelectedRating] = useState<number | null>(null);
   const [hoverRating, setHoverRating] = useState<number | null>(null);
   const [feedback, setFeedback] = useState("");
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const isStars = ratingMode === "stars";
 
   const handleRatingClick = (rating: number) => {
-    if (!filterEnabled) {
-      handleSubmit(rating, "");
-      return;
-    }
+    // Always route low ratings to the recovery form regardless of filterEnabled setting.
+    // High ratings submit immediately to the public thanks page.
     if (rating >= filterThreshold) {
-      handleSubmit(rating, "");
+      handleSubmit(rating, "", "", "");
     } else {
       setSelectedRating(rating);
     }
   };
 
-  const handleSubmit = async (rating: number, feedbackText: string) => {
+  const handleSubmit = async (rating: number, feedbackText: string, nameText: string, emailText: string) => {
     setIsSubmitting(true);
     const formData = new FormData();
     formData.append("slug", slug);
     formData.append("rating", String(rating));
-    if (feedbackText) {
-      formData.append("feedback", feedbackText);
-    }
+    if (feedbackText) formData.append("feedback", feedbackText);
+    if (nameText) formData.append("name", nameText);
+    if (emailText) formData.append("email", emailText);
     await submitAction(formData);
   };
 
   const handleFeedbackSubmit = async () => {
     if (selectedRating !== null) {
-      await handleSubmit(selectedRating, feedback);
+      await handleSubmit(selectedRating, feedback, name, email);
     }
   };
 
-  // Feedback view (low rating selected with filter on)
-  if (selectedRating !== null && filterEnabled && selectedRating < filterThreshold) {
+  // Recovery form shown whenever a low rating is selected
+  if (selectedRating !== null && selectedRating < filterThreshold) {
     return (
       <div className="mt-8 rounded-3xl border border-slate-200 bg-white p-8 space-y-6">
         <div>
@@ -107,11 +107,11 @@ export function FunnelRatingForm({
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-semibold text-slate-900 mb-2">Name</label>
-            <input type="text" placeholder="Your name" className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-normal text-slate-700 placeholder-slate-400 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100" />
+            <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-normal text-slate-700 placeholder-slate-400 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100" />
           </div>
           <div>
             <label className="block text-sm font-semibold text-slate-900 mb-2">Email</label>
-            <input type="email" placeholder="your@email.com" className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-normal text-slate-700 placeholder-slate-400 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100" />
+            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="your@email.com" className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-normal text-slate-700 placeholder-slate-400 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100" />
           </div>
         </div>
 

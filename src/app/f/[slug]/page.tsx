@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { buildGoogleWriteReviewLink } from "@/lib/locations";
 import { submitPublicFunnelRating } from "./actions";
 import { FunnelRatingForm } from "./funnel-rating-form";
 
@@ -56,7 +57,7 @@ export default async function PublicFunnelPage({ params }: { params: Promise<{ s
         <FunnelRatingForm
           slug={slug}
           submitAction={submitPublicFunnelRating}
-          reviewLink={location.reviewLink}
+          reviewLink={location.reviewLink ?? buildGoogleWriteReviewLink(location.googlePlaceId)}
           filterEnabled={profile?.negativeFilterEnabled ?? false}
           filterThreshold={profile?.negativeFilterThreshold ?? 4}
           ratingMode={ratingMode}
