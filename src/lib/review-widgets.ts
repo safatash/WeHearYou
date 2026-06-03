@@ -12,6 +12,7 @@ export type PublicWidgetReview = {
   rating: number;
   body: string;
   reviewedAt: string | null;
+  source: string; // "GOOGLE" | "FACEBOOK" | "YELP" | "INTERNAL"
 };
 
 export type PublicWidgetVideoTestimonial = {
@@ -29,6 +30,8 @@ export type PublicWidgetPayload = {
     theme: string;
     pageSize: number;
     contentType: string;
+    widgetType: string | null;
+    badgeStyle: string | null;
     // Header
     showHeader: boolean;
     showAvgRating: boolean;
@@ -40,6 +43,7 @@ export type PublicWidgetPayload = {
     showDate: boolean;
     showWriteReview: boolean;
     showResponses: boolean;
+    showSourceLogo: boolean;
     bodyMaxChars: number;
     // Appearance
     primaryColor: string;
@@ -64,6 +68,7 @@ export type PublicWidgetPayload = {
     hasMore: boolean;
   };
   videoTestimonials?: PublicWidgetVideoTestimonial[];
+  singleItemUnavailable?: boolean;
 };
 
 export type ReviewWidgetHealth = {
@@ -202,6 +207,109 @@ export async function getPublicReviewWidgetPayload(publicToken: string, page = 1
     return null;
   }
 
+  // Shared widget sub-object builder
+  const buildWidgetObj = (ps: number) => ({
+    name: widget.name,
+    layout: widget.layout,
+    theme: widget.theme,
+    pageSize: ps,
+    contentType: widget.contentType,
+    widgetType: widget.widgetType ?? null,
+    badgeStyle: widget.badgeStyle ?? null,
+    showHeader: widget.showHeader,
+    showAvgRating: widget.showAvgRating,
+    showReviewCount: widget.showReviewCount,
+    headerAlign: widget.headerAlign,
+    showRating: widget.showRating,
+    showReviewerName: widget.showReviewerName,
+    showDate: widget.showDate,
+    showWriteReview: widget.showWriteReview,
+    showResponses: widget.showResponses,
+    showSourceLogo: widget.showSourceLogo,
+    bodyMaxChars: widget.bodyMaxChars,
+    primaryColor: widget.primaryColor,
+    starColor: widget.starColor,
+    backgroundColor: widget.backgroundColor,
+    textColor: widget.textColor,
+    fontFamily: widget.fontFamily,
+  });
+
+  const buildLocationObj = (reviewCount: number) => ({
+    name: widget.location.name,
+    avgRating: widget.location.avgRating ?? null,
+    reviewCount,
+    reviewLink: widget.location.reviewLink ?? null,
+    aiReviewSummary: widget.location.publicProfile?.showAiReviewSummary
+      ? (widget.location.publicProfile.aiReviewSummary ?? null)
+      : null,
+    aiReviewSummaryReviewCount: widget.location.publicProfile?.showAiReviewSummary
+      ? (widget.location.publicProfile.aiReviewSummaryReviewCount ?? null)
+      : null,
+  });
+
+  // ── Single Testimonial: fetch exactly the pinned item ─────────────────────
+  if (widget.widgetType === "SINGLE_TESTIMONIAL") {
+    let singleReviews: PublicWidgetReview[] = [];
+    let singleVideos: PublicWidgetVideoTestimonial[] = [];
+    let singleItemUnavailable = false;
+
+    if (widget.contentType === "VIDEO" && widget.singleTestimonialVideoId) {
+      const vt = await prisma.videoTestimonial.findFirst({
+        where: {
+          id: widget.singleTestimonialVideoId,
+          status: "APPROVED",
+          videoUrl: { not: null },
+        },
+        select: { id: true, submitterName: true, videoUrl: true, durationSeconds: true, publishedAt: true },
+      });
+      if (vt?.videoUrl) {
+        singleVideos = [{
+          id: vt.id,
+          submitterName: vt.submitterName,
+          videoUrl: vt.videoUrl,
+          durationSeconds: vt.durationSeconds,
+          publishedAt: vt.publishedAt ? vt.publishedAt.toISOString() : null,
+        }];
+      } else {
+        singleItemUnavailable = true;
+      }
+    } else if (widget.singleTestimonialReviewId) {
+      const rev = await prisma.review.findFirst({
+        where: { id: widget.singleTestimonialReviewId, status: ReviewStatus.PUBLISHED },
+        select: {
+          id: true, reviewerName: true, reviewerPhotoUrl: true, sourceReviewUrl: true,
+          sourceReplyText: true, replyDraft: true, replyPublishedAt: true, replySentAt: true,
+          rating: true, body: true, reviewedAt: true, source: true,
+        },
+      });
+      if (rev) {
+        singleReviews = [{
+          id: rev.id,
+          reviewerName: rev.reviewerName,
+          reviewerPhotoUrl: rev.reviewerPhotoUrl ?? null,
+          sourceReviewUrl: rev.sourceReviewUrl ?? null,
+          sourceReplyText: rev.sourceReplyText ?? null,
+          rating: rev.rating ?? 0,
+          body: rev.body,
+          reviewedAt: rev.reviewedAt ? rev.reviewedAt.toISOString() : null,
+          source: rev.source as string,
+        }];
+      } else {
+        singleItemUnavailable = true;
+      }
+    }
+
+    return {
+      widget: buildWidgetObj(1),
+      location: buildLocationObj(singleReviews.length),
+      reviews: singleReviews,
+      pagination: { page: 1, pageSize: 1, total: singleReviews.length, hasMore: false },
+      ...(singleVideos.length > 0 ? { videoTestimonials: singleVideos } : {}),
+      ...(singleItemUnavailable ? { singleItemUnavailable: true } : {}),
+    };
+  }
+
+  // ── Normal Wall of Love / Badge flow ─────────────────────────────────────
   const safePage = Number.isFinite(page) && page > 0 ? Math.floor(page) : 1;
   const pageSize = Math.max(1, Math.min(widget.pageSize, 50));
   const skip = (safePage - 1) * pageSize;
@@ -233,6 +341,7 @@ export async function getPublicReviewWidgetPayload(publicToken: string, page = 1
         rating: true,
         body: true,
         reviewedAt: true,
+        source: true,
       },
     }),
     prisma.review.count({ where }),
@@ -269,40 +378,8 @@ export async function getPublicReviewWidgetPayload(publicToken: string, page = 1
   }
 
   return {
-    widget: {
-      name: widget.name,
-      layout: widget.layout,
-      theme: widget.theme,
-      pageSize,
-      contentType: widget.contentType,
-      showHeader: widget.showHeader,
-      showAvgRating: widget.showAvgRating,
-      showReviewCount: widget.showReviewCount,
-      headerAlign: widget.headerAlign,
-      showRating: widget.showRating,
-      showReviewerName: widget.showReviewerName,
-      showDate: widget.showDate,
-      showWriteReview: widget.showWriteReview,
-      showResponses: widget.showResponses,
-      bodyMaxChars: widget.bodyMaxChars,
-      primaryColor: widget.primaryColor,
-      starColor: widget.starColor,
-      backgroundColor: widget.backgroundColor,
-      textColor: widget.textColor,
-      fontFamily: widget.fontFamily,
-    },
-    location: {
-      name: widget.location.name,
-      avgRating: widget.location.avgRating ?? null,
-      reviewCount: total,
-      reviewLink: widget.location.reviewLink ?? null,
-      aiReviewSummary: widget.location.publicProfile?.showAiReviewSummary
-        ? (widget.location.publicProfile.aiReviewSummary ?? null)
-        : null,
-      aiReviewSummaryReviewCount: widget.location.publicProfile?.showAiReviewSummary
-        ? (widget.location.publicProfile.aiReviewSummaryReviewCount ?? null)
-        : null,
-    },
+    widget: buildWidgetObj(pageSize),
+    location: buildLocationObj(total),
     reviews: reviews.map((review) => ({
       id: review.id,
       reviewerName: review.reviewerName,
@@ -312,6 +389,7 @@ export async function getPublicReviewWidgetPayload(publicToken: string, page = 1
       rating: review.rating ?? 0,
       body: review.body,
       reviewedAt: review.reviewedAt ? review.reviewedAt.toISOString() : null,
+      source: review.source as string,
     })),
     pagination: {
       page: safePage,
@@ -401,4 +479,63 @@ export async function getWidgetEligibleLocations(organizationId: string) {
       };
     }),
   );
+}
+
+export async function getWidgetPickerData(locationId: string) {
+  const [reviews, videos] = await Promise.all([
+    prisma.review.findMany({
+      where: {
+        locationId,
+        source: ReviewSource.GOOGLE,
+        status: ReviewStatus.PUBLISHED,
+      },
+      orderBy: [{ reviewedAt: "desc" }, { createdAt: "desc" }],
+      take: 50,
+      select: {
+        id: true,
+        reviewerName: true,
+        reviewerPhotoUrl: true,
+        rating: true,
+        body: true,
+        reviewedAt: true,
+        source: true,
+      },
+    }),
+    prisma.videoTestimonial.findMany({
+      where: {
+        locationId,
+        status: "APPROVED",
+        videoUrl: { not: null },
+      },
+      orderBy: { publishedAt: "desc" },
+      select: {
+        id: true,
+        submitterName: true,
+        videoUrl: true,
+        durationSeconds: true,
+        publishedAt: true,
+      },
+    }),
+  ]);
+
+  return {
+    reviews: reviews.map((r) => ({
+      id: r.id,
+      reviewerName: r.reviewerName,
+      reviewerPhotoUrl: r.reviewerPhotoUrl ?? null,
+      rating: r.rating ?? 0,
+      body: r.body,
+      reviewedAt: r.reviewedAt ? r.reviewedAt.toISOString() : null,
+      source: r.source as string,
+    })),
+    videos: videos
+      .filter((v): v is typeof v & { videoUrl: string } => v.videoUrl !== null)
+      .map((v) => ({
+        id: v.id,
+        submitterName: v.submitterName ?? null,
+        videoUrl: v.videoUrl,
+        durationSeconds: v.durationSeconds ?? null,
+        publishedAt: v.publishedAt ? v.publishedAt.toISOString() : null,
+      })),
+  };
 }
