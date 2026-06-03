@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { buildGoogleWriteReviewLink } from "@/lib/locations";
 import { submitReviewLinkFeedback } from "./actions";
 
 export default async function ReviewLinkFeedbackPage({
@@ -16,7 +17,7 @@ export default async function ReviewLinkFeedbackPage({
 
   const location = await prisma.location.findFirst({
     where: { slug },
-    select: { id: true, name: true },
+    select: { id: true, name: true, reviewLink: true, googlePlaceId: true },
   });
 
   if (!location) notFound();
@@ -25,6 +26,16 @@ export default async function ReviewLinkFeedbackPage({
   const medium = typeof query.medium === "string" ? query.medium : null;
   const placement = typeof query.placement === "string" ? query.placement : null;
   const error = typeof query.error === "string" ? query.error : null;
+
+  const googleUrl = location.reviewLink ?? buildGoogleWriteReviewLink(location.googlePlaceId);
+  // Route through the server-side redirect so events are recorded and source params are preserved
+  const preferReviewHref = googleUrl
+    ? `/review/${slug}/google?${new URLSearchParams({
+        ...(src ? { src } : {}),
+        ...(medium ? { medium } : {}),
+        placement: "unhappy_bypass",
+      }).toString()}`
+    : null;
 
   const errorMessage =
     error === "message_too_short" ? "Your message must be at least 10 characters." :
@@ -106,6 +117,17 @@ export default async function ReviewLinkFeedbackPage({
             Send private feedback
           </button>
         </form>
+
+        {preferReviewHref && (
+          <div className="mt-6 border-t border-slate-200 pt-5">
+            <a
+              href={preferReviewHref}
+              className="block w-full rounded-2xl border-2 border-slate-300 px-5 py-3 text-center text-sm font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-800"
+            >
+              I prefer to write a review →
+            </a>
+          </div>
+        )}
       </div>
     </main>
   );
