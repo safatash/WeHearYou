@@ -31,7 +31,11 @@ export default async function WidgetDetailPage({
   const hdrs = await headers();
   const host = hdrs.get("host") ?? "";
   const proto = hdrs.get("x-forwarded-proto") ?? "https";
-  const appUrl = host ? `${proto}://${host}` : (process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ?? "");
+  // Prefer NEXT_PUBLIC_APP_URL so embed codes always reference the production
+  // URL even when the customizer is opened in a local dev environment.
+  const appUrl =
+    process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ||
+    (host ? `${proto}://${host}` : "");
   const embedScriptUrl = `${appUrl}/embed/widget.js`;
   const localTestUrl = `/widgets/${widget.id}/test`;
   const [preview, pickerData] = await Promise.all([
