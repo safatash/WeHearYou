@@ -5,7 +5,7 @@ import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { FormSubmitButton } from "@/components/form-submit-button";
 import { WidgetCustomizer } from "@/components/widget-customizer";
-import { getPublicReviewWidgetPayload, getReviewWidgetById } from "@/lib/review-widgets";
+import { getPublicReviewWidgetPayload, getReviewWidgetById, getWidgetPickerData } from "@/lib/review-widgets";
 import { deleteReviewWidget } from "@/app/widgets/actions";
 
 export default async function WidgetDetailPage({
@@ -34,7 +34,10 @@ export default async function WidgetDetailPage({
   const appUrl = host ? `${proto}://${host}` : (process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ?? "");
   const embedScriptUrl = `${appUrl}/embed/widget.js`;
   const localTestUrl = `/widgets/${widget.id}/test`;
-  const preview = await getPublicReviewWidgetPayload(widget.publicToken, 10);
+  const [preview, pickerData] = await Promise.all([
+    getPublicReviewWidgetPayload(widget.publicToken, 1),
+    getWidgetPickerData(widget.locationId),
+  ]);
 
   return (
     <AppShell activeScreen="widgets" flash={flash ? { message: flash, tone } : null}>
@@ -77,6 +80,8 @@ export default async function WidgetDetailPage({
           preview={preview}
           embedScriptUrl={embedScriptUrl}
           localTestUrl={localTestUrl}
+          availableReviews={pickerData.reviews}
+          availableVideos={pickerData.videos}
         />
       </div>
     </AppShell>
