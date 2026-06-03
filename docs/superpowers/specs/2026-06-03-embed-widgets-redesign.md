@@ -68,12 +68,14 @@ All sub-panels live inside the existing `widget-customizer.tsx` file. No new rou
 
 ## Database Migration
 
-Add three nullable fields to `ReviewWidget`:
+Add five fields to `ReviewWidget`:
 
 ```prisma
 widgetType                 String?   // "WALL_OF_LOVE" | "SINGLE_TESTIMONIAL" | "BADGE" | "COLLECTING"
 singleTestimonialReviewId  String?   // FK to Review.id (Single Text Testimonial)
 singleTestimonialVideoId   String?   // FK to VideoTestimonial.id (Single Video Testimonial)
+showSourceLogo             Boolean   @default(true)   // show Google/WHY/video source mark on cards
+badgeStyle                 String?   // "rating" | "compact" | "review_cta" | "trust"
 ```
 
 **Backward compatibility:** `widgetType` defaults to `null` (treated as `WALL_OF_LOVE`). Existing widgets continue working unchanged. No existing embed codes break.
@@ -162,7 +164,7 @@ All toggles update live preview immediately.
 
 **Preview:** Shows the selected badge style centered, not a review wall.
 
-**Scope for this pass:** Badge style cards (Rating Badge, Compact Badge, Review CTA, Trust Badge) are selectable and update the live preview. The selected badge style is tracked in local React state only — it is not saved to the DB in this pass (no new DB field). Add a small "Preview only" note under the style grid so it's clear the selection won't persist. Full badge style persistence is a follow-up task.
+**Scope for this pass:** Badge style cards (Rating Badge, Compact Badge, Review CTA, Trust Badge) are selectable, update the live preview, and persist via `badgeStyle String?` on `ReviewWidget` (included in this migration). Pass `badgeStyle` through `updateReviewWidget` and include it in `PublicWidgetPayload` so the embed script can render the correct badge variant. Default to `"rating"` when null.
 
 ---
 
@@ -189,9 +191,9 @@ Show a small source indicator on every testimonial card. Rules:
 - Single Testimonial preview: under the reviewer name/date row
 - Mixed layout cards: same as Wall of Love cards
 
-**Toggle:** `Show source logo` checkbox/toggle in display settings, default enabled.
+**Toggle:** `Show source logo` toggle in display settings, default enabled. Persisted as `showSourceLogo Boolean @default(true)` on `ReviewWidget` — this is an explicit DB column, not a JSON config field. Included in `updateReviewWidget`, `PublicWidgetPayload`, and the public embed renderer so it applies to both admin preview and live embeds.
 
-**Implementation:** `ReviewCard` component receives a `source` prop (`"google"` | `"wehearyou"` | `"video"`) and a `showSourceLogo` boolean. Renders the appropriate mark conditionally.
+**Implementation:** `ReviewCard` component receives a `source` prop (`"google"` | `"wehearyou"` | `"video"`) and a `showSourceLogo` boolean. Renders the appropriate mark conditionally. `PublicWidgetPayload` includes `showSourceLogo` in the `widget` sub-object.
 
 ---
 
@@ -298,7 +300,7 @@ The `source` field maps from `Review.source` (already on the Prisma model). Pass
 
 | File | Change |
 |---|---|
-| `prisma/schema.prisma` | Add `widgetType`, `singleTestimonialReviewId`, `singleTestimonialVideoId` to `ReviewWidget` |
+| `prisma/schema.prisma` | Add `widgetType`, `singleTestimonialReviewId`, `singleTestimonialVideoId`, `showSourceLogo`, `badgeStyle` to `ReviewWidget` |
 | `prisma/migrations/` | New migration file |
 | `src/lib/review-widgets.ts` | Update `getPublicReviewWidgetPayload` to handle Single Testimonial; update `PublicWidgetPayload` type |
 | `src/app/widgets/actions.ts` | Update `updateReviewWidget` to persist new fields; add `singleTestimonialVideoId`/`ReviewId` |
@@ -315,3 +317,14 @@ The `source` field maps from `Review.source` (already on the Prisma model). Pass
 - Content balance options for Mixed wall (Balanced / Reviews first / etc.)
 - Animated masonry layout
 - AI summary block changes
+
+## Additional Persistence Notes
+
+### Source logo persistence
+
+The `Show source logo` toggle must persist across refreshes and must affect both the admin preview and the public embed renderer. If display options are stored as explicit fields, add a persisted `showSourceLogo Boolean @default(true)` or equivalent field. If display options are stored in a JSON/config object, include `showSourceLogo: true` in the saved widget configuration by default.
+
+### Badge style persistence decision
+
+For this pass, Badge style selection is preview-only unless a persisted `badgeStyle` field is added. If Badge style should persist now, add nullable `badgeStyle String?` to `ReviewWidget`, include it in `updateReviewWidget`, return it through the public widget payload, and render the selected badge style in the public embed. If Badge style is intentionally not persisted in this pass, keep the UI note: “Preview only — badge style persistence coming soon.”
+
