@@ -555,6 +555,13 @@ model ReviewWidget {
   textColor        String       @default("#0f172a")
   fontFamily       String       @default("system")
 
+  // Widget type & single testimonial
+  widgetType                 String?
+  singleTestimonialReviewId  String?
+  singleTestimonialVideoId   String?
+  showSourceLogo             Boolean  @default(true)
+  badgeStyle                 String?
+
   customCss        String?
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
