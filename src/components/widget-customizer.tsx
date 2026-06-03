@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { ReviewWidgetPreview } from "@/components/review-widget-preview";
 import { updateReviewWidget } from "@/app/widgets/actions";
 import type { PublicWidgetPayload } from "@/lib/review-widgets";
@@ -383,7 +384,13 @@ export function WidgetCustomizer({
       await updateReviewWidget(formData);
       setSaveState("saved");
       return true;
-    } catch {
+    } catch (error) {
+      // updateReviewWidget ends with redirect() which throws internally.
+      // Catch it here so we stay on the customizer page — treat it as success.
+      if (isRedirectError(error)) {
+        setSaveState("saved");
+        return true;
+      }
       setSaveState("error");
       return false;
     }
