@@ -1,88 +1,252 @@
 "use client";
 
-import { useState } from "react";
-import { CopyButton } from "@/components/copy-button";
+import { useState, useCallback } from "react";
 import { ReviewWidgetPreview } from "@/components/review-widget-preview";
 import { updateReviewWidget } from "@/app/widgets/actions";
 import type { PublicWidgetPayload } from "@/lib/review-widgets";
 import type { getReviewWidgetById } from "@/lib/review-widgets";
 
-const LAYOUT_OPTIONS: Array<{ value: string; label: string; description: string }> = [
-  { value: "carousel", label: "Carousel", description: "Rotating slides with navigation arrows" },
-  { value: "slider", label: "Slider", description: "Horizontal scrolling reviews" },
-  { value: "badge", label: "Badge", description: "Compact rating display" },
-  { value: "grid", label: "Grid", description: "Multi-column card layout" },
-  { value: "list", label: "List", description: "Vertical stacked reviews" },
-  { value: "masonry", label: "Masonry", description: "Pinterest-style layout" },
-  { value: "video", label: "Video", description: "Video testimonials showcase" },
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+type AvailableReview = {
+  id: string;
+  reviewerName: string;
+  reviewerPhotoUrl: string | null;
+  rating: number;
+  body: string;
+  reviewedAt: string | null;
+  source: string;
+};
+
+type AvailableVideo = {
+  id: string;
+  submitterName: string | null;
+  videoUrl: string;
+  durationSeconds: number | null;
+  publishedAt: string | null;
+};
+
+type WidgetTypeKey = "WALL_OF_LOVE" | "SINGLE_TESTIMONIAL" | "BADGE" | "COLLECTING";
+type ContentMode = "TEXT" | "VIDEO" | "MIXED";
+type SaveState = "idle" | "unsaved" | "saving" | "saved" | "error";
+
+// ─── Constants ────────────────────────────────────────────────────────────────
+
+const LAYOUT_OPTIONS: Record<ContentMode, Array<{ id: string; name: string; previewKey: string }>> = {
+  TEXT: [
+    { id: "masonry", name: "Masonry", previewKey: "masonry-text" },
+    { id: "carousel", name: "Carousel Slider", previewKey: "carousel-text" },
+    { id: "grid", name: "Grid", previewKey: "grid-text" },
+    { id: "list", name: "List", previewKey: "list-text" },
+  ],
+  VIDEO: [
+    { id: "video-grid", name: "Video Grid", previewKey: "grid-video" },
+    { id: "video-carousel", name: "Video Carousel", previewKey: "carousel-video" },
+    { id: "featured-video", name: "Featured Video", previewKey: "featured-video" },
+    { id: "video-wall", name: "Video Wall", previewKey: "wall-video" },
+  ],
+  MIXED: [
+    { id: "mixed-masonry", name: "Mixed Masonry", previewKey: "masonry-mixed" },
+    { id: "featured-video-reviews", name: "Featured + Reviews", previewKey: "featured-mixed" },
+    { id: "mixed-carousel", name: "Mixed Carousel", previewKey: "carousel-mixed" },
+    { id: "tabbed", name: "Tabbed View", previewKey: "tabs-mixed" },
+  ],
+};
+
+const BADGE_STYLES = [
+  { id: "rating", name: "Rating Badge", desc: "Score, stars, and review count" },
+  { id: "compact", name: "Compact Badge", desc: "Inline mini badge for headers" },
+  { id: "review_cta", name: "Review CTA", desc: "Rating + Write a Review button" },
+  { id: "trust", name: "Trust Badge", desc: "Horizontal trust signal strip" },
 ];
 
-// Mock reviews for preview when no real data is available
-const MOCK_REVIEWS = [
-  {
-    id: "1",
-    reviewerName: "Sarah Johnson",
-    reviewerPhotoUrl: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&h=400&fit=crop",
-    rating: 5,
-    body: "Absolutely fantastic service! The team went above and beyond our expectations. Highly recommend!",
-    reviewedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+const PLATFORM_STEPS: Record<string, { title: string; steps: string[] }> = {
+  wordpress: {
+    title: "WordPress",
+    steps: [
+      "In your WordPress editor, add a <strong>Custom HTML</strong> block where you want the widget.",
+      "Paste the embed code into the HTML block.",
+      "Click <strong>Update</strong> or <strong>Publish</strong> to save. The widget appears within seconds.",
+    ],
   },
-  {
-    id: "2",
-    reviewerName: "Michael Chen",
-    reviewerPhotoUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop",
-    rating: 5,
-    body: "Great experience from start to finish. Professional, reliable, and affordable. Will definitely work with them again.",
-    reviewedAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
+  shopify: {
+    title: "Shopify",
+    steps: [
+      "Go to <strong>Online Store → Themes → Edit code</strong>.",
+      "Open the template file for the page (e.g. <code>index.liquid</code>).",
+      "Paste the embed code and save the file.",
+    ],
   },
-  {
-    id: "3",
-    reviewerName: "Emily Rodriguez",
-    reviewerPhotoUrl: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400&h=400&fit=crop",
-    rating: 4,
-    body: "Very satisfied with the results. Quick turnaround and excellent communication throughout.",
-    reviewedAt: new Date(Date.now() - 21 * 24 * 60 * 60 * 1000).toISOString(),
+  webflow: {
+    title: "Webflow",
+    steps: [
+      "In your Webflow project, add an <strong>Embed</strong> element to the canvas.",
+      "Paste the embed code into the embed block.",
+      "Publish your site.",
+    ],
   },
-  {
-    id: "4",
-    reviewerName: "David Thompson",
-    reviewerPhotoUrl: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&h=400&fit=crop",
-    rating: 5,
-    body: "Best in the business. Attention to detail is unmatched. Exceeded all our requirements.",
-    reviewedAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+  squarespace: {
+    title: "Squarespace",
+    steps: [
+      "Edit your page and add a <strong>Code Block</strong>.",
+      "Paste the embed code into the code block.",
+      "Save and publish your changes.",
+    ],
   },
-  {
-    id: "5",
-    reviewerName: "Jessica Martinez",
-    reviewerPhotoUrl: "https://images.unsplash.com/photo-1517046220482-f154ef686b18?w=400&h=400&fit=crop",
-    rating: 5,
-    body: "Outstanding customer service. They really care about their clients and it shows in their work.",
-    reviewedAt: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString(),
+  wix: {
+    title: "Wix",
+    steps: [
+      "In the Wix Editor, add an <strong>HTML iframe</strong> element.",
+      "Click <strong>Enter Code</strong> and paste the embed code.",
+      "Save and publish your site.",
+    ],
   },
+  html: {
+    title: "Custom HTML",
+    steps: [
+      "Copy the embed code above.",
+      "Paste it into your HTML where you want the widget to appear.",
+      "Deploy or save your file.",
+    ],
+  },
+};
+
+// ─── Backward-compat helpers ──────────────────────────────────────────────────
+
+function deriveWidgetType(widget: { widgetType?: string | null; layout: string }): WidgetTypeKey {
+  if (widget.widgetType) return widget.widgetType as WidgetTypeKey;
+  if (widget.layout === "badge") return "BADGE";
+  return "WALL_OF_LOVE";
+}
+
+function deriveContentMode(widget: { contentType: string; layout: string }): ContentMode {
+  const ct = widget.contentType as ContentMode;
+  if (["TEXT", "VIDEO", "MIXED"].includes(ct)) return ct;
+  if (widget.layout === "video") return "VIDEO";
+  return "TEXT";
+}
+
+function deriveLayout(layout: string): string {
+  const legacyMap: Record<string, string> = {
+    slider: "carousel",
+    floating: "grid",
+    video: "video-carousel",
+  };
+  return legacyMap[layout] ?? layout;
+}
+
+// ─── Mock Data ────────────────────────────────────────────────────────────────
+
+const MOCK_REVIEWS: AvailableReview[] = [
+  { id: "m1", reviewerName: "Sarah Johnson", reviewerPhotoUrl: null, rating: 5, body: "Absolutely fantastic service! The team went above and beyond our expectations.", reviewedAt: new Date(Date.now() - 7 * 86400000).toISOString(), source: "GOOGLE" },
+  { id: "m2", reviewerName: "Michael Chen", reviewerPhotoUrl: null, rating: 5, body: "Great experience from start to finish. Professional, reliable, and affordable.", reviewedAt: new Date(Date.now() - 14 * 86400000).toISOString(), source: "GOOGLE" },
+  { id: "m3", reviewerName: "Emily Rodriguez", reviewerPhotoUrl: null, rating: 4, body: "Very satisfied with the results. Quick turnaround and excellent communication.", reviewedAt: new Date(Date.now() - 21 * 86400000).toISOString(), source: "GOOGLE" },
+  { id: "m4", reviewerName: "David Thompson", reviewerPhotoUrl: null, rating: 5, body: "Best in the business. Attention to detail is unmatched.", reviewedAt: new Date(Date.now() - 30 * 86400000).toISOString(), source: "GOOGLE" },
+  { id: "m5", reviewerName: "Jessica Martinez", reviewerPhotoUrl: null, rating: 5, body: "Outstanding customer service. They really care about their clients.", reviewedAt: new Date(Date.now() - 45 * 86400000).toISOString(), source: "GOOGLE" },
+  { id: "m6", reviewerName: "Robert Kim", reviewerPhotoUrl: null, rating: 5, body: "Came back for the third time — never disappointed!", reviewedAt: new Date(Date.now() - 60 * 86400000).toISOString(), source: "GOOGLE" },
 ];
 
-const MOCK_VIDEO_TESTIMONIALS = [
-  {
-    id: "v1",
-    submitterName: "Alex Rivera",
-    videoUrl: "",
-    durationSeconds: 42,
-    publishedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-  },
-  {
-    id: "v2",
-    submitterName: "Priya Patel",
-    videoUrl: "",
-    durationSeconds: 65,
-    publishedAt: new Date(Date.now() - 12 * 24 * 60 * 60 * 1000).toISOString(),
-  },
+const MOCK_VIDEOS = [
+  { id: "mv1", submitterName: "Alex Rivera", videoUrl: "", durationSeconds: 42, publishedAt: new Date(Date.now() - 5 * 86400000).toISOString() },
+  { id: "mv2", submitterName: "Priya Patel", videoUrl: "", durationSeconds: 65, publishedAt: new Date(Date.now() - 12 * 86400000).toISOString() },
 ];
+
+// ─── Layout Mini Previews ─────────────────────────────────────────────────────
+
+function LayoutMiniPreview({ previewKey }: { previewKey: string }) {
+  const mc = (k: string) => (
+    <div key={k} className="bg-white border border-slate-200 rounded p-1">
+      <div className="text-amber-400 text-[7px]">★★★★★</div>
+      <div className="text-[6px] text-slate-400 leading-tight">Great!</div>
+    </div>
+  );
+  const mv = (k: string) => (
+    <div key={k} className="bg-slate-800 rounded flex items-center justify-center" style={{ height: 28 }}>
+      <span className="text-white text-[8px]">▶</span>
+    </div>
+  );
+  const nav = <span className="text-slate-300 text-xs flex-shrink-0">‹</span>;
+  const navR = <span className="text-slate-300 text-xs flex-shrink-0">›</span>;
+
+  const map: Record<string, React.ReactNode> = {
+    "masonry-text": <div className="grid grid-cols-2 gap-1 w-full">{[0, 1, 2, 3].map((i) => mc(String(i)))}</div>,
+    "carousel-text": <div className="flex items-center gap-1 w-full">{nav}<div className="flex-1">{mc("c")}</div>{navR}</div>,
+    "grid-text": <div className="grid grid-cols-2 gap-1 w-full">{[0, 1, 2, 3].map((i) => mc(String(i)))}</div>,
+    "list-text": <div className="flex flex-col gap-1 w-full">{[0, 1, 2].map((i) => mc(String(i)))}</div>,
+    "grid-video": <div className="grid grid-cols-2 gap-1 w-full">{[0, 1, 2, 3].map((i) => mv(String(i)))}</div>,
+    "carousel-video": <div className="flex items-center gap-1 w-full">{nav}<div className="flex-1">{mv("c")}</div>{navR}</div>,
+    "featured-video": <div className="flex flex-col gap-1 w-full">{mv("f")}<div className="text-[7px] text-slate-500 font-semibold">Alex R.</div></div>,
+    "wall-video": <div className="grid grid-cols-3 gap-1 w-full">{[0, 1, 2, 3, 4, 5].map((i) => <div key={i} className="bg-slate-800 rounded flex items-center justify-center" style={{ height: 16 }}><span className="text-white text-[6px]">▶</span></div>)}</div>,
+    "masonry-mixed": <div className="grid grid-cols-2 gap-1 w-full"><div>{mv("m1")}</div><div>{mc("mc1")}</div><div>{mc("mc2")}</div><div>{mv("m2")}</div></div>,
+    "featured-mixed": <div className="flex flex-col gap-1 w-full">{mv("f")}<div className="grid grid-cols-2 gap-1">{mc("c1")}{mc("c2")}</div></div>,
+    "carousel-mixed": <div className="flex items-center gap-1 w-full">{nav}<div className="flex-1 flex gap-1">{mv("v")}{mc("c")}</div>{navR}</div>,
+    "tabs-mixed": <div className="w-full"><div className="flex gap-1 mb-1"><span className="bg-indigo-500 text-white text-[6px] px-1.5 py-0.5 rounded-full">Reviews</span><span className="bg-slate-100 text-slate-400 text-[6px] px-1.5 py-0.5 rounded-full">Videos</span></div><div className="grid grid-cols-2 gap-1">{mc("c1")}{mc("c2")}</div></div>,
+  };
+
+  return <>{map[previewKey] ?? <div className="text-[8px] text-slate-400">Preview</div>}</>;
+}
+
+// ─── Toggle ───────────────────────────────────────────────────────────────────
+
+function Toggle({ on, onChange }: { on: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <button
+      type="button"
+      onClick={() => onChange(!on)}
+      className={`relative w-9 h-5 rounded-full flex-shrink-0 transition-colors ${on ? "bg-indigo-600" : "bg-slate-200"}`}
+      aria-pressed={on}
+    >
+      <div
+        className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${on ? "left-4" : "left-0.5"}`}
+      />
+    </button>
+  );
+}
+
+function ToggleRow({
+  label,
+  sub,
+  on,
+  onChange,
+}: {
+  label: string;
+  sub?: string;
+  on: boolean;
+  onChange: (v: boolean) => void;
+}) {
+  return (
+    <div className="flex items-center justify-between py-3 px-4 border-b border-slate-50 last:border-b-0">
+      <div>
+        <p className="text-sm font-semibold text-slate-900">{label}</p>
+        {sub && <p className="text-xs text-slate-500">{sub}</p>}
+      </div>
+      <Toggle on={on} onChange={onChange} />
+    </div>
+  );
+}
+
+// ─── Section Card ─────────────────────────────────────────────────────────────
+
+function SectionCard({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
+      <div className="px-4 py-3 border-b border-slate-100">
+        <p className="text-xs font-bold uppercase tracking-wider text-slate-400">{title}</p>
+      </div>
+      {children}
+    </div>
+  );
+}
+
+// ─── Main Component ───────────────────────────────────────────────────────────
 
 interface WidgetCustomizerProps {
   widget: NonNullable<Awaited<ReturnType<typeof getReviewWidgetById>>>;
   preview: PublicWidgetPayload | null;
   embedScriptUrl: string;
   localTestUrl: string;
+  availableReviews: AvailableReview[];
+  availableVideos: AvailableVideo[];
 }
 
 export function WidgetCustomizer({
@@ -90,16 +254,24 @@ export function WidgetCustomizer({
   preview,
   embedScriptUrl,
   localTestUrl,
+  availableReviews,
+  availableVideos,
 }: WidgetCustomizerProps) {
-  const [layout, setLayout] = useState(widget.layout);
-  const [contentType, setContentType] = useState<"TEXT" | "VIDEO" | "MIXED">((widget.contentType as "TEXT" | "VIDEO" | "MIXED") ?? "TEXT");
+  // ── Derive initial state from DB values ────────────────────────────────────
+  const initialWidgetType = deriveWidgetType(widget);
+  const initialContentMode = deriveContentMode(widget);
+  const initialLayout = deriveLayout(widget.layout);
+
+  // ── State ──────────────────────────────────────────────────────────────────
+  const [widgetType, setWidgetType] = useState<WidgetTypeKey>(initialWidgetType);
+  const [contentMode, setContentMode] = useState<ContentMode>(initialContentMode);
+  const [layout, setLayout] = useState(initialLayout);
   const [darkTheme, setDarkTheme] = useState(widget.theme === "dark");
   const [title, setTitle] = useState(widget.name);
+  const [isActive, setIsActive] = useState(widget.isActive);
   const [showNav, setShowNav] = useState(true);
   const [showPagination, setShowPagination] = useState(true);
   const [showBranding, setShowBranding] = useState(true);
-  const [isActive, setIsActive] = useState(widget.isActive);
-  const [isSaving, setIsSaving] = useState(false);
   const [showHeader, setShowHeader] = useState(widget.showHeader !== false);
   const [showAvgRating, setShowAvgRating] = useState(widget.showAvgRating !== false);
   const [showReviewCount, setShowReviewCount] = useState(widget.showReviewCount !== false);
@@ -107,48 +279,91 @@ export function WidgetCustomizer({
   const [showReviewerName, setShowReviewerName] = useState(widget.showReviewerName !== false);
   const [showDate, setShowDate] = useState(widget.showDate !== false);
   const [showWriteReview, setShowWriteReview] = useState(widget.showWriteReview !== false);
-  const [showEmbedModal, setShowEmbedModal] = useState(false);
+  const [showSourceLogo, setShowSourceLogo] = useState(
+    (widget as { showSourceLogo?: boolean }).showSourceLogo !== false,
+  );
+  const [badgeStyle, setBadgeStyle] = useState<string>(
+    (widget as { badgeStyle?: string | null }).badgeStyle ?? "rating",
+  );
+  const [singleTestimonialReviewId, setSingleTestimonialReviewId] = useState<string | null>(
+    (widget as { singleTestimonialReviewId?: string | null }).singleTestimonialReviewId ?? null,
+  );
+  const [singleTestimonialVideoId, setSingleTestimonialVideoId] = useState<string | null>(
+    (widget as { singleTestimonialVideoId?: string | null }).singleTestimonialVideoId ?? null,
+  );
+  const [singleType, setSingleType] = useState<"video" | "text">(
+    widget.contentType === "VIDEO" ? "video" : "text",
+  );
 
-  // Generate dynamic embed code that reflects current selections
-  const getEmbedCode = () => {
-    const dataAttrs = [
-      `data-token="${widget.publicToken}"`,
-      `data-mount="#why-reviews-widget"`,
-      `data-layout="${layout}"`,
-      `data-theme="${darkTheme ? 'dark' : 'light'}"`,
-      `data-show-nav="${showNav}"`,
-      `data-show-pagination="${showPagination}"`,
-      `data-show-branding="${showBranding}"`,
-      `data-show-header="${showHeader}"`,
-      `data-show-rating="${showRating}"`,
-      `data-show-reviewer-name="${showReviewerName}"`,
-      `data-show-date="${showDate}"`,
-      `data-show-write-review="${showWriteReview}"`,
-    ].join('\n  ');
+  const [saveState, setSaveState] = useState<SaveState>("idle");
+  const [isMobile, setIsMobile] = useState(false);
+  const [showPublishDrawer, setShowPublishDrawer] = useState(false);
+  const [selectedPlatform, setSelectedPlatform] = useState("wordpress");
+  const [copySuccess, setCopySuccess] = useState(false);
 
-    return `<div id="why-reviews-widget"></div>\n<script\n  src="${embedScriptUrl}"\n  ${dataAttrs}\n></script>`;
+  const markUnsaved = useCallback(() => setSaveState((s) => (s === "saving" ? s : "unsaved")), []);
+
+  // ── Setters that mark unsaved ──────────────────────────────────────────────
+  function setAndMark<T>(setter: React.Dispatch<React.SetStateAction<T>>) {
+    return (v: T) => {
+      setter(v);
+      markUnsaved();
+    };
+  }
+
+  const handleContentModeChange = (mode: ContentMode) => {
+    setContentMode(mode);
+    const firstLayout = LAYOUT_OPTIONS[mode][0].id;
+    setLayout(firstLayout);
+    markUnsaved();
   };
 
-  const embedCode = getEmbedCode();
+  // ── Derived preview data ───────────────────────────────────────────────────
+  const usingMockReviews = !preview?.reviews || preview.reviews.length === 0;
+  const usingMockVideos = !preview?.videoTestimonials || preview.videoTestimonials.length === 0;
 
-  const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setIsSaving(true);
+  const previewReviews = usingMockReviews
+    ? MOCK_REVIEWS
+    : preview.reviews;
 
+  const previewVideos = usingMockVideos
+    ? MOCK_VIDEOS
+    : preview.videoTestimonials!.map((v) => ({ ...v, submitterName: v.submitterName ?? "" }));
+
+  // For single testimonial, use the selected item or fall back to first available
+  const selectedReview = singleTestimonialReviewId
+    ? availableReviews.find((r) => r.id === singleTestimonialReviewId)
+    : undefined;
+  const selectedVideo = singleTestimonialVideoId
+    ? availableVideos.find((v) => v.id === singleTestimonialVideoId)
+    : undefined;
+
+  const singlePreviewReviews = selectedReview
+    ? [{ ...selectedReview, sourceReviewUrl: null, sourceReplyText: null }]
+    : previewReviews.slice(0, 1);
+  const singlePreviewVideos = selectedVideo
+    ? [{ ...selectedVideo, submitterName: selectedVideo.submitterName ?? "" }]
+    : previewVideos.slice(0, 1);
+
+  const previewContentType =
+    widgetType === "SINGLE_TESTIMONIAL" ? (singleType === "video" ? "VIDEO" : "TEXT") : contentMode;
+  const previewLayout = widgetType === "BADGE" ? "badge" : layout;
+
+  // ── Save ───────────────────────────────────────────────────────────────────
+  const handleSave = async (): Promise<boolean> => {
+    setSaveState("saving");
     const formData = new FormData();
     formData.append("widgetId", widget.id);
+    formData.append("widgetType", widgetType);
     formData.append("layout", layout);
-    formData.append("contentType", contentType);
+    formData.append("contentType", previewContentType);
     formData.append("name", title);
     formData.append("theme", darkTheme ? "dark" : "light");
-    formData.append("isActive", isActive ? "on" : "off");
-
-    // Layout controls
+    formData.append("badgeStyle", badgeStyle);
+    if (isActive) formData.append("isActive", "on");
     if (showNav) formData.append("showNav", "on");
     if (showPagination) formData.append("showPagination", "on");
     if (showBranding) formData.append("showBranding", "on");
-
-    // Display properties
     if (showHeader) formData.append("showHeader", "on");
     if (showAvgRating) formData.append("showAvgRating", "on");
     if (showReviewCount) formData.append("showReviewCount", "on");
@@ -156,375 +371,466 @@ export function WidgetCustomizer({
     if (showReviewerName) formData.append("showReviewerName", "on");
     if (showDate) formData.append("showDate", "on");
     if (showWriteReview) formData.append("showWriteReview", "on");
-
+    if (showSourceLogo) formData.append("showSourceLogo", "on");
+    if (widgetType === "SINGLE_TESTIMONIAL") {
+      if (singleType === "video" && singleTestimonialVideoId) {
+        formData.append("singleTestimonialVideoId", singleTestimonialVideoId);
+      } else if (singleType === "text" && singleTestimonialReviewId) {
+        formData.append("singleTestimonialReviewId", singleTestimonialReviewId);
+      }
+    }
     try {
       await updateReviewWidget(formData);
-      // Optionally show a success message
-    } catch (error) {
-      console.error("Failed to save widget:", error);
-    } finally {
-      setIsSaving(false);
+      setSaveState("saved");
+      return true;
+    } catch {
+      setSaveState("error");
+      return false;
     }
   };
 
-  return (
-    <div className="space-y-8">
-      {/* LAYOUT SELECTION GALLERY */}
-      <div className="rounded-lg border border-slate-200 bg-white p-3 overflow-hidden">
-        <div className="mb-2">
-          <h3 className="text-xs font-bold text-slate-950 uppercase tracking-wide">Layout</h3>
-        </div>
+  const handlePublishClick = async () => {
+    if (saveState === "unsaved") {
+      const ok = await handleSave();
+      if (!ok) return;
+    }
+    setShowPublishDrawer(true);
+  };
 
-        <div className="w-full overflow-x-auto pb-0.5 -mx-3 px-3">
-          <div className="flex gap-2 w-max">
-            {LAYOUT_OPTIONS.map((option) => (
-              <button
-                key={option.value}
-                onClick={() => setLayout(option.value)}
-                type="button"
-                className={`relative flex-shrink-0 w-28 h-auto flex flex-col items-center justify-center gap-1 rounded-md border-2 p-2 cursor-pointer transition-all hover:shadow-sm ${
-                  layout === option.value
-                    ? "border-indigo-600 bg-indigo-50"
-                    : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50"
-                }`}
-              >
-                <span className="text-2xl">
-                  {option.value === "carousel" ? "⟲" :
-                   option.value === "slider" ? "→" :
-                   option.value === "badge" ? "◉" :
-                   option.value === "grid" ? "⊞" :
-                   option.value === "list" ? "≡" :
-                   option.value === "video" ? "▶" : "⊟"}
-                </span>
-                <div className="text-center">
-                  <p className="text-xs font-semibold text-slate-900 leading-tight">{option.label}</p>
-                </div>
-              </button>
-            ))}
+  const embedCode = `<div id="why-reviews-widget"></div>\n<script\n  src="${embedScriptUrl}"\n  data-token="${widget.publicToken}"\n  data-mount="#why-reviews-widget"\n></script>`;
+
+  const saveBtnLabel =
+    saveState === "saving"
+      ? "Saving…"
+      : saveState === "error"
+        ? "Save failed — retry"
+        : saveState === "unsaved"
+          ? "Save changes ·"
+          : "Save changes";
+
+  // ─────────────────────────────────────────────────────────────────────────
+  return (
+    <div className="space-y-4">
+      {/* Eyebrow */}
+      <div className="border-b border-slate-200 pb-4">
+        <p className="text-xs font-bold uppercase tracking-[.2em] text-indigo-600">Embed Widgets</p>
+        <p className="text-sm text-slate-500 mt-1">
+          Add your reviews and video testimonials to your website with embeddable widgets.
+        </p>
+      </div>
+
+      {/* WIDGET TYPE TABS */}
+      <div className="flex border-b border-slate-200 overflow-x-auto">
+        {(["WALL_OF_LOVE", "SINGLE_TESTIMONIAL", "BADGE"] as WidgetTypeKey[]).map((type) => {
+          const labels: Record<string, string> = {
+            WALL_OF_LOVE: "🧱 Wall of Love",
+            SINGLE_TESTIMONIAL: "✦ Single Testimonial",
+            BADGE: "⭐ Badge",
+          };
+          return (
+            <button
+              key={type}
+              type="button"
+              onClick={() => {
+                setWidgetType(type);
+                markUnsaved();
+              }}
+              className={`flex-shrink-0 px-5 py-3 text-sm font-semibold border-b-2 transition-colors ${
+                widgetType === type
+                  ? "border-indigo-600 text-indigo-600"
+                  : "border-transparent text-slate-500 hover:text-slate-900"
+              }`}
+            >
+              {labels[type]}
+            </button>
+          );
+        })}
+        <div className="relative group flex-shrink-0 px-5 py-3 text-sm font-semibold text-slate-300 cursor-default select-none">
+          📥 Collecting Widget
+          <span className="ml-1.5 text-[10px] bg-slate-100 text-slate-400 px-1.5 py-0.5 rounded-full font-bold uppercase">
+            Soon
+          </span>
+          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block bg-slate-800 text-white text-xs rounded-lg px-3 py-2 w-56 text-center z-10 shadow-lg pointer-events-none">
+            Collect reviews and testimonials directly from your website. Coming soon.
           </div>
         </div>
       </div>
 
-      {/* MAIN CONFIGURATION AREA - Three Column */}
-      <div className="grid gap-6 lg:grid-cols-[0.75fr_2fr] pt-2">
-        {/* LEFT PANEL - Settings */}
-        <form onSubmit={handleSave} className="space-y-6">
-          {/* BASIC SETTINGS */}
-          <div className="rounded-xl border border-slate-200 bg-white p-6">
-            <h4 className="text-sm font-semibold text-slate-900 mb-5 uppercase tracking-wide">Basic Settings</h4>
+      {/* MAIN LAYOUT */}
+      <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
 
-            <div className="space-y-5">
-              {/* Active */}
-              <div className="flex items-start justify-between pb-5 border-b border-slate-200">
-                <div className="flex-1">
-                  <p className="font-semibold text-slate-900">Widget active</p>
-                  <p className="text-sm text-slate-600">Public embed shows reviews</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setIsActive(!isActive)}
-                  className={`ml-4 w-10 h-6 rounded-full transition-colors ${
-                    isActive ? "bg-indigo-600" : "bg-slate-200"
-                  }`}
-                >
-                  <div
-                    className={`w-4 h-4 rounded-full bg-white transition-all ${
-                      isActive ? "translate-x-5" : "translate-x-1"
-                    }`}
-                  />
-                </button>
-              </div>
+        {/* LEFT PANEL */}
+        <div className="flex flex-col gap-4">
 
-              {/* Theme */}
-              <div className="flex items-start justify-between pb-5 border-b border-slate-200">
-                <div className="flex-1">
-                  <p className="font-semibold text-slate-900">Dark theme</p>
-                  <p className="text-sm text-slate-600">Use dark colors</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setDarkTheme(!darkTheme)}
-                  className={`ml-4 w-10 h-6 rounded-full transition-colors ${
-                    darkTheme ? "bg-indigo-600" : "bg-slate-200"
-                  }`}
-                >
-                  <div
-                    className={`w-4 h-4 rounded-full bg-white transition-all ${
-                      darkTheme ? "translate-x-5" : "translate-x-1"
-                    }`}
-                  />
-                </button>
-              </div>
-
-              {/* Title */}
-              <div>
-                <p className="font-semibold text-slate-900 mb-2">Widget title</p>
-                <p className="text-sm text-slate-600 mb-3">Display at the top of your widget</p>
-                <input
-                  type="text"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="e.g., Our Happy Clients!"
-                  className="w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-normal"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* LAYOUT CONTROLS */}
-          <div className="rounded-xl border border-slate-200 bg-white p-6">
-            <h4 className="text-sm font-semibold text-slate-900 mb-5 uppercase tracking-wide">Layout Controls</h4>
-
-            <div className="space-y-5">
-              {/* Navigation Arrows */}
-              <div className="flex items-start justify-between pb-5 border-b border-slate-200">
-                <div className="flex-1">
-                  <p className="font-semibold text-slate-900">Navigation arrows</p>
-                  <p className="text-sm text-slate-600">Show navigation controls</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setShowNav(!showNav)}
-                  className={`ml-4 w-10 h-6 rounded-full transition-colors ${
-                    showNav ? "bg-indigo-600" : "bg-slate-200"
-                  }`}
-                >
-                  <div
-                    className={`w-4 h-4 rounded-full bg-white transition-all ${
-                      showNav ? "translate-x-5" : "translate-x-1"
-                    }`}
-                  />
-                </button>
-              </div>
-
-              {/* Pagination */}
-              <div className="flex items-start justify-between pb-5 border-b border-slate-200">
-                <div className="flex-1">
-                  <p className="font-semibold text-slate-900">Pagination</p>
-                  <p className="text-sm text-slate-600">Show pagination controls</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setShowPagination(!showPagination)}
-                  className={`ml-4 w-10 h-6 rounded-full transition-colors ${
-                    showPagination ? "bg-indigo-600" : "bg-slate-200"
-                  }`}
-                >
-                  <div
-                    className={`w-4 h-4 rounded-full bg-white transition-all ${
-                      showPagination ? "translate-x-5" : "translate-x-1"
-                    }`}
-                  />
-                </button>
-              </div>
-
-              {/* Branding */}
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <p className="font-semibold text-slate-900">WeHearYou branding</p>
-                  <p className="text-sm text-slate-600">Show branding footer</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setShowBranding(!showBranding)}
-                  className={`ml-4 w-10 h-6 rounded-full transition-colors ${
-                    showBranding ? "bg-indigo-600" : "bg-slate-200"
-                  }`}
-                >
-                  <div
-                    className={`w-4 h-4 rounded-full bg-white transition-all ${
-                      showBranding ? "translate-x-5" : "translate-x-1"
-                    }`}
-                  />
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* DISPLAY OPTIONS */}
-          <div className="rounded-xl border border-slate-200 bg-white p-6">
-            <h4 className="text-sm font-semibold text-slate-900 mb-5 uppercase tracking-wide">Display Options</h4>
-
-            <div className="space-y-4 text-sm">
-              {/* Content type */}
-              <div>
-                <p className="font-semibold text-slate-900 mb-2">Content to show</p>
-                <div className="grid grid-cols-3 gap-2">
-                  {([
-                    { value: "TEXT", icon: "⭐", label: "Reviews" },
-                    { value: "VIDEO", icon: "🎥", label: "Videos" },
-                    { value: "MIXED", icon: "⭐🎥", label: "Both" },
-                  ] as const).map((opt) => (
+          {/* ── WALL OF LOVE ──────────────────────────────────────────────── */}
+          {widgetType === "WALL_OF_LOVE" && (
+            <>
+              {/* Content Mode */}
+              <SectionCard title="Content to display">
+                <div className="p-3 grid grid-cols-3 gap-2">
+                  {(
+                    [
+                      { mode: "TEXT" as ContentMode, icon: "⭐", label: "Text Reviews", desc: "Google & written reviews" },
+                      { mode: "VIDEO" as ContentMode, icon: "🎬", label: "Video Testimonials", desc: "Customer video clips" },
+                      { mode: "MIXED" as ContentMode, icon: "✨", label: "Reviews + Videos", desc: "Mixed wall of both" },
+                    ] as const
+                  ).map(({ mode, icon, label, desc }) => (
                     <button
-                      key={opt.value}
+                      key={mode}
                       type="button"
-                      onClick={() => setContentType(opt.value)}
-                      className={`flex flex-col items-center gap-1 rounded-lg border-2 px-2 py-2.5 text-xs font-medium transition-colors ${
-                        contentType === opt.value
-                          ? "border-indigo-500 bg-indigo-50 text-indigo-700"
-                          : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
+                      onClick={() => handleContentModeChange(mode)}
+                      className={`relative flex flex-col items-center gap-1 rounded-xl border-2 p-3 text-center transition-all ${
+                        contentMode === mode
+                          ? "border-indigo-600 bg-indigo-50"
+                          : "border-slate-200 bg-white hover:border-slate-300"
                       }`}
                     >
-                      <span className="text-base">{opt.icon}</span>
-                      {opt.label}
+                      {contentMode === mode && (
+                        <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-indigo-600 rounded-full text-white text-[9px] font-bold flex items-center justify-center">
+                          ✓
+                        </span>
+                      )}
+                      <span className="text-lg">{icon}</span>
+                      <span className="text-xs font-bold text-slate-900 leading-tight">{label}</span>
+                      <span className="text-[10px] text-slate-500 leading-tight">{desc}</span>
                     </button>
                   ))}
                 </div>
+              </SectionCard>
+
+              {/* Layout Cards */}
+              <SectionCard
+                title={`Layout — ${contentMode === "TEXT" ? "Text Reviews" : contentMode === "VIDEO" ? "Video Testimonials" : "Reviews + Videos"}`}
+              >
+                <div className="p-3 grid grid-cols-2 gap-2">
+                  {LAYOUT_OPTIONS[contentMode].map((opt) => (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => {
+                        setLayout(opt.id);
+                        markUnsaved();
+                      }}
+                      className={`relative rounded-xl border-2 overflow-hidden transition-all ${
+                        layout === opt.id
+                          ? "border-indigo-600"
+                          : "border-slate-200 hover:border-slate-300"
+                      }`}
+                    >
+                      {layout === opt.id && (
+                        <span className="absolute top-1.5 right-1.5 bg-indigo-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full z-10">
+                          ✓
+                        </span>
+                      )}
+                      <div
+                        className="bg-slate-50 p-2 flex items-center justify-center"
+                        style={{ minHeight: 68 }}
+                      >
+                        <LayoutMiniPreview previewKey={opt.previewKey} />
+                      </div>
+                      <div className="px-3 py-2 border-t border-slate-100">
+                        <p className="text-xs font-bold text-slate-900">{opt.name}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </SectionCard>
+
+              {/* Display toggles */}
+              <SectionCard title="Display settings">
+                <ToggleRow label="Widget header" sub="Show Google rating bar" on={showHeader} onChange={setAndMark(setShowHeader)} />
+                <ToggleRow label="Star ratings" sub="On each review card" on={showRating} onChange={setAndMark(setShowRating)} />
+                <ToggleRow label="Reviewer names" sub="Name and avatar" on={showReviewerName} onChange={setAndMark(setShowReviewerName)} />
+                <ToggleRow label="Review dates" on={showDate} onChange={setAndMark(setShowDate)} />
+                <ToggleRow label="Source logo" sub="Google G / WeHearYou mark" on={showSourceLogo} onChange={setAndMark(setShowSourceLogo)} />
+                <ToggleRow label="Write review link" on={showWriteReview} onChange={setAndMark(setShowWriteReview)} />
+                <ToggleRow label="Dark theme" on={darkTheme} onChange={setAndMark(setDarkTheme)} />
+                <ToggleRow label="WeHearYou branding" on={showBranding} onChange={setAndMark(setShowBranding)} />
+              </SectionCard>
+
+              {/* Widget name + active */}
+              <SectionCard title="Widget settings">
+                <div className="p-4 space-y-4">
+                  <div>
+                    <p className="text-xs font-bold text-slate-500 mb-1.5">Widget title</p>
+                    <input
+                      type="text"
+                      value={title}
+                      onChange={(e) => {
+                        setTitle(e.target.value);
+                        markUnsaved();
+                      }}
+                      placeholder="e.g. Our Happy Customers"
+                      className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm"
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-semibold text-slate-900">Widget active</p>
+                      <p className="text-xs text-slate-500">Public embed shows reviews</p>
+                    </div>
+                    <Toggle on={isActive} onChange={setAndMark(setIsActive)} />
+                  </div>
+                </div>
+              </SectionCard>
+            </>
+          )}
+
+          {/* ── SINGLE TESTIMONIAL ────────────────────────────────────────── */}
+          {widgetType === "SINGLE_TESTIMONIAL" && (
+            <>
+              <SectionCard title="Testimonial type">
+                <div className="p-3 grid grid-cols-2 gap-3">
+                  {(
+                    [
+                      { type: "video" as const, icon: "🎬", label: "Video Testimonial", desc: "Embed one selected video" },
+                      { type: "text" as const, icon: "⭐", label: "Text Testimonial", desc: "Stars, quote, reviewer name, source" },
+                    ] as const
+                  ).map(({ type, icon, label, desc }) => (
+                    <button
+                      key={type}
+                      type="button"
+                      onClick={() => {
+                        setSingleType(type);
+                        markUnsaved();
+                      }}
+                      className={`relative flex flex-col items-center gap-1.5 rounded-xl border-2 p-4 text-center transition-all ${
+                        singleType === type
+                          ? "border-indigo-600 bg-indigo-50"
+                          : "border-slate-200 bg-white hover:border-slate-300"
+                      }`}
+                    >
+                      {singleType === type && (
+                        <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-indigo-600 rounded-full text-white text-[9px] font-bold flex items-center justify-center">
+                          ✓
+                        </span>
+                      )}
+                      <span className="text-2xl">{icon}</span>
+                      <span className="text-xs font-bold text-slate-900">{label}</span>
+                      <span className="text-[10px] text-slate-500 leading-tight">{desc}</span>
+                    </button>
+                  ))}
+                </div>
+              </SectionCard>
+
+              <SectionCard title={singleType === "video" ? "Select video" : "Select review"}>
+                <div className="p-3 flex flex-col gap-2 max-h-64 overflow-y-auto">
+                  {singleType === "video" ? (
+                    availableVideos.length === 0 ? (
+                      <p className="text-sm text-slate-400 text-center py-4">
+                        No published video testimonials yet.
+                      </p>
+                    ) : (
+                      availableVideos.map((v) => (
+                        <button
+                          key={v.id}
+                          type="button"
+                          onClick={() => {
+                            setSingleTestimonialVideoId(v.id);
+                            setSingleTestimonialReviewId(null);
+                            markUnsaved();
+                          }}
+                          className={`flex items-center gap-3 rounded-lg border-2 p-3 text-left transition-all ${
+                            singleTestimonialVideoId === v.id
+                              ? "border-indigo-600 bg-indigo-50"
+                              : "border-slate-200 bg-white hover:border-slate-300"
+                          }`}
+                        >
+                          <div className="w-12 h-8 bg-slate-800 rounded flex items-center justify-center flex-shrink-0 text-white text-xs">
+                            ▶
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-slate-900 truncate">
+                              {v.submitterName ?? "Unknown"}
+                            </p>
+                            <p className="text-xs text-slate-500">
+                              {v.durationSeconds
+                                ? `${Math.floor(v.durationSeconds / 60)}:${(v.durationSeconds % 60).toString().padStart(2, "0")}`
+                                : ""}
+                              {v.publishedAt
+                                ? ` · ${new Date(v.publishedAt).toLocaleDateString()}`
+                                : ""}
+                            </p>
+                          </div>
+                          {singleTestimonialVideoId === v.id && (
+                            <span className="text-xs font-bold text-indigo-600 bg-indigo-100 px-2 py-0.5 rounded-full flex-shrink-0">
+                              Selected
+                            </span>
+                          )}
+                        </button>
+                      ))
+                    )
+                  ) : availableReviews.length === 0 ? (
+                    <p className="text-sm text-slate-400 text-center py-4">No published reviews yet.</p>
+                  ) : (
+                    availableReviews.map((r) => (
+                      <button
+                        key={r.id}
+                        type="button"
+                        onClick={() => {
+                          setSingleTestimonialReviewId(r.id);
+                          setSingleTestimonialVideoId(null);
+                          markUnsaved();
+                        }}
+                        className={`flex items-start gap-3 rounded-lg border-2 p-3 text-left transition-all ${
+                          singleTestimonialReviewId === r.id
+                            ? "border-indigo-600 bg-indigo-50"
+                            : "border-slate-200 bg-white hover:border-slate-300"
+                        }`}
+                      >
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-amber-400 text-xs">{"★".repeat(r.rating)}</span>
+                            {singleTestimonialReviewId === r.id && (
+                              <span className="text-xs font-bold text-indigo-600 bg-indigo-100 px-2 py-0.5 rounded-full">
+                                Selected
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-slate-600 line-clamp-2">{r.body}</p>
+                          <p className="text-xs font-semibold text-slate-800 mt-1">{r.reviewerName}</p>
+                        </div>
+                      </button>
+                    ))
+                  )}
+                </div>
+              </SectionCard>
+
+              <SectionCard title="Display settings">
+                <ToggleRow label="Star rating" on={showRating} onChange={setAndMark(setShowRating)} />
+                <ToggleRow label="Reviewer name" on={showReviewerName} onChange={setAndMark(setShowReviewerName)} />
+                <ToggleRow label="Date" on={showDate} onChange={setAndMark(setShowDate)} />
+                <ToggleRow label="Source logo" sub="Google G / WeHearYou mark" on={showSourceLogo} onChange={setAndMark(setShowSourceLogo)} />
+                <ToggleRow label="Dark theme" on={darkTheme} onChange={setAndMark(setDarkTheme)} />
+              </SectionCard>
+            </>
+          )}
+
+          {/* ── BADGE ─────────────────────────────────────────────────────── */}
+          {widgetType === "BADGE" && (
+            <>
+              <SectionCard title="Badge style">
+                <div className="p-3 grid grid-cols-2 gap-2">
+                  {BADGE_STYLES.map((bs) => (
+                    <button
+                      key={bs.id}
+                      type="button"
+                      onClick={() => {
+                        setBadgeStyle(bs.id);
+                        markUnsaved();
+                      }}
+                      className={`relative rounded-xl border-2 p-3 text-left transition-all ${
+                        badgeStyle === bs.id
+                          ? "border-indigo-600 bg-indigo-50"
+                          : "border-slate-200 bg-white hover:border-slate-300"
+                      }`}
+                    >
+                      {badgeStyle === bs.id && (
+                        <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-indigo-600 rounded-full text-white text-[9px] font-bold flex items-center justify-center">
+                          ✓
+                        </span>
+                      )}
+                      <p className="text-xs font-bold text-slate-900 mb-0.5">{bs.name}</p>
+                      <p className="text-[10px] text-slate-500 leading-tight">{bs.desc}</p>
+                    </button>
+                  ))}
+                </div>
+              </SectionCard>
+
+              <SectionCard title="Display settings">
+                <ToggleRow label="Review count" on={showReviewCount} onChange={setAndMark(setShowReviewCount)} />
+                <ToggleRow label="Link to Google reviews" on={showWriteReview} onChange={setAndMark(setShowWriteReview)} />
+                <ToggleRow label="Dark theme" on={darkTheme} onChange={setAndMark(setDarkTheme)} />
+              </SectionCard>
+            </>
+          )}
+
+          {/* ── STICKY FOOTER ─────────────────────────────────────────────── */}
+          <div className="flex flex-col gap-2 sticky bottom-0 bg-slate-50 pt-2 pb-1 border-t border-slate-200 -mx-0">
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={saveState === "saving"}
+              className={`w-full rounded-lg border px-4 py-2.5 text-sm font-semibold transition-colors disabled:opacity-60 ${
+                saveState === "error"
+                  ? "border-red-300 bg-red-50 text-red-700"
+                  : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+              }`}
+            >
+              {saveBtnLabel}
+            </button>
+            <button
+              type="button"
+              onClick={handlePublishClick}
+              className="w-full rounded-lg bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 px-4 py-3 text-sm font-bold text-white shadow-sm hover:shadow-md transition-all"
+            >
+              🚀 Publish Widget
+            </button>
+          </div>
+        </div>
+
+        {/* RIGHT PANEL — LIVE PREVIEW */}
+        <div>
+          <div className="sticky top-6">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Live Preview</p>
+                {(usingMockReviews || usingMockVideos) && (
+                  <p className="text-xs text-amber-600 mt-0.5">
+                    Using sample data — sync reviews to see real content.
+                  </p>
+                )}
               </div>
-
-              <div className="border-t border-slate-100 pt-4" />
-
-              {/* Show Header */}
-              <div className="flex items-center justify-between">
-                <label className="flex-1 cursor-pointer">
-                  <p className="font-semibold text-slate-900">Widget header</p>
-                  <p className="text-slate-600">Show Google rating header</p>
-                </label>
+              <div className="flex rounded-lg border border-slate-200 overflow-hidden">
                 <button
                   type="button"
-                  onClick={() => setShowHeader(!showHeader)}
-                  className={`ml-4 w-8 h-5 rounded-full transition-colors flex-shrink-0 ${
-                    showHeader ? "bg-indigo-600" : "bg-slate-200"
+                  onClick={() => setIsMobile(false)}
+                  className={`px-3 py-1.5 text-xs font-semibold transition-colors ${
+                    !isMobile ? "bg-indigo-600 text-white" : "text-slate-500 hover:text-slate-900"
                   }`}
                 >
-                  <div
-                    className={`w-3 h-3 rounded-full bg-white transition-all mt-1 ${
-                      showHeader ? "translate-x-4" : "translate-x-1"
-                    }`}
-                  />
+                  🖥 Desktop
                 </button>
-              </div>
-
-              {/* Show Rating */}
-              <div className="flex items-center justify-between">
-                <label className="flex-1 cursor-pointer">
-                  <p className="font-semibold text-slate-900">Star ratings</p>
-                  <p className="text-slate-600">Show stars on reviews</p>
-                </label>
                 <button
                   type="button"
-                  onClick={() => setShowRating(!showRating)}
-                  className={`ml-4 w-8 h-5 rounded-full transition-colors flex-shrink-0 ${
-                    showRating ? "bg-indigo-600" : "bg-slate-200"
+                  onClick={() => setIsMobile(true)}
+                  className={`px-3 py-1.5 text-xs font-semibold transition-colors ${
+                    isMobile ? "bg-indigo-600 text-white" : "text-slate-500 hover:text-slate-900"
                   }`}
                 >
-                  <div
-                    className={`w-3 h-3 rounded-full bg-white transition-all mt-1 ${
-                      showRating ? "translate-x-4" : "translate-x-1"
-                    }`}
-                  />
-                </button>
-              </div>
-
-              {/* Show Reviewer Name */}
-              <div className="flex items-center justify-between">
-                <label className="flex-1 cursor-pointer">
-                  <p className="font-semibold text-slate-900">Reviewer names</p>
-                  <p className="text-slate-600">Show names & avatars</p>
-                </label>
-                <button
-                  type="button"
-                  onClick={() => setShowReviewerName(!showReviewerName)}
-                  className={`ml-4 w-8 h-5 rounded-full transition-colors flex-shrink-0 ${
-                    showReviewerName ? "bg-indigo-600" : "bg-slate-200"
-                  }`}
-                >
-                  <div
-                    className={`w-3 h-3 rounded-full bg-white transition-all mt-1 ${
-                      showReviewerName ? "translate-x-4" : "translate-x-1"
-                    }`}
-                  />
-                </button>
-              </div>
-
-              {/* Show Date */}
-              <div className="flex items-center justify-between">
-                <label className="flex-1 cursor-pointer">
-                  <p className="font-semibold text-slate-900">Review dates</p>
-                  <p className="text-slate-600">Show when reviewed</p>
-                </label>
-                <button
-                  type="button"
-                  onClick={() => setShowDate(!showDate)}
-                  className={`ml-4 w-8 h-5 rounded-full transition-colors flex-shrink-0 ${
-                    showDate ? "bg-indigo-600" : "bg-slate-200"
-                  }`}
-                >
-                  <div
-                    className={`w-3 h-3 rounded-full bg-white transition-all mt-1 ${
-                      showDate ? "translate-x-4" : "translate-x-1"
-                    }`}
-                  />
-                </button>
-              </div>
-
-              {/* Show Write Review */}
-              <div className="flex items-center justify-between">
-                <label className="flex-1 cursor-pointer">
-                  <p className="font-semibold text-slate-900">Write review button</p>
-                  <p className="text-slate-600">Let users add reviews</p>
-                </label>
-                <button
-                  type="button"
-                  onClick={() => setShowWriteReview(!showWriteReview)}
-                  className={`ml-4 w-8 h-5 rounded-full transition-colors flex-shrink-0 ${
-                    showWriteReview ? "bg-indigo-600" : "bg-slate-200"
-                  }`}
-                >
-                  <div
-                    className={`w-3 h-3 rounded-full bg-white transition-all mt-1 ${
-                      showWriteReview ? "translate-x-4" : "translate-x-1"
-                    }`}
-                  />
+                  📱 Mobile
                 </button>
               </div>
             </div>
-          </div>
 
-          {/* EMBED CODE BUTTON */}
-          <button
-            type="button"
-            onClick={() => setShowEmbedModal(true)}
-            className="w-full rounded-lg border border-slate-200 bg-white hover:bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700 transition-colors"
-          >
-            View Embed Code
-          </button>
-
-          {/* SAVE BUTTON */}
-          <button
-            type="submit"
-            disabled={isSaving}
-            className="w-full rounded-lg bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 disabled:opacity-50 px-4 py-3 text-sm font-semibold text-white transition-all shadow-sm hover:shadow-md"
-          >
-            {isSaving ? "Saving..." : "Save changes"}
-          </button>
-        </form>
-
-        {/* RIGHT PANEL - Live Preview */}
-        <div>
-          <div className="rounded-xl border border-slate-200 bg-white p-6 sticky top-6">
-            <h3 className="text-sm font-semibold text-slate-950 mb-1 uppercase tracking-wide">Live Preview</h3>
-            <p className="text-xs text-slate-600 mb-6">See how your widget will look</p>
-
-            {!isActive ? (
-              <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-                ⚠ Widget is inactive. Toggle &ldquo;Widget active&rdquo; and save to make it public.
+            {!isActive && (
+              <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                ⚠ Widget is inactive — enable it in Widget settings to make it public.
               </div>
-            ) : null}
+            )}
 
-            {widget.health.status !== "healthy" ? (
-              <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-                ⚠ Not fully ready. {widget.health.message}
+            {widget.health.status !== "healthy" && (
+              <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                ⚠ {widget.health.message}
               </div>
-            ) : null}
+            )}
 
-            <div className="overflow-hidden rounded-lg border border-slate-200">
+            <div
+              className={`overflow-hidden rounded-xl border border-slate-200 transition-all ${
+                isMobile ? "max-w-[390px] mx-auto" : ""
+              }`}
+            >
               <ReviewWidgetPreview
                 businessName={preview?.location.name ?? widget.location.name}
                 avgRating={preview?.location.avgRating ?? widget.location.avgRating ?? 4.8}
                 reviewCount={preview?.location.reviewCount ?? 5}
-                reviews={(preview?.reviews && preview.reviews.length > 0) ? preview.reviews : MOCK_REVIEWS}
-                layout={layout}
+                reviews={
+                  widgetType === "SINGLE_TESTIMONIAL" ? singlePreviewReviews : previewReviews
+                }
+                layout={previewLayout}
+                widgetType={widgetType}
+                contentType={previewContentType}
+                badgeStyle={badgeStyle}
                 showHeader={showHeader}
                 showAvgRating={showAvgRating}
                 showReviewCount={showReviewCount}
@@ -534,6 +840,7 @@ export function WidgetCustomizer({
                 showDate={showDate}
                 showWriteReview={showWriteReview}
                 showResponses={widget.showResponses ?? false}
+                showSourceLogo={showSourceLogo}
                 bodyMaxChars={widget.bodyMaxChars ?? 280}
                 primaryColor={widget.primaryColor ?? "#4338ca"}
                 starColor={widget.starColor ?? "#f59e0b"}
@@ -545,91 +852,137 @@ export function WidgetCustomizer({
                 showPagination={showPagination}
                 showBranding={showBranding}
                 widgetTitle={title}
-                contentType={contentType}
                 videoTestimonials={
-                  preview?.videoTestimonials && preview.videoTestimonials.length > 0
-                    ? preview.videoTestimonials.map((v) => ({ ...v, submitterName: v.submitterName ?? "" }))
-                    : MOCK_VIDEO_TESTIMONIALS
+                  widgetType === "SINGLE_TESTIMONIAL" ? singlePreviewVideos : previewVideos
                 }
                 aiReviewSummary={preview?.location.aiReviewSummary ?? null}
                 aiReviewSummaryReviewCount={preview?.location.aiReviewSummaryReviewCount ?? null}
+                isMobile={isMobile}
               />
             </div>
           </div>
         </div>
       </div>
 
-      {/* EMBED CODE MODAL */}
-      {showEmbedModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            {/* Header */}
+      {/* PUBLISH DRAWER */}
+      {showPublishDrawer && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/50"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowPublishDrawer(false);
+          }}
+        >
+          <div className="bg-white rounded-t-2xl w-full max-w-2xl mx-auto max-h-[85vh] overflow-y-auto">
             <div className="sticky top-0 bg-white border-b border-slate-200 px-6 py-5 flex items-center justify-between">
-              <h2 className="text-xl font-bold text-slate-950">Ready to embed!</h2>
+              <h2 className="text-xl font-bold text-slate-950">🚀 Publish Widget</h2>
               <button
                 type="button"
-                onClick={() => setShowEmbedModal(false)}
-                className="text-slate-500 hover:text-slate-700 text-2xl leading-none"
+                onClick={() => setShowPublishDrawer(false)}
+                className="text-slate-400 hover:text-slate-700 text-2xl leading-none"
               >
                 ✕
               </button>
             </div>
-
-            {/* Content */}
             <div className="px-6 py-6 space-y-6">
-              {/* Instructions */}
+              <p className="text-sm text-slate-600">
+                Choose your platform for tailored install instructions, then copy the embed code.
+              </p>
+
+              {/* Platform selector */}
               <div>
-                <h3 className="text-base font-semibold text-slate-900 mb-2">Copy and paste the code into your website</h3>
-                <p className="text-sm text-slate-600">This includes all your current settings (layout, theme, display options, etc.)</p>
+                <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">
+                  Select platform
+                </p>
+                <div className="grid grid-cols-6 gap-2">
+                  {[
+                    { id: "wordpress", icon: "🔷", name: "WordPress" },
+                    { id: "shopify", icon: "🛍", name: "Shopify" },
+                    { id: "webflow", icon: "🌊", name: "Webflow" },
+                    { id: "squarespace", icon: "🟦", name: "Squarespace" },
+                    { id: "wix", icon: "◼️", name: "Wix" },
+                    { id: "html", icon: "🔧", name: "HTML" },
+                  ].map((p) => (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => setSelectedPlatform(p.id)}
+                      className={`flex flex-col items-center gap-1 rounded-xl border-2 p-2 transition-all ${
+                        selectedPlatform === p.id
+                          ? "border-indigo-600 bg-indigo-50"
+                          : "border-slate-200 hover:border-slate-300"
+                      }`}
+                    >
+                      <span className="text-xl">{p.icon}</span>
+                      <span className="text-[10px] font-bold text-slate-700">{p.name}</span>
+                    </button>
+                  ))}
+                </div>
               </div>
 
-              {/* Embed Code */}
-              <div className="space-y-2">
-                <p className="text-xs font-semibold text-slate-600 uppercase tracking-wider">HTML Code</p>
-                <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 overflow-x-auto">
-                  <pre className="text-xs font-mono text-slate-900 whitespace-pre-wrap break-words">
+              {/* Embed code */}
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
+                  Embed code
+                </p>
+                <div className="bg-slate-900 rounded-xl p-4 relative">
+                  <pre className="text-xs font-mono text-sky-300 whitespace-pre-wrap break-words pr-16">
                     {embedCode}
                   </pre>
-                </div>
-                <div className="flex gap-2">
-                  <CopyButton value={embedCode} label="Copy code" copiedLabel="Copied!" />
-                  <a
-                    href={localTestUrl}
-                    className="flex-1 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700 transition-colors text-center"
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(embedCode);
+                      setCopySuccess(true);
+                      setTimeout(() => setCopySuccess(false), 2000);
+                    }}
+                    className="absolute top-3 right-3 bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs font-bold px-3 py-1.5 rounded-lg transition-colors"
                   >
-                    Test page
-                  </a>
+                    {copySuccess ? "Copied!" : "Copy"}
+                  </button>
                 </div>
               </div>
 
-              {/* Instructions */}
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <h4 className="font-semibold text-blue-900 mb-2">How to use:</h4>
-                <ol className="text-sm text-blue-800 space-y-1 list-decimal list-inside">
-                  <li>Copy the code above</li>
-                  <li>Go to your website&apos;s HTML editor or theme customizer</li>
-                  <li>Paste the code where you want the widget to appear</li>
-                  <li>Save your changes</li>
-                </ol>
-              </div>
-
-              {/* Note */}
-              <div className="text-xs text-slate-600 bg-slate-50 border border-slate-200 rounded-lg p-4">
-                <p>
-                  <strong>💡 Note:</strong> The embed code includes data attributes that reflect your current configuration. When you change settings in this panel, the embed code updates automatically. You&apos;ll need to re-copy and paste the updated code to apply new changes to your website.
+              {/* Install steps */}
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">
+                  {PLATFORM_STEPS[selectedPlatform]?.title} installation
                 </p>
+                <ol className="space-y-2">
+                  {PLATFORM_STEPS[selectedPlatform]?.steps.map((step, i) => (
+                    <li key={i} className="flex gap-3">
+                      <span className="w-5 h-5 rounded-full bg-indigo-600 text-white text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">
+                        {i + 1}
+                      </span>
+                      <span
+                        className="text-sm text-slate-600"
+                        dangerouslySetInnerHTML={{ __html: step }}
+                      />
+                    </li>
+                  ))}
+                </ol>
+                <div className="mt-4 rounded-lg bg-emerald-50 border border-emerald-200 p-3 text-xs text-emerald-800">
+                  💡 <strong>Tip:</strong> Changes you make in the customizer apply automatically — you
+                  won&apos;t need to re-paste the code unless you regenerate your widget token.
+                </div>
               </div>
-            </div>
 
-            {/* Footer */}
-            <div className="sticky bottom-0 bg-white border-t border-slate-200 px-6 py-4 flex justify-end">
-              <button
-                type="button"
-                onClick={() => setShowEmbedModal(false)}
-                className="rounded-lg bg-slate-100 hover:bg-slate-200 px-6 py-2 text-sm font-semibold text-slate-700 transition-colors"
-              >
-                Close
-              </button>
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowPublishDrawer(false)}
+                  className="flex-1 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                >
+                  Close
+                </button>
+                <a
+                  href={localTestUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex-1 text-center rounded-xl bg-slate-900 text-white px-6 py-2.5 text-sm font-bold hover:bg-slate-800 transition-colors"
+                >
+                  Open preview →
+                </a>
+              </div>
             </div>
           </div>
         </div>
