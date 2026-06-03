@@ -404,7 +404,8 @@ export function WidgetCustomizer({
     setShowPublishDrawer(true);
   };
 
-  const embedCode = `<div id="why-reviews-widget"></div>\n<script src="${embedScriptUrl}" data-token="${widget.publicToken}" data-mount="#why-reviews-widget"></script>`;
+  const mountId = `why-widget-${widget.publicToken}`;
+  const embedCode = `<div id="${mountId}"></div>\n<script src="${embedScriptUrl}" data-token="${widget.publicToken}" data-mount="#${mountId}"></script>`;
 
   const saveBtnLabel =
     saveState === "saving"
