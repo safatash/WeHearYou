@@ -573,6 +573,31 @@ export default async function LocationDetailPage({
           </div>
         </section>
 
+        {/* Review Link section */}
+        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <p className="text-sm font-semibold uppercase tracking-[0.22em] text-indigo-600">Review Link</p>
+          <h3 className="mt-2 text-xl font-semibold text-slate-950">Anonymous review link</h3>
+          <p className="mt-2 text-sm text-slate-500">
+            Share this link in email signatures, QR codes, or anywhere else you want to collect reviews.
+          </p>
+          <div className="mt-4 flex items-center gap-3">
+            <code className="flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-mono text-slate-700 truncate">
+              {`${process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ?? ""}/review/${location.slug}`}
+            </code>
+            <Link
+              href="/review-links"
+              className="rounded-xl bg-indigo-600 px-4 py-2 text-xs font-semibold text-white hover:bg-indigo-700 transition whitespace-nowrap"
+            >
+              Manage links →
+            </Link>
+          </div>
+          {!location.reviewLink && !location.googlePlaceId && (
+            <p className="mt-3 text-xs text-amber-600">
+              ⚠ No Google review URL configured. Happy-path redirection will be disabled until a Google Place ID or review URL is set.
+            </p>
+          )}
+        </section>
+
         <section className="rounded-3xl border border-rose-200 bg-rose-50 p-6 shadow-sm">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
