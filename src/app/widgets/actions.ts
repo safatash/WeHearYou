@@ -92,13 +92,40 @@ export async function updateReviewWidget(formData: FormData) {
 
   await requireOrganizationAccess(existing.organizationId);
 
-  const allowedLayouts = new Set(["grid", "list", "slider", "badge", "carousel", "masonry", "floating"]);
+  const allowedLayouts = new Set([
+    "grid", "list", "slider", "badge", "carousel", "masonry", "floating", "video",
+    "video-grid", "video-carousel", "featured-video", "video-wall",
+    "mixed-masonry", "featured-video-reviews", "mixed-carousel", "tabbed",
+  ]);
   const allowedContentTypes = new Set(["TEXT", "VIDEO", "MIXED"]);
+  const allowedWidgetTypes = new Set(["WALL_OF_LOVE", "SINGLE_TESTIMONIAL", "BADGE", "COLLECTING"]);
+  const allowedBadgeStyles = new Set(["rating", "compact", "review_cta", "trust"]);
   const allowedAligns = new Set(["left", "center"]);
   const allowedFonts = new Set(["system", "sans", "serif"]);
 
   const rawContentType = String(formData.get("contentType") ?? "TEXT").trim();
   const contentType = allowedContentTypes.has(rawContentType) ? rawContentType : "TEXT";
+
+  const rawWidgetType = String(formData.get("widgetType") ?? "").trim();
+  const widgetType = allowedWidgetTypes.has(rawWidgetType) ? rawWidgetType : null;
+
+  const rawBadgeStyle = String(formData.get("badgeStyle") ?? "").trim();
+  const badgeStyle = allowedBadgeStyles.has(rawBadgeStyle) ? rawBadgeStyle : null;
+
+  const showSourceLogo = String(formData.get("showSourceLogo") ?? "") === "on";
+
+  // Single testimonial IDs — enforce mutual exclusion
+  const rawSingleReviewId = String(formData.get("singleTestimonialReviewId") ?? "").trim();
+  const rawSingleVideoId = String(formData.get("singleTestimonialVideoId") ?? "").trim();
+  let singleTestimonialReviewId: string | null = null;
+  let singleTestimonialVideoId: string | null = null;
+  if (widgetType === "SINGLE_TESTIMONIAL") {
+    if (rawSingleVideoId) {
+      singleTestimonialVideoId = rawSingleVideoId;
+    } else if (rawSingleReviewId) {
+      singleTestimonialReviewId = rawSingleReviewId;
+    }
+  }
 
   const rawLayout = String(formData.get("layout") ?? "grid");
   const rawAlign = String(formData.get("headerAlign") ?? "left");
@@ -118,6 +145,11 @@ export async function updateReviewWidget(formData: FormData) {
       name: String(formData.get("name") ?? "").trim(),
       layout: allowedLayouts.has(rawLayout) ? rawLayout : "grid",
       contentType,
+      widgetType,
+      badgeStyle,
+      showSourceLogo,
+      singleTestimonialReviewId,
+      singleTestimonialVideoId,
       theme: String(formData.get("theme") ?? "light"),
       sort: String(formData.get("sort") ?? "newest"),
       minRating: Number.isFinite(rawMinRating) ? Math.max(1, Math.min(5, Math.floor(rawMinRating))) : 1,
