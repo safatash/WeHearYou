@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Embed Widgets — Refined Customizer</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f8fafc; color: #0f172a; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+
+/* Page header */
+.page-header { background: white; border-bottom: 1px solid #e2e8f0; padding: 14px 24px 0; flex-shrink: 0; }
+.eyebrow { font-size: 11px; font-weight: 700; letter-spacing: .2em; text-transform: uppercase; color: #6366f1; }
+.page-title { font-size: 22px; font-weight: 800; color: #0f172a; margin: 2px 0 1px; }
+.page-desc { font-size: 12px; color: #64748b; padding-bottom: 12px; }
+
+/* Widget Type Tabs */
+.type-tabs { display: flex; gap: 0; background: white; border-bottom: 2px solid #e2e8f0; flex-shrink: 0; padding: 0 24px; }
+.type-tab {
+  padding: 12px 18px; font-size: 13px; font-weight: 600; color: #64748b;
+  border-bottom: 2px solid transparent; margin-bottom: -2px;
+  cursor: pointer; white-space: nowrap; display: flex; align-items: center; gap: 6px;
+  transition: color .15s;
+  position: relative;
+}
+.type-tab:hover:not(.disabled) { color: #6366f1; }
+.type-tab.active { color: #6366f1; border-bottom-color: #6366f1; }
+.type-tab.disabled { opacity: .45; cursor: default; }
+.badge-pill { font-size: 9px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; background: #dcfce7; color: #166534; padding: 2px 6px; border-radius: 99px; }
+.coming-pill { font-size: 9px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; background: #f1f5f9; color: #94a3b8; padding: 2px 6px; border-radius: 99px; }
+/* Tooltip */
+.type-tab.disabled .tooltip {
+  display: none; position: absolute; bottom: -44px; left: 50%; transform: translateX(-50%);
+  background: #1e293b; color: white; font-size: 11px; font-weight: 500;
+  padding: 6px 10px; border-radius: 8px; white-space: normal; width: 200px; text-align: center;
+  z-index: 99; line-height: 1.4;
+}
+.type-tab.disabled:hover .tooltip { display: block; }
+
+/* Body */
+.body { display: grid; grid-template-columns: 316px 1fr; flex: 1; overflow: hidden; }
+
+/* LEFT PANEL */
+.left-panel { background: white; border-right: 1px solid #e2e8f0; display: flex; flex-direction: column; overflow: hidden; }
+.left-scroll { flex: 1; overflow-y: auto; padding: 16px 16px 0; display: flex; flex-direction: column; gap: 14px; }
+.left-footer { padding: 12px 16px; border-top: 1px solid #e2e8f0; background: white; display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; }
+
+.section-card { border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; }
+.section-head { padding: 10px 14px; border-bottom: 1px solid #f1f5f9; }
+.section-label { font-size: 10px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: #94a3b8; }
+.section-body { padding: 12px; }
+
+/* Content mode */
+.content-mode-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+.mode-card {
+  border: 2px solid #e2e8f0; border-radius: 10px; padding: 10px 6px 8px;
+  text-align: center; cursor: pointer; background: white; transition: all .15s;
+  position: relative;
+}
+.mode-card:hover { border-color: #a5b4fc; }
+.mode-card.selected { border-color: #6366f1; background: #eef2ff; }
+.mode-card .check {
+  display: none; position: absolute; top: -7px; right: -7px;
+  width: 16px; height: 16px; background: #6366f1; border-radius: 50%;
+  color: white; font-size: 9px; font-weight: 900;
+  align-items: center; justify-content: center;
+}
+.mode-card.selected .check { display: flex; }
+.mode-icon { font-size: 18px; margin-bottom: 4px; }
+.mode-name { font-size: 11px; font-weight: 700; color: #0f172a; line-height: 1.2; }
+.mode-desc { font-size: 9px; color: #64748b; margin-top: 2px; line-height: 1.3; }
+
+/* Layout cards */
+.layout-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.layout-card {
+  border: 2px solid #e2e8f0; border-radius: 10px; overflow: hidden;
+  cursor: pointer; background: white; transition: all .15s; position: relative;
+}
+.layout-card:hover { border-color: #a5b4fc; box-shadow: 0 2px 8px rgba(99,102,241,.1); }
+.layout-card.selected { border-color: #6366f1; }
+.layout-card .lc-check {
+  display: none; position: absolute; top: 6px; right: 6px;
+  background: #6366f1; color: white; border-radius: 99px;
+  font-size: 9px; font-weight: 700; padding: 2px 7px;
+}
+.layout-card.selected .lc-check { display: block; }
+.layout-preview { height: 68px; background: #f8fafc; display: flex; align-items: center; justify-content: center; padding: 7px; gap: 4px; }
+.layout-name { padding: 6px 8px; font-size: 10px; font-weight: 700; color: #0f172a; border-top: 1px solid #f1f5f9; }
+
+/* Mini cards for layout previews */
+.mc { background: white; border: 1px solid #e2e8f0; border-radius: 4px; padding: 3px 4px; font-size: 7px; color: #64748b; }
+.mc-stars { color: #f59e0b; font-size: 7px; }
+.mv { background: #1e293b; border-radius: 4px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.mv-play { width: 14px; height: 14px; background: #6366f1; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 6px; color: white; }
+
+/* Settings toggles */
+.toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 9px 14px; border-bottom: 1px solid #f8fafc; }
+.toggle-row:last-child { border-bottom: none; }
+.tr-label { font-size: 12px; font-weight: 600; color: #0f172a; }
+.tr-sub { font-size: 10px; color: #94a3b8; }
+.tgl { width: 30px; height: 17px; border-radius: 99px; background: #6366f1; display: flex; align-items: center; padding: 2px; cursor: pointer; flex-shrink: 0; }
+.tgl.off { background: #e2e8f0; }
+.tgl .knob { width: 13px; height: 13px; background: white; border-radius: 50%; margin-left: auto; transition: margin .15s; }
+.tgl.off .knob { margin-left: 0; }
+
+/* Footer buttons */
+.btn-save { padding: 10px; border: 1px solid #e2e8f0; border-radius: 10px; font-size: 13px; font-weight: 600; color: #475569; background: white; cursor: pointer; text-align: center; }
+.btn-publish { padding: 12px; background: linear-gradient(135deg, #6366f1, #4f46e5); color: white; border: none; border-radius: 10px; font-size: 13px; font-weight: 700; cursor: pointer; text-align: center; display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 4px 12px rgba(99,102,241,.3); }
+
+/* RIGHT PANEL */
+.right-panel { background: #f1f5f9; display: flex; flex-direction: column; padding: 20px; gap: 14px; overflow: hidden; }
+.preview-toolbar { display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+.preview-label { font-size: 10px; font-weight: 700; letter-spacing: .15em; text-transform: uppercase; color: #94a3b8; }
+.device-toggle { display: flex; background: white; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; }
+.dt-btn { padding: 6px 14px; font-size: 12px; font-weight: 600; color: #64748b; cursor: pointer; border: none; background: transparent; }
+.dt-btn.active { background: #6366f1; color: white; }
+
+.preview-frame { background: white; border: 1px solid #e2e8f0; border-radius: 14px; overflow: hidden; flex: 1; display: flex; flex-direction: column; min-height: 0; }
+.browser-bar { background: #f8fafc; border-bottom: 1px solid #e2e8f0; padding: 8px 14px; display: flex; align-items: center; gap: 7px; flex-shrink: 0; }
+.b-dot { width: 9px; height: 9px; border-radius: 50%; }
+.b-url { flex: 1; background: white; border: 1px solid #e2e8f0; border-radius: 5px; padding: 3px 10px; font-size: 10px; color: #94a3b8; }
+.preview-body { flex: 1; overflow-y: auto; padding: 20px; }
+
+/* Widget preview elements */
+.widget-title { font-size: 17px; font-weight: 800; color: #0f172a; margin-bottom: 10px; }
+.rating-bar { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: #f8fafc; border: 1px solid #f1f5f9; border-radius: 8px; margin-bottom: 14px; }
+.rb-stars { color: #f59e0b; font-size: 13px; }
+.rb-num { font-weight: 800; font-size: 14px; }
+.rb-count { font-size: 11px; color: #94a3b8; }
+
+/* Review cards in preview */
+.preview-masonry { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.rc { border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px; background: white; }
+.rc-stars { color: #f59e0b; font-size: 10px; margin-bottom: 5px; }
+.rc-text { font-size: 11px; color: #475569; line-height: 1.5; margin-bottom: 8px; }
+.rc-meta { display: flex; align-items: center; gap: 6px; }
+.rc-avatar { width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 700; color: white; flex-shrink: 0; }
+.rc-name { font-size: 10px; font-weight: 700; color: #0f172a; }
+.rc-date { font-size: 9px; color: #94a3b8; }
+
+/* Video preview card */
+.vc { border-radius: 10px; overflow: hidden; background: white; border: 1px solid #e2e8f0; }
+.vc-thumb { background: linear-gradient(135deg, #1e293b, #0f172a); aspect-ratio: 16/9; display: flex; align-items: center; justify-content: center; position: relative; }
+.vc-play-btn { width: 36px; height: 36px; background: rgba(99,102,241,.9); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 13px; }
+.vc-duration { position: absolute; bottom: 6px; right: 8px; background: rgba(0,0,0,.7); color: white; font-size: 9px; font-weight: 700; padding: 2px 5px; border-radius: 4px; }
+.vc-info { padding: 10px 12px; }
+.vc-name { font-size: 11px; font-weight: 700; color: #0f172a; }
+.vc-caption { font-size: 10px; color: #64748b; margin-top: 2px; line-height: 1.4; }
+
+/* Mixed preview */
+.mixed-preview { display: flex; flex-direction: column; gap: 12px; }
+.mixed-videos { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.mixed-reviews { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+
+/* Badge preview */
+.badge-preview { display: flex; align-items: center; justify-content: center; min-height: 200px; }
+.badge-card { border: 1px solid #e2e8f0; border-radius: 16px; padding: 24px 32px; text-align: center; background: white; box-shadow: 0 4px 24px rgba(0,0,0,.08); }
+.badge-google { font-size: 28px; font-weight: 900; color: #4285f4; font-family: Georgia, serif; margin-bottom: 4px; }
+.badge-rating { font-size: 40px; font-weight: 900; color: #0f172a; line-height: 1; }
+.badge-stars { color: #f59e0b; font-size: 18px; margin: 6px 0; }
+.badge-count { font-size: 12px; color: #94a3b8; }
+.badge-cta { margin-top: 14px; display: inline-block; font-size: 12px; font-weight: 700; color: #6366f1; border: 1px solid #c7d2fe; padding: 6px 14px; border-radius: 99px; }
+
+/* Badge settings */
+.badge-type-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.badge-type-card { border: 2px solid #e2e8f0; border-radius: 10px; padding: 12px; cursor: pointer; background: white; transition: all .15s; position: relative; }
+.badge-type-card:hover { border-color: #a5b4fc; }
+.badge-type-card.selected { border-color: #6366f1; background: #eef2ff; }
+.badge-type-card .btc-check { display: none; position: absolute; top: -7px; right: -7px; width: 16px; height: 16px; background: #6366f1; border-radius: 50%; color: white; font-size: 9px; font-weight: 900; align-items: center; justify-content: center; }
+.badge-type-card.selected .btc-check { display: flex; }
+.btc-icon { font-size: 22px; margin-bottom: 5px; }
+.btc-name { font-size: 11px; font-weight: 700; color: #0f172a; }
+.btc-desc { font-size: 10px; color: #64748b; margin-top: 2px; line-height: 1.3; }
+
+/* Branding bar */
+.wby-branding { margin-top: 16px; padding-top: 12px; border-top: 1px solid #f1f5f9; text-align: center; font-size: 9px; color: #94a3b8; font-weight: 600; }
+
+/* Panels visibility */
+.panel-wol, .panel-badge { }
+
+/* Publish Drawer */
+.drawer-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 200; align-items: flex-end; }
+.drawer-overlay.open { display: flex; }
+.drawer { background: white; border-radius: 20px 20px 0 0; width: 100%; max-height: 78vh; overflow-y: auto; padding: 24px 28px 32px; }
+.drawer-handle { width: 40px; height: 4px; background: #e2e8f0; border-radius: 99px; margin: 0 auto 18px; }
+.drawer-title { font-size: 20px; font-weight: 800; color: #0f172a; }
+.drawer-sub { font-size: 13px; color: #64748b; margin: 4px 0 20px; }
+.platform-row { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin-bottom: 20px; }
+.pf-btn { border: 2px solid #e2e8f0; border-radius: 10px; padding: 10px 6px; text-align: center; cursor: pointer; background: white; transition: all .15s; }
+.pf-btn.selected { border-color: #6366f1; background: #eef2ff; }
+.pf-icon { font-size: 20px; margin-bottom: 3px; }
+.pf-name { font-size: 10px; font-weight: 700; color: #0f172a; }
+.code-block { background: #0f172a; color: #7dd3fc; border-radius: 10px; padding: 14px 16px; font-family: Monaco, Menlo, monospace; font-size: 11px; line-height: 1.7; margin-bottom: 16px; position: relative; overflow-x: auto; }
+.copy-btn { position: absolute; top: 10px; right: 10px; background: #1e293b; border: 1px solid #334155; color: #94a3b8; font-size: 10px; font-weight: 700; padding: 4px 10px; border-radius: 6px; cursor: pointer; }
+.install-title { font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: #94a3b8; margin-bottom: 10px; }
+.step { display: flex; gap: 10px; align-items: flex-start; margin-bottom: 9px; }
+.step-n { width: 20px; height: 20px; border-radius: 50%; background: #6366f1; color: white; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
+.step-t { font-size: 12px; color: #475569; line-height: 1.5; }
+.tip-box { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 10px 12px; font-size: 11px; color: #166534; line-height: 1.5; margin-top: 12px; }
+.drawer-actions { display: flex; gap: 10px; margin-top: 20px; }
+.drawer-close { flex: 1; padding: 11px; border: 1px solid #e2e8f0; border-radius: 10px; font-size: 13px; font-weight: 600; color: #475569; background: white; cursor: pointer; }
+.drawer-open-preview { flex: 2; padding: 11px; background: linear-gradient(135deg, #6366f1, #4f46e5); color: white; border: none; border-radius: 10px; font-size: 13px; font-weight: 700; cursor: pointer; }
+</style>
+</head>
+<body>
+
+<!-- Page Header -->
+<div class="page-header">
+  <div class="eyebrow">Embed Widgets</div>
+  <div class="page-title">Riverside Coffee</div>
+  <div class="page-desc">Add your reviews and video testimonials to your website with embeddable widgets.</div>
+</div>
+
+<!-- Widget Type Tabs -->
+<div class="type-tabs">
+  <div class="type-tab active" data-type="wol" onclick="switchType('wol', this)">🧱 Wall of Love</div>
+  <div class="type-tab" data-type="single" onclick="switchType('single', this)">✦ Single Testimonial</div>
+  <div class="type-tab" data-type="badge" onclick="switchType('badge', this)">⭐ Badge <span class="badge-pill">New</span></div>
+  <div class="type-tab disabled" title="">
+    📥 Collecting Widget <span class="coming-pill">Coming soon</span>
+    <div class="tooltip">Collect reviews and testimonials directly from your website. Coming soon.</div>
+  </div>
+</div>
+
+<!-- BODY -->
+<div class="body">
+
+  <!-- LEFT PANEL -->
+  <div class="left-panel">
+    <div class="left-scroll" id="left-scroll">
+
+      <!-- WALL OF LOVE PANEL -->
+      <div id="panel-wol">
+        <!-- Content Mode -->
+        <div class="section-card">
+          <div class="section-head"><div class="section-label">Content to display</div></div>
+          <div class="section-body">
+            <div class="content-mode-grid">
+              <div class="mode-card selected" data-mode="text" onclick="switchMode('text', this)">
+                <div class="check">✓</div>
+                <div class="mode-icon">⭐</div>
+                <div class="mode-name">Text Reviews</div>
+                <div class="mode-desc">Google & written reviews</div>
+              </div>
+              <div class="mode-card" data-mode="video" onclick="switchMode('video', this)">
+                <div class="check">✓</div>
+                <div class="mode-icon">🎬</div>
+                <div class="mode-name">Video Testimonials</div>
+                <div class="mode-desc">Customer video clips</div>
+              </div>
+              <div class="mode-card" data-mode="mixed" onclick="switchMode('mixed', this)">
+                <div class="check">✓</div>
+                <div class="mode-icon">✨</div>
+                <div class="mode-name">Reviews + Videos</div>
+                <div class="mode-desc">Mixed wall of both</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Layout Cards -->
+        <div class="section-card">
+          <div class="section-head"><div class="section-label" id="layout-section-label">Layout — Text Reviews</div></div>
+          <div class="section-body">
+            <div class="layout-grid" id="layout-grid">
+              <!-- Populated by JS -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Display Settings -->
+        <div class="section-card">
+          <div class="section-head"><div class="section-label">Display settings</div></div>
+          <div class="toggle-row">
+            <div><div class="tr-label">Widget header</div><div class="tr-sub">Show Google rating bar</div></div>
+            <div class="tgl" onclick="this.classList.toggle('off')"><div class="knob"></div></div>
+          </div>
+          <div class="toggle-row">
+            <div><div class="tr-label">Star ratings</div><div class="tr-sub">On each review card</div></div>
+            <div class="tgl" onclick="this.classList.toggle('off')"><div class="knob"></div></div>
+          </div>
+          <div class="toggle-row">
+            <div><div class="tr-label">Reviewer names</div><div class="tr-sub">Name & avatar</div></div>
+            <div class="tgl" onclick="this.classList.toggle('off')"><div class="knob"></div></div>
+          </div>
+          <div class="toggle-row">
+            <div><div class="tr-label">Dark theme</div><div class="tr-sub">Dark background</div></div>
+            <div class="tgl off" onclick="this.classList.toggle('off')"><div class="knob"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SINGLE TESTIMONIAL PANEL (hidden by default) -->
+      <div id="panel-single" style="display:none;">
+        <div class="section-card">
+          <div class="section-head"><div class="section-label">Testimonial type</div></div>
+          <div class="section-body">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+              <div class="mode-card selected" onclick="selectSingleType('video', this)" style="padding: 14px 8px;">
+                <div class="check">✓</div>
+                <div class="mode-icon">🎬</div>
+                <div class="mode-name">Video Testimonial</div>
+                <div class="mode-desc">One selected video with play button, name, quote</div>
+              </div>
+              <div class="mode-card" onclick="selectSingleType('text', this)" style="padding: 14px 8px;">
+                <div class="check">✓</div>
+                <div class="mode-icon">⭐</div>
+                <div class="mode-name">Text Testimonial</div>
+                <div class="mode-desc">Stars, quote, reviewer name, source</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="section-card" id="single-picker">
+          <div class="section-head"><div class="section-label">Select video</div></div>
+          <div class="section-body">
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+              <div style="border: 2px solid #6366f1; border-radius: 10px; padding: 10px; background: #eef2ff; cursor: pointer; display: flex; align-items: center; gap: 10px;">
+                <div style="width: 48px; height: 32px; background: #1e293b; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 10px; color: white; flex-shrink: 0;">▶</div>
+                <div>
+                  <div style="font-size: 12px; font-weight: 700; color: #0f172a;">Alex Rivera</div>
+                  <div style="font-size: 10px; color: #64748b;">0:42 · Published 5 days ago</div>
+                </div>
+                <div style="margin-left: auto; background: #6366f1; color: white; font-size: 9px; font-weight: 700; padding: 3px 8px; border-radius: 99px;">Selected</div>
+              </div>
+              <div style="border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px; cursor: pointer; display: flex; align-items: center; gap: 10px; background: white;">
+                <div style="width: 48px; height: 32px; background: #1e293b; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 10px; color: white; flex-shrink: 0;">▶</div>
+                <div>
+                  <div style="font-size: 12px; font-weight: 700; color: #0f172a;">Priya Patel</div>
+                  <div style="font-size: 10px; color: #64748b;">1:05 · Published 12 days ago</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="section-card">
+          <div class="section-head"><div class="section-label">Display settings</div></div>
+          <div class="toggle-row">
+            <div><div class="tr-label">Show caption / quote</div><div class="tr-sub">Text overlay on video</div></div>
+            <div class="tgl" onclick="this.classList.toggle('off')"><div class="knob"></div></div>
+          </div>
+          <div class="toggle-row">
+            <div><div class="tr-label">Show customer name</div></div>
+            <div class="tgl" onclick="this.classList.toggle('off')"><div class="knob"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- BADGE PANEL (hidden by default) -->
+      <div id="panel-badge" style="display:none;">
+        <div class="section-card">
+          <div class="section-head"><div class="section-label">Badge style</div></div>
+          <div class="section-body">
+            <div class="badge-type-grid">
+              <div class="badge-type-card selected" onclick="selectBadgeType(this)">
+                <div class="btc-check">✓</div>
+                <div class="btc-icon">⭐</div>
+                <div class="btc-name">Rating Badge</div>
+                <div class="btc-desc">Score, stars, and review count</div>
+              </div>
+              <div class="badge-type-card" onclick="selectBadgeType(this)">
+                <div class="btc-check">✓</div>
+                <div class="btc-icon">◉</div>
+                <div class="btc-name">Compact Badge</div>
+                <div class="btc-desc">Inline mini badge for headers</div>
+              </div>
+              <div class="badge-type-card" onclick="selectBadgeType(this)">
+                <div class="btc-check">✓</div>
+                <div class="btc-icon">✍️</div>
+                <div class="btc-name">Review CTA Badge</div>
+                <div class="btc-desc">Rating + Write a Review button</div>
+              </div>
+              <div class="badge-type-card" onclick="selectBadgeType(this)">
+                <div class="btc-check">✓</div>
+                <div class="btc-icon">🏅</div>
+                <div class="btc-name">Trust Badge</div>
+                <div class="btc-desc">Horizontal trust signal strip</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="section-card">
+          <div class="section-head"><div class="section-label">Display settings</div></div>
+          <div class="toggle-row">
+            <div><div class="tr-label">Show review count</div></div>
+            <div class="tgl" onclick="this.classList.toggle('off')"><div class="knob"></div></div>
+          </div>
+          <div class="toggle-row">
+            <div><div class="tr-label">Link to Google reviews</div></div>
+            <div class="tgl" onclick="this.classList.toggle('off')"><div class="knob"></div></div>
+          </div>
+          <div class="toggle-row">
+            <div><div class="tr-label">Dark theme</div></div>
+            <div class="tgl off" onclick="this.classList.toggle('off')"><div class="knob"></div></div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /left-scroll -->
+
+    <!-- STICKY FOOTER -->
+    <div class="left-footer">
+      <button class="btn-save">Save changes</button>
+      <button class="btn-publish" onclick="document.getElementById('drawer').classList.add('open')">🚀 Publish Widget</button>
+    </div>
+  </div><!-- /left-panel -->
+
+  <!-- RIGHT PANEL -->
+  <div class="right-panel">
+    <div class="preview-toolbar">
+      <div class="preview-label">Live Preview</div>
+      <div class="device-toggle">
+        <button class="dt-btn active" onclick="setDevice('desktop', this)">🖥 Desktop</button>
+        <button class="dt-btn" onclick="setDevice('mobile', this)">📱 Mobile</button>
+      </div>
+    </div>
+
+    <div class="preview-frame" id="preview-frame">
+      <div class="browser-bar">
+        <div class="b-dot" style="background:#ef4444"></div>
+        <div class="b-dot" style="background:#f59e0b"></div>
+        <div class="b-dot" style="background:#22c55e"></div>
+        <div class="b-url">yourwebsite.com</div>
+      </div>
+      <div class="preview-body" id="preview-body">
+        <!-- Populated by JS -->
+      </div>
+    </div>
+  </div>
+
+</div><!-- /body -->
+
+<!-- PUBLISH DRAWER -->
+<div class="drawer-overlay" id="drawer" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="drawer">
+    <div class="drawer-handle"></div>
+    <div class="drawer-title">🚀 Publish Widget</div>
+    <div class="drawer-sub">Choose your platform for tailored install instructions, then copy the embed code.</div>
+
+    <div class="install-title" style="margin-bottom: 10px;">Select platform</div>
+    <div class="platform-row">
+      <div class="pf-btn selected" onclick="selectPlatform(this, 'wordpress')"><div class="pf-icon">🔷</div><div class="pf-name">WordPress</div></div>
+      <div class="pf-btn" onclick="selectPlatform(this, 'shopify')"><div class="pf-icon">🛍</div><div class="pf-name">Shopify</div></div>
+      <div class="pf-btn" onclick="selectPlatform(this, 'webflow')"><div class="pf-icon">🌊</div><div class="pf-name">Webflow</div></div>
+      <div class="pf-btn" onclick="selectPlatform(this, 'squarespace')"><div class="pf-icon">🟦</div><div class="pf-name">Squarespace</div></div>
+      <div class="pf-btn" onclick="selectPlatform(this, 'wix')"><div class="pf-icon">◼️</div><div class="pf-name">Wix</div></div>
+      <div class="pf-btn" onclick="selectPlatform(this, 'html')"><div class="pf-icon">🔧</div><div class="pf-name">Custom HTML</div></div>
+    </div>
+
+    <div class="install-title">Embed code</div>
+    <div class="code-block">
+      <button class="copy-btn" onclick="this.textContent='Copied!'; setTimeout(()=>this.textContent='Copy',1500)">Copy</button>
+      <span style="color:#94a3b8">&lt;div</span> <span style="color:#fcd34d">id</span>=<span style="color:#86efac">"why-reviews-widget"</span><span style="color:#94a3b8">&gt;&lt;/div&gt;</span><br>
+      <span style="color:#94a3b8">&lt;script</span><br>
+      &nbsp;&nbsp;<span style="color:#fcd34d">src</span>=<span style="color:#86efac">"https://app.wehearyou.co/embed/widget.js"</span><br>
+      &nbsp;&nbsp;<span style="color:#fcd34d">data-token</span>=<span style="color:#86efac">"wg_abc123def456"</span><br>
+      &nbsp;&nbsp;<span style="color:#fcd34d">data-layout</span>=<span style="color:#86efac">"masonry"</span><br>
+      &nbsp;&nbsp;<span style="color:#fcd34d">data-theme</span>=<span style="color:#86efac">"light"</span><br>
+      <span style="color:#94a3b8">&gt;&lt;/script&gt;</span>
+    </div>
+
+    <div class="install-title" id="platform-title">WordPress installation</div>
+    <div id="platform-steps">
+      <div class="step"><div class="step-n">1</div><div class="step-t">In your WordPress editor, add a <strong>Custom HTML</strong> block where you want the widget to appear.</div></div>
+      <div class="step"><div class="step-n">2</div><div class="step-t">Paste the embed code above into the HTML block.</div></div>
+      <div class="step"><div class="step-n">3</div><div class="step-t">Click <strong>Update</strong> or <strong>Publish</strong> to save. The widget appears on your live site within seconds.</div></div>
+    </div>
+    <div class="tip-box">💡 <strong>Tip:</strong> Setting changes apply automatically — you won't need to re-paste the embed code unless you regenerate your widget token.</div>
+
+    <div class="drawer-actions">
+      <button class="drawer-close" onclick="document.getElementById('drawer').classList.remove('open')">Close</button>
+      <button class="drawer-open-preview">Open widget preview →</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// === STATE ===
+let currentType = 'wol';
+let currentMode = 'text'; // text | video | mixed
+let currentLayout = 'masonry';
+
+// === LAYOUT OPTIONS ===
+const layouts = {
+  text: [
+    { id: 'masonry', name: 'Masonry', preview: 'masonry-text' },
+    { id: 'carousel', name: 'Carousel Slider', preview: 'carousel-text' },
+    { id: 'grid', name: 'Grid', preview: 'grid-text' },
+    { id: 'list', name: 'List', preview: 'list-text' },
+  ],
+  video: [
+    { id: 'video-grid', name: 'Video Grid', preview: 'grid-video' },
+    { id: 'video-carousel', name: 'Video Carousel', preview: 'carousel-video' },
+    { id: 'featured-video', name: 'Featured Video', preview: 'featured-video' },
+    { id: 'video-wall', name: 'Video Wall', preview: 'wall-video' },
+  ],
+  mixed: [
+    { id: 'mixed-masonry', name: 'Mixed Masonry', preview: 'masonry-mixed' },
+    { id: 'featured-video-reviews', name: 'Featured + Reviews', preview: 'featured-mixed' },
+    { id: 'mixed-carousel', name: 'Mixed Carousel', preview: 'carousel-mixed' },
+    { id: 'tabs', name: 'Tabbed View', preview: 'tabs-mixed' },
+  ],
+};
+
+// === LAYOUT PREVIEW MINIATURES ===
+function renderLayoutMini(previewId) {
+  const s = `<div class="mc" style="flex:1"><div class="mc-stars">★★★★★</div><div style="font-size:6px;color:#64748b;">Great!</div></div>`;
+  const m = `<div class="mv" style="flex:1;height:40px"><div class="mv-play">▶</div></div>`;
+
+  const map = {
+    'masonry-text': `<div style="display:grid;grid-template-columns:1fr 1fr;gap:3px;width:100%">
+      <div class="mc" style="grid-row:span 2"><div class="mc-stars">★★★★★</div><div style="font-size:6px;color:#64748b;line-height:1.3">Great experience! Really helpful team.</div></div>
+      <div class="mc"><div class="mc-stars">★★★★★</div><div style="font-size:6px;color:#64748b">Amazing!</div></div>
+      <div class="mc"><div class="mc-stars">★★★★</div><div style="font-size:6px;color:#64748b">Lovely.</div></div>
+    </div>`,
+    'carousel-text': `<div style="display:flex;align-items:center;gap:4px;width:100%">
+      <span style="color:#94a3b8;font-size:14px;font-weight:700">‹</span>
+      <div class="mc" style="flex:1"><div class="mc-stars">★★★★★</div><div style="font-size:6px;color:#64748b">The best coffee shop in town! Team is amazing.</div></div>
+      <span style="color:#94a3b8;font-size:14px;font-weight:700">›</span>
+    </div>`,
+    'grid-text': `<div style="display:grid;grid-template-columns:1fr 1fr;gap:3px;width:100%">
+      ${[1,2,3,4].map(()=>`<div class="mc"><div class="mc-stars">★★★★★</div><div style="font-size:6px;color:#64748b">Great!</div></div>`).join('')}
+    </div>`,
+    'list-text': `<div style="display:flex;flex-direction:column;gap:3px;width:100%">
+      ${[1,2,3].map(()=>`<div class="mc" style="width:100%"><div class="mc-stars">★★★★★</div><div style="font-size:6px;color:#64748b">Great service overall!</div></div>`).join('')}
+    </div>`,
+    'grid-video': `<div style="display:grid;grid-template-columns:1fr 1fr;gap:3px;width:100%">
+      ${[1,2,3,4].map(()=>`<div class="mv" style="height:30px;width:100%"><div class="mv-play">▶</div></div>`).join('')}
+    </div>`,
+    'carousel-video': `<div style="display:flex;align-items:center;gap:4px;width:100%">
+      <span style="color:#94a3b8;font-size:14px;font-weight:700">‹</span>
+      <div class="mv" style="flex:1;height:44px"><div class="mv-play">▶</div></div>
+      <span style="color:#94a3b8;font-size:14px;font-weight:700">›</span>
+    </div>`,
+    'featured-video': `<div style="display:flex;flex-direction:column;gap:3px;width:100%">
+      <div class="mv" style="width:100%;height:36px"><div class="mv-play" style="width:18px;height:18px">▶</div></div>
+      <div style="font-size:7px;font-weight:700;color:#0f172a">Alex Rivera</div>
+      <div style="font-size:7px;color:#64748b">Great place, loved it!</div>
+    </div>`,
+    'wall-video': `<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:3px;width:100%">
+      ${[1,2,3,4,5,6].map(()=>`<div class="mv" style="height:22px;width:100%"><div class="mv-play" style="width:10px;height:10px;font-size:5px">▶</div></div>`).join('')}
+    </div>`,
+    'masonry-mixed': `<div style="display:grid;grid-template-columns:1fr 1fr;gap:3px;width:100%">
+      <div class="mv" style="height:36px;width:100%"><div class="mv-play">▶</div></div>
+      <div class="mc"><div class="mc-stars">★★★★★</div><div style="font-size:6px;color:#64748b">Amazing!</div></div>
+      <div class="mc"><div class="mc-stars">★★★★★</div><div style="font-size:6px;color:#64748b">Great!</div></div>
+      <div class="mv" style="height:36px;width:100%"><div class="mv-play">▶</div></div>
+    </div>`,
+    'featured-mixed': `<div style="display:flex;flex-direction:column;gap:3px;width:100%">
+      <div class="mv" style="width:100%;height:28px"><div class="mv-play">▶</div></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:3px">
+        <div class="mc"><div class="mc-stars">★★★★★</div><div style="font-size:6px;color:#64748b">Great!</div></div>
+        <div class="mc"><div class="mc-stars">★★★★</div><div style="font-size:6px;color:#64748b">Nice!</div></div>
+      </div>
+    </div>`,
+    'carousel-mixed': `<div style="display:flex;align-items:center;gap:4px;width:100%">
+      <span style="color:#94a3b8;font-size:14px;font-weight:700">‹</span>
+      <div style="flex:1;display:flex;gap:3px">
+        <div class="mv" style="flex:1;height:40px"><div class="mv-play">▶</div></div>
+        <div class="mc" style="flex:1"><div class="mc-stars">★★★★★</div><div style="font-size:6px;color:#64748b">Great!</div></div>
+      </div>
+      <span style="color:#94a3b8;font-size:14px;font-weight:700">›</span>
+    </div>`,
+    'tabs-mixed': `<div style="width:100%">
+      <div style="display:flex;gap:4px;margin-bottom:4px">
+        <div style="background:#eef2ff;border:1px solid #c7d2fe;border-radius:4px;padding:2px 6px;font-size:7px;font-weight:700;color:#6366f1">Reviews</div>
+        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:4px;padding:2px 6px;font-size:7px;color:#94a3b8">Videos</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:3px">
+        <div class="mc"><div class="mc-stars">★★★★★</div><div style="font-size:6px;color:#64748b">Great!</div></div>
+        <div class="mc"><div class="mc-stars">★★★★</div><div style="font-size:6px;color:#64748b">Loved it!</div></div>
+      </div>
+    </div>`,
+  };
+  return map[previewId] || `<div style="font-size:10px;color:#94a3b8">Preview</div>`;
+}
+
+function renderLayouts() {
+  const grid = document.getElementById('layout-grid');
+  const label = document.getElementById('layout-section-label');
+  const modeNames = { text: 'Text Reviews', video: 'Video Testimonials', mixed: 'Reviews + Videos' };
+  label.textContent = `Layout — ${modeNames[currentMode]}`;
+
+  const opts = layouts[currentMode];
+  if (!opts) { grid.innerHTML = ''; return; }
+
+  // Reset layout selection to first option when mode changes
+  if (!opts.find(o => o.id === currentLayout)) {
+    currentLayout = opts[0].id;
+  }
+
+  grid.innerHTML = opts.map(opt => `
+    <div class="layout-card ${opt.id === currentLayout ? 'selected' : ''}" onclick="selectLayout('${opt.id}', this)">
+      <div class="lc-check">✓ Selected</div>
+      <div class="layout-preview">${renderLayoutMini(opt.preview)}</div>
+      <div class="layout-name">${opt.name}</div>
+    </div>
+  `).join('');
+}
+
+function selectLayout(id, el) {
+  currentLayout = id;
+  document.querySelectorAll('#layout-grid .layout-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  renderPreview();
+}
+
+// === PREVIEW ===
+function renderPreview() {
+  const body = document.getElementById('preview-body');
+
+  if (currentType === 'badge') {
+    body.innerHTML = `
+      <div class="widget-title">Our ratings</div>
+      <div class="badge-preview">
+        <div class="badge-card">
+          <div class="badge-google">G</div>
+          <div style="font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px">Google Reviews</div>
+          <div class="badge-rating">4.9</div>
+          <div class="badge-stars">★★★★★</div>
+          <div class="badge-count">Based on 84 reviews</div>
+          <div class="badge-cta">Write a review →</div>
+        </div>
+      </div>
+      <div class="wby-branding">Powered by WeHearYou</div>`;
+    return;
+  }
+
+  if (currentType === 'single') {
+    body.innerHTML = `
+      <div class="widget-title">What our customers say</div>
+      <div style="max-width: 420px; margin: 0 auto;">
+        <div class="vc">
+          <div class="vc-thumb">
+            <div class="vc-play-btn">▶</div>
+            <div class="vc-duration">0:42</div>
+          </div>
+          <div class="vc-info">
+            <div class="vc-name">Alex Rivera</div>
+            <div class="vc-caption">"This place changed how I think about coffee. The team is incredibly welcoming."</div>
+          </div>
+        </div>
+      </div>
+      <div class="wby-branding">Powered by WeHearYou</div>`;
+    return;
+  }
+
+  // Wall of Love
+  const header = `
+    <div class="widget-title">What our customers say</div>
+    <div class="rating-bar">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style="flex-shrink:0"><text x="1" y="17" font-size="16" font-weight="bold" fill="#4285f4">G</text></svg>
+      <span class="rb-stars">★★★★★</span>
+      <span class="rb-num">4.9</span>
+      <span class="rb-count">· 84 Google reviews</span>
+    </div>`;
+
+  const reviews = [
+    { name: 'Sarah Johnson', initials: 'S', color: '#6366f1', text: 'Absolutely fantastic! The team went above and beyond.', stars: 5, date: '3 days ago' },
+    { name: 'Michael Chen', initials: 'M', color: '#10b981', text: 'Great experience start to finish. Professional and reliable.', stars: 5, date: '1 week ago' },
+    { name: 'Emily Rodriguez', initials: 'E', color: '#f59e0b', text: 'Very satisfied. Quick turnaround and excellent communication throughout.', stars: 4, date: '2 weeks ago' },
+    { name: 'David Thompson', initials: 'D', color: '#8b5cf6', text: 'Best in the business. Highly recommend.', stars: 5, date: '1 month ago' },
+    { name: 'Jessica M.', initials: 'J', color: '#ec4899', text: 'Outstanding customer service. They really care.', stars: 5, date: '1 month ago' },
+    { name: 'Robert Kim', initials: 'R', color: '#0ea5e9', text: 'Came back for the third time — never disappointed!', stars: 5, date: '2 months ago' },
+  ];
+
+  const videos = [
+    { name: 'Alex Rivera', duration: '0:42', caption: '"Changed how I think about coffee."' },
+    { name: 'Priya Patel', duration: '1:05', caption: '"The team is so welcoming and helpful."' },
+  ];
+
+  function rcHtml(r) {
+    return `<div class="rc">
+      <div class="rc-stars">${'★'.repeat(r.stars)}${'☆'.repeat(5-r.stars)}</div>
+      <div class="rc-text">${r.text}</div>
+      <div class="rc-meta">
+        <div class="rc-avatar" style="background:${r.color}">${r.initials}</div>
+        <div><div class="rc-name">${r.name}</div><div class="rc-date">${r.date}</div></div>
+      </div>
+    </div>`;
+  }
+
+  function vcHtml(v) {
+    return `<div class="vc">
+      <div class="vc-thumb">
+        <div class="vc-play-btn">▶</div>
+        <div class="vc-duration">${v.duration}</div>
+      </div>
+      <div class="vc-info">
+        <div class="vc-name">${v.name}</div>
+        <div class="vc-caption">${v.caption}</div>
+      </div>
+    </div>`;
+  }
+
+  const branding = `<div class="wby-branding">Powered by WeHearYou</div>`;
+
+  if (currentMode === 'text') {
+    body.innerHTML = header + `<div class="preview-masonry">${reviews.map(rcHtml).join('')}</div>` + branding;
+  } else if (currentMode === 'video') {
+    body.innerHTML = header + `<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">${videos.map(vcHtml).join('')}</div>` + branding;
+  } else if (currentMode === 'mixed') {
+    body.innerHTML = header + `
+      <div class="mixed-preview">
+        <div class="mixed-videos">${videos.map(vcHtml).join('')}</div>
+        <div style="font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.1em;margin: 4px 0 8px;">Written reviews</div>
+        <div class="mixed-reviews">${reviews.slice(0,3).map(rcHtml).join('')}</div>
+      </div>` + branding;
+  }
+}
+
+// === TYPE SWITCHING ===
+function switchType(type, el) {
+  currentType = type;
+  // Update tabs
+  document.querySelectorAll('.type-tab:not(.disabled)').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  // Show/hide panels
+  document.getElementById('panel-wol').style.display = type === 'wol' ? '' : 'none';
+  document.getElementById('panel-single').style.display = type === 'single' ? '' : 'none';
+  document.getElementById('panel-badge').style.display = type === 'badge' ? '' : 'none';
+  // Update preview
+  renderPreview();
+}
+
+// === MODE SWITCHING ===
+function switchMode(mode, el) {
+  currentMode = mode;
+  document.querySelectorAll('.mode-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  renderLayouts();
+  renderPreview();
+}
+
+// === SINGLE TYPE ===
+function selectSingleType(type, el) {
+  document.querySelectorAll('#panel-single .mode-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  const label = document.querySelector('#single-picker .section-label');
+  label.textContent = type === 'video' ? 'Select video' : 'Select review';
+  renderPreview();
+}
+
+// === BADGE TYPE ===
+function selectBadgeType(el) {
+  document.querySelectorAll('.badge-type-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+// === DEVICE TOGGLE ===
+function setDevice(device, el) {
+  document.querySelectorAll('.dt-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  const frame = document.getElementById('preview-frame');
+  if (device === 'mobile') {
+    frame.style.maxWidth = '375px';
+    frame.style.margin = '0 auto';
+  } else {
+    frame.style.maxWidth = '';
+    frame.style.margin = '';
+  }
+}
+
+// === PLATFORM ===
+const platformSteps = {
+  wordpress: {
+    title: 'WordPress installation',
+    steps: [
+      'In your WordPress editor, add a <strong>Custom HTML</strong> block where you want the widget to appear.',
+      'Paste the embed code above into the HTML block.',
+      'Click <strong>Update</strong> or <strong>Publish</strong>. The widget appears within seconds.'
+    ]
+  },
+  shopify: {
+    title: 'Shopify installation',
+    steps: [
+      'Go to <strong>Online Store → Themes → Edit code</strong>.',
+      'Open the template file for the page where you want the widget (e.g., <code>index.liquid</code>).',
+      'Paste the embed code and save.'
+    ]
+  },
+  webflow: {
+    title: 'Webflow installation',
+    steps: [
+      'In your Webflow project, add an <strong>Embed</strong> element to the canvas.',
+      'Paste the embed code into the embed block.',
+      'Publish your site.'
+    ]
+  },
+  squarespace: {
+    title: 'Squarespace installation',
+    steps: [
+      'Edit your page and add a <strong>Code Block</strong>.',
+      'Paste the embed code into the code block.',
+      'Save and publish your changes.'
+    ]
+  },
+  wix: {
+    title: 'Wix installation',
+    steps: [
+      'In the Wix Editor, add an <strong>HTML iframe</strong> element.',
+      'Click <strong>Enter Code</strong> and paste the embed code.',
+      'Save and publish your site.'
+    ]
+  },
+  html: {
+    title: 'Custom HTML installation',
+    steps: [
+      'Copy the embed code above.',
+      'Paste it into your HTML at the location where you want the widget to appear.',
+      'Deploy or save your changes.'
+    ]
+  }
+};
+
+function selectPlatform(el, id) {
+  document.querySelectorAll('.pf-btn').forEach(b => b.classList.remove('selected'));
+  el.classList.add('selected');
+  const data = platformSteps[id];
+  document.getElementById('platform-title').textContent = data.title;
+  document.getElementById('platform-steps').innerHTML = data.steps
+    .map((s, i) => `<div class="step"><div class="step-n">${i+1}</div><div class="step-t">${s}</div></div>`)
+    .join('');
+}
+
+// === INIT ===
+renderLayouts();
+renderPreview();
+</script>
+</body>
+</html>
