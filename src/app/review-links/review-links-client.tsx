@@ -156,11 +156,12 @@ function AnalyticsTab({ slug }: { slug: string }) {
   }>(null);
 
   useEffect(() => {
-    setData(null);
+    let cancelled = false;
     fetch(`/api/review-links/${slug}/analytics?range=${range}`)
       .then((r) => r.json())
-      .then(setData)
+      .then((result) => { if (!cancelled) setData(result); })
       .catch(() => {});
+    return () => { cancelled = true; setData(null); };
   }, [slug, range]);
 
   return (
