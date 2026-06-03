@@ -108,7 +108,7 @@ export async function AppShell({
                             return (
                               <div
                                 key={item.key}
-                                className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left text-sm font-medium opacity-40 cursor-not-allowed"
+                                className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left text-sm font-medium text-white opacity-40 cursor-not-allowed"
                               >
                                 <span className="text-base">{item.icon}</span>
                                 <span>{item.label}</span>
