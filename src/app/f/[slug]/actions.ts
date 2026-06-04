@@ -19,15 +19,17 @@ export async function submitPublicFunnelRating(formData: FormData) {
   const feedback = String(formData.get("feedback") ?? "").trim();
   const name = String(formData.get("name") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim();
+  const embed = formData.get("embed") === "1";
+  const embedSuffix = embed ? "&embed=1" : "";
 
   if (!slug || !Number.isInteger(ratingValue) || ratingValue < 1 || ratingValue > 5) {
-    redirect(`/f/${slug}?error=invalid_rating`);
+    redirect(`/f/${slug}?error=invalid_rating${embedSuffix}`);
   }
 
   const location = await getLocationBySlug(slug);
 
   if (!location) {
-    redirect(`/f/${slug}?error=missing_location`);
+    redirect(`/f/${slug}?error=missing_location${embedSuffix}`);
   }
 
   const profile = location.publicProfile;
@@ -50,16 +52,16 @@ export async function submitPublicFunnelRating(formData: FormData) {
         reviewedAt: new Date(),
       },
     });
-    redirect(`/f/${slug}/thanks?rating=${ratingValue}&mode=private`);
+    redirect(`/f/${slug}/thanks?rating=${ratingValue}&mode=private${embedSuffix}`);
   }
 
   // High ratings (at or above threshold) go to public review handoff
   if (ratingValue >= threshold) {
-    redirect(`/f/${slug}/thanks?rating=${ratingValue}`);
+    redirect(`/f/${slug}/thanks?rating=${ratingValue}${embedSuffix}`);
   }
 
   // Low rating with no feedback submitted — redirect to standalone feedback page
-  redirect(`/f/${slug}/feedback?rating=${ratingValue}`);
+  redirect(`/f/${slug}/feedback?rating=${ratingValue}${embedSuffix}`);
 }
 
 export async function submitPublicPrivateFeedback(formData: FormData) {
@@ -67,15 +69,17 @@ export async function submitPublicPrivateFeedback(formData: FormData) {
   const ratingValue = Number(formData.get("rating"));
   const feedback = String(formData.get("feedback") ?? "").trim();
   const contact = String(formData.get("contact") ?? "").trim();
+  const embed = formData.get("embed") === "1";
+  const embedSuffix = embed ? "&embed=1" : "";
 
   if (!slug || !Number.isInteger(ratingValue) || ratingValue < 1 || ratingValue > 5 || !feedback) {
-    redirect(`/f/${slug}/feedback?rating=${ratingValue || ""}&error=invalid_feedback`);
+    redirect(`/f/${slug}/feedback?rating=${ratingValue || ""}${embedSuffix}&error=invalid_feedback`);
   }
 
   const location = await getLocationBySlug(slug);
 
   if (!location) {
-    redirect(`/f/${slug}?error=missing_location`);
+    redirect(`/f/${slug}?error=missing_location${embedSuffix}`);
   }
 
   await prisma.review.create({
@@ -91,7 +95,7 @@ export async function submitPublicPrivateFeedback(formData: FormData) {
     },
   });
 
-  redirect(`/f/${slug}/thanks?rating=${ratingValue}&mode=private`);
+  redirect(`/f/${slug}/thanks?rating=${ratingValue}&mode=private${embedSuffix}`);
 }
 
 export async function getPublicFunnelThanksData(slug: string) {

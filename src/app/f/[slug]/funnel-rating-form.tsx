@@ -12,6 +12,7 @@ export function FunnelRatingForm({
   filterThreshold = 4,
   ratingMode = "stars",
   ratingOptions,
+  embed = false,
 }: {
   slug: string;
   submitAction: (formData: FormData) => Promise<void>;
@@ -20,6 +21,7 @@ export function FunnelRatingForm({
   filterThreshold?: number;
   ratingMode?: "stars" | "faces" | "thumbs";
   ratingOptions?: readonly RatingOption[];
+  embed?: boolean;
 }) {
   const [selectedRating, setSelectedRating] = useState<number | null>(null);
   const [hoverRating, setHoverRating] = useState<number | null>(null);
@@ -48,6 +50,7 @@ export function FunnelRatingForm({
     if (feedbackText) formData.append("feedback", feedbackText);
     if (nameText) formData.append("name", nameText);
     if (emailText) formData.append("email", emailText);
+    if (embed) formData.append("embed", "1");
     await submitAction(formData);
   };
 
