@@ -327,14 +327,14 @@ const script = `
   function renderVideoCard(vt) {
     var dur = formatDuration(vt.durationSeconds);
     var name = escapeHtml(vt.submitterName || "Anonymous");
-    return "<div class=\"why-video-card\" data-video-url=\"" + escapeHtml(vt.videoUrl) + "\">" +
-      "<div class=\"why-video-thumb\">" +
-        "<video src=\"" + escapeHtml(vt.videoUrl) + "#t=0.001\" preload=\"metadata\" muted playsinline style=\"width:100%;height:100%;object-fit:cover\"></video>" +
-        "<div class=\"why-video-play\">▶</div>" +
-        (dur ? "<div class=\"why-video-duration\">" + escapeHtml(dur) + "</div>" : "") +
-      "</div>" +
-      "<div class=\"why-video-info\"><div class=\"why-video-name\">" + name + "</div></div>" +
-    "</div>";
+    return '<div class="why-video-card" data-video-url="' + escapeHtml(vt.videoUrl) + '">' +
+      '<div class="why-video-thumb">' +
+        '<video src="' + escapeHtml(vt.videoUrl) + '#t=0.001" preload="metadata" muted playsinline style="width:100%;height:100%;object-fit:cover"></video>' +
+        '<div class="why-video-play">&#9658;</div>' +
+        (dur ? '<div class="why-video-duration">' + escapeHtml(dur) + '</div>' : '') +
+      '</div>' +
+      '<div class="why-video-info"><div class="why-video-name">' + name + '</div></div>' +
+    '</div>';
   }
 
   function openVideoLightbox(url) {
