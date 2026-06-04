@@ -562,6 +562,13 @@ model ReviewWidget {
   showSourceLogo             Boolean  @default(true)
   badgeStyle                 String?
 
+  // Collecting Widget
+  collectDisplayFreq         String?   // "always" | "50pct" | "33pct"
+  collectButtonColor         String?   // hex override; null = inherit primaryColor
+  collectButtonTheme         String?   // "default" | "minimal" | "branded"
+  collectMobileBehavior      String?   // "pill" | "hidden"
+  collectButtonPosition      String?   // "left" | "right" | "bottom-left" | "bottom-right"
+
   customCss        String?
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
