@@ -57,6 +57,11 @@ type ReviewWidgetPreviewProps = {
   isMobile?: boolean;
   singleItemUnavailable?: boolean;
   badgeStyle?: string | null;
+  // Collecting Widget
+  collectPosition?: string | null;
+  collectButtonColor?: string | null;
+  collectButtonTheme?: string | null;
+  collectMobileBehavior?: string | null;
 };
 
 const FONT_STACKS: Record<string, string> = {
@@ -846,6 +851,102 @@ function TabbedLayout({
   );
 }
 
+// ─── Collecting Widget Preview ────────────────────────────────────────────────
+
+function CollectingWidgetPreview({
+  position,
+  theme,
+  color,
+  mobileBehavior,
+  isMobile,
+}: {
+  position: string;
+  theme: string;
+  color: string;
+  mobileBehavior: string;
+  isMobile?: boolean;
+}) {
+  const effectiveColor = color || "#4338ca";
+  const isTab = position === "left" || position === "right";
+  const hidden = isMobile && mobileBehavior === "hidden";
+
+  const btnStyle: React.CSSProperties =
+    theme === "minimal"
+      ? { background: "transparent", border: `2px solid ${effectiveColor}`, color: effectiveColor }
+      : { background: effectiveColor, border: "none", color: "#fff" };
+
+  const positionClass: Record<string, string> = {
+    "bottom-right": "bottom-3 right-3",
+    "bottom-left": "bottom-3 left-3",
+    right: "right-0 top-1/2 -translate-y-1/2",
+    left: "left-0 top-1/2 -translate-y-1/2",
+  };
+
+  return (
+    <div
+      className="relative overflow-hidden rounded-xl border border-slate-200 bg-slate-100"
+      style={{ minHeight: 220, fontFamily: "system-ui, sans-serif" }}
+    >
+      {/* Mock page content lines */}
+      <div className="p-4 space-y-2">
+        <div className="h-3 w-3/4 rounded bg-slate-200" />
+        <div className="h-2 w-full rounded bg-slate-200" />
+        <div className="h-2 w-5/6 rounded bg-slate-200" />
+        <div className="h-2 w-4/6 rounded bg-slate-200" />
+        <div className="mt-4 h-2 w-full rounded bg-slate-200" />
+        <div className="h-2 w-5/6 rounded bg-slate-200" />
+        <div className="h-2 w-3/4 rounded bg-slate-200" />
+      </div>
+
+      {/* Floating button */}
+      {!hidden ? (
+        <div className={`absolute ${positionClass[position] ?? positionClass["bottom-right"]}`}>
+          {isTab ? (
+            <div
+              style={{
+                ...btnStyle,
+                writingMode: "vertical-rl" as const,
+                padding: "10px 8px",
+                borderRadius: position === "right" ? "8px 0 0 8px" : "0 8px 8px 0",
+                fontSize: 11,
+                fontWeight: 700,
+                cursor: "pointer",
+                boxShadow: "0 2px 8px rgba(0,0,0,.15)",
+                userSelect: "none",
+              }}
+            >
+              Share Feedback
+            </div>
+          ) : (
+            <div
+              style={{
+                ...btnStyle,
+                padding: "10px 16px",
+                borderRadius: 999,
+                fontSize: 12,
+                fontWeight: 700,
+                cursor: "pointer",
+                boxShadow: "0 4px 12px rgba(0,0,0,.2)",
+                whiteSpace: "nowrap",
+                userSelect: "none",
+              }}
+            >
+              Share Feedback
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="absolute bottom-3 right-3 text-[10px] text-slate-400 italic">Hidden on mobile</div>
+      )}
+
+      {/* Preview label */}
+      <div className="absolute top-2 left-2 text-[9px] font-bold uppercase tracking-wider text-slate-400 bg-white rounded px-1.5 py-0.5 border border-slate-200">
+        Preview
+      </div>
+    </div>
+  );
+}
+
 // ─── Main Export ──────────────────────────────────────────────────────────────
 
 export function ReviewWidgetPreview({
@@ -883,7 +984,23 @@ export function ReviewWidgetPreview({
   isMobile = false,
   singleItemUnavailable,
   badgeStyle,
+  collectPosition,
+  collectButtonColor,
+  collectButtonTheme,
+  collectMobileBehavior,
 }: ReviewWidgetPreviewProps) {
+  if (widgetType === "COLLECTING") {
+    return (
+      <CollectingWidgetPreview
+        position={collectPosition ?? "bottom-right"}
+        theme={collectButtonTheme ?? "default"}
+        color={collectButtonColor ?? primaryColor ?? "#4338ca"}
+        mobileBehavior={collectMobileBehavior ?? "pill"}
+        isMobile={isMobile}
+      />
+    );
+  }
+
   const mutedColor = "#475569";
   const safeVideos = videoTestimonials ?? [];
   const hasVideos = safeVideos.length > 0;

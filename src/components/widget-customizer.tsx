@@ -296,6 +296,23 @@ export function WidgetCustomizer({
     widget.contentType === "VIDEO" ? "video" : "text",
   );
 
+  // Collecting Widget state
+  const [collectPosition, setCollectPosition] = useState<string>(
+    (widget as { collectButtonPosition?: string | null }).collectButtonPosition ?? "bottom-right",
+  );
+  const [collectFreq, setCollectFreq] = useState<string>(
+    (widget as { collectDisplayFreq?: string | null }).collectDisplayFreq ?? "always",
+  );
+  const [collectTheme, setCollectTheme] = useState<string>(
+    (widget as { collectButtonTheme?: string | null }).collectButtonTheme ?? "default",
+  );
+  const [collectButtonColor, setCollectButtonColor] = useState<string | null>(
+    (widget as { collectButtonColor?: string | null }).collectButtonColor ?? null,
+  );
+  const [collectMobileBehavior, setCollectMobileBehavior] = useState<string>(
+    (widget as { collectMobileBehavior?: string | null }).collectMobileBehavior ?? "pill",
+  );
+
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [isMobile, setIsMobile] = useState(false);
   const [showPublishDrawer, setShowPublishDrawer] = useState(false);
@@ -380,6 +397,11 @@ export function WidgetCustomizer({
         formData.append("singleTestimonialReviewId", singleTestimonialReviewId);
       }
     }
+    formData.append("collectDisplayFreq", collectFreq);
+    formData.append("collectButtonTheme", collectTheme);
+    formData.append("collectButtonColor", collectButtonColor ?? "");
+    formData.append("collectMobileBehavior", collectMobileBehavior);
+    formData.append("collectButtonPosition", collectPosition);
     try {
       await updateReviewWidget(formData);
       setSaveState("saved");
@@ -433,11 +455,12 @@ export function WidgetCustomizer({
 
       {/* WIDGET TYPE TABS */}
       <div className="flex border-b border-slate-200 overflow-x-auto">
-        {(["WALL_OF_LOVE", "SINGLE_TESTIMONIAL", "BADGE"] as WidgetTypeKey[]).map((type) => {
+        {(["WALL_OF_LOVE", "SINGLE_TESTIMONIAL", "BADGE", "COLLECTING"] as WidgetTypeKey[]).map((type) => {
           const labels: Record<string, string> = {
             WALL_OF_LOVE: "🧱 Wall of Love",
             SINGLE_TESTIMONIAL: "✦ Single Testimonial",
             BADGE: "⭐ Badge",
+            COLLECTING: "📥 Collecting Widget",
           };
           return (
             <button
@@ -457,15 +480,6 @@ export function WidgetCustomizer({
             </button>
           );
         })}
-        <div className="relative group flex-shrink-0 px-5 py-3 text-sm font-semibold text-slate-300 cursor-default select-none">
-          📥 Collecting Widget
-          <span className="ml-1.5 text-[10px] bg-slate-100 text-slate-400 px-1.5 py-0.5 rounded-full font-bold uppercase">
-            Soon
-          </span>
-          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block bg-slate-800 text-white text-xs rounded-lg px-3 py-2 w-56 text-center z-10 shadow-lg pointer-events-none">
-            Collect reviews and testimonials directly from your website. Coming soon.
-          </div>
-        </div>
       </div>
 
       {/* MAIN LAYOUT */}
@@ -757,6 +771,193 @@ export function WidgetCustomizer({
             </>
           )}
 
+          {/* ── COLLECTING WIDGET ─────────────────────────────────────────── */}
+          {widgetType === "COLLECTING" && (
+            <>
+              {/* Button Position */}
+              <SectionCard title="Button position">
+                <div className="p-3 grid grid-cols-2 gap-2">
+                  {(
+                    [
+                      { id: "bottom-right", icon: "↘", label: "Bottom Right", desc: "Floating pill" },
+                      { id: "bottom-left", icon: "↙", label: "Bottom Left", desc: "Floating pill" },
+                      { id: "right", icon: "→", label: "Right Tab", desc: "Vertical side tab" },
+                      { id: "left", icon: "←", label: "Left Tab", desc: "Vertical side tab" },
+                    ] as const
+                  ).map(({ id, icon, label, desc }) => (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => { setCollectPosition(id); markUnsaved(); }}
+                      className={`relative flex flex-col items-center gap-1 rounded-xl border-2 p-3 text-center transition-all ${
+                        collectPosition === id
+                          ? "border-indigo-600 bg-indigo-50"
+                          : "border-slate-200 bg-white hover:border-slate-300"
+                      }`}
+                    >
+                      {collectPosition === id && (
+                        <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-indigo-600 rounded-full text-white text-[9px] font-bold flex items-center justify-center">✓</span>
+                      )}
+                      <span className="text-xl">{icon}</span>
+                      <span className="text-xs font-bold text-slate-900 leading-tight">{label}</span>
+                      <span className="text-[10px] text-slate-500 leading-tight">{desc}</span>
+                    </button>
+                  ))}
+                </div>
+              </SectionCard>
+
+              {/* Display Frequency */}
+              <SectionCard title="Display frequency">
+                <div className="p-3 flex flex-col gap-2">
+                  {(
+                    [
+                      { id: "always", label: "Always", desc: "Show to every visitor" },
+                      { id: "50pct", label: "50% of visitors", desc: "Show to half of sessions" },
+                      { id: "33pct", label: "33% of visitors", desc: "Show to one in three sessions" },
+                    ] as const
+                  ).map(({ id, label, desc }) => (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => { setCollectFreq(id); markUnsaved(); }}
+                      className={`flex items-center justify-between rounded-lg border-2 p-3 transition-all ${
+                        collectFreq === id
+                          ? "border-indigo-600 bg-indigo-50"
+                          : "border-slate-200 bg-white hover:border-slate-300"
+                      }`}
+                    >
+                      <div className="text-left">
+                        <p className="text-sm font-semibold text-slate-900">{label}</p>
+                        <p className="text-xs text-slate-500">{desc}</p>
+                      </div>
+                      {collectFreq === id && (
+                        <span className="text-xs font-bold text-indigo-600 bg-indigo-100 px-2 py-0.5 rounded-full flex-shrink-0">Selected</span>
+                      )}
+                    </button>
+                  ))}
+                  <p className="text-[11px] text-slate-400 px-1">Consistent per browser session using sessionStorage.</p>
+                </div>
+              </SectionCard>
+
+              {/* Button Style */}
+              <SectionCard title="Button style">
+                <div className="p-3 grid grid-cols-3 gap-2">
+                  {(
+                    [
+                      { id: "default", label: "Default", desc: "Solid filled" },
+                      { id: "minimal", label: "Minimal", desc: "Outlined border" },
+                      { id: "branded", label: "Branded", desc: "Bold brand color" },
+                    ] as const
+                  ).map(({ id, label, desc }) => (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => { setCollectTheme(id); markUnsaved(); }}
+                      className={`relative flex flex-col items-center gap-1 rounded-xl border-2 p-3 text-center transition-all ${
+                        collectTheme === id
+                          ? "border-indigo-600 bg-indigo-50"
+                          : "border-slate-200 bg-white hover:border-slate-300"
+                      }`}
+                    >
+                      {collectTheme === id && (
+                        <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-indigo-600 rounded-full text-white text-[9px] font-bold flex items-center justify-center">✓</span>
+                      )}
+                      <span className="text-xs font-bold text-slate-900">{label}</span>
+                      <span className="text-[10px] text-slate-500 leading-tight">{desc}</span>
+                    </button>
+                  ))}
+                </div>
+              </SectionCard>
+
+              {/* Button Color */}
+              <SectionCard title="Button color">
+                <div className="p-4 space-y-3">
+                  <button
+                    type="button"
+                    onClick={() => { setCollectButtonColor(null); markUnsaved(); }}
+                    className={`w-full flex items-center justify-between rounded-lg border-2 p-3 transition-all ${
+                      collectButtonColor === null
+                        ? "border-indigo-600 bg-indigo-50"
+                        : "border-slate-200 bg-white hover:border-slate-300"
+                    }`}
+                  >
+                    <div className="text-left">
+                      <p className="text-sm font-semibold text-slate-900">Inherit brand color</p>
+                      <p className="text-xs text-slate-500">Uses the widget&apos;s primary color</p>
+                    </div>
+                    {collectButtonColor === null && (
+                      <span className="text-xs font-bold text-indigo-600 bg-indigo-100 px-2 py-0.5 rounded-full flex-shrink-0">Active</span>
+                    )}
+                  </button>
+                  <div>
+                    <p className="text-xs font-bold text-slate-500 mb-1.5">Custom color override</p>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="color"
+                        value={collectButtonColor ?? widget.primaryColor ?? "#4338ca"}
+                        onChange={(e) => { setCollectButtonColor(e.target.value); markUnsaved(); }}
+                        className="w-10 h-10 rounded-lg border border-slate-200 cursor-pointer"
+                      />
+                      <input
+                        type="text"
+                        value={collectButtonColor ?? ""}
+                        onChange={(e) => {
+                          const v = e.target.value.trim();
+                          setCollectButtonColor(/^#[0-9a-fA-F]{6}$/.test(v) ? v : null);
+                          markUnsaved();
+                        }}
+                        placeholder="#4338ca"
+                        className="flex-1 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-mono"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </SectionCard>
+
+              {/* Mobile Behavior */}
+              <SectionCard title="Mobile behavior">
+                <div className="p-3 grid grid-cols-2 gap-2">
+                  {(
+                    [
+                      { id: "pill", label: "Show on mobile", desc: "Render as pill button" },
+                      { id: "hidden", label: "Hide on mobile", desc: "Don't render on small screens" },
+                    ] as const
+                  ).map(({ id, label, desc }) => (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => { setCollectMobileBehavior(id); markUnsaved(); }}
+                      className={`relative flex flex-col items-center gap-1 rounded-xl border-2 p-3 text-center transition-all ${
+                        collectMobileBehavior === id
+                          ? "border-indigo-600 bg-indigo-50"
+                          : "border-slate-200 bg-white hover:border-slate-300"
+                      }`}
+                    >
+                      {collectMobileBehavior === id && (
+                        <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-indigo-600 rounded-full text-white text-[9px] font-bold flex items-center justify-center">✓</span>
+                      )}
+                      <span className="text-xs font-bold text-slate-900">{label}</span>
+                      <span className="text-[10px] text-slate-500 leading-tight">{desc}</span>
+                    </button>
+                  ))}
+                </div>
+              </SectionCard>
+
+              {/* Active toggle */}
+              <SectionCard title="Widget settings">
+                <div className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-semibold text-slate-900">Widget active</p>
+                      <p className="text-xs text-slate-500">Show the collect button on embedded pages</p>
+                    </div>
+                    <Toggle on={isActive} onChange={setAndMark(setIsActive)} />
+                  </div>
+                </div>
+              </SectionCard>
+            </>
+          )}
+
           {/* ── STICKY FOOTER ─────────────────────────────────────────────── */}
           <div className="flex flex-col gap-2 sticky bottom-0 bg-slate-50 pt-2 pb-1 border-t border-slate-200 -mx-0">
             <button
@@ -787,7 +988,7 @@ export function WidgetCustomizer({
             <div className="flex items-center justify-between mb-3">
               <div>
                 <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Live Preview</p>
-                {(usingMockReviews || usingMockVideos) && (
+                {(usingMockReviews || usingMockVideos) && widgetType !== "COLLECTING" && (
                   <p className="text-xs text-amber-600 mt-0.5">
                     Using sample data — sync reviews to see real content.
                   </p>
@@ -870,6 +1071,10 @@ export function WidgetCustomizer({
                 aiReviewSummary={preview?.location.aiReviewSummary ?? null}
                 aiReviewSummaryReviewCount={preview?.location.aiReviewSummaryReviewCount ?? null}
                 isMobile={isMobile}
+                collectPosition={collectPosition}
+                collectButtonColor={collectButtonColor}
+                collectButtonTheme={collectTheme}
+                collectMobileBehavior={collectMobileBehavior}
               />
             </div>
           </div>
