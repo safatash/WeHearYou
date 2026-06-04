@@ -117,6 +117,126 @@ const script = `
     })();
   }
 
+  // ── Collecting Widget helpers ───────────────────────────────────────────────
+
+  function ensureCollectStyles() {
+    if (document.getElementById("why-collect-styles")) return;
+    var style = document.createElement("style");
+    style.id = "why-collect-styles";
+    style.textContent =
+      ".why-collect-btn{font-family:inherit;border:none;cursor:pointer;font-weight:600;transition:opacity .2s;z-index:2147483646;line-height:1.2}" +
+      ".why-collect-pill{position:fixed;padding:12px 20px;border-radius:999px;font-size:14px;box-shadow:0 4px 16px rgba(0,0,0,.2)}" +
+      ".why-collect-pill-br{bottom:24px;right:24px}" +
+      ".why-collect-pill-bl{bottom:24px;left:24px}" +
+      ".why-collect-tab{position:fixed;top:50%;transform:translateY(-50%);padding:14px 10px;font-size:13px;box-shadow:0 2px 8px rgba(0,0,0,.15)}" +
+      ".why-collect-tab-r{right:0;border-radius:8px 0 0 8px;writing-mode:vertical-rl}" +
+      ".why-collect-tab-l{left:0;border-radius:0 8px 8px 0;writing-mode:vertical-lr}" +
+      ".why-collect-overlay{position:fixed;inset:0;z-index:2147483647;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:16px}" +
+      ".why-collect-modal{position:relative;width:100%;max-width:520px;background:#fff;border-radius:24px;overflow:hidden;box-shadow:0 24px 80px rgba(0,0,0,.3)}" +
+      ".why-collect-close{position:absolute;top:12px;right:12px;background:rgba(0,0,0,.08);border:none;border-radius:50%;width:32px;height:32px;font-size:14px;cursor:pointer;z-index:1;color:#0f172a;font-weight:700;line-height:1}" +
+      ".why-collect-iframe{width:100%;height:600px;border:none;display:block}" +
+      "@media(max-height:700px){.why-collect-iframe{height:480px}}";
+    document.head.appendChild(style);
+  }
+
+  function shouldShowCollect(token, freq) {
+    if (!freq || freq === "always") return true;
+    var key = "why-collect-" + token;
+    try {
+      var cached = sessionStorage.getItem(key);
+      if (cached !== null) return cached === "1";
+      var chance = freq === "50pct" ? 0.5 : freq === "33pct" ? 0.333 : 1;
+      var show = Math.random() < chance;
+      sessionStorage.setItem(key, show ? "1" : "0");
+      return show;
+    } catch (e) {
+      return true;
+    }
+  }
+
+  function openCollectModal(slug, appOrigin) {
+    var overlay = document.createElement("div");
+    overlay.className = "why-collect-overlay";
+    var modal = document.createElement("div");
+    modal.className = "why-collect-modal";
+    var closeBtn = document.createElement("button");
+    closeBtn.className = "why-collect-close";
+    closeBtn.textContent = "\\u2715";
+    closeBtn.setAttribute("type", "button");
+    closeBtn.setAttribute("aria-label", "Close");
+    var iframe = document.createElement("iframe");
+    iframe.src = appOrigin + "/f/" + encodeURIComponent(slug) + "?embed=1";
+    iframe.className = "why-collect-iframe";
+    iframe.setAttribute("title", "Share your feedback");
+
+    function removeOverlay() {
+      if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+    }
+
+    overlay.addEventListener("click", function (e) {
+      if (e.target === overlay) removeOverlay();
+    });
+    closeBtn.addEventListener("click", removeOverlay);
+
+    // Auto-close when the funnel signals completion via postMessage
+    function onMessage(e) {
+      if (e.data && e.data.type === "why-collect-done") {
+        removeOverlay();
+        window.removeEventListener("message", onMessage);
+      }
+    }
+    window.addEventListener("message", onMessage);
+
+    modal.appendChild(closeBtn);
+    modal.appendChild(iframe);
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+  }
+
+  function renderCollectingWidget(data, token, appOrigin) {
+    var w = data.widget;
+    var slug = data.location.slug;
+    if (!slug) return;
+
+    if (!shouldShowCollect(token, w.collectDisplayFreq)) return;
+
+    var position = w.collectButtonPosition || "bottom-right";
+    var theme = w.collectButtonTheme || "default";
+    var color = w.collectButtonColor || w.primaryColor || "#4338ca";
+    var mobileBehavior = w.collectMobileBehavior || "pill";
+
+    if (window.innerWidth < 640 && mobileBehavior === "hidden") return;
+
+    ensureCollectStyles();
+
+    var btn = document.createElement("button");
+    btn.setAttribute("type", "button");
+    btn.setAttribute("aria-label", "Share Feedback");
+    btn.textContent = "Share Feedback";
+    btn.className = "why-collect-btn";
+
+    if (theme === "minimal") {
+      btn.style.cssText = "background:transparent;color:" + color + ";border:2px solid " + color;
+    } else {
+      btn.style.cssText = "background:" + color + ";color:#fff;border:none";
+    }
+
+    if (position === "right") {
+      btn.classList.add("why-collect-tab", "why-collect-tab-r");
+    } else if (position === "left") {
+      btn.classList.add("why-collect-tab", "why-collect-tab-l");
+    } else if (position === "bottom-left") {
+      btn.classList.add("why-collect-pill", "why-collect-pill-bl");
+    } else {
+      btn.classList.add("why-collect-pill", "why-collect-pill-br");
+    }
+
+    btn.addEventListener("click", function () { openCollectModal(slug, appOrigin); });
+    document.body.appendChild(btn);
+  }
+
+  // ── End Collecting Widget helpers ───────────────────────────────────────────
+
   function renderHeader(data) {
     if (!data.widget.showHeader) return "";
     var rating = typeof data.location.avgRating === "number" ? Number(data.location.avgRating).toFixed(1) : null;
@@ -400,6 +520,14 @@ const script = `
         if (overrides.showReviewerName !== null) data.widget.showReviewerName = overrides.showReviewerName !== "false";
         if (overrides.showDate !== null) data.widget.showDate = overrides.showDate !== "false";
         if (overrides.showWriteReview !== null) data.widget.showWriteReview = overrides.showWriteReview !== "false";
+
+        // Collecting Widget: render floating button, skip review rendering entirely
+        if (nextPage === 1 && data.widget.widgetType === "COLLECTING") {
+          renderCollectingWidget(data, token, baseUrl.origin);
+          done = true;
+          setLoadingState(false);
+          return;
+        }
 
         var items = [];
         if (data.widget.contentType === "VIDEO") {
