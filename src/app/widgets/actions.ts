@@ -102,6 +102,10 @@ export async function updateReviewWidget(formData: FormData) {
   const allowedBadgeStyles = new Set(["rating", "compact", "review_cta", "trust"]);
   const allowedAligns = new Set(["left", "center"]);
   const allowedFonts = new Set(["system", "sans", "serif"]);
+  const allowedDisplayFreqs = new Set(["always", "50pct", "33pct"]);
+  const allowedButtonThemes = new Set(["default", "minimal", "branded"]);
+  const allowedMobileBehaviors = new Set(["pill", "hidden"]);
+  const allowedCollectPositions = new Set(["left", "right", "bottom-left", "bottom-right"]);
 
   const rawContentType = String(formData.get("contentType") ?? "TEXT").trim();
   const contentType = allowedContentTypes.has(rawContentType) ? rawContentType : "TEXT";
@@ -126,6 +130,12 @@ export async function updateReviewWidget(formData: FormData) {
       singleTestimonialReviewId = rawSingleReviewId;
     }
   }
+
+  const rawCollectDisplayFreq = String(formData.get("collectDisplayFreq") ?? "").trim();
+  const rawCollectButtonTheme = String(formData.get("collectButtonTheme") ?? "").trim();
+  const rawCollectMobileBehavior = String(formData.get("collectMobileBehavior") ?? "").trim();
+  const rawCollectButtonPosition = String(formData.get("collectButtonPosition") ?? "").trim();
+  const rawCollectButtonColor = String(formData.get("collectButtonColor") ?? "").trim();
 
   const rawLayout = String(formData.get("layout") ?? "grid");
   const rawAlign = String(formData.get("headerAlign") ?? "left");
@@ -176,6 +186,13 @@ export async function updateReviewWidget(formData: FormData) {
       backgroundColor: hexColor(formData.get("backgroundColor"), "#ffffff"),
       textColor: hexColor(formData.get("textColor"), "#0f172a"),
       fontFamily: allowedFonts.has(rawFont) ? rawFont : "system",
+
+      // Collecting Widget
+      collectDisplayFreq: allowedDisplayFreqs.has(rawCollectDisplayFreq) ? rawCollectDisplayFreq : null,
+      collectButtonColor: /^#[0-9a-fA-F]{6}$/.test(rawCollectButtonColor) ? rawCollectButtonColor : null,
+      collectButtonTheme: allowedButtonThemes.has(rawCollectButtonTheme) ? rawCollectButtonTheme : null,
+      collectMobileBehavior: allowedMobileBehaviors.has(rawCollectMobileBehavior) ? rawCollectMobileBehavior : null,
+      collectButtonPosition: allowedCollectPositions.has(rawCollectButtonPosition) ? rawCollectButtonPosition : null,
     },
   });
 
