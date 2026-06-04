@@ -51,9 +51,16 @@ export type PublicWidgetPayload = {
     backgroundColor: string;
     textColor: string;
     fontFamily: string;
+    // Collecting Widget
+    collectDisplayFreq: string | null;
+    collectButtonColor: string | null;
+    collectButtonTheme: string | null;
+    collectMobileBehavior: string | null;
+    collectButtonPosition: string | null;
   };
   location: {
     name: string;
+    slug: string;
     avgRating: number | null;
     reviewCount: number;
     reviewLink: string | null;
@@ -232,10 +239,16 @@ export async function getPublicReviewWidgetPayload(publicToken: string, page = 1
     backgroundColor: widget.backgroundColor,
     textColor: widget.textColor,
     fontFamily: widget.fontFamily,
+    collectDisplayFreq: widget.collectDisplayFreq ?? null,
+    collectButtonColor: widget.collectButtonColor ?? null,
+    collectButtonTheme: widget.collectButtonTheme ?? null,
+    collectMobileBehavior: widget.collectMobileBehavior ?? null,
+    collectButtonPosition: widget.collectButtonPosition ?? null,
   });
 
   const buildLocationObj = (reviewCount: number) => ({
     name: widget.location.name,
+    slug: widget.location.slug,
     avgRating: widget.location.avgRating ?? null,
     reviewCount,
     reviewLink: widget.location.reviewLink ?? null,
