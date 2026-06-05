@@ -237,6 +237,194 @@ const script = `
 
   // ── End Collecting Widget helpers ───────────────────────────────────────────
 
+  // ── Floating Widget helpers ─────────────────────────────────────────────────
+
+  function ensureFloatingStyles() {
+    if (document.getElementById('why-float-styles')) return;
+    var style = document.createElement('style');
+    style.id = 'why-float-styles';
+    style.textContent =
+      '.why-float-wrapper{position:fixed;z-index:2147483645;max-width:300px;font-family:inherit}' +
+      '.why-float-br{bottom:24px;right:24px}' +
+      '.why-float-bl{bottom:24px;left:24px}' +
+      '.why-float-r{right:0;top:50%;transform:translateY(-50%)}' +
+      '.why-float-l{left:0;top:50%;transform:translateY(-50%)}' +
+      '.why-float-inner{position:relative}' +
+      '.why-float-card{background:#fff;border-radius:14px;box-shadow:0 6px 20px rgba(0,0,0,.14);padding:12px 14px;border:1px solid rgba(0,0,0,.06);margin-bottom:8px;transition:opacity .3s}' +
+      '.why-float-card:last-child{margin-bottom:0}' +
+      '.why-float-dismiss{position:absolute;top:7px;right:9px;background:none;border:none;color:rgba(0,0,0,.35);cursor:pointer;font-size:13px;line-height:1;padding:2px;z-index:1}' +
+      '.why-float-avatar{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:12px;flex-shrink:0}' +
+      '.why-float-name{font-size:12px;font-weight:700;color:#0f172a;line-height:1.3}' +
+      '.why-float-stars{font-size:12px;color:#f59e0b}' +
+      '.why-float-source{font-size:10px;color:#64748b;font-weight:500}' +
+      '.why-float-meta{display:flex;align-items:center;gap:6px;margin-top:2px}' +
+      '.why-float-action{font-size:11px;color:#64748b;line-height:1.3}' +
+      '.why-float-compact-row{display:flex;align-items:center;gap:8px}' +
+      '.why-float-stars-row{font-size:12px;color:#f59e0b;margin-bottom:5px}' +
+      '.why-float-quote{font-size:11px;color:#475569;line-height:1.5;padding-left:7px;margin-bottom:7px;border-left-width:2px;border-left-style:solid;border-left-color:#e2e8f0}' +
+      '.why-float-pill{display:inline-flex;align-items:center;gap:7px;border-radius:999px;padding:4px 10px 4px 4px}' +
+      '.why-float-pill-dark{background:#0f172a}' +
+      '.why-float-pill-frost{background:rgba(15,23,42,.65)}' +
+      '.why-float-pill-name{font-size:11px;font-weight:700;color:#fff;line-height:1.3}' +
+      '.why-float-pill-source{font-size:9px;color:rgba(255,255,255,.7);line-height:1.3}' +
+      '.why-float-below-row{display:flex;align-items:center;gap:7px;margin-top:7px}' +
+      '.why-float-below-name{font-size:11px;font-weight:700;color:#0f172a}' +
+      '.why-float-below-source{font-size:9px;color:#64748b}' +
+      '@media(max-width:639px){.why-float-rich-second{display:none}}' +
+      '@media(max-width:639px){.why-float-compact-mobile .why-float-quote{display:none}}';
+    document.head.appendChild(style);
+  }
+
+  function shouldShowFloating(token, freq) {
+    if (!freq || freq === 'always') return true;
+    var key = 'why-float-' + token;
+    try {
+      var cached = sessionStorage.getItem(key);
+      if (cached !== null) return cached === '1';
+      var chance = freq === 'half' ? 0.5 : freq === 'third' ? 0.333 : 1;
+      var show = Math.random() < chance;
+      sessionStorage.setItem(key, show ? '1' : '0');
+      return show;
+    } catch (e) {
+      return true;
+    }
+  }
+
+  function buildFloatingCard(review, widget, accentColor) {
+    var cardStyle = widget.floatingCardStyle || 'dark_solid_pill';
+    var variation = widget.floatingVariation || 'standard';
+    var initial = escapeHtml((review.reviewerName || '?').slice(0, 1).toUpperCase());
+    var name = escapeHtml(review.reviewerName || 'Anonymous');
+    var ratingNum = review.rating || 5;
+    var ratingStr = escapeHtml(stars(ratingNum));
+    var source = review.source === 'GOOGLE' ? 'On Google' : 'On WeHearYou';
+    var avatarStyle = 'background:' + accentColor + ';';
+    var quoteBody = truncate(review.body || '', variation === 'compact' ? 60 : 110);
+    var showQuote = variation !== 'compact' && quoteBody;
+
+    if (cardStyle === 'notification_compact') {
+      return '<div class="why-float-card">' +
+        '<div class="why-float-compact-row">' +
+          '<div class="why-float-avatar" style="' + avatarStyle + '">' + initial + '</div>' +
+          '<div>' +
+            '<div class="why-float-name">' + name + '</div>' +
+            '<div class="why-float-action">just left a ' + escapeHtml(String(ratingNum)) + '-star review</div>' +
+            '<div class="why-float-meta">' +
+              '<span class="why-float-stars">' + ratingStr + '</span>' +
+              '<span class="why-float-source">' + escapeHtml(source) + '</span>' +
+            '</div>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+    }
+
+    var pillClass = cardStyle === 'frosted_glass_pill' ? 'why-float-pill why-float-pill-frost' : 'why-float-pill why-float-pill-dark';
+
+    if (cardStyle === 'below_card') {
+      return '<div class="why-float-card">' +
+        '<div class="why-float-stars-row">' + ratingStr + '</div>' +
+        (showQuote ? '<div class="why-float-quote" style="border-left-color:' + accentColor + '">' + escapeHtml(quoteBody) + '</div>' : '') +
+        '<div class="why-float-below-row">' +
+          '<div class="why-float-avatar" style="' + avatarStyle + '">' + initial + '</div>' +
+          '<div>' +
+            '<div class="why-float-below-name">' + name + '</div>' +
+            '<div class="why-float-below-source">' + escapeHtml(source) + '</div>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+    }
+
+    // dark_solid_pill and frosted_glass_pill
+    return '<div class="why-float-card">' +
+      '<div class="why-float-stars-row">' + ratingStr + '</div>' +
+      (showQuote ? '<div class="why-float-quote" style="border-left-color:' + accentColor + '">' + escapeHtml(quoteBody) + '</div>' : '') +
+      '<div class="' + pillClass + '">' +
+        '<div class="why-float-avatar" style="' + avatarStyle + '">' + initial + '</div>' +
+        '<div>' +
+          '<div class="why-float-pill-name">' + name + '</div>' +
+          '<div class="why-float-pill-source">' + escapeHtml(source) + '</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  }
+
+  function renderFloatingWidget(data, token, appOrigin) {
+    var w = data.widget;
+    var reviews = data.reviews || [];
+
+    if (reviews.length === 0) return;
+    if (!shouldShowFloating(token, w.floatingDisplayFrequency)) return;
+
+    var isMobile = window.innerWidth < 640;
+    var mobileBehavior = w.floatingMobileBehavior || 'show';
+    if (isMobile && mobileBehavior === 'hide') return;
+    var forceCompact = isMobile && mobileBehavior === 'compact';
+
+    var position = w.floatingPosition || 'bottom-right';
+    var variation = forceCompact ? 'compact' : (w.floatingVariation || 'standard');
+    var accentColor = (w.floatingAccentColorMode === 'custom' && w.floatingAccentColor)
+      ? w.floatingAccentColor
+      : (w.primaryColor || '#4338ca');
+
+    ensureFloatingStyles();
+
+    var posMap = { 'bottom-right': 'why-float-br', 'bottom-left': 'why-float-bl', 'right': 'why-float-r', 'left': 'why-float-l' };
+    var posClass = posMap[position] || 'why-float-br';
+
+    var wrapper = document.createElement('div');
+    wrapper.className = 'why-float-wrapper ' + posClass;
+
+    var inner = document.createElement('div');
+    inner.className = 'why-float-inner';
+
+    // Dismiss button
+    var dismissBtn = document.createElement('button');
+    dismissBtn.className = 'why-float-dismiss';
+    dismissBtn.textContent = '✕';
+    dismissBtn.setAttribute('type', 'button');
+    dismissBtn.setAttribute('aria-label', 'Dismiss');
+    dismissBtn.addEventListener('click', function() {
+      if (wrapper.parentNode) wrapper.parentNode.removeChild(wrapper);
+    });
+
+    // Build initial cards
+    var currentIdx = 0;
+    var modifiedWidget = {};
+    for (var k in w) { modifiedWidget[k] = w[k]; }
+    modifiedWidget.floatingVariation = variation;
+
+    var firstCard = buildFloatingCard(reviews[0], modifiedWidget, accentColor);
+    inner.innerHTML = firstCard;
+    if (variation === 'rich' && reviews.length > 1) {
+      var secondCardEl = document.createElement('div');
+      secondCardEl.className = 'why-float-rich-second';
+      secondCardEl.innerHTML = buildFloatingCard(reviews[1], modifiedWidget, accentColor);
+      inner.appendChild(secondCardEl.firstChild);
+    }
+
+    inner.appendChild(dismissBtn);
+    wrapper.appendChild(inner);
+    document.body.appendChild(wrapper);
+
+    // Rotation
+    if (w.floatingRotationEnabled !== false && reviews.length > 1) {
+      var intervalMs = (w.floatingRotationIntervalSec || 8) * 1000;
+      setInterval(function() {
+        var firstEl = inner.querySelector('.why-float-card');
+        if (!firstEl) return;
+        firstEl.style.opacity = '0';
+        setTimeout(function() {
+          currentIdx = (currentIdx + 1) % reviews.length;
+          firstEl.outerHTML = buildFloatingCard(reviews[currentIdx], modifiedWidget, accentColor);
+          var updated = inner.querySelector('.why-float-card');
+          if (updated) { updated.style.opacity = '0'; updated.style.transition = 'opacity .3s'; updated.offsetHeight; updated.style.opacity = '1'; }
+        }, 300);
+      }, intervalMs);
+    }
+  }
+
+  // ── End Floating Widget helpers ─────────────────────────────────────────────
+
   function renderHeader(data) {
     if (!data.widget.showHeader) return "";
     var rating = typeof data.location.avgRating === "number" ? Number(data.location.avgRating).toFixed(1) : null;
@@ -524,6 +712,14 @@ const script = `
         // Collecting Widget: render floating button, skip review rendering entirely
         if (nextPage === 1 && data.widget.widgetType === "COLLECTING") {
           renderCollectingWidget(data, token, baseUrl.origin);
+          done = true;
+          setLoadingState(false);
+          return;
+        }
+
+        // Floating Widget: render fixed-position card with rotation, skip review grid
+        if (nextPage === 1 && data.widget.widgetType === "FLOATING") {
+          renderFloatingWidget(data, token, baseUrl.origin);
           done = true;
           setLoadingState(false);
           return;
