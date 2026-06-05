@@ -383,7 +383,9 @@ const script = `
     dismissBtn.textContent = '✕';
     dismissBtn.setAttribute('type', 'button');
     dismissBtn.setAttribute('aria-label', 'Dismiss');
+    var intervalId = null;
     dismissBtn.addEventListener('click', function() {
+      if (intervalId !== null) clearInterval(intervalId);
       if (wrapper.parentNode) wrapper.parentNode.removeChild(wrapper);
     });
 
@@ -409,7 +411,7 @@ const script = `
     // Rotation
     if (w.floatingRotationEnabled !== false && reviews.length > 1) {
       var intervalMs = (w.floatingRotationIntervalSec || 8) * 1000;
-      setInterval(function() {
+      intervalId = setInterval(function() {
         var firstEl = inner.querySelector('.why-float-card');
         if (!firstEl) return;
         firstEl.style.opacity = '0';
