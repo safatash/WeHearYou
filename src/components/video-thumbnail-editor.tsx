@@ -42,6 +42,7 @@ export function VideoThumbnailEditor({
 }: VideoThumbnailEditorProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isOpen, setIsOpen] = useState(false);
   const [isCapturing, setIsCapturing] = useState(false);
   const [captureTimestamp, setCaptureTimestamp] = useState(
     capturedFrameTimestamp ?? Math.min(1, (durationSeconds ?? 10) / 2)
@@ -92,18 +93,34 @@ export function VideoThumbnailEditor({
 
   const maxTimestamp = durationSeconds ? Math.max(0, durationSeconds - 0.1) : 30;
 
+  const handleClose = () => {
+    setIsOpen(false);
+    onClose();
+  };
+
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape" && isOpen) handleClose();
     };
     window.addEventListener("keydown", handleEscape);
     return () => window.removeEventListener("keydown", handleEscape);
-  }, [onClose]);
+  }, [isOpen, onClose]);
+
+  if (!isOpen) {
+    return (
+      <button
+        onClick={() => setIsOpen(true)}
+        className="rounded-xl border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 hover:border-slate-300"
+      >
+        Edit thumbnail
+      </button>
+    );
+  }
 
   return (
     <>
       {/* Backdrop */}
-      <div className="fixed inset-0 z-40 bg-black bg-opacity-50" onClick={onClose} />
+      <div className="fixed inset-0 z-40 bg-black bg-opacity-50" onClick={handleClose} />
 
       {/* Drawer */}
       <div
@@ -116,7 +133,7 @@ export function VideoThumbnailEditor({
         <div className="sticky top-0 border-b border-slate-200 bg-white px-6 py-4 flex justify-between items-center">
           <h2 id="drawer-title" className="text-lg font-semibold text-slate-900">Edit Thumbnail</h2>
           <button
-            onClick={onClose}
+            onClick={handleClose}
             aria-label="Close"
             className="text-slate-500 hover:text-slate-700 text-xl leading-none"
           >
