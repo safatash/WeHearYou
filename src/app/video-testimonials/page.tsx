@@ -131,9 +131,9 @@ export default async function VideoTestimonialsPage() {
                 return (
                   <div
                     key={vt.id}
-                    className={`rounded-2xl border p-4 ${!vt.videoUrl ? "border-dashed border-slate-200 opacity-75" : "border-slate-200"}`}
+                    className={`rounded-2xl border p-4 bg-white hover:shadow-md transition-shadow ${!vt.videoUrl ? "border-dashed border-slate-200 opacity-75" : "border-slate-200"}`}
                   >
-                    <div className="flex gap-4 items-start">
+                    <div className="flex gap-4">
                       {/* Thumbnail */}
                       {vt.videoUrl ? (
                         (() => {
@@ -166,19 +166,23 @@ export default async function VideoTestimonialsPage() {
 
                       {/* Info */}
                       <div className="flex-1 min-w-0">
-                        <div className="flex flex-wrap items-center gap-2 mb-1">
-                          <span className="font-semibold text-slate-900">{vt.submitterName ?? "Unnamed"}</span>
-                          <StatusBadge status={vt.status} hasVideo={!!vt.videoUrl} />
-                          {vt.durationSeconds && (
-                            <span className="text-xs text-slate-400">{formatDuration(vt.durationSeconds)}</span>
-                          )}
-                          <span className="text-xs text-slate-400">
-                            {!vt.videoUrl ? "Sent " : ""}{new Date(vt.createdAt).toLocaleDateString()}
-                          </span>
+                        <div className="flex items-start justify-between gap-3 mb-2">
+                          <div className="flex-1">
+                            <h3 className="font-semibold text-slate-900">{vt.submitterName ?? "Unnamed"}</h3>
+                            <p className="text-sm text-slate-500">{vt.location.name} · {vt.location.city}, {vt.location.state}</p>
+                          </div>
+                          <div className="flex gap-2 flex-shrink-0">
+                            <StatusBadge status={vt.status} hasVideo={!!vt.videoUrl} />
+                          </div>
                         </div>
-                        <p className="text-sm text-slate-500 mb-1">{vt.location.name} · {vt.location.city}, {vt.location.state}</p>
+
+                        <p className="text-xs text-slate-400 mb-3">
+                          {!vt.videoUrl ? "Sent " : ""}{new Date(vt.createdAt).toLocaleDateString()}
+                          {vt.durationSeconds && ` · ${formatDuration(vt.durationSeconds)}`}
+                        </p>
+
                         {vt.prompt && (
-                          <p className="text-xs text-slate-400 italic mb-2">&ldquo;{vt.prompt}&rdquo;</p>
+                          <p className="text-xs text-slate-600 italic mb-3">&ldquo;{vt.prompt}&rdquo;</p>
                         )}
 
                         {vt.videoUrl && (
