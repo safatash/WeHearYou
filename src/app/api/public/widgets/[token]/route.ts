@@ -28,7 +28,7 @@ export async function GET(
   return NextResponse.json(payload, {
     headers: {
       ...CORS_HEADERS,
-      "Cache-Control": "public, s-maxage=300, stale-while-revalidate=3600",
+      "Cache-Control": "no-cache, no-store, max-age=0, must-revalidate",
     },
   });
 }
