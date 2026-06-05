@@ -569,6 +569,19 @@ model ReviewWidget {
   collectMobileBehavior      String?   // "pill" | "hidden"
   collectButtonPosition      String?   // "left" | "right" | "bottom-left" | "bottom-right"
 
+  // Floating Widget
+  floatingCardStyle           String?   // "dark_solid_pill" | "frosted_glass_pill" | "below_card" | "notification_compact"
+  floatingVariation           String?   // "compact" | "standard" | "rich"
+  floatingPosition            String?   // "bottom-right" | "bottom-left" | "left" | "right"
+  floatingRotationEnabled     Boolean?
+  floatingRotationIntervalSec Int?      // 5 | 8 | 12 | 30
+  floatingAccentColorMode     String?   // "inherit" | "custom"
+  floatingAccentColor         String?   // hex
+  floatingMobileBehavior      String?   // "show" | "compact" | "hide"
+  floatingApprovedOnly        Boolean?
+  floatingMinRating           Int?      // 4 or 5
+  floatingDisplayFrequency    String?   // "always" | "half" | "third"
+
   customCss        String?
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
