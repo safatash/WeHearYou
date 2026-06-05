@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { FormSubmitButton } from "@/components/form-submit-button";
 import {
   uploadCustomThumbnail,
@@ -92,18 +92,32 @@ export function VideoThumbnailEditor({
 
   const maxTimestamp = durationSeconds ? Math.max(0, durationSeconds - 0.1) : 30;
 
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleEscape);
+    return () => window.removeEventListener("keydown", handleEscape);
+  }, [onClose]);
+
   return (
     <>
       {/* Backdrop */}
       <div className="fixed inset-0 z-40 bg-black bg-opacity-50" onClick={onClose} />
 
       {/* Drawer */}
-      <div className="fixed right-0 top-0 z-50 h-full w-full max-w-2xl overflow-y-auto bg-white shadow-2xl">
+      <div
+        className="fixed right-0 top-0 z-50 h-full w-full max-w-2xl overflow-y-auto bg-white shadow-2xl"
+        role="dialog"
+        aria-labelledby="drawer-title"
+        aria-modal="true"
+      >
         {/* Header */}
         <div className="sticky top-0 border-b border-slate-200 bg-white px-6 py-4 flex justify-between items-center">
-          <h2 className="text-lg font-semibold text-slate-900">Edit Thumbnail</h2>
+          <h2 id="drawer-title" className="text-lg font-semibold text-slate-900">Edit Thumbnail</h2>
           <button
             onClick={onClose}
+            aria-label="Close"
             className="text-slate-500 hover:text-slate-700 text-xl leading-none"
           >
             ✕
@@ -114,9 +128,13 @@ export function VideoThumbnailEditor({
         <div className="p-6 space-y-6">
           {/* Tabs */}
           <div className="border-b border-slate-200">
-            <div className="flex gap-1 -mx-6 px-6">
+            <div className="flex gap-1 -mx-6 px-6" role="tablist">
               <button
+                id="tab-auto"
                 onClick={() => setActiveTab("auto")}
+                role="tab"
+                aria-selected={activeTab === "auto"}
+                aria-controls="content-auto"
                 className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
                   activeTab === "auto"
                     ? "border-indigo-600 text-indigo-600"
@@ -126,7 +144,11 @@ export function VideoThumbnailEditor({
                 Auto
               </button>
               <button
+                id="tab-capture"
                 onClick={() => setActiveTab("capture")}
+                role="tab"
+                aria-selected={activeTab === "capture"}
+                aria-controls="content-capture"
                 className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
                   activeTab === "capture"
                     ? "border-indigo-600 text-indigo-600"
@@ -136,7 +158,11 @@ export function VideoThumbnailEditor({
                 Capture
               </button>
               <button
+                id="tab-upload"
                 onClick={() => setActiveTab("upload")}
+                role="tab"
+                aria-selected={activeTab === "upload"}
+                aria-controls="content-upload"
                 className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
                   activeTab === "upload"
                     ? "border-indigo-600 text-indigo-600"
@@ -204,7 +230,12 @@ export function VideoThumbnailEditor({
 
           {/* Tab Content */}
           {activeTab === "auto" && (
-            <div className="p-4 rounded-lg bg-slate-50 border border-slate-200">
+            <div
+              id="content-auto"
+              role="tabpanel"
+              aria-labelledby="tab-auto"
+              className="p-4 rounded-lg bg-slate-50 border border-slate-200"
+            >
               <p className="text-sm font-medium text-slate-700 mb-2">
                 Auto Source
               </p>
@@ -216,7 +247,12 @@ export function VideoThumbnailEditor({
 
           {/* Custom Upload Tab */}
           {activeTab === "upload" && (
-            <div className="p-4 rounded-lg bg-slate-50 border border-slate-200">
+            <div
+              id="content-upload"
+              role="tabpanel"
+              aria-labelledby="tab-upload"
+              className="p-4 rounded-lg bg-slate-50 border border-slate-200"
+            >
               <p className="text-sm font-medium text-slate-700 mb-2">
                 Upload Custom Thumbnail
               </p>
@@ -256,7 +292,12 @@ export function VideoThumbnailEditor({
 
           {/* Frame Capture Tab */}
           {activeTab === "capture" && videoUrl && (
-            <div className="p-4 rounded-lg bg-slate-50 border border-slate-200 space-y-3">
+            <div
+              id="content-capture"
+              role="tabpanel"
+              aria-labelledby="tab-capture"
+              className="p-4 rounded-lg bg-slate-50 border border-slate-200 space-y-3"
+            >
               <div>
                 <p className="text-sm font-medium text-slate-700 mb-2">
                   Capture Frame from Video
