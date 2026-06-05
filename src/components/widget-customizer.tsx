@@ -25,6 +25,11 @@ type AvailableVideo = {
   videoUrl: string;
   durationSeconds: number | null;
   publishedAt: string | null;
+  caption?: string | null;
+  customThumbnailUrl?: string | null;
+  capturedFrameUrl?: string | null;
+  capturedFrameTimestamp?: number | null;
+  thumbnailSource?: string;
 };
 
 type WidgetTypeKey = "WALL_OF_LOVE" | "SINGLE_TESTIMONIAL" | "BADGE" | "COLLECTING" | "FLOATING";
@@ -148,8 +153,8 @@ const MOCK_REVIEWS: AvailableReview[] = [
 ];
 
 const MOCK_VIDEOS = [
-  { id: "mv1", submitterName: "Alex Rivera", videoUrl: "", durationSeconds: 42, publishedAt: new Date(Date.now() - 5 * 86400000).toISOString() },
-  { id: "mv2", submitterName: "Priya Patel", videoUrl: "", durationSeconds: 65, publishedAt: new Date(Date.now() - 12 * 86400000).toISOString() },
+  { id: "mv1", submitterName: "Alex Rivera", videoUrl: "", durationSeconds: 42, publishedAt: new Date(Date.now() - 5 * 86400000).toISOString(), customThumbnailUrl: null, capturedFrameUrl: null, thumbnailSource: "DEFAULT" as const },
+  { id: "mv2", submitterName: "Priya Patel", videoUrl: "", durationSeconds: 65, publishedAt: new Date(Date.now() - 12 * 86400000).toISOString(), customThumbnailUrl: null, capturedFrameUrl: null, thumbnailSource: "DEFAULT" as const },
 ];
 
 // ─── Layout Mini Previews ─────────────────────────────────────────────────────
@@ -381,7 +386,16 @@ export function WidgetCustomizer({
 
   const previewVideos = usingMockVideos
     ? MOCK_VIDEOS
-    : preview.videoTestimonials!.map((v) => ({ ...v, submitterName: v.submitterName ?? "" }));
+    : preview.videoTestimonials!.map((v) => ({
+        id: v.id,
+        submitterName: v.submitterName ?? "",
+        videoUrl: v.videoUrl,
+        durationSeconds: v.durationSeconds,
+        publishedAt: v.publishedAt,
+        customThumbnailUrl: v.customThumbnailUrl,
+        capturedFrameUrl: v.capturedFrameUrl,
+        thumbnailSource: v.thumbnailSource as "DEFAULT" | "CUSTOM" | "CAPTURED",
+      }));
 
   // For single testimonial, use the selected item or fall back to first available
   const selectedReview = singleTestimonialReviewId
@@ -395,7 +409,16 @@ export function WidgetCustomizer({
     ? [{ ...selectedReview, sourceReviewUrl: null, sourceReplyText: null }]
     : previewReviews.slice(0, 1);
   const singlePreviewVideos = selectedVideo
-    ? [{ ...selectedVideo, submitterName: selectedVideo.submitterName ?? "" }]
+    ? [{
+        id: selectedVideo.id,
+        submitterName: selectedVideo.submitterName ?? "",
+        videoUrl: selectedVideo.videoUrl,
+        durationSeconds: selectedVideo.durationSeconds,
+        publishedAt: selectedVideo.publishedAt,
+        customThumbnailUrl: selectedVideo.customThumbnailUrl,
+        capturedFrameUrl: selectedVideo.capturedFrameUrl,
+        thumbnailSource: selectedVideo.thumbnailSource as "DEFAULT" | "CUSTOM" | "CAPTURED",
+      }]
     : previewVideos.slice(0, 1);
 
   const previewContentType =

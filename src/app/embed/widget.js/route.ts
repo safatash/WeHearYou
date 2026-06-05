@@ -514,12 +514,43 @@ const script = `
     return m > 0 ? m + ":" + (s < 10 ? "0" : "") + s : s + "s";
   }
 
+  function getThumbnailUrl(vt) {
+    // Try the selected source first
+    if (vt.thumbnailSource === "CUSTOM" && vt.customThumbnailUrl) {
+      return vt.customThumbnailUrl;
+    }
+    if (vt.thumbnailSource === "CAPTURED" && vt.capturedFrameUrl) {
+      return vt.capturedFrameUrl;
+    }
+    // Fallback: try other available sources
+    if (vt.customThumbnailUrl) {
+      return vt.customThumbnailUrl;
+    }
+    if (vt.capturedFrameUrl) {
+      return vt.capturedFrameUrl;
+    }
+    // No thumbnail available, will use video element
+    return null;
+  }
+
+  function getThumbnailAlt(submitterName) {
+    if (submitterName) {
+      return "Video testimonial from " + escapeHtml(submitterName);
+    }
+    return "Video testimonial thumbnail";
+  }
+
   function renderVideoCard(vt) {
     var dur = formatDuration(vt.durationSeconds);
     var name = escapeHtml(vt.submitterName || "Anonymous");
+    var thumbnailUrl = getThumbnailUrl(vt);
+    var thumbHtml = thumbnailUrl
+      ? '<img src="' + escapeHtml(thumbnailUrl) + '" alt="' + getThumbnailAlt(vt.submitterName) + '" style="width:100%;height:100%;object-fit:cover;display:block">'
+      : '<video src="' + escapeHtml(vt.videoUrl) + '#t=0.001" preload="metadata" muted playsinline style="width:100%;height:100%;object-fit:cover"></video>';
+
     return '<div class="why-video-card" data-video-url="' + escapeHtml(vt.videoUrl) + '">' +
       '<div class="why-video-thumb">' +
-        '<video src="' + escapeHtml(vt.videoUrl) + '#t=0.001" preload="metadata" muted playsinline style="width:100%;height:100%;object-fit:cover"></video>' +
+        thumbHtml +
         '<div class="why-video-play">&#9658;</div>' +
         (dur ? '<div class="why-video-duration">' + escapeHtml(dur) + '</div>' : '') +
       '</div>' +

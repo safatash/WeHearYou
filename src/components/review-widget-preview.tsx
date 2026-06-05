@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { getThumbnailUrl, getThumbnailAlt } from "@/lib/thumbnail-utils";
 
 type ReviewItem = {
   id: string;
@@ -20,6 +21,9 @@ type VideoTestimonialItem = {
   videoUrl: string;
   durationSeconds?: number | null;
   publishedAt?: string | null;
+  customThumbnailUrl?: string | null;
+  capturedFrameUrl?: string | null;
+  thumbnailSource: "DEFAULT" | "CUSTOM" | "CAPTURED";
 };
 
 type ReviewWidgetPreviewProps = {
@@ -246,6 +250,13 @@ function VideoCard({
     return `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, "0")}`;
   };
 
+  const thumbnailUrl = getThumbnailUrl({
+    customThumbnailUrl: video.customThumbnailUrl,
+    capturedFrameUrl: video.capturedFrameUrl,
+    videoUrl: video.videoUrl,
+    thumbnailSource: video.thumbnailSource,
+  });
+
   return (
     <div className="rounded-xl overflow-hidden border border-slate-200">
       <div
@@ -253,13 +264,21 @@ function VideoCard({
         style={{ aspectRatio: "16/9" }}
         onClick={() => video.videoUrl && onPlay(video.videoUrl)}
       >
-        {video.videoUrl && (
-          <video
-            src={`${video.videoUrl}#t=0.1`}
+        {thumbnailUrl ? (
+          <img
+            src={thumbnailUrl}
+            alt={getThumbnailAlt(video.submitterName)}
             className="h-full w-full object-cover"
-            muted
-            preload="metadata"
           />
+        ) : (
+          video.videoUrl && (
+            <video
+              src={`${video.videoUrl}#t=0.1`}
+              className="h-full w-full object-cover"
+              muted
+              preload="metadata"
+            />
+          )
         )}
         <div className="absolute inset-0 flex items-center justify-center">
           <div
@@ -387,6 +406,13 @@ function SingleVideoPreview({
     );
   }
 
+  const thumbnailUrl = getThumbnailUrl({
+    customThumbnailUrl: video.customThumbnailUrl,
+    capturedFrameUrl: video.capturedFrameUrl,
+    videoUrl: video.videoUrl,
+    thumbnailSource: video.thumbnailSource,
+  });
+
   return (
     <>
       {lightboxUrl && (
@@ -415,13 +441,21 @@ function SingleVideoPreview({
           style={{ aspectRatio: "16/9" }}
           onClick={() => video.videoUrl && setLightboxUrl(video.videoUrl)}
         >
-          {video.videoUrl && (
-            <video
-              src={`${video.videoUrl}#t=0.1`}
+          {thumbnailUrl ? (
+            <img
+              src={thumbnailUrl}
+              alt={getThumbnailAlt(video.submitterName)}
               className="h-full w-full object-cover"
-              muted
-              preload="metadata"
             />
+          ) : (
+            video.videoUrl && (
+              <video
+                src={`${video.videoUrl}#t=0.1`}
+                className="h-full w-full object-cover"
+                muted
+                preload="metadata"
+              />
+            )
           )}
           <div className="absolute inset-0 flex items-center justify-center">
             <div
@@ -701,6 +735,13 @@ function VideoCarouselLayout({
   const formatDuration = (s: number | null | undefined) =>
     s ? `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, "0")}` : null;
 
+  const thumbnailUrl = getThumbnailUrl({
+    customThumbnailUrl: current.customThumbnailUrl,
+    capturedFrameUrl: current.capturedFrameUrl,
+    videoUrl: current.videoUrl,
+    thumbnailSource: current.thumbnailSource,
+  });
+
   return (
     <>
       {lightboxUrl && (
@@ -734,14 +775,23 @@ function VideoCarouselLayout({
           style={{ aspectRatio: "16/9" }}
           onClick={() => current.videoUrl && setLightboxUrl(current.videoUrl)}
         >
-          {current.videoUrl && (
-            <video
-              key={current.videoUrl}
-              src={`${current.videoUrl}#t=0.1`}
+          {thumbnailUrl ? (
+            <img
+              key={current.id}
+              src={thumbnailUrl}
+              alt={getThumbnailAlt(current.submitterName)}
               className="h-full w-full object-cover"
-              muted
-              preload="metadata"
             />
+          ) : (
+            current.videoUrl && (
+              <video
+                key={current.videoUrl}
+                src={`${current.videoUrl}#t=0.1`}
+                className="h-full w-full object-cover"
+                muted
+                preload="metadata"
+              />
+            )
           )}
           <div className="absolute inset-0 flex items-center justify-center">
             <div
