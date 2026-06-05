@@ -9,25 +9,13 @@ import { CopyButton } from "@/components/copy-button";
 import { approveVideoTestimonial, rejectVideoTestimonial, deleteVideoTestimonial, updateVideoTestimonialCaption } from "./actions";
 import { VideoThumbnailEditor } from "@/components/video-thumbnail-editor";
 import { getThumbnailUrl, getThumbnailAlt } from "@/lib/thumbnail-utils";
+import { StatusBadge } from "@/components/status-badge";
 
 function formatDuration(seconds: number | null) {
   if (!seconds) return null;
   const m = Math.floor(seconds / 60);
   const s = seconds % 60;
   return m > 0 ? `${m}m ${s}s` : `${s}s`;
-}
-
-function StatusBadge({ status, hasVideo }: { status: string; hasVideo: boolean }) {
-  if (!hasVideo) {
-    return <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-slate-500">Awaiting</span>;
-  }
-  if (status === "APPROVED") {
-    return <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-emerald-700">Published</span>;
-  }
-  if (status === "REJECTED") {
-    return <span className="rounded-full bg-rose-50 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-rose-700">Rejected</span>;
-  }
-  return <span className="rounded-full bg-amber-50 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-amber-700">Pending</span>;
 }
 
 export default async function VideoTestimonialsPage() {
