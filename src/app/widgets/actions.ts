@@ -60,6 +60,20 @@ export async function createReviewWidget(formData: FormData) {
     }
   }
 
+  const floatingDefaults = layout === "floating" ? {
+    widgetType: "FLOATING",
+    floatingCardStyle: "dark_solid_pill",
+    floatingVariation: "standard",
+    floatingPosition: "bottom-right",
+    floatingRotationEnabled: true,
+    floatingRotationIntervalSec: 8,
+    floatingAccentColorMode: "inherit",
+    floatingMobileBehavior: "show",
+    floatingApprovedOnly: true,
+    floatingMinRating: 4,
+    floatingDisplayFrequency: "always",
+  } : {};
+
   const widget = await prisma.reviewWidget.create({
     data: {
       organizationId,
@@ -68,6 +82,7 @@ export async function createReviewWidget(formData: FormData) {
       layout,
       contentType,
       publicToken: generateReviewWidgetToken(),
+      ...floatingDefaults,
     },
   });
 
@@ -98,7 +113,7 @@ export async function updateReviewWidget(formData: FormData) {
     "mixed-masonry", "featured-video-reviews", "mixed-carousel", "tabbed",
   ]);
   const allowedContentTypes = new Set(["TEXT", "VIDEO", "MIXED"]);
-  const allowedWidgetTypes = new Set(["WALL_OF_LOVE", "SINGLE_TESTIMONIAL", "BADGE", "COLLECTING"]);
+  const allowedWidgetTypes = new Set(["WALL_OF_LOVE", "SINGLE_TESTIMONIAL", "BADGE", "COLLECTING", "FLOATING"]);
   const allowedBadgeStyles = new Set(["rating", "compact", "review_cta", "trust"]);
   const allowedAligns = new Set(["left", "center"]);
   const allowedFonts = new Set(["system", "sans", "serif"]);
@@ -106,6 +121,23 @@ export async function updateReviewWidget(formData: FormData) {
   const allowedButtonThemes = new Set(["default", "minimal", "branded"]);
   const allowedMobileBehaviors = new Set(["pill", "hidden"]);
   const allowedCollectPositions = new Set(["left", "right", "bottom-left", "bottom-right"]);
+
+  const allowedFloatingCardStyles = new Set(["dark_solid_pill", "frosted_glass_pill", "below_card", "notification_compact"]);
+  const allowedFloatingVariations = new Set(["compact", "standard", "rich"]);
+  const allowedFloatingPositions = new Set(["bottom-right", "bottom-left", "left", "right"]);
+  const allowedFloatingMobileBehaviors = new Set(["show", "compact", "hide"]);
+  const allowedFloatingAccentModes = new Set(["inherit", "custom"]);
+  const allowedFloatingFrequencies = new Set(["always", "half", "third"]);
+
+  const rawFloatingCardStyle = String(formData.get("floatingCardStyle") ?? "").trim();
+  const rawFloatingVariation = String(formData.get("floatingVariation") ?? "").trim();
+  const rawFloatingPosition = String(formData.get("floatingPosition") ?? "").trim();
+  const rawFloatingRotationIntervalSec = Number(formData.get("floatingRotationIntervalSec") ?? 8);
+  const rawFloatingAccentColorMode = String(formData.get("floatingAccentColorMode") ?? "").trim();
+  const rawFloatingAccentColor = String(formData.get("floatingAccentColor") ?? "").trim();
+  const rawFloatingMobileBehavior = String(formData.get("floatingMobileBehavior") ?? "").trim();
+  const rawFloatingMinRating = Number(formData.get("floatingMinRating") ?? 4);
+  const rawFloatingDisplayFrequency = String(formData.get("floatingDisplayFrequency") ?? "").trim();
 
   const rawContentType = String(formData.get("contentType") ?? "TEXT").trim();
   const contentType = allowedContentTypes.has(rawContentType) ? rawContentType : "TEXT";
@@ -193,6 +225,19 @@ export async function updateReviewWidget(formData: FormData) {
       collectButtonTheme: allowedButtonThemes.has(rawCollectButtonTheme) ? rawCollectButtonTheme : null,
       collectMobileBehavior: allowedMobileBehaviors.has(rawCollectMobileBehavior) ? rawCollectMobileBehavior : null,
       collectButtonPosition: allowedCollectPositions.has(rawCollectButtonPosition) ? rawCollectButtonPosition : null,
+
+      // Floating Widget
+      floatingCardStyle: allowedFloatingCardStyles.has(rawFloatingCardStyle) ? rawFloatingCardStyle : null,
+      floatingVariation: allowedFloatingVariations.has(rawFloatingVariation) ? rawFloatingVariation : null,
+      floatingPosition: allowedFloatingPositions.has(rawFloatingPosition) ? rawFloatingPosition : null,
+      floatingRotationEnabled: String(formData.get("floatingRotationEnabled") ?? "") === "on",
+      floatingRotationIntervalSec: [5, 8, 12, 30].includes(rawFloatingRotationIntervalSec) ? rawFloatingRotationIntervalSec : 8,
+      floatingAccentColorMode: allowedFloatingAccentModes.has(rawFloatingAccentColorMode) ? rawFloatingAccentColorMode : "inherit",
+      floatingAccentColor: /^#[0-9a-fA-F]{6}$/.test(rawFloatingAccentColor) ? rawFloatingAccentColor : null,
+      floatingMobileBehavior: allowedFloatingMobileBehaviors.has(rawFloatingMobileBehavior) ? rawFloatingMobileBehavior : null,
+      floatingApprovedOnly: String(formData.get("floatingApprovedOnly") ?? "") === "on",
+      floatingMinRating: rawFloatingMinRating === 5 ? 5 : 4,
+      floatingDisplayFrequency: allowedFloatingFrequencies.has(rawFloatingDisplayFrequency) ? rawFloatingDisplayFrequency : null,
     },
   });
 
