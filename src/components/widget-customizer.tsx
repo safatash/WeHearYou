@@ -27,7 +27,7 @@ type AvailableVideo = {
   publishedAt: string | null;
 };
 
-type WidgetTypeKey = "WALL_OF_LOVE" | "SINGLE_TESTIMONIAL" | "BADGE" | "COLLECTING";
+type WidgetTypeKey = "WALL_OF_LOVE" | "SINGLE_TESTIMONIAL" | "BADGE" | "COLLECTING" | "FLOATING";
 type ContentMode = "TEXT" | "VIDEO" | "MIXED";
 type SaveState = "idle" | "unsaved" | "saving" | "saved" | "error";
 
@@ -117,6 +117,7 @@ const PLATFORM_STEPS: Record<string, { title: string; steps: string[] }> = {
 function deriveWidgetType(widget: { widgetType?: string | null; layout: string }): WidgetTypeKey {
   if (widget.widgetType) return widget.widgetType as WidgetTypeKey;
   if (widget.layout === "badge") return "BADGE";
+  if (widget.layout === "floating") return "FLOATING";
   return "WALL_OF_LOVE";
 }
 
@@ -130,7 +131,6 @@ function deriveContentMode(widget: { contentType: string; layout: string }): Con
 function deriveLayout(layout: string): string {
   const legacyMap: Record<string, string> = {
     slider: "carousel",
-    floating: "grid",
     video: "video-carousel",
   };
   return legacyMap[layout] ?? layout;
@@ -313,6 +313,41 @@ export function WidgetCustomizer({
     (widget as { collectMobileBehavior?: string | null }).collectMobileBehavior ?? "pill",
   );
 
+  // Floating Widget state
+  const [floatingCardStyle, setFloatingCardStyle] = useState<string>(
+    (widget as { floatingCardStyle?: string | null }).floatingCardStyle ?? "dark_solid_pill",
+  );
+  const [floatingVariation, setFloatingVariation] = useState<string>(
+    (widget as { floatingVariation?: string | null }).floatingVariation ?? "standard",
+  );
+  const [floatingPosition, setFloatingPosition] = useState<string>(
+    (widget as { floatingPosition?: string | null }).floatingPosition ?? "bottom-right",
+  );
+  const [floatingRotationEnabled, setFloatingRotationEnabled] = useState<boolean>(
+    (widget as { floatingRotationEnabled?: boolean | null }).floatingRotationEnabled ?? true,
+  );
+  const [floatingRotationIntervalSec, setFloatingRotationIntervalSec] = useState<number>(
+    (widget as { floatingRotationIntervalSec?: number | null }).floatingRotationIntervalSec ?? 8,
+  );
+  const [floatingAccentColorMode, setFloatingAccentColorMode] = useState<string>(
+    (widget as { floatingAccentColorMode?: string | null }).floatingAccentColorMode ?? "inherit",
+  );
+  const [floatingAccentColor, setFloatingAccentColor] = useState<string | null>(
+    (widget as { floatingAccentColor?: string | null }).floatingAccentColor ?? null,
+  );
+  const [floatingMobileBehavior, setFloatingMobileBehavior] = useState<string>(
+    (widget as { floatingMobileBehavior?: string | null }).floatingMobileBehavior ?? "show",
+  );
+  const [floatingApprovedOnly, setFloatingApprovedOnly] = useState<boolean>(
+    (widget as { floatingApprovedOnly?: boolean | null }).floatingApprovedOnly ?? true,
+  );
+  const [floatingMinRating, setFloatingMinRating] = useState<number>(
+    (widget as { floatingMinRating?: number | null }).floatingMinRating ?? 4,
+  );
+  const [floatingDisplayFrequency, setFloatingDisplayFrequency] = useState<string>(
+    (widget as { floatingDisplayFrequency?: string | null }).floatingDisplayFrequency ?? "always",
+  );
+
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [isMobile, setIsMobile] = useState(false);
   const [showPublishDrawer, setShowPublishDrawer] = useState(false);
@@ -402,6 +437,17 @@ export function WidgetCustomizer({
     formData.append("collectButtonColor", collectButtonColor ?? "");
     formData.append("collectMobileBehavior", collectMobileBehavior);
     formData.append("collectButtonPosition", collectPosition);
+    formData.append("floatingCardStyle", floatingCardStyle);
+    formData.append("floatingVariation", floatingVariation);
+    formData.append("floatingPosition", floatingPosition);
+    if (floatingRotationEnabled) formData.append("floatingRotationEnabled", "on");
+    formData.append("floatingRotationIntervalSec", String(floatingRotationIntervalSec));
+    formData.append("floatingAccentColorMode", floatingAccentColorMode);
+    formData.append("floatingAccentColor", floatingAccentColor ?? "");
+    formData.append("floatingMobileBehavior", floatingMobileBehavior);
+    if (floatingApprovedOnly) formData.append("floatingApprovedOnly", "on");
+    formData.append("floatingMinRating", String(floatingMinRating));
+    formData.append("floatingDisplayFrequency", floatingDisplayFrequency);
     try {
       await updateReviewWidget(formData);
       setSaveState("saved");
@@ -455,12 +501,13 @@ export function WidgetCustomizer({
 
       {/* WIDGET TYPE TABS */}
       <div className="flex border-b border-slate-200 overflow-x-auto">
-        {(["WALL_OF_LOVE", "SINGLE_TESTIMONIAL", "BADGE", "COLLECTING"] as WidgetTypeKey[]).map((type) => {
+        {(["WALL_OF_LOVE", "SINGLE_TESTIMONIAL", "BADGE", "COLLECTING", "FLOATING"] as WidgetTypeKey[]).map((type) => {
           const labels: Record<string, string> = {
             WALL_OF_LOVE: "🧱 Wall of Love",
             SINGLE_TESTIMONIAL: "✦ Single Testimonial",
             BADGE: "⭐ Badge",
             COLLECTING: "📥 Collecting Widget",
+            FLOATING: "📍 Floating Widget",
           };
           return (
             <button
@@ -958,6 +1005,274 @@ export function WidgetCustomizer({
             </>
           )}
 
+          {/* ── FLOATING WIDGET ──────────────────────────────────────── */}
+          {widgetType === "FLOATING" && (
+            <>
+              {/* Card Style */}
+              <SectionCard title="Card style">
+                <div className="p-3 grid grid-cols-2 gap-2">
+                  {(
+                    [
+                      { id: "dark_solid_pill", label: "Dark Solid Pill", desc: "High-contrast, always readable (default)" },
+                      { id: "frosted_glass_pill", label: "Frosted Glass Pill", desc: "Modern translucent overlay" },
+                      { id: "notification_compact", label: "Notification Compact", desc: "Small proof-pop notification" },
+                      { id: "below_card", label: "Below Card", desc: "Reviewer info under the card" },
+                    ] as const
+                  ).map(({ id, label, desc }) => (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => { setFloatingCardStyle(id); markUnsaved(); }}
+                      className={`relative flex flex-col gap-1 rounded-xl border-2 p-3 text-left transition-all ${
+                        floatingCardStyle === id ? "border-indigo-600 bg-indigo-50" : "border-slate-200 bg-white hover:border-slate-300"
+                      }`}
+                    >
+                      {floatingCardStyle === id && (
+                        <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-indigo-600 rounded-full text-white text-[9px] font-bold flex items-center justify-center">✓</span>
+                      )}
+                      <span className="text-xs font-bold text-slate-900">{label}</span>
+                      <span className="text-[10px] text-slate-500 leading-tight">{desc}</span>
+                    </button>
+                  ))}
+                </div>
+              </SectionCard>
+
+              {/* Variation */}
+              <SectionCard title="Variation">
+                <div className="p-3 grid grid-cols-3 gap-2">
+                  {(
+                    [
+                      { id: "compact", label: "Compact", desc: "Minimal" },
+                      { id: "standard", label: "Standard", desc: "Recommended" },
+                      { id: "rich", label: "Rich", desc: "2 cards desktop" },
+                    ] as const
+                  ).map(({ id, label, desc }) => (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => { setFloatingVariation(id); markUnsaved(); }}
+                      className={`relative flex flex-col items-center gap-1 rounded-xl border-2 p-3 text-center transition-all ${
+                        floatingVariation === id ? "border-indigo-600 bg-indigo-50" : "border-slate-200 bg-white hover:border-slate-300"
+                      }`}
+                    >
+                      {floatingVariation === id && (
+                        <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-indigo-600 rounded-full text-white text-[9px] font-bold flex items-center justify-center">✓</span>
+                      )}
+                      <span className="text-xs font-bold text-slate-900">{label}</span>
+                      <span className="text-[10px] text-slate-500">{desc}</span>
+                    </button>
+                  ))}
+                </div>
+              </SectionCard>
+
+              {/* Position */}
+              <SectionCard title="Position">
+                <div className="p-3 grid grid-cols-2 gap-2">
+                  {(
+                    [
+                      { id: "bottom-right", icon: "↘", label: "Bottom Right" },
+                      { id: "bottom-left", icon: "↙", label: "Bottom Left" },
+                      { id: "right", icon: "→", label: "Right Edge" },
+                      { id: "left", icon: "←", label: "Left Edge" },
+                    ] as const
+                  ).map(({ id, icon, label }) => (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => { setFloatingPosition(id); markUnsaved(); }}
+                      className={`relative flex items-center gap-2 rounded-xl border-2 p-3 transition-all ${
+                        floatingPosition === id ? "border-indigo-600 bg-indigo-50" : "border-slate-200 bg-white hover:border-slate-300"
+                      }`}
+                    >
+                      {floatingPosition === id && (
+                        <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-indigo-600 rounded-full text-white text-[9px] font-bold flex items-center justify-center">✓</span>
+                      )}
+                      <span className="text-lg">{icon}</span>
+                      <span className="text-xs font-semibold text-slate-900">{label}</span>
+                    </button>
+                  ))}
+                </div>
+              </SectionCard>
+
+              {/* Rotation */}
+              <SectionCard title="Rotation">
+                <div className="p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-semibold text-slate-900">Auto-rotate reviews</p>
+                      <p className="text-xs text-slate-500">Cycle through eligible reviews</p>
+                    </div>
+                    <Toggle on={floatingRotationEnabled} onChange={(v) => { setFloatingRotationEnabled(v); markUnsaved(); }} />
+                  </div>
+                  {floatingRotationEnabled && (
+                    <div>
+                      <p className="text-xs font-bold text-slate-500 mb-2">Rotation interval</p>
+                      <div className="grid grid-cols-4 gap-2">
+                        {([5, 8, 12, 30] as const).map((sec) => (
+                          <button
+                            key={sec}
+                            type="button"
+                            onClick={() => { setFloatingRotationIntervalSec(sec); markUnsaved(); }}
+                            className={`rounded-lg border-2 p-2 text-center text-xs font-semibold transition-all ${
+                              floatingRotationIntervalSec === sec ? "border-indigo-600 bg-indigo-50 text-indigo-700" : "border-slate-200 text-slate-700 hover:border-slate-300"
+                            }`}
+                          >
+                            {sec}s
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </SectionCard>
+
+              {/* Accent Color */}
+              <SectionCard title="Accent color">
+                <div className="p-4 space-y-3">
+                  <button
+                    type="button"
+                    onClick={() => { setFloatingAccentColorMode("inherit"); markUnsaved(); }}
+                    className={`w-full flex items-center justify-between rounded-lg border-2 p-3 transition-all ${
+                      floatingAccentColorMode === "inherit" ? "border-indigo-600 bg-indigo-50" : "border-slate-200 bg-white hover:border-slate-300"
+                    }`}
+                  >
+                    <div className="text-left">
+                      <p className="text-sm font-semibold text-slate-900">Inherit brand color</p>
+                      <p className="text-xs text-slate-500">Uses the widget&apos;s primary color</p>
+                    </div>
+                    {floatingAccentColorMode === "inherit" && <span className="text-xs font-bold text-indigo-600 bg-indigo-100 px-2 py-0.5 rounded-full">Active</span>}
+                  </button>
+                  <div>
+                    <p className="text-xs font-bold text-slate-500 mb-1.5">Custom color</p>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="color"
+                        value={floatingAccentColor ?? widget.primaryColor ?? "#4338ca"}
+                        onChange={(e) => { setFloatingAccentColor(e.target.value); setFloatingAccentColorMode("custom"); markUnsaved(); }}
+                        className="w-10 h-10 rounded-lg border border-slate-200 cursor-pointer"
+                      />
+                      <input
+                        type="text"
+                        value={floatingAccentColor ?? ""}
+                        onChange={(e) => {
+                          const v = e.target.value.trim();
+                          setFloatingAccentColor(/^#[0-9a-fA-F]{6}$/.test(v) ? v : null);
+                          setFloatingAccentColorMode("custom");
+                          markUnsaved();
+                        }}
+                        placeholder="#4338ca"
+                        className="flex-1 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-mono"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </SectionCard>
+
+              {/* Mobile + Frequency */}
+              <SectionCard title="Mobile & frequency">
+                <div className="p-3 space-y-3">
+                  <div>
+                    <p className="text-xs font-bold text-slate-500 mb-2">Mobile behavior</p>
+                    <div className="grid grid-cols-3 gap-2">
+                      {(
+                        [
+                          { id: "show", label: "Show", desc: "Normal" },
+                          { id: "compact", label: "Compact", desc: "Force compact" },
+                          { id: "hide", label: "Hide", desc: "Don't render" },
+                        ] as const
+                      ).map(({ id, label, desc }) => (
+                        <button
+                          key={id}
+                          type="button"
+                          onClick={() => { setFloatingMobileBehavior(id); markUnsaved(); }}
+                          className={`relative flex flex-col items-center gap-0.5 rounded-xl border-2 p-2.5 text-center transition-all ${
+                            floatingMobileBehavior === id ? "border-indigo-600 bg-indigo-50" : "border-slate-200 bg-white hover:border-slate-300"
+                          }`}
+                        >
+                          {floatingMobileBehavior === id && (
+                            <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-indigo-600 rounded-full text-white text-[9px] font-bold flex items-center justify-center">✓</span>
+                          )}
+                          <span className="text-xs font-bold text-slate-900">{label}</span>
+                          <span className="text-[9px] text-slate-500">{desc}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-slate-500 mb-2">Display frequency</p>
+                    <div className="flex flex-col gap-1.5">
+                      {(
+                        [
+                          { id: "always", label: "Always", desc: "Every session" },
+                          { id: "half", label: "50% of sessions", desc: "Half of visitors" },
+                          { id: "third", label: "33% of sessions", desc: "One in three visitors" },
+                        ] as const
+                      ).map(({ id, label, desc }) => (
+                        <button
+                          key={id}
+                          type="button"
+                          onClick={() => { setFloatingDisplayFrequency(id); markUnsaved(); }}
+                          className={`flex items-center justify-between rounded-lg border-2 p-2.5 transition-all ${
+                            floatingDisplayFrequency === id ? "border-indigo-600 bg-indigo-50" : "border-slate-200 bg-white hover:border-slate-300"
+                          }`}
+                        >
+                          <div className="text-left">
+                            <p className="text-xs font-semibold text-slate-900">{label}</p>
+                            <p className="text-[10px] text-slate-500">{desc}</p>
+                          </div>
+                          {floatingDisplayFrequency === id && <span className="text-[10px] font-bold text-indigo-600 bg-indigo-100 px-2 py-0.5 rounded-full">Selected</span>}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </SectionCard>
+
+              {/* Content filters */}
+              <SectionCard title="Content filters">
+                <div className="p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-semibold text-slate-900">Approved only</p>
+                      <p className="text-xs text-slate-500">Only show published/approved reviews</p>
+                    </div>
+                    <Toggle on={floatingApprovedOnly} onChange={(v) => { setFloatingApprovedOnly(v); markUnsaved(); }} />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-slate-500 mb-2">Minimum star rating</p>
+                    <div className="flex gap-2">
+                      {([4, 5] as const).map((r) => (
+                        <button
+                          key={r}
+                          type="button"
+                          onClick={() => { setFloatingMinRating(r); markUnsaved(); }}
+                          className={`flex-1 rounded-lg border-2 p-2 text-center text-sm font-bold transition-all ${
+                            floatingMinRating === r ? "border-indigo-600 bg-indigo-50 text-indigo-700" : "border-slate-200 text-slate-700 hover:border-slate-300"
+                          }`}
+                        >
+                          {r}★+
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </SectionCard>
+
+              {/* Active toggle */}
+              <SectionCard title="Widget settings">
+                <div className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-semibold text-slate-900">Widget active</p>
+                      <p className="text-xs text-slate-500">Show floating widget on embedded pages</p>
+                    </div>
+                    <Toggle on={isActive} onChange={setAndMark(setIsActive)} />
+                  </div>
+                </div>
+              </SectionCard>
+            </>
+          )}
+
           {/* ── STICKY FOOTER ─────────────────────────────────────────────── */}
           <div className="flex flex-col gap-2 sticky bottom-0 bg-slate-50 pt-2 pb-1 border-t border-slate-200 -mx-0">
             <button
@@ -1075,6 +1390,10 @@ export function WidgetCustomizer({
                 collectButtonColor={collectButtonColor}
                 collectButtonTheme={collectTheme}
                 collectMobileBehavior={collectMobileBehavior}
+                floatingCardStyle={floatingCardStyle}
+                floatingVariation={floatingVariation}
+                floatingPosition={floatingPosition}
+                floatingAccentColor={floatingAccentColorMode === "custom" ? (floatingAccentColor ?? widget.primaryColor ?? "#4338ca") : (widget.primaryColor ?? "#4338ca")}
               />
             </div>
           </div>

@@ -62,6 +62,11 @@ type ReviewWidgetPreviewProps = {
   collectButtonColor?: string | null;
   collectButtonTheme?: string | null;
   collectMobileBehavior?: string | null;
+  // Floating Widget
+  floatingCardStyle?: string | null;
+  floatingVariation?: string | null;
+  floatingPosition?: string | null;
+  floatingAccentColor?: string | null;
 };
 
 const FONT_STACKS: Record<string, string> = {
@@ -851,6 +856,106 @@ function TabbedLayout({
   );
 }
 
+// ─── Floating Widget Preview ─────────────────────────────────────────────────
+
+function FloatingWidgetPreview({
+  cardStyle,
+  variation,
+  position,
+  accentColor,
+  isMobile,
+}: {
+  cardStyle: string;
+  variation: string;
+  position: string;
+  accentColor: string;
+  isMobile?: boolean;
+}) {
+  const color = accentColor || "#4338ca";
+
+  const posClass: Record<string, string> = {
+    "bottom-right": "bottom-3 right-3",
+    "bottom-left": "bottom-3 left-3",
+    right: "right-0 top-1/2 -translate-y-1/2",
+    left: "left-0 top-1/2 -translate-y-1/2",
+  };
+
+  const renderCard = (idx: number) => {
+    const names = ["Sarah J.", "Matt M."];
+    const name = names[idx % names.length];
+    const initial = name[0];
+
+    if (cardStyle === "notification_compact") {
+      return (
+        <div key={idx} style={{ background: "#fff", borderRadius: 12, boxShadow: "0 4px 16px rgba(0,0,0,.14)", padding: "9px 12px", display: "flex", alignItems: "center", gap: 8, border: "1px solid rgba(0,0,0,.06)", marginBottom: idx === 0 && variation === "rich" ? 6 : 0 }}>
+          <div style={{ width: 28, height: 28, borderRadius: "50%", background: color, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 700, fontSize: 11, flexShrink: 0 }}>{initial}</div>
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: "#0f172a" }}>{name} just left a review</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+              <span style={{ color: "#f59e0b", fontSize: 10 }}>★★★★★</span>
+              <span style={{ fontSize: 10, color: "#64748b" }}>On Google</span>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    const showQuote = variation !== "compact";
+
+    return (
+      <div key={idx} style={{ background: "#fff", borderRadius: 12, boxShadow: "0 6px 20px rgba(0,0,0,.14)", padding: "10px 12px", border: "1px solid rgba(0,0,0,.06)", marginBottom: idx === 0 && variation === "rich" ? 6 : 0 }}>
+        <div style={{ color: "#f59e0b", fontSize: 11, marginBottom: 4 }}>★★★★★</div>
+        {showQuote && <div style={{ fontSize: 10, color: "#475569", lineHeight: 1.4, borderLeft: `2px solid ${color}`, paddingLeft: 6, marginBottom: 7 }}>"Truly exceeded our expectations."</div>}
+        {cardStyle === "below_card" ? (
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <div style={{ width: 22, height: 22, borderRadius: "50%", background: color, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 700, fontSize: 9 }}>{initial}</div>
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 700, color: "#0f172a" }}>{name}</div>
+              <div style={{ fontSize: 9, color: "#64748b" }}>On Google</div>
+            </div>
+          </div>
+        ) : (
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: cardStyle === "frosted_glass_pill" ? "rgba(15,23,42,.6)" : "#0f172a", borderRadius: 999, padding: "3px 10px 3px 3px" }}>
+            <div style={{ width: 22, height: 22, borderRadius: "50%", background: color, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 700, fontSize: 9 }}>{initial}</div>
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 700, color: "#fff" }}>{name}</div>
+              <div style={{ fontSize: 9, color: "rgba(255,255,255,.7)" }}>On Google</div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <div className="relative overflow-hidden rounded-xl border border-slate-200 bg-slate-100" style={{ minHeight: 220, fontFamily: "system-ui, sans-serif" }}>
+      <div className="p-4 space-y-2">
+        <div className="h-3 w-3/4 rounded bg-slate-200" />
+        <div className="h-2 w-full rounded bg-slate-200" />
+        <div className="h-2 w-5/6 rounded bg-slate-200" />
+        <div className="h-2 w-4/6 rounded bg-slate-200" />
+        <div className="mt-4 h-2 w-full rounded bg-slate-200" />
+        <div className="h-2 w-5/6 rounded bg-slate-200" />
+      </div>
+
+      {isMobile && variation === "rich" ? (
+        <div className={`absolute ${posClass[position] ?? posClass["bottom-right"]}`} style={{ maxWidth: 200 }}>
+          {renderCard(0)}
+        </div>
+      ) : (
+        <div className={`absolute ${posClass[position] ?? posClass["bottom-right"]}`} style={{ maxWidth: 200 }}>
+          {renderCard(0)}
+          {variation === "rich" && renderCard(1)}
+        </div>
+      )}
+
+      <div className="absolute top-2 left-2 text-[9px] font-bold uppercase tracking-wider text-slate-400 bg-white rounded px-1.5 py-0.5 border border-slate-200">
+        Preview
+      </div>
+    </div>
+  );
+}
+
 // ─── Collecting Widget Preview ────────────────────────────────────────────────
 
 function CollectingWidgetPreview({
@@ -988,7 +1093,23 @@ export function ReviewWidgetPreview({
   collectButtonColor,
   collectButtonTheme,
   collectMobileBehavior,
+  floatingCardStyle,
+  floatingVariation,
+  floatingPosition,
+  floatingAccentColor,
 }: ReviewWidgetPreviewProps) {
+  if (widgetType === "FLOATING") {
+    return (
+      <FloatingWidgetPreview
+        cardStyle={floatingCardStyle ?? "dark_solid_pill"}
+        variation={floatingVariation ?? "standard"}
+        position={floatingPosition ?? "bottom-right"}
+        accentColor={floatingAccentColor ?? primaryColor ?? "#4338ca"}
+        isMobile={isMobile}
+      />
+    );
+  }
+
   if (widgetType === "COLLECTING") {
     return (
       <CollectingWidgetPreview
