@@ -57,6 +57,18 @@ export type PublicWidgetPayload = {
     collectButtonTheme: string | null;
     collectMobileBehavior: string | null;
     collectButtonPosition: string | null;
+    // Floating Widget
+    floatingCardStyle: string | null;
+    floatingVariation: string | null;
+    floatingPosition: string | null;
+    floatingRotationEnabled: boolean | null;
+    floatingRotationIntervalSec: number | null;
+    floatingAccentColorMode: string | null;
+    floatingAccentColor: string | null;
+    floatingMobileBehavior: string | null;
+    floatingApprovedOnly: boolean | null;
+    floatingMinRating: number | null;
+    floatingDisplayFrequency: string | null;
   };
   location: {
     name: string;
@@ -244,6 +256,17 @@ export async function getPublicReviewWidgetPayload(publicToken: string, page = 1
     collectButtonTheme: widget.collectButtonTheme ?? null,
     collectMobileBehavior: widget.collectMobileBehavior ?? null,
     collectButtonPosition: widget.collectButtonPosition ?? null,
+    floatingCardStyle: widget.floatingCardStyle ?? null,
+    floatingVariation: widget.floatingVariation ?? null,
+    floatingPosition: widget.floatingPosition ?? null,
+    floatingRotationEnabled: widget.floatingRotationEnabled ?? null,
+    floatingRotationIntervalSec: widget.floatingRotationIntervalSec ?? null,
+    floatingAccentColorMode: widget.floatingAccentColorMode ?? null,
+    floatingAccentColor: widget.floatingAccentColor ?? null,
+    floatingMobileBehavior: widget.floatingMobileBehavior ?? null,
+    floatingApprovedOnly: widget.floatingApprovedOnly ?? null,
+    floatingMinRating: widget.floatingMinRating ?? null,
+    floatingDisplayFrequency: widget.floatingDisplayFrequency ?? null,
   });
 
   const buildLocationObj = (reviewCount: number) => ({
@@ -319,6 +342,44 @@ export async function getPublicReviewWidgetPayload(publicToken: string, page = 1
       pagination: { page: 1, pageSize: 1, total: singleReviews.length, hasMore: false },
       ...(singleVideos.length > 0 ? { videoTestimonials: singleVideos } : {}),
       ...(singleItemUnavailable ? { singleItemUnavailable: true } : {}),
+    };
+  }
+
+  // ── Floating Widget: return up to 20 reviews for client-side rotation ────────
+  if (widget.widgetType === "FLOATING") {
+    const minRating = widget.floatingMinRating ?? 4;
+    const floatingReviews = await prisma.review.findMany({
+      where: {
+        locationId: widget.locationId,
+        source: ReviewSource.GOOGLE,
+        status: ReviewStatus.PUBLISHED,
+        rating: { gte: minRating },
+      },
+      orderBy: [{ reviewedAt: "desc" }, { createdAt: "desc" }],
+      take: 20,
+      select: {
+        id: true, reviewerName: true, reviewerPhotoUrl: true,
+        sourceReviewUrl: true, sourceReplyText: true,
+        replyDraft: true, replyPublishedAt: true, replySentAt: true,
+        rating: true, body: true, reviewedAt: true, source: true,
+      },
+    });
+
+    return {
+      widget: buildWidgetObj(floatingReviews.length),
+      location: buildLocationObj(floatingReviews.length),
+      reviews: floatingReviews.map((r) => ({
+        id: r.id,
+        reviewerName: r.reviewerName,
+        reviewerPhotoUrl: r.reviewerPhotoUrl ?? null,
+        sourceReviewUrl: r.sourceReviewUrl ?? null,
+        sourceReplyText: r.sourceReplyText ?? ((r.replyPublishedAt || r.replySentAt) ? r.replyDraft : null) ?? null,
+        rating: r.rating ?? 5,
+        body: r.body,
+        reviewedAt: r.reviewedAt ? r.reviewedAt.toISOString() : null,
+        source: r.source as string,
+      })),
+      pagination: { page: 1, pageSize: 20, total: floatingReviews.length, hasMore: false },
     };
   }
 
