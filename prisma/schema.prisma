@@ -84,6 +84,12 @@ enum VideoTestimonialStatus {
   REJECTED
 }
 
+enum ThumbnailSource {
+  DEFAULT
+  CUSTOM
+  CAPTURED
+}
+
 enum GbpPostType {
   WHATS_NEW
   OFFER
@@ -651,24 +657,29 @@ model LocationPublicProfile {
 }
 
 model VideoTestimonial {
-  id              String                 @id @default(cuid())
-  locationId      String
-  token           String                 @unique
-  prompt          String?
-  submitterName   String?
-  submitterEmail  String?
-  videoUrl        String?
-  mimeType        String?
-  durationSeconds Int?
-  status          VideoTestimonialStatus @default(PENDING)
-  publishedAt     DateTime?
-  expiresAt       DateTime?
-  usedAt          DateTime?
-  revokedAt       DateTime?
-  createdAt       DateTime               @default(now())
-  updatedAt       DateTime               @updatedAt
+  id                    String                 @id @default(cuid())
+  locationId            String
+  token                 String                 @unique
+  prompt                String?
+  submitterName         String?
+  submitterEmail        String?
+  videoUrl              String?
+  mimeType              String?
+  durationSeconds       Int?
+  caption               String?                // Admin-provided text accompanying the video
+  customThumbnailUrl    String?                // Admin-uploaded custom thumbnail image
+  capturedFrameUrl      String?                // Extracted frame from video
+  capturedFrameTimestamp Float?                // Seconds into video where frame was captured
+  thumbnailSource       ThumbnailSource        @default(DEFAULT) // Which thumbnail to display
+  status                VideoTestimonialStatus @default(PENDING)
+  publishedAt           DateTime?
+  expiresAt             DateTime?
+  usedAt                DateTime?
+  revokedAt             DateTime?
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
 
-  location        Location               @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  location              Location               @relation(fields: [locationId], references: [id], onDelete: Cascade)
 
   @@index([locationId])
   @@index([token])
