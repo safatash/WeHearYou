@@ -6,7 +6,9 @@ import { requireActiveMembershipPage } from "@/lib/page-guards";
 import { prisma } from "@/lib/prisma";
 import { SendVideoRequestForm } from "@/components/send-video-request-form";
 import { CopyButton } from "@/components/copy-button";
-import { approveVideoTestimonial, rejectVideoTestimonial, deleteVideoTestimonial } from "./actions";
+import { approveVideoTestimonial, rejectVideoTestimonial, deleteVideoTestimonial, updateVideoTestimonialCaption } from "./actions";
+import { VideoThumbnailEditor } from "@/components/video-thumbnail-editor";
+import { getThumbnailUrl, getThumbnailAlt } from "@/lib/thumbnail-utils";
 
 function formatDuration(seconds: number | null) {
   if (!seconds) return null;
@@ -52,6 +54,11 @@ export default async function VideoTestimonialsPage() {
             durationSeconds: true,
             status: true,
             createdAt: true,
+            caption: true,
+            customThumbnailUrl: true,
+            capturedFrameUrl: true,
+            capturedFrameTimestamp: true,
+            thumbnailSource: true,
           },
         },
       },
@@ -141,11 +148,28 @@ export default async function VideoTestimonialsPage() {
                     <div className="flex gap-4 items-start">
                       {/* Thumbnail */}
                       {vt.videoUrl ? (
-                        <video
-                          src={vt.videoUrl}
-                          preload="metadata"
-                          className="w-24 h-16 flex-shrink-0 rounded-lg bg-slate-900 object-cover"
-                        />
+                        (() => {
+                          const thumbnailUrl = getThumbnailUrl({
+                            customThumbnailUrl: vt.customThumbnailUrl,
+                            capturedFrameUrl: vt.capturedFrameUrl,
+                            videoUrl: vt.videoUrl,
+                            thumbnailSource: vt.thumbnailSource,
+                          });
+
+                          return thumbnailUrl ? (
+                            <img
+                              src={thumbnailUrl}
+                              alt={getThumbnailAlt(vt.submitterName)}
+                              className="w-24 h-16 flex-shrink-0 rounded-lg bg-slate-900 object-cover"
+                            />
+                          ) : (
+                            <video
+                              src={vt.videoUrl}
+                              preload="metadata"
+                              className="w-24 h-16 flex-shrink-0 rounded-lg bg-slate-900 object-cover"
+                            />
+                          );
+                        })()
                       ) : (
                         <div className="w-24 h-16 flex-shrink-0 rounded-lg bg-slate-100 border border-dashed border-slate-300 flex items-center justify-center text-2xl">
                           🎥
@@ -167,6 +191,37 @@ export default async function VideoTestimonialsPage() {
                         <p className="text-sm text-slate-500 mb-1">{vt.location.name} · {vt.location.city}, {vt.location.state}</p>
                         {vt.prompt && (
                           <p className="text-xs text-slate-400 italic mb-2">&ldquo;{vt.prompt}&rdquo;</p>
+                        )}
+
+                        {vt.videoUrl && (
+                          <form action={updateVideoTestimonialCaption} className="mb-2 flex gap-2 items-end">
+                            <input type="hidden" name="id" value={vt.id} />
+                            <div className="flex-1 min-w-0">
+                              <label htmlFor={`caption-${vt.id}`} className="block text-xs font-medium text-slate-600 mb-1">Caption (optional)</label>
+                              <input
+                                id={`caption-${vt.id}`}
+                                type="text"
+                                name="caption"
+                                defaultValue={vt.caption ?? ""}
+                                placeholder="Add a caption or description for this video"
+                                className="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-normal text-slate-900 placeholder-slate-400 focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+                              />
+                            </div>
+                            <FormSubmitButton idleLabel="Save" pendingLabel="Saving…" className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 hover:border-slate-300" />
+                          </form>
+                        )}
+
+                        {vt.videoUrl && (
+                          <VideoThumbnailEditor
+                            videoId={vt.id}
+                            videoUrl={vt.videoUrl ?? ""}
+                            durationSeconds={vt.durationSeconds}
+                            submitterName={vt.submitterName}
+                            customThumbnailUrl={vt.customThumbnailUrl}
+                            capturedFrameUrl={vt.capturedFrameUrl}
+                            capturedFrameTimestamp={vt.capturedFrameTimestamp}
+                            thumbnailSource={vt.thumbnailSource}
+                          />
                         )}
 
                         <div className="flex flex-wrap gap-2">
