@@ -20,7 +20,12 @@ export type PublicWidgetVideoTestimonial = {
   submitterName: string | null;
   videoUrl: string;
   durationSeconds: number | null;
+  caption: string | null;
   publishedAt: string | null;
+  customThumbnailUrl: string | null;
+  capturedFrameUrl: string | null;
+  capturedFrameTimestamp: number | null;
+  thumbnailSource: string;
 };
 
 export type PublicWidgetPayload = {
@@ -296,7 +301,7 @@ export async function getPublicReviewWidgetPayload(publicToken: string, page = 1
           status: "APPROVED",
           videoUrl: { not: null },
         },
-        select: { id: true, submitterName: true, videoUrl: true, durationSeconds: true, publishedAt: true },
+        select: { id: true, submitterName: true, videoUrl: true, durationSeconds: true, caption: true, publishedAt: true, customThumbnailUrl: true, capturedFrameUrl: true, capturedFrameTimestamp: true, thumbnailSource: true },
       });
       if (vt?.videoUrl) {
         singleVideos = [{
@@ -304,7 +309,12 @@ export async function getPublicReviewWidgetPayload(publicToken: string, page = 1
           submitterName: vt.submitterName,
           videoUrl: vt.videoUrl,
           durationSeconds: vt.durationSeconds,
+          caption: vt.caption,
           publishedAt: vt.publishedAt ? vt.publishedAt.toISOString() : null,
+          customThumbnailUrl: vt.customThumbnailUrl,
+          capturedFrameUrl: vt.capturedFrameUrl,
+          capturedFrameTimestamp: vt.capturedFrameTimestamp,
+          thumbnailSource: vt.thumbnailSource,
         }];
       } else {
         singleItemUnavailable = true;
@@ -435,7 +445,12 @@ export async function getPublicReviewWidgetPayload(publicToken: string, page = 1
         submitterName: true,
         videoUrl: true,
         durationSeconds: true,
+        caption: true,
         publishedAt: true,
+        customThumbnailUrl: true,
+        capturedFrameUrl: true,
+        capturedFrameTimestamp: true,
+        thumbnailSource: true,
       },
     });
     videoTestimonials.push(
@@ -446,7 +461,12 @@ export async function getPublicReviewWidgetPayload(publicToken: string, page = 1
           submitterName: v.submitterName,
           videoUrl: v.videoUrl,
           durationSeconds: v.durationSeconds,
+          caption: v.caption,
           publishedAt: v.publishedAt ? v.publishedAt.toISOString() : null,
+          customThumbnailUrl: v.customThumbnailUrl,
+          capturedFrameUrl: v.capturedFrameUrl,
+          capturedFrameTimestamp: v.capturedFrameTimestamp,
+          thumbnailSource: v.thumbnailSource,
         }))
     );
   }
@@ -587,7 +607,12 @@ export async function getWidgetPickerData(locationId: string) {
         submitterName: true,
         videoUrl: true,
         durationSeconds: true,
+        caption: true,
         publishedAt: true,
+        customThumbnailUrl: true,
+        capturedFrameUrl: true,
+        capturedFrameTimestamp: true,
+        thumbnailSource: true,
       },
     }),
   ]);
@@ -609,7 +634,12 @@ export async function getWidgetPickerData(locationId: string) {
         submitterName: v.submitterName ?? null,
         videoUrl: v.videoUrl,
         durationSeconds: v.durationSeconds ?? null,
+        caption: v.caption ?? null,
         publishedAt: v.publishedAt ? v.publishedAt.toISOString() : null,
+        customThumbnailUrl: v.customThumbnailUrl,
+        capturedFrameUrl: v.capturedFrameUrl,
+        capturedFrameTimestamp: v.capturedFrameTimestamp,
+        thumbnailSource: v.thumbnailSource,
       })),
   };
 }
