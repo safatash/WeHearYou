@@ -1142,13 +1142,15 @@ export function WidgetCustomizer({
                   Embed code
                 </p>
                 <div className="bg-slate-900 rounded-xl p-4 relative">
-                  <pre className="text-xs font-mono text-sky-300 whitespace-pre-wrap break-words pr-16">
+                  <pre className="text-xs font-mono text-sky-300 overflow-x-auto pr-16">
                     {embedCode}
                   </pre>
                   <button
                     type="button"
                     onClick={() => {
-                      navigator.clipboard.writeText(embedCode);
+                      // Strip any newlines that may have crept into attribute values
+                      const clean = embedCode.replace(/([a-z"'])(\s*\n\s*)([^\s<])/g, "$1$3");
+                      navigator.clipboard.writeText(clean);
                       setCopySuccess(true);
                       setTimeout(() => setCopySuccess(false), 2000);
                     }}
