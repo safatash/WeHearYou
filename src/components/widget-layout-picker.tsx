@@ -65,6 +65,9 @@ export function WidgetLayoutPicker({ locations }: WidgetLayoutPickerProps) {
     formData.append("name", widgetName.trim());
     formData.append("locationId", locationId);
     formData.append("contentType", "TEXT");
+    if (selectedLayout === "floating") {
+      formData.append("widgetType", "FLOATING");
+    }
     try {
       await createReviewWidget(formData);
     } catch (err) {
