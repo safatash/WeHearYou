@@ -389,7 +389,7 @@ export function VideoThumbnailEditor({
         {/* Footer */}
         <div className="sticky bottom-0 border-t border-slate-200 bg-white px-6 py-4 flex gap-2 justify-end">
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
           >
             Close
