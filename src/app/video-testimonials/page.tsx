@@ -258,14 +258,6 @@ export default async function VideoTestimonialsPage() {
                           />
                         )}
 
-                        {vt.videoUrl && (
-                          <CaptionEditor
-                            vtId={vt.id}
-                            currentCaption={vt.caption}
-                            prompt={vt.prompt}
-                          />
-                        )}
-
                         {embedCode && (
                           <CopyButton value={embedCode} label="Copy Embed" />
                         )}
@@ -300,6 +292,14 @@ export default async function VideoTestimonialsPage() {
                           />
                         </form>
                       </div>
+
+                      {vt.videoUrl && (
+                        <CaptionEditor
+                          vtId={vt.id}
+                          currentCaption={vt.caption}
+                          prompt={vt.prompt}
+                        />
+                      )}
                     </div>
                   </div>
                 );
