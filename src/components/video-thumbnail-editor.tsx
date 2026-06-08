@@ -22,10 +22,14 @@ interface VideoThumbnailEditorProps {
   videoUrl: string;
   durationSeconds?: number | null;
   submitterName?: string | null;
+  caption?: string | null;
+  locationName?: string | null;
+  status?: string | null;
   customThumbnailUrl?: string | null;
   capturedFrameUrl?: string | null;
   capturedFrameTimestamp?: number | null;
   thumbnailSource: ThumbnailSource;
+  approveAction?: (formData: FormData) => Promise<void>;
   onClose?: () => void;
 }
 
@@ -34,10 +38,14 @@ export function VideoThumbnailEditor({
   videoUrl,
   durationSeconds,
   submitterName,
+  caption: _caption,
+  locationName: _locationName,
+  status: _status,
   customThumbnailUrl,
   capturedFrameUrl,
   capturedFrameTimestamp,
   thumbnailSource,
+  approveAction: _approveAction,
   onClose = () => {},
 }: VideoThumbnailEditorProps) {
   const videoRef = useRef<HTMLVideoElement>(null);

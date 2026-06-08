@@ -6,10 +6,11 @@ import { requireActiveMembershipPage } from "@/lib/page-guards";
 import { prisma } from "@/lib/prisma";
 import { SendVideoRequestForm } from "@/components/send-video-request-form";
 import { CopyButton } from "@/components/copy-button";
-import { approveVideoTestimonial, rejectVideoTestimonial, deleteVideoTestimonial, updateVideoTestimonialCaption } from "./actions";
+import { approveVideoTestimonial, rejectVideoTestimonial, deleteVideoTestimonial } from "./actions";
 import { VideoThumbnailEditor } from "@/components/video-thumbnail-editor";
 import { getThumbnailUrl, getThumbnailAlt } from "@/lib/thumbnail-utils";
-import { StatusBadge } from "@/components/status-badge";
+import { StatusChips } from "@/components/status-chips";
+import { CaptionEditor } from "@/components/caption-editor";
 
 function formatDuration(seconds: number | null) {
   if (!seconds) return null;
@@ -120,7 +121,7 @@ export default async function VideoTestimonialsPage() {
           {allTestimonials.length === 0 ? (
             <p className="mt-4 text-sm text-slate-500">No video testimonials yet. Send a request above and share it with a customer.</p>
           ) : (
-            <div className="mt-4 space-y-4">
+            <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {allTestimonials.map((vt) => {
                 const recorderUrl = `${appUrl}/vt/${vt.token}`;
                 const isPublished = vt.status === "APPROVED";
@@ -128,79 +129,116 @@ export default async function VideoTestimonialsPage() {
                   ? `<iframe src="${appUrl}/embed/vt/${vt.id}" width="640" height="360" frameborder="0" allow="autoplay; fullscreen" allowfullscreen></iframe>`
                   : null;
 
+                const thumbnailUrl = getThumbnailUrl({
+                  customThumbnailUrl: vt.customThumbnailUrl,
+                  capturedFrameUrl: vt.capturedFrameUrl,
+                  videoUrl: vt.videoUrl,
+                  thumbnailSource: vt.thumbnailSource,
+                });
+
                 return (
                   <div
                     key={vt.id}
-                    className={`rounded-2xl border p-4 bg-white hover:shadow-md transition-shadow ${!vt.videoUrl ? "border-dashed border-slate-200 opacity-75" : "border-slate-200"}`}
+                    className={`rounded-2xl border bg-white overflow-hidden hover:shadow-md transition-shadow ${
+                      !vt.videoUrl ? "border-dashed border-slate-200 opacity-80" : "border-slate-200"
+                    }`}
                   >
-                    <div className="flex gap-4">
-                      {/* Thumbnail */}
+                    {/* Thumbnail / Video preview area */}
+                    <div className="relative aspect-video bg-slate-900">
                       {vt.videoUrl ? (
-                        (() => {
-                          const thumbnailUrl = getThumbnailUrl({
-                            customThumbnailUrl: vt.customThumbnailUrl,
-                            capturedFrameUrl: vt.capturedFrameUrl,
-                            videoUrl: vt.videoUrl,
-                            thumbnailSource: vt.thumbnailSource,
-                          });
-
-                          return thumbnailUrl ? (
-                            <img
-                              src={thumbnailUrl}
-                              alt={getThumbnailAlt(vt.submitterName)}
-                              className="w-24 h-16 flex-shrink-0 rounded-lg bg-slate-900 object-cover"
-                            />
-                          ) : (
-                            <video
-                              src={vt.videoUrl}
-                              preload="metadata"
-                              className="w-24 h-16 flex-shrink-0 rounded-lg bg-slate-900 object-cover"
-                            />
-                          );
-                        })()
+                        thumbnailUrl ? (
+                          <img
+                            src={thumbnailUrl}
+                            alt={getThumbnailAlt(vt.submitterName)}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <video
+                            src={vt.videoUrl}
+                            preload="metadata"
+                            className="w-full h-full object-cover"
+                          />
+                        )
                       ) : (
-                        <div className="w-24 h-16 flex-shrink-0 rounded-lg bg-slate-100 border border-dashed border-slate-300 flex items-center justify-center text-2xl">
-                          🎥
+                        <div className="w-full h-full flex items-center justify-center">
+                          <span className="text-5xl opacity-40">🎥</span>
                         </div>
                       )}
 
-                      {/* Info */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between gap-3 mb-2">
-                          <div className="flex-1">
-                            <h3 className="font-semibold text-slate-900">{vt.submitterName ?? "Unnamed"}</h3>
-                            <p className="text-sm text-slate-500">{vt.location.name} · {vt.location.city}, {vt.location.state}</p>
-                          </div>
-                          <div className="flex gap-2 flex-shrink-0">
-                            <StatusBadge status={vt.status} hasVideo={!!vt.videoUrl} />
+                      {/* Play overlay */}
+                      {vt.videoUrl && (
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                          <div className="w-12 h-12 rounded-full bg-black/30 backdrop-blur-sm flex items-center justify-center">
+                            <svg className="w-5 h-5 text-white ml-0.5" fill="currentColor" viewBox="0 0 20 20">
+                              <path d="M6.3 2.84A1.5 1.5 0 0 0 4 4.11v11.78a1.5 1.5 0 0 0 2.3 1.27l9.344-5.891a1.5 1.5 0 0 0 0-2.538L6.3 2.84Z" />
+                            </svg>
                           </div>
                         </div>
+                      )}
 
-                        <p className="text-xs text-slate-400 mb-3">
-                          {!vt.videoUrl ? "Sent " : ""}{new Date(vt.createdAt).toLocaleDateString()}
-                          {vt.durationSeconds && ` · ${formatDuration(vt.durationSeconds)}`}
+                      {/* Duration badge */}
+                      {vt.durationSeconds && (
+                        <div className="absolute bottom-2 right-2 rounded bg-black/60 px-1.5 py-0.5 text-xs text-white font-mono">
+                          {formatDuration(vt.durationSeconds)}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Card body */}
+                    <div className="p-4">
+                      {/* Name + location + date */}
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <div className="min-w-0">
+                          <h3 className="font-semibold text-slate-900 text-sm truncate">{vt.submitterName ?? "Unnamed"}</h3>
+                          <p className="text-xs text-slate-500 truncate">{vt.location.name} · {vt.location.city}, {vt.location.state}</p>
+                        </div>
+                        <span className="text-xs text-slate-400 whitespace-nowrap flex-shrink-0">
+                          {new Date(vt.createdAt).toLocaleDateString()}
+                        </span>
+                      </div>
+
+                      {/* Status chips */}
+                      <StatusChips vt={vt} />
+
+                      {/* Caption preview */}
+                      {vt.videoUrl && (
+                        <p className="mt-2 text-xs text-slate-600 line-clamp-2">
+                          {vt.caption ?? <em className="text-slate-400">No caption yet</em>}
                         </p>
+                      )}
 
-                        {vt.prompt && (
-                          <p className="text-xs text-slate-600 italic mb-3">&ldquo;{vt.prompt}&rdquo;</p>
+                      {/* Recording prompt (collapsible) */}
+                      {vt.prompt && (
+                        <details className="mt-2">
+                          <summary className="text-xs text-slate-400 cursor-pointer select-none hover:text-slate-600">
+                            Recording prompt ↓
+                          </summary>
+                          <p className="mt-1 text-xs text-slate-500 italic pl-2 border-l border-slate-200">{vt.prompt}</p>
+                        </details>
+                      )}
+
+                      {/* Actions */}
+                      <div className="mt-3 pt-3 border-t border-slate-100 flex flex-wrap gap-2 items-center">
+                        {!vt.videoUrl && (
+                          <a
+                            href={recorderUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 hover:border-slate-300"
+                          >
+                            Open link ↗
+                          </a>
                         )}
 
                         {vt.videoUrl && (
-                          <form action={updateVideoTestimonialCaption} className="mb-2 flex gap-2 items-end">
-                            <input type="hidden" name="id" value={vt.id} />
-                            <div className="flex-1 min-w-0">
-                              <label htmlFor={`caption-${vt.id}`} className="block text-xs font-medium text-slate-600 mb-1">Caption (optional)</label>
-                              <input
-                                id={`caption-${vt.id}`}
-                                type="text"
-                                name="caption"
-                                defaultValue={vt.caption ?? ""}
-                                placeholder="Add a caption or description for this video"
-                                className="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-normal text-slate-900 placeholder-slate-400 focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-400"
-                              />
-                            </div>
-                            <FormSubmitButton idleLabel="Save" pendingLabel="Saving…" className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 hover:border-slate-300" />
-                          </form>
+                          <a
+                            href={vt.videoUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 hover:border-slate-300"
+                          >
+                            Watch ↗
+                          </a>
                         )}
 
                         {vt.videoUrl && (
@@ -209,47 +247,58 @@ export default async function VideoTestimonialsPage() {
                             videoUrl={vt.videoUrl ?? ""}
                             durationSeconds={vt.durationSeconds}
                             submitterName={vt.submitterName}
+                            caption={vt.caption}
+                            locationName={vt.location.name}
+                            status={vt.status}
                             customThumbnailUrl={vt.customThumbnailUrl}
                             capturedFrameUrl={vt.capturedFrameUrl}
                             capturedFrameTimestamp={vt.capturedFrameTimestamp}
                             thumbnailSource={vt.thumbnailSource}
+                            approveAction={approveVideoTestimonial}
                           />
                         )}
 
-                        <div className="flex flex-wrap gap-2">
-                          {!vt.videoUrl && (
-                            <a href={recorderUrl} target="_blank" rel="noreferrer" className="rounded-xl border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 hover:border-slate-300">
-                              Open recorder link ↗
-                            </a>
-                          )}
-                          {vt.videoUrl && vt.status === "PENDING" && (
-                            <>
-                              <a href={vt.videoUrl} target="_blank" rel="noreferrer" className="rounded-xl border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 hover:border-slate-300">Watch ↗</a>
-                              <form action={approveVideoTestimonial}>
-                                <input type="hidden" name="id" value={vt.id} />
-                                <FormSubmitButton idleLabel="Publish" pendingLabel="Publishing…" className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700 hover:border-emerald-300" />
-                              </form>
-                              <form action={rejectVideoTestimonial}>
-                                <input type="hidden" name="id" value={vt.id} />
-                                <FormSubmitButton idleLabel="Reject" pendingLabel="Rejecting…" className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-medium text-rose-700 hover:border-rose-300" />
-                              </form>
-                            </>
-                          )}
-                          {isPublished && vt.videoUrl && (
-                            <a href={vt.videoUrl} target="_blank" rel="noreferrer" className="rounded-xl border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 hover:border-slate-300">Watch ↗</a>
-                          )}
-                          <form action={deleteVideoTestimonial}>
-                            <input type="hidden" name="id" value={vt.id} />
-                            <FormSubmitButton idleLabel="Delete" pendingLabel="Deleting…" className="rounded-xl border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-500 hover:border-slate-300 hover:text-rose-600" />
-                          </form>
-                        </div>
+                        {vt.videoUrl && (
+                          <CaptionEditor
+                            vtId={vt.id}
+                            currentCaption={vt.caption}
+                            prompt={vt.prompt}
+                          />
+                        )}
 
                         {embedCode && (
-                          <div className="mt-3 flex items-center gap-2 rounded-xl bg-slate-50 border border-slate-100 p-2">
-                            <code className="flex-1 truncate text-xs text-slate-600">{embedCode}</code>
-                            <CopyButton value={embedCode} label="Copy" />
-                          </div>
+                          <CopyButton value={embedCode} label="Copy Embed" />
                         )}
+
+                        {vt.videoUrl && vt.status === "PENDING" && (
+                          <>
+                            <form action={approveVideoTestimonial}>
+                              <input type="hidden" name="id" value={vt.id} />
+                              <FormSubmitButton
+                                idleLabel="Publish"
+                                pendingLabel="Publishing…"
+                                className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700 hover:border-emerald-300"
+                              />
+                            </form>
+                            <form action={rejectVideoTestimonial}>
+                              <input type="hidden" name="id" value={vt.id} />
+                              <FormSubmitButton
+                                idleLabel="Reject"
+                                pendingLabel="Rejecting…"
+                                className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-medium text-rose-700 hover:border-rose-300"
+                              />
+                            </form>
+                          </>
+                        )}
+
+                        <form action={deleteVideoTestimonial}>
+                          <input type="hidden" name="id" value={vt.id} />
+                          <FormSubmitButton
+                            idleLabel="Delete"
+                            pendingLabel="Deleting…"
+                            className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-400 hover:border-rose-200 hover:text-rose-600"
+                          />
+                        </form>
                       </div>
                     </div>
                   </div>
