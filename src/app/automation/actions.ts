@@ -1,11 +1,11 @@
 "use server";
 
-type AutomationStepType = "DELAY" | "SEND_REQUEST" | "TAG_CONTACT" | "NOTIFY_TEAM" | "WEBHOOK";
-type AutomationTriggerType = "APPOINTMENT_COMPLETED" | "PROJECT_COMPLETED" | "MANUAL_ENROLLMENT" | "WEBHOOK_EVENT";
 import { redirect } from "next/navigation";
+import { AutomationStepType, AutomationTriggerType } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireAutomationManagement } from "@/lib/authz";
 import { executeManualEnrollment } from "@/lib/automation-engine";
+import { validateAutomation, getProviderReadiness } from "@/lib/automation-validation";
 
 function normalize(value: FormDataEntryValue | null) {
   const text = typeof value === "string" ? value.trim() : "";
@@ -45,8 +45,24 @@ export async function updateAutomation(formData: FormData) {
 
   const existing = await prisma.automation.findFirst({
     where: { id: automationId, organizationId: membership.organizationId },
+    select: { id: true, isActive: true },
   });
   if (!existing) throw new Error("Automation not found.");
+
+  // Activation gate: validate before allowing isActive to flip from false → true
+  const isActivating = isActive && !existing.isActive;
+  if (isActivating) {
+    const steps = await prisma.automationStep.findMany({
+      where: { automationId },
+      select: { id: true, stepType: true, title: true, configJson: true },
+      orderBy: { orderIndex: "asc" },
+    });
+    const provider = getProviderReadiness();
+    const validation = validateAutomation({ triggerType, steps }, provider);
+    if (!validation.canActivate) {
+      redirect(`/automation/${automationId}?tab=builder&flash=activation-blocked`);
+    }
+  }
 
   await prisma.automation.update({
     where: { id: automationId },

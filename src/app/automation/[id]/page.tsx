@@ -10,48 +10,7 @@ import { formatStepType, formatTriggerType } from "@/lib/automation";
 import { updateAutomation } from "@/app/automation/actions";
 import { AddStepForm, DeleteStepButton, DeleteAutomationButton, EnrollContactForm } from "@/app/automation/automation-client";
 import { RunsTab, QueueTab, type ObserveRun, type ObserveJob } from "./automation-observe-client";
-
-// ── Setup helpers (server-only, never exposed to client) ─────────────────────
-
-type ProviderStatus = {
-  resend:        { configured: boolean; hasFromEmail: boolean };
-  twilio:        { configured: boolean; phoneNumber: string | null };
-  webhookSecret: { configured: boolean };
-  runnerSecret:  { configured: boolean; usesFallback: boolean };
-  cronUrl:       string;
-  webhookUrl:    string;
-};
-
-function getProviderStatus(): ProviderStatus {
-  return {
-    resend: {
-      configured: !!process.env.RESEND_API_KEY,
-      hasFromEmail: !!process.env.RESEND_FROM_EMAIL,
-    },
-    twilio: {
-      configured: !!(
-        process.env.TWILIO_ACCOUNT_SID &&
-        process.env.TWILIO_AUTH_TOKEN &&
-        process.env.TWILIO_PHONE_NUMBER
-      ),
-      phoneNumber: process.env.TWILIO_PHONE_NUMBER ?? null,
-    },
-    webhookSecret: {
-      configured: !!process.env.AUTOMATION_WEBHOOK_SECRET,
-    },
-    runnerSecret: {
-      configured: !!(
-        process.env.AUTOMATION_RUNNER_SECRET ||
-        process.env.AUTOMATION_WEBHOOK_SECRET
-      ),
-      usesFallback:
-        !process.env.AUTOMATION_RUNNER_SECRET &&
-        !!process.env.AUTOMATION_WEBHOOK_SECRET,
-    },
-    cronUrl: `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/api/automation/run-pending`,
-    webhookUrl: `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/api/webhooks/automation`,
-  };
-}
+import { validateAutomation, getProviderReadiness, type ValidationResult, type ProviderReadiness } from "@/lib/automation-validation";
 
 // ── Tab definitions ──────────────────────────────────────────────────────────
 
@@ -87,11 +46,21 @@ export default async function AutomationDetailPage({
 
   const flash = query.flash;
   const flashMessage =
-    flash === "saved"        ? "Automation saved."               :
-    flash === "step-added"   ? "Step added."                     :
-    flash === "step-deleted" ? "Step deleted."                   :
-    flash === "enrolled"     ? "Contact enrolled successfully."  :
+    flash === "saved"               ? "Automation saved."                                              :
+    flash === "step-added"          ? "Step added."                                                    :
+    flash === "step-deleted"        ? "Step deleted."                                                  :
+    flash === "enrolled"            ? "Contact enrolled successfully."                                 :
+    flash === "activation-blocked"  ? "Cannot activate — fix the issues in the readiness checklist."  :
     null;
+  const flashTone: "success" | "error" =
+    flash === "activation-blocked" ? "error" : "success";
+
+  // ── Validation (always computed for Builder tab readiness card) ──────────
+  const provider     = getProviderReadiness();
+  const validation   = validateAutomation(
+    { triggerType: automation.triggerType, steps: automation.steps },
+    provider
+  );
 
   // ── Conditional queries per tab ──────────────────────────────────────────
 
@@ -215,12 +184,13 @@ export default async function AutomationDetailPage({
     }),
   ]);
 
-  const providerStatus = activeTab === "setup" ? getProviderStatus() : null;
+  // provider is already computed above for validation; pass to Setup tab when active
+  const providerStatus: ProviderReadiness | null = activeTab === "setup" ? provider : null;
 
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <AppShell activeScreen="automation" flash={flashMessage ? { tone: "success", message: flashMessage } : null}>
+    <AppShell activeScreen="automation" flash={flashMessage ? { tone: flashTone, message: flashMessage } : null}>
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-start justify-between gap-4">
@@ -237,11 +207,11 @@ export default async function AutomationDetailPage({
         {/* Tab bar */}
         <nav className="flex gap-1 border-b border-slate-200 -mb-1">
           {[
-            { key: "builder", label: "Builder" },
-            { key: "runs",    label: "Runs",  badge: runCount > 0 ? runCount : null },
-            { key: "queue",   label: "Queue", badge: pendingJobCount > 0 ? pendingJobCount : null },
+            { key: "builder", label: "Builder", errorBadge: !automation.isActive && validation.errorCount > 0 ? validation.errorCount : null },
+            { key: "runs",    label: "Runs",    badge: runCount > 0 ? runCount : null },
+            { key: "queue",   label: "Queue",   badge: pendingJobCount > 0 ? pendingJobCount : null },
             { key: "setup",   label: "Setup" },
-          ].map(({ key, label, badge }) => {
+          ].map(({ key, label, badge, errorBadge }) => {
             const isActive = activeTab === key;
             return (
               <Link
@@ -259,6 +229,11 @@ export default async function AutomationDetailPage({
                     isActive ? "bg-indigo-100 text-indigo-700" : "bg-slate-100 text-slate-500"
                   }`}>
                     {badge > 99 ? "99+" : badge}
+                  </span>
+                )}
+                {errorBadge != null && (
+                  <span className="inline-flex items-center justify-center rounded-full bg-rose-100 px-1.5 py-0.5 text-xs font-semibold leading-none text-rose-700">
+                    {errorBadge}
                   </span>
                 )}
               </Link>
@@ -396,6 +371,8 @@ export default async function AutomationDetailPage({
                 </form>
               </div>
 
+              <ReadinessCard validation={validation} />
+
               <div className="rounded-3xl border border-red-100 bg-white p-6 shadow-sm">
                 <p className="text-sm font-semibold uppercase tracking-[0.22em] text-red-500">Danger Zone</p>
                 <h3 className="mt-2 text-xl font-semibold text-slate-950">Delete automation</h3>
@@ -425,6 +402,72 @@ export default async function AutomationDetailPage({
   );
 }
 
+// ── ReadinessCard (Builder tab sidebar) ─────────────────────────────────────
+
+function ReadinessCard({ validation }: { validation: ValidationResult }) {
+  const { canActivate, errorCount, warningCount, issues } = validation;
+
+  const borderColor =
+    errorCount > 0   ? "border-rose-200"    :
+    warningCount > 0 ? "border-amber-200"   :
+                       "border-emerald-200";
+
+  const headerColor =
+    errorCount > 0   ? "text-rose-500"   :
+    warningCount > 0 ? "text-amber-500"  :
+                       "text-emerald-600";
+
+  const heading =
+    errorCount > 0      ? `${errorCount} issue${errorCount > 1 ? "s" : ""} must be fixed`   :
+    warningCount > 0    ? `Ready — ${warningCount} warning${warningCount > 1 ? "s" : ""}`     :
+                          "Ready to activate";
+
+  return (
+    <div className={`rounded-3xl border bg-white p-6 shadow-sm ${borderColor}`}>
+      <p className={`text-sm font-semibold uppercase tracking-[0.22em] ${headerColor}`}>Readiness</p>
+      <h3 className="mt-2 text-lg font-semibold text-slate-950">{heading}</h3>
+
+      {issues.length === 0 ? (
+        <p className="mt-3 flex items-center gap-2 text-sm text-emerald-700">
+          <span className="text-base">✓</span> All checks passed — safe to activate.
+        </p>
+      ) : (
+        <div className="mt-4 space-y-2">
+          {issues.map((issue, i) => (
+            <div
+              key={i}
+              className={`rounded-xl px-4 py-3 ${
+                issue.severity === "error"
+                  ? "border border-rose-100 bg-rose-50"
+                  : "border border-amber-100 bg-amber-50"
+              }`}
+            >
+              <p className={`text-sm font-medium ${
+                issue.severity === "error" ? "text-rose-800" : "text-amber-800"
+              }`}>
+                {issue.severity === "error" ? "✕" : "⚠"} {issue.message}
+              </p>
+              <p className={`mt-1 text-xs leading-relaxed ${
+                issue.severity === "error" ? "text-rose-600" : "text-amber-700"
+              }`}>
+                {issue.hint}
+              </p>
+            </div>
+          ))}
+
+          {!canActivate && (
+            <p className="pt-1 text-xs text-slate-400">
+              Fix all ✕ errors before setting this automation to Active.{" "}
+              <Link href="?tab=setup" className="text-indigo-500 hover:underline">Setup tab</Link>
+              {" "}shows provider configuration.
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── SetupTab (server-rendered, inline) ───────────────────────────────────────
 
 function ProviderCard({
@@ -441,7 +484,9 @@ function ProviderCard({
       <div className="flex items-center gap-2 mb-3">
         <span className={`text-lg ${ok ? "text-emerald-500" : "text-amber-500"}`}>{ok ? "✓" : "⚠"}</span>
         <p className="font-semibold text-slate-900 text-sm">{title}</p>
-        <span className={`ml-auto rounded-full px-2 py-0.5 text-xs font-semibold uppercase tracking-wide ${ok ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
+        <span className={`ml-auto rounded-full px-2 py-0.5 text-xs font-semibold uppercase tracking-wide ${
+          ok ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"
+        }`}>
           {ok ? "Ready" : "Not configured"}
         </span>
       </div>
@@ -450,8 +495,10 @@ function ProviderCard({
   );
 }
 
-function SetupTab({ status, automationId }: { status: ProviderStatus; automationId: string }) {
+function SetupTab({ status, automationId }: { status: ProviderReadiness; automationId: string }) {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const webhookUrl = `${appUrl}/api/webhooks/automation`;
+  const cronUrl    = `${appUrl}/api/automation/run-pending`;
 
   return (
     <div className="space-y-6">
@@ -460,47 +507,54 @@ function SetupTab({ status, automationId }: { status: ProviderStatus; automation
         <p className="text-sm font-semibold uppercase tracking-[0.22em] text-indigo-600">Providers</p>
         <h3 className="mt-2 text-xl font-semibold text-slate-950">Delivery readiness</h3>
         <p className="mt-1 mb-5 text-sm text-slate-500">
-          Environment variables that control email, SMS, and webhook authentication. Secret values are never shown.
+          Environment variables that control email, SMS, and webhook authentication.
+          Secret values are never shown.
         </p>
         <div className="grid gap-4 sm:grid-cols-2">
-          <ProviderCard title="Resend Email" ok={status.resend.configured}>
+          <ProviderCard title="Resend Email" ok={status.hasResendApiKey}>
             <p>
               <span className="font-medium">RESEND_API_KEY:</span>{" "}
-              {status.resend.configured ? "Set ✓" : <span className="text-amber-700">Not set — email delivery disabled</span>}
+              {status.hasResendApiKey
+                ? "Set ✓"
+                : <span className="text-amber-700">Not set — email delivery disabled</span>}
             </p>
             <p>
               <span className="font-medium">RESEND_FROM_EMAIL:</span>{" "}
-              {status.resend.hasFromEmail ? "Set ✓" : <span className="text-amber-700">Not set — will use default</span>}
+              {status.hasResendFromEmail
+                ? "Set ✓"
+                : <span className="text-amber-700">Not set — will use Resend default sender</span>}
             </p>
           </ProviderCard>
 
-          <ProviderCard title="Twilio SMS" ok={status.twilio.configured}>
+          <ProviderCard title="Twilio SMS" ok={status.hasTwilioConfig}>
             <p>
-              <span className="font-medium">TWILIO_ACCOUNT_SID / AUTH_TOKEN:</span>{" "}
-              {status.twilio.configured ? "Set ✓" : <span className="text-amber-700">Not set — SMS delivery disabled</span>}
+              <span className="font-medium">TWILIO credentials:</span>{" "}
+              {status.hasTwilioConfig
+                ? "All three set ✓"
+                : <span className="text-amber-700">Missing — set TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER</span>}
             </p>
-            {status.twilio.phoneNumber && (
-              <p>
-                <span className="font-medium">From:</span> {status.twilio.phoneNumber}
+            {status.hasTwilioPhone && (
+              <p className="text-xs text-slate-500">
+                Sending from: <span className="font-medium text-slate-700">{process.env.TWILIO_PHONE_NUMBER}</span>
               </p>
             )}
           </ProviderCard>
 
-          <ProviderCard title="Webhook Secret" ok={status.webhookSecret.configured}>
+          <ProviderCard title="Webhook Secret" ok={status.hasWebhookSecret}>
             <p>
               <span className="font-medium">AUTOMATION_WEBHOOK_SECRET:</span>{" "}
-              {status.webhookSecret.configured
-                ? "Set ✓ — HMAC verification active"
-                : <span className="text-amber-700">Not set — inbound webhook will reject all requests</span>}
+              {status.hasWebhookSecret
+                ? "Set ✓ — HMAC-SHA256 signature verification active"
+                : <span className="text-amber-700">Not set — all inbound webhook requests will be rejected</span>}
             </p>
           </ProviderCard>
 
-          <ProviderCard title="Runner Secret" ok={status.runnerSecret.configured}>
+          <ProviderCard title="Runner Secret" ok={status.hasRunnerSecret}>
             <p>
               <span className="font-medium">AUTOMATION_RUNNER_SECRET:</span>{" "}
-              {status.runnerSecret.configured
-                ? status.runnerSecret.usesFallback
-                  ? "Using AUTOMATION_WEBHOOK_SECRET as fallback"
+              {status.hasRunnerSecret
+                ? status.runnerSecretUsesFallback
+                  ? "Falling back to AUTOMATION_WEBHOOK_SECRET ✓"
                   : "Set ✓"
                 : <span className="text-amber-700">Not set — cron runner will reject all requests</span>}
             </p>
@@ -508,38 +562,45 @@ function SetupTab({ status, automationId }: { status: ProviderStatus; automation
         </div>
       </section>
 
-      {/* Endpoints */}
+      {/* Integration URLs */}
       <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
         <p className="text-sm font-semibold uppercase tracking-[0.22em] text-indigo-600">Endpoints</p>
         <h3 className="mt-2 text-xl font-semibold text-slate-950">Integration URLs</h3>
         <p className="mt-1 mb-5 text-sm text-slate-500">
-          Use these URLs when configuring your CRM webhook or cron scheduler.
+          Use these when configuring your CRM webhook or cron scheduler.
         </p>
         <div className="space-y-4">
           <div>
             <p className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-1">Inbound Webhook (POST)</p>
-            <p className="text-xs text-slate-500 mb-2">Send <code className="rounded bg-slate-100 px-1 py-0.5">x-automation-signature</code> + <code className="rounded bg-slate-100 px-1 py-0.5">x-automation-timestamp</code> headers.</p>
-            <div className="flex items-center gap-2 rounded-xl bg-slate-50 border border-slate-200 px-4 py-2.5">
-              <code className="flex-1 text-xs text-slate-700 break-all">{status.webhookUrl}</code>
+            <p className="text-xs text-slate-500 mb-2">
+              Include <code className="rounded bg-slate-100 px-1 py-0.5">x-automation-signature</code> +{" "}
+              <code className="rounded bg-slate-100 px-1 py-0.5">x-automation-timestamp</code> headers.
+            </p>
+            <div className="rounded-xl bg-slate-50 border border-slate-200 px-4 py-2.5">
+              <code className="text-xs text-slate-700 break-all">{webhookUrl}</code>
             </div>
           </div>
           <div>
             <p className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-1">Cron / Job Runner (POST)</p>
             <p className="text-xs text-slate-500 mb-2">
-              Call every 5–15 minutes with <code className="rounded bg-slate-100 px-1 py-0.5">x-automation-runner-secret</code> header. Processes up to 25 due jobs per call.
+              Call every 5–15 min with{" "}
+              <code className="rounded bg-slate-100 px-1 py-0.5">x-automation-runner-secret</code> header.
+              Processes up to 25 due jobs per invocation.
             </p>
-            <div className="flex items-center gap-2 rounded-xl bg-slate-50 border border-slate-200 px-4 py-2.5">
-              <code className="flex-1 text-xs text-slate-700 break-all">{status.cronUrl}</code>
+            <div className="rounded-xl bg-slate-50 border border-slate-200 px-4 py-2.5">
+              <code className="text-xs text-slate-700 break-all">{cronUrl}</code>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Payload reference */}
+      {/* Webhook payload reference */}
       <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
         <p className="text-sm font-semibold uppercase tracking-[0.22em] text-indigo-600">Reference</p>
         <h3 className="mt-2 text-xl font-semibold text-slate-950">Webhook payload shape</h3>
-        <p className="mt-1 mb-4 text-sm text-slate-500">Example JSON body for the inbound webhook endpoint.</p>
+        <p className="mt-1 mb-4 text-sm text-slate-500">
+          Example JSON body for the inbound webhook endpoint.
+        </p>
         <pre className="rounded-xl bg-slate-900 text-slate-100 text-xs p-4 overflow-x-auto leading-relaxed">
 {`{
   "eventType": "appointment_completed",
