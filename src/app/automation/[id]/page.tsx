@@ -121,6 +121,12 @@ export default async function AutomationDetailPage({
           },
           orderBy: { executeAt: "asc" },
         },
+        stepExecutions: {
+          include: {
+            automationStep: { select: { id: true, title: true, stepType: true } },
+          },
+          orderBy: { startedAt: "asc" },
+        },
       },
       orderBy: { createdAt: "desc" },
       take: 50,
@@ -132,7 +138,7 @@ export default async function AutomationDetailPage({
       triggerEvent: r.triggerEvent,
       source:       r.source,
       createdAt:    r.createdAt.toISOString(),
-      updatedAt:    r.updatedAt.toISOString(),
+      completedAt:  r.completedAt?.toISOString() ?? null,
       contactId:    r.contact.id,
       contactName:  r.contact.name,
       contactEmail: r.contact.email,
@@ -146,6 +152,19 @@ export default async function AutomationDetailPage({
         errorMessage: j.errorMessage,
         stepTitle:    j.automationStep.title,
         stepType:     j.automationStep.stepType,
+      })),
+      stepExecutions: r.stepExecutions.map((e) => ({
+        id:               e.id,
+        automationStepId: e.automationStepId,
+        automationJobId:  e.automationJobId,
+        campaignId:       e.campaignId,
+        stepTitle:        e.automationStep.title,
+        stepType:         e.automationStep.stepType,
+        status:           e.status,
+        detail:           e.detail,
+        errorMessage:     e.errorMessage,
+        startedAt:        e.startedAt.toISOString(),
+        completedAt:      e.completedAt?.toISOString() ?? null,
       })),
       payloadPreview: r.payloadJson
         ? JSON.stringify(r.payloadJson, null, 2).slice(0, 800)

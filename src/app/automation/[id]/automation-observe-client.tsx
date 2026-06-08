@@ -14,19 +14,34 @@ export type RunJob = {
   stepType: string;
 };
 
+export type StepExecution = {
+  id: string;
+  automationStepId: string;
+  automationJobId: string | null;
+  campaignId: string | null;
+  stepTitle: string;
+  stepType: string;
+  status: string;
+  detail: string | null;
+  errorMessage: string | null;
+  startedAt: string;
+  completedAt: string | null;
+};
+
 export type ObserveRun = {
   id: string;
   status: string;
   triggerEvent: string;
   source: string | null;
   createdAt: string;
-  updatedAt: string;
+  completedAt: string | null;
   contactId: string;
   contactName: string;
   contactEmail: string | null;
   locationId: string;
   locationName: string;
   jobs: RunJob[];
+  stepExecutions: StepExecution[];
   payloadPreview: string | null; // JSON string, first 800 chars
 };
 
@@ -100,26 +115,46 @@ function RunDetailPanel({ run }: { run: ObserveRun }) {
 
   return (
     <div className="border-t border-slate-100 bg-slate-50 px-6 py-4 space-y-4">
-      {/* Jobs */}
-      {run.jobs.length > 0 ? (
+      {/* Step executions */}
+      {run.stepExecutions.length > 0 ? (
         <div>
-          <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-slate-400">Queued Jobs</p>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-slate-400">Step Outcomes</p>
           <div className="space-y-2">
-            {run.jobs.map((job) => (
-              <div key={job.id} className="rounded-xl border border-slate-200 bg-white px-4 py-3 flex flex-wrap items-center gap-3">
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-slate-900 truncate">{job.stepTitle}</p>
-                  <p className="text-xs text-slate-400 font-mono mt-0.5">{job.id}</p>
+            {run.stepExecutions.map((exec) => (
+              <div key={exec.id} className="rounded-xl border border-slate-200 bg-white px-4 py-3">
+                <div className="flex flex-wrap items-center gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-slate-900 truncate">{exec.stepTitle}</p>
+                    <p className="text-xs text-slate-500 truncate mt-0.5">{exec.detail ?? "—"}</p>
+                  </div>
+                  {stepTypePill(exec.stepType)}
+                  {statusPill(exec.status)}
+                  <div className="text-xs text-slate-500 text-right ml-auto space-y-0.5">
+                    {exec.completedAt
+                      ? <p title={fmt(exec.completedAt)}>Done {relTime(exec.completedAt)}</p>
+                      : <p className="text-amber-500">Pending</p>
+                    }
+                  </div>
                 </div>
-                {stepTypePill(job.stepType)}
-                {statusPill(job.status)}
-                <div className="text-xs text-slate-500 space-y-0.5 text-right ml-auto">
-                  <p>Execute at: <span className="font-medium text-slate-700">{fmt(job.executeAt)}</span></p>
-                  {job.executedAt && <p>Executed: <span className="font-medium text-slate-700">{fmt(job.executedAt)}</span></p>}
-                </div>
-                {job.errorMessage && (
-                  <div className="w-full mt-1 rounded-lg bg-rose-50 border border-rose-100 px-3 py-2 text-xs text-rose-700">
-                    {job.errorMessage}
+                {/* Campaign link */}
+                {exec.campaignId && (
+                  <div className="mt-2 flex items-center gap-2">
+                    <span className="inline-flex items-center rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-600">
+                      Campaign created
+                    </span>
+                    <a
+                      href={`/campaigns/${exec.campaignId}`}
+                      className="text-xs text-indigo-600 hover:underline"
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      View campaign →
+                    </a>
+                  </div>
+                )}
+                {exec.errorMessage && (
+                  <div className="mt-2 rounded-lg bg-rose-50 border border-rose-100 px-3 py-2 text-xs text-rose-700">
+                    {exec.errorMessage}
                   </div>
                 )}
               </div>
@@ -127,7 +162,25 @@ function RunDetailPanel({ run }: { run: ObserveRun }) {
           </div>
         </div>
       ) : (
-        <p className="text-xs text-slate-400 italic">No queued jobs — steps were executed immediately or no SEND_REQUEST steps were delayed.</p>
+        <p className="text-xs text-slate-400 italic">No step execution records yet — this run may predate persistence, or all steps were DELAY steps.</p>
+      )}
+
+      {/* Queued jobs (secondary — shows execute-at timing for scheduled steps) */}
+      {run.jobs.length > 0 && (
+        <div>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-slate-400">Queued Job Timings</p>
+          <div className="space-y-1.5">
+            {run.jobs.map((job) => (
+              <div key={job.id} className="rounded-lg border border-slate-100 bg-white px-3 py-2 flex flex-wrap items-center gap-2 text-xs">
+                {statusPill(job.status)}
+                <span className="text-slate-700 flex-1 truncate">{job.stepTitle}</span>
+                <span className="text-slate-400">Execute at: <span className="font-medium text-slate-600">{fmt(job.executeAt)}</span></span>
+                {job.executedAt && <span className="text-slate-400">Done: <span className="font-medium text-slate-600">{fmt(job.executedAt)}</span></span>}
+                {job.errorMessage && <span className="text-rose-600 truncate">{job.errorMessage}</span>}
+              </div>
+            ))}
+          </div>
+        </div>
       )}
 
       {/* Payload toggle */}
@@ -215,11 +268,18 @@ export function RunsTab({ runs }: { runs: ObserveRun[] }) {
                     </span>
                   )}
 
+                  {/* Campaign badge */}
+                  {run.stepExecutions.some((e) => e.campaignId) && (
+                    <span className="hidden md:inline-flex items-center rounded-full bg-teal-50 px-2 py-0.5 text-xs font-medium text-teal-600">
+                      campaign
+                    </span>
+                  )}
+
                   {/* Time */}
                   <div className="text-right text-xs text-slate-400 flex-shrink-0">
                     <p title={fmt(run.createdAt)}>{relTime(run.createdAt)}</p>
-                    {run.status !== "running" && run.updatedAt !== run.createdAt && (
-                      <p className="text-slate-300">done {relTime(run.updatedAt)}</p>
+                    {run.completedAt && (
+                      <p className="text-slate-300" title={fmt(run.completedAt)}>done {relTime(run.completedAt)}</p>
                     )}
                   </div>
 

@@ -41,7 +41,7 @@ export type AutomationExecutionResult = {
   stepsExecuted: Array<{
     stepId: string;
     stepType: AutomationStepType;
-    status: "executed" | "skipped" | "scheduled";
+    status: "executed" | "skipped" | "scheduled" | "failed";
     detail: string;
   }>;
 };
@@ -171,11 +171,13 @@ async function createCampaignFromStep({
   payload,
   contact,
   location,
+  automationRunId,
 }: {
   step: { id: string; stepType: AutomationStepType; title: string; configJson: Prisma.JsonValue | null };
   payload: AutomationWebhookPayload;
   contact: { id: string; name: string; email: string | null; phone?: string | null };
   location: { id: string; name: string };
+  automationRunId: string;
 }) {
   const config = coerceStepConfig(step.configJson);
   const channel = parsePreferredChannel(config.channel ?? payload.contact.preferredChannel ?? null);
@@ -190,6 +192,7 @@ async function createCampaignFromStep({
   const campaign = await prisma.campaign.create({
     data: {
       locationId: location.id,
+      automationRunId,
       name: step.title || `${location.name} automated request`,
       channel,
       status: CampaignStatus.SENT,
@@ -262,17 +265,19 @@ async function executeSteps({
 
   for (const step of steps) {
     const config = coerceStepConfig(step.configJson);
+    const stepStartedAt = new Date();
 
     if (step.stepType === AutomationStepType.DELAY) {
       const delayMs = getDelayMs(config);
       scheduledAt = new Date(getOccurredAt(payload).getTime() + delayMs);
       stepsExecuted.push({ stepId: step.id, stepType: step.stepType, status: "scheduled", detail: `Delay queued until ${scheduledAt.toISOString()}` });
+      // DELAY is pure scheduling state — no step execution record needed
       continue;
     }
 
     if (step.stepType === AutomationStepType.SEND_REQUEST) {
       if (scheduledAt) {
-        await prisma.automationJob.create({
+        const job = await prisma.automationJob.create({
           data: {
             automationRunId: automationRun.id,
             automationStepId: step.id,
@@ -282,11 +287,56 @@ async function executeSteps({
           },
         });
         await prisma.automationRun.update({ where: { id: automationRun.id }, data: { status: "scheduled" } });
-        stepsExecuted.push({ stepId: step.id, stepType: step.stepType, status: "scheduled", detail: `Send request scheduled for ${scheduledAt.toISOString()}` });
+        // Persist the scheduled step execution linked to the job
+        await prisma.automationStepExecution.create({
+          data: {
+            automationRunId: automationRun.id,
+            automationStepId: step.id,
+            automationJobId: job.id,
+            status: "scheduled",
+            detail: `Send request scheduled for ${scheduledAt.toISOString()}`,
+            startedAt: stepStartedAt,
+          },
+        });
+        const detail = `Send request scheduled for ${scheduledAt.toISOString()}`;
+        stepsExecuted.push({ stepId: step.id, stepType: step.stepType, status: "scheduled", detail });
       } else {
-        const outcome = await createCampaignFromStep({ step, payload, contact, location });
-        createdCampaignId = outcome.campaignId;
-        stepsExecuted.push({ stepId: step.id, stepType: step.stepType, status: "executed", detail: outcome.detail });
+        try {
+          const outcome = await createCampaignFromStep({
+            step,
+            payload,
+            contact,
+            location,
+            automationRunId: automationRun.id,
+          });
+          createdCampaignId = outcome.campaignId;
+          await prisma.automationStepExecution.create({
+            data: {
+              automationRunId: automationRun.id,
+              automationStepId: step.id,
+              campaignId: outcome.campaignId,
+              status: "executed",
+              detail: outcome.detail,
+              startedAt: stepStartedAt,
+              completedAt: new Date(),
+            },
+          });
+          stepsExecuted.push({ stepId: step.id, stepType: step.stepType, status: "executed", detail: outcome.detail });
+        } catch (error) {
+          const msg = error instanceof Error ? error.message : "Failed to create campaign";
+          await prisma.automationStepExecution.create({
+            data: {
+              automationRunId: automationRun.id,
+              automationStepId: step.id,
+              status: "failed",
+              detail: msg,
+              errorMessage: msg,
+              startedAt: stepStartedAt,
+              completedAt: new Date(),
+            },
+          });
+          stepsExecuted.push({ stepId: step.id, stepType: step.stepType, status: "failed", detail: msg });
+        }
       }
       continue;
     }
@@ -305,9 +355,17 @@ async function executeSteps({
           update: {},
           create: { contactId: contact.id, tagId: tag.id },
         });
-        stepsExecuted.push({ stepId: step.id, stepType: step.stepType, status: "executed", detail: `Tagged contact as "${tagName}"` });
+        const detail = `Tagged contact as "${tagName}"`;
+        await prisma.automationStepExecution.create({
+          data: { automationRunId: automationRun.id, automationStepId: step.id, status: "executed", detail, startedAt: stepStartedAt, completedAt: new Date() },
+        });
+        stepsExecuted.push({ stepId: step.id, stepType: step.stepType, status: "executed", detail });
       } else {
-        stepsExecuted.push({ stepId: step.id, stepType: step.stepType, status: "skipped", detail: "No tag name configured" });
+        const detail = "No tag name configured";
+        await prisma.automationStepExecution.create({
+          data: { automationRunId: automationRun.id, automationStepId: step.id, status: "skipped", detail, startedAt: stepStartedAt, completedAt: new Date() },
+        });
+        stepsExecuted.push({ stepId: step.id, stepType: step.stepType, status: "skipped", detail });
       }
       continue;
     }
@@ -315,15 +373,18 @@ async function executeSteps({
     if (step.stepType === AutomationStepType.NOTIFY_TEAM) {
       const notifyEmail = config.notifyEmail?.trim();
       if (notifyEmail && isEmailSendingConfigured()) {
-        await sendTeamNotificationEmail({
-          to: notifyEmail,
-          contactName: contact.name,
-          locationName: location.name,
-          eventType: payload.eventType,
+        await sendTeamNotificationEmail({ to: notifyEmail, contactName: contact.name, locationName: location.name, eventType: payload.eventType });
+        const detail = `Team notification sent to ${notifyEmail}`;
+        await prisma.automationStepExecution.create({
+          data: { automationRunId: automationRun.id, automationStepId: step.id, status: "executed", detail, startedAt: stepStartedAt, completedAt: new Date() },
         });
-        stepsExecuted.push({ stepId: step.id, stepType: step.stepType, status: "executed", detail: `Team notification sent to ${notifyEmail}` });
+        stepsExecuted.push({ stepId: step.id, stepType: step.stepType, status: "executed", detail });
       } else {
-        stepsExecuted.push({ stepId: step.id, stepType: step.stepType, status: "skipped", detail: notifyEmail ? "Email sending not configured" : "No notify email configured" });
+        const detail = notifyEmail ? "Email sending not configured" : "No notify email configured";
+        await prisma.automationStepExecution.create({
+          data: { automationRunId: automationRun.id, automationStepId: step.id, status: "skipped", detail, startedAt: stepStartedAt, completedAt: new Date() },
+        });
+        stepsExecuted.push({ stepId: step.id, stepType: step.stepType, status: "skipped", detail });
       }
       continue;
     }
@@ -342,12 +403,24 @@ async function executeSteps({
               location: { id: location.id, name: location.name },
             }),
           });
-          stepsExecuted.push({ stepId: step.id, stepType: step.stepType, status: "executed", detail: `Webhook fired to ${webhookUrl}` });
+          const detail = `Webhook fired to ${webhookUrl}`;
+          await prisma.automationStepExecution.create({
+            data: { automationRunId: automationRun.id, automationStepId: step.id, status: "executed", detail, startedAt: stepStartedAt, completedAt: new Date() },
+          });
+          stepsExecuted.push({ stepId: step.id, stepType: step.stepType, status: "executed", detail });
         } catch {
-          stepsExecuted.push({ stepId: step.id, stepType: step.stepType, status: "skipped", detail: `Webhook to ${webhookUrl} failed` });
+          const detail = `Webhook to ${webhookUrl} failed`;
+          await prisma.automationStepExecution.create({
+            data: { automationRunId: automationRun.id, automationStepId: step.id, status: "failed", detail, errorMessage: detail, startedAt: stepStartedAt, completedAt: new Date() },
+          });
+          stepsExecuted.push({ stepId: step.id, stepType: step.stepType, status: "skipped", detail });
         }
       } else {
-        stepsExecuted.push({ stepId: step.id, stepType: step.stepType, status: "skipped", detail: "No webhook URL configured" });
+        const detail = "No webhook URL configured";
+        await prisma.automationStepExecution.create({
+          data: { automationRunId: automationRun.id, automationStepId: step.id, status: "skipped", detail, startedAt: stepStartedAt, completedAt: new Date() },
+        });
+        stepsExecuted.push({ stepId: step.id, stepType: step.stepType, status: "skipped", detail });
       }
       continue;
     }
@@ -376,7 +449,11 @@ async function executeSteps({
       });
 
       if (!review || !review.location.googleConnection || !review.location.googleLocationName || !review.externalId) {
-        stepsExecuted.push({ stepId: step.id, stepType: step.stepType, status: "skipped", detail: "No eligible Google review with draft found for contact" });
+        const detail = "No eligible Google review with draft found for contact";
+        await prisma.automationStepExecution.create({
+          data: { automationRunId: automationRun.id, automationStepId: step.id, status: "skipped", detail, startedAt: stepStartedAt, completedAt: new Date() },
+        });
+        stepsExecuted.push({ stepId: step.id, stepType: step.stepType, status: "skipped", detail });
         continue;
       }
 
@@ -384,25 +461,39 @@ async function executeSteps({
         const accessToken = await getValidGoogleAccessToken(review.location.googleConnection);
         const reviewName = `${review.location.googleLocationName}/reviews/${review.externalId}`;
         await publishGbpReply(accessToken, reviewName, review.replyDraft!);
-        await prisma.review.update({
-          where: { id: review.id },
-          data: { replyPublishedAt: new Date(), replyGbpId: reviewName },
+        await prisma.review.update({ where: { id: review.id }, data: { replyPublishedAt: new Date(), replyGbpId: reviewName } });
+        const detail = `Published GBP reply for review ${review.id}`;
+        await prisma.automationStepExecution.create({
+          data: { automationRunId: automationRun.id, automationStepId: step.id, status: "executed", detail, startedAt: stepStartedAt, completedAt: new Date() },
         });
-        stepsExecuted.push({ stepId: step.id, stepType: step.stepType, status: "executed", detail: `Published GBP reply for review ${review.id}` });
+        stepsExecuted.push({ stepId: step.id, stepType: step.stepType, status: "executed", detail });
       } catch (error) {
         const msg = error instanceof Error ? error.message : "Failed to publish GBP reply";
+        await prisma.automationStepExecution.create({
+          data: { automationRunId: automationRun.id, automationStepId: step.id, status: "failed", detail: msg, errorMessage: msg, startedAt: stepStartedAt, completedAt: new Date() },
+        });
         stepsExecuted.push({ stepId: step.id, stepType: step.stepType, status: "skipped", detail: msg });
       }
       continue;
     }
 
-    stepsExecuted.push({ stepId: step.id, stepType: step.stepType, status: "skipped", detail: "Step type not implemented" });
+    // Unknown step type — persist as skipped
+    const detail = "Step type not implemented";
+    await prisma.automationStepExecution.create({
+      data: { automationRunId: automationRun.id, automationStepId: step.id, status: "skipped", detail, startedAt: stepStartedAt, completedAt: new Date() },
+    });
+    stepsExecuted.push({ stepId: step.id, stepType: step.stepType, status: "skipped", detail });
   }
 
-  // Mark run completed unless it was put into scheduled state
-  const isScheduled = stepsExecuted.some((s) => s.status === "scheduled" && s.stepType === AutomationStepType.SEND_REQUEST);
+  // Mark run completed/scheduled and set completedAt
+  const isScheduled = stepsExecuted.some(
+    (s) => s.status === "scheduled" && s.stepType === AutomationStepType.SEND_REQUEST
+  );
   if (!isScheduled) {
-    await prisma.automationRun.update({ where: { id: automationRun.id }, data: { status: "completed" } });
+    await prisma.automationRun.update({
+      where: { id: automationRun.id },
+      data: { status: "completed", completedAt: new Date() },
+    });
   }
 
   return { stepsExecuted, createdCampaignId };
@@ -426,8 +517,14 @@ export async function executePendingAutomationJobs(limit = 25) {
       await prisma.automationJob.update({ where: { id: job.id }, data: { status: "processing" } });
 
       if (job.automationStep.stepType !== AutomationStepType.SEND_REQUEST) {
+        const detail = `Skipped unsupported queued step type ${job.automationStep.stepType}`;
         await prisma.automationJob.update({ where: { id: job.id }, data: { status: "completed", executedAt: new Date() } });
-        results.push({ jobId: job.id, status: "executed", detail: `Skipped unsupported queued step type ${job.automationStep.stepType}` });
+        await prisma.automationStepExecution.upsert({
+          where: { automationJobId: job.id },
+          update: { status: "skipped", detail, completedAt: new Date() },
+          create: { automationRunId: job.automationRunId, automationStepId: job.automationStepId, automationJobId: job.id, status: "skipped", detail, completedAt: new Date() },
+        });
+        results.push({ jobId: job.id, status: "executed", detail });
         continue;
       }
 
@@ -437,16 +534,45 @@ export async function executePendingAutomationJobs(limit = 25) {
         payload,
         contact: job.automationRun.contact,
         location: job.automationRun.location,
+        automationRunId: job.automationRunId,
       });
 
-      await prisma.automationJob.update({ where: { id: job.id }, data: { status: "completed", executedAt: new Date(), errorMessage: null } });
-      await prisma.automationRun.update({ where: { id: job.automationRunId }, data: { status: "completed" } });
+      const now = new Date();
+      await prisma.automationJob.update({ where: { id: job.id }, data: { status: "completed", executedAt: now, errorMessage: null } });
+      await prisma.automationRun.update({ where: { id: job.automationRunId }, data: { status: "completed", completedAt: now } });
+      // Update (or create) the step execution: link in the campaign and mark executed
+      await prisma.automationStepExecution.upsert({
+        where: { automationJobId: job.id },
+        update: { status: "executed", detail: outcome.detail, campaignId: outcome.campaignId, completedAt: now },
+        create: {
+          automationRunId: job.automationRunId,
+          automationStepId: job.automationStepId,
+          automationJobId: job.id,
+          campaignId: outcome.campaignId,
+          status: "executed",
+          detail: outcome.detail,
+          completedAt: now,
+        },
+      });
 
       results.push({ jobId: job.id, status: "executed", detail: outcome.detail, campaignId: outcome.campaignId });
     } catch (error) {
       const message = error instanceof Error ? error.message : "Scheduled automation job failed";
+      const now = new Date();
       await prisma.automationJob.update({ where: { id: job.id }, data: { status: "failed", errorMessage: message } });
-      await prisma.automationRun.update({ where: { id: job.automationRunId }, data: { status: "failed" } });
+      await prisma.automationRun.update({ where: { id: job.automationRunId }, data: { status: "failed", completedAt: now } });
+      await prisma.automationStepExecution.upsert({
+        where: { automationJobId: job.id },
+        update: { status: "failed", errorMessage: message, completedAt: now },
+        create: {
+          automationRunId: job.automationRunId,
+          automationStepId: job.automationStepId,
+          automationJobId: job.id,
+          status: "failed",
+          errorMessage: message,
+          completedAt: now,
+        },
+      });
       results.push({ jobId: job.id, status: "failed", detail: message });
     }
   }

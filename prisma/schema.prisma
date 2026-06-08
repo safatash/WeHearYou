@@ -326,24 +326,28 @@ model ContactTag {
 }
 
 model Campaign {
-  id             String             @id @default(cuid())
-  locationId     String
-  name           String
-  channel        PreferredChannel
-  status         CampaignStatus     @default(DRAFT)
-  workflowName   String?
-  sendAt         DateTime?
-  messageBody    String?
-  emailSubject   String?
-  destination    String?
-  createdAt      DateTime           @default(now())
-  updatedAt      DateTime           @updatedAt
+  id              String             @id @default(cuid())
+  locationId      String
+  automationRunId String?
+  name            String
+  channel         PreferredChannel
+  status          CampaignStatus     @default(DRAFT)
+  workflowName    String?
+  sendAt          DateTime?
+  messageBody     String?
+  emailSubject    String?
+  destination     String?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
 
-  location       Location           @relation(fields: [locationId], references: [id], onDelete: Cascade)
-  recipients     CampaignRecipient[]
+  location        Location              @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  automationRun   AutomationRun?        @relation(fields: [automationRunId], references: [id], onDelete: SetNull)
+  recipients      CampaignRecipient[]
+  stepExecution   AutomationStepExecution?
 
   @@index([locationId])
   @@index([status])
+  @@index([automationRunId])
 }
 
 model CampaignRecipient {
@@ -446,6 +450,7 @@ model AutomationStep {
 
   automation     Automation          @relation(fields: [automationId], references: [id], onDelete: Cascade)
   queuedJobs     AutomationJob[]
+  stepExecutions AutomationStepExecution[]
 
   @@index([automationId])
   @@unique([automationId, orderIndex])
@@ -460,6 +465,7 @@ model AutomationRun {
   source         String?
   status         String        @default("pending")
   payloadJson    Json?
+  completedAt    DateTime?
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 
@@ -467,6 +473,8 @@ model AutomationRun {
   location       Location      @relation(fields: [locationId], references: [id], onDelete: Cascade)
   contact        Contact       @relation(fields: [contactId], references: [id], onDelete: Cascade)
   jobs           AutomationJob[]
+  stepExecutions AutomationStepExecution[]
+  campaigns      Campaign[]
 
   @@index([automationId])
   @@index([locationId])
@@ -488,10 +496,33 @@ model AutomationJob {
 
   automationRun     AutomationRun   @relation(fields: [automationRunId], references: [id], onDelete: Cascade)
   automationStep    AutomationStep  @relation(fields: [automationStepId], references: [id], onDelete: Cascade)
+  stepExecution     AutomationStepExecution?
 
   @@index([automationRunId])
   @@index([automationStepId])
   @@index([status, executeAt])
+}
+
+model AutomationStepExecution {
+  id               String          @id @default(cuid())
+  automationRunId  String
+  automationStepId String
+  automationJobId  String?         @unique
+  campaignId       String?         @unique
+  status           String
+  detail           String?
+  errorMessage     String?
+  startedAt        DateTime        @default(now())
+  completedAt      DateTime?
+  createdAt        DateTime        @default(now())
+
+  automationRun    AutomationRun   @relation(fields: [automationRunId], references: [id], onDelete: Cascade)
+  automationStep   AutomationStep  @relation(fields: [automationStepId], references: [id], onDelete: Cascade)
+  automationJob    AutomationJob?  @relation(fields: [automationJobId], references: [id], onDelete: SetNull)
+  campaign         Campaign?       @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+
+  @@index([automationRunId])
+  @@index([automationStepId])
 }
 
 model GoogleAccountConnection {
