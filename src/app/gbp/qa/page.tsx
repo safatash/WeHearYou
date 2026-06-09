@@ -23,7 +23,7 @@ export default async function GbpQaPage() {
   const answered = questions.filter((q) => q.answeredAt);
 
   return (
-    <AppShell activeScreen="gbp-manager">
+    <AppShell activeScreen="gbp-qa">
       <div className="space-y-6 max-w-3xl">
         <div>
           <a href="/gbp" className="text-sm text-indigo-600 hover:underline">← GBP Manager</a>

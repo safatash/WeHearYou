@@ -49,9 +49,9 @@ export const navItems: NavItem[] = [
 
   // Google Local SEO
   { key: "gbp-manager", label: "GBP Manager", icon: "🗺", href: "/gbp", group: "GOOGLE LOCAL SEO" },
-  { key: "gbp-posts", label: "Rank Tracker", icon: "📊", href: "/gbp/rank", group: "GOOGLE LOCAL SEO", comingSoon: true },
-  { key: "gbp-photos", label: "Competitors", icon: "🏆", href: "/gbp/competitors", group: "GOOGLE LOCAL SEO", comingSoon: true },
-  { key: "gbp-qa", label: "Reports", icon: "📋", href: "/gbp/reports", group: "GOOGLE LOCAL SEO", comingSoon: true },
+  { key: "gbp-posts", label: "GBP Posts", icon: "📊", href: "/gbp/posts", group: "GOOGLE LOCAL SEO" },
+  { key: "gbp-photos", label: "GBP Photos", icon: "🏆", href: "/gbp/photos", group: "GOOGLE LOCAL SEO" },
+  { key: "gbp-qa", label: "Q&A", icon: "📋", href: "/gbp/qa", group: "GOOGLE LOCAL SEO" },
 
   // Settings
   { key: "automation", label: "Automation", icon: "⟲", href: "/automation", group: "SETTINGS" },

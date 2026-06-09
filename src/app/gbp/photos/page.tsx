@@ -44,7 +44,7 @@ export default async function GbpPhotosPage({
   const pendingPhotos = photos.filter((p) => p.status !== GbpPublishStatus.PUBLISHED);
 
   return (
-    <AppShell activeScreen="gbp-manager">
+    <AppShell activeScreen="gbp-photos">
       <div className="space-y-6 max-w-4xl">
         <div>
           <a href="/gbp" className="text-sm text-indigo-600 hover:underline">← GBP Manager</a>

@@ -36,7 +36,7 @@ export default async function GbpPostsPage() {
   });
 
   return (
-    <AppShell activeScreen="gbp-manager">
+    <AppShell activeScreen="gbp-posts">
       <div className="space-y-6">
         <div className="flex items-start justify-between gap-4">
           <div>
