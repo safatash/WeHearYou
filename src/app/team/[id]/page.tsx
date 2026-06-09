@@ -4,7 +4,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { CopyButton } from "@/components/copy-button";
-import { resetInvite, deactivateMember, reactivateMember } from "@/app/team/actions";
+import { resetInvite, deactivateMember, reactivateMember, transferOwnership } from "@/app/team/actions";
+import { OwnershipTransferForm } from "./ownership-transfer-form";
 import { Field, OutcomeCard, StatCard } from "@/components/ui";
 import {
   formatAccessSummary,
@@ -191,6 +192,23 @@ export default async function TeamMemberDetailPage({
             })}
           </div>
         </section>
+
+        {/* Ownership Transfer — only visible to the current owner, for non-owner active members */}
+        {currentMembership.role === "OWNER" && !isOwner && member.status === "ACTIVE" && (
+          <section className="rounded-3xl border border-amber-200 bg-white p-6 shadow-sm">
+            <p className="text-sm font-semibold uppercase tracking-[0.22em] text-amber-600">Transfer Ownership</p>
+            <h3 className="mt-2 text-xl font-semibold text-slate-950">Transfer workspace ownership</h3>
+            <p className="mt-2 mb-6 text-sm text-slate-500">
+              Transfer full ownership of this workspace to <strong>{member.user.name}</strong>.
+              This action is permanent and will immediately change both roles.
+            </p>
+            <OwnershipTransferForm
+              membershipId={member.id}
+              targetName={member.user.name}
+              transferAction={transferOwnership}
+            />
+          </section>
+        )}
 
         {/* Danger Zone */}
         <section className="rounded-3xl border border-red-100 bg-white p-6 shadow-sm">

@@ -265,6 +265,8 @@ export async function updateMemberRole(
 
 export async function deactivateMember(membershipId: string) {
   const currentMembership = await requireTeamManagement();
+  const errUrl = (msg: string) =>
+    `/team/${membershipId}?flash=${encodeURIComponent(msg)}&tone=error`;
 
   const target = await prisma.userMembership.findUnique({
     where: { id: membershipId },
@@ -272,32 +274,25 @@ export async function deactivateMember(membershipId: string) {
   });
 
   if (!target || target.organizationId !== currentMembership.organizationId) {
-    throw new Error("Member not found.");
+    redirect(errUrl("Member not found."));
   }
 
-  // Cannot deactivate yourself
   if (target.id === currentMembership.id) {
-    throw new Error("You cannot deactivate your own account.");
+    redirect(errUrl("You cannot deactivate your own account."));
   }
 
-  // Only an owner can deactivate another owner or admin
   const currentLevel = ROLE_LEVEL[currentMembership.role];
   const targetLevel  = ROLE_LEVEL[target.role];
   if (currentMembership.role !== "OWNER" && targetLevel >= currentLevel) {
-    throw new Error("You do not have permission to deactivate this member.");
+    redirect(errUrl("You do not have permission to deactivate this member."));
   }
 
-  // Last-owner protection: cannot disable the last active owner
   if (target.role === "OWNER") {
     const ownerCount = await prisma.userMembership.count({
-      where: {
-        organizationId: currentMembership.organizationId,
-        role: "OWNER",
-        status: MembershipStatus.ACTIVE,
-      },
+      where: { organizationId: currentMembership.organizationId, role: "OWNER", status: MembershipStatus.ACTIVE },
     });
     if (ownerCount <= 1) {
-      throw new Error("Cannot deactivate the last owner. Assign ownership to another user first.");
+      redirect(errUrl("Cannot deactivate the last owner. Transfer ownership first."));
     }
   }
 
@@ -314,6 +309,8 @@ export async function deactivateMember(membershipId: string) {
 
 export async function reactivateMember(membershipId: string) {
   const currentMembership = await requireTeamManagement();
+  const errUrl = (msg: string) =>
+    `/team/${membershipId}?flash=${encodeURIComponent(msg)}&tone=error`;
 
   const target = await prisma.userMembership.findUnique({
     where: { id: membershipId },
@@ -321,16 +318,15 @@ export async function reactivateMember(membershipId: string) {
   });
 
   if (!target || target.organizationId !== currentMembership.organizationId) {
-    throw new Error("Member not found.");
+    redirect(errUrl("Member not found."));
   }
 
   if (target.status !== MembershipStatus.DISABLED) {
-    throw new Error("Member is not currently deactivated.");
+    redirect(errUrl("This member is not currently deactivated."));
   }
 
-  // Only owner can reactivate an owner-level account
   if (target.role === "OWNER" && currentMembership.role !== "OWNER") {
-    throw new Error("Only an owner can reactivate an owner-level account.");
+    redirect(errUrl("Only an owner can reactivate an owner-level account."));
   }
 
   await prisma.userMembership.update({
@@ -340,6 +336,66 @@ export async function reactivateMember(membershipId: string) {
 
   revalidatePath("/team");
   redirect(`/team/${membershipId}?flash=${encodeURIComponent(`${target.user.email} has been reactivated`)}&tone=success`);
+}
+
+// ── Transfer ownership ────────────────────────────────────────────────────────
+
+const TRANSFER_CONFIRM_PHRASE = "transfer ownership";
+
+export async function transferOwnership(formData: FormData) {
+  const currentMembership = await requireTeamManagement();
+  const membershipId  = normalize(formData.get("membershipId"));
+  const confirmPhrase = normalize(formData.get("confirmPhrase"))?.toLowerCase();
+  const errUrl = (msg: string) =>
+    `/team/${membershipId ?? ""}?flash=${encodeURIComponent(msg)}&tone=error`;
+
+  if (currentMembership.role !== "OWNER") {
+    redirect(errUrl("Only the current owner can transfer ownership."));
+  }
+
+  if (!membershipId) {
+    redirect(`/team?flash=${encodeURIComponent("Invalid request.")}&tone=error`);
+  }
+
+  if (confirmPhrase !== TRANSFER_CONFIRM_PHRASE) {
+    redirect(errUrl("Confirmation phrase did not match. Transfer cancelled."));
+  }
+
+  const target = await prisma.userMembership.findUnique({
+    where: { id: membershipId },
+    select: { id: true, role: true, status: true, organizationId: true, user: { select: { name: true } } },
+  });
+
+  if (!target || target.organizationId !== currentMembership.organizationId) {
+    redirect(errUrl("Member not found."));
+  }
+
+  if (target.id === currentMembership.id) {
+    redirect(errUrl("You cannot transfer ownership to yourself."));
+  }
+
+  if (target.status !== MembershipStatus.ACTIVE) {
+    redirect(errUrl("Ownership can only be transferred to an active member."));
+  }
+
+  if (target.role === "OWNER") {
+    redirect(errUrl("This member is already an owner."));
+  }
+
+  // Atomic: promote target → OWNER, demote current → ADMIN
+  await prisma.$transaction([
+    prisma.userMembership.update({
+      where: { id: target.id },
+      data: { role: MembershipRole.OWNER, accessScope: "All locations" },
+    }),
+    prisma.userMembership.update({
+      where: { id: currentMembership.id },
+      data: { role: MembershipRole.ADMIN, accessScope: "All locations" },
+    }),
+  ]);
+
+  revalidatePath("/team");
+  redirect(`/team?flash=${encodeURIComponent(`Ownership transferred to ${target.user.name}. You are now an Agency Admin.`)}&tone=success`);
 }
 
 export async function getInvitePreviewToken() {
