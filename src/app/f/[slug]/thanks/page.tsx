@@ -24,6 +24,8 @@ export default async function PublicFunnelThanksPage({
 
   const { location, reviewLink } = data;
   const isPrivate = mode === "private";
+  // First-party WeHearYou review captured — thank the customer, do NOT push to Google.
+  const isWeHearYouReview = mode === "why-public";
 
   return (
     <main className={isEmbed ? "bg-white p-5 text-slate-900" : "min-h-screen bg-slate-50 px-4 py-10 text-slate-900 sm:px-6"}>
@@ -40,12 +42,16 @@ export default async function PublicFunnelThanksPage({
         <h1 className={`${isEmbed ? "text-2xl" : "mt-3 text-4xl"} font-semibold tracking-tight text-slate-950`}>
           {isPrivate
             ? location.publicProfile?.funnelThanksPrivateTitle ?? "Thanks for sharing your feedback"
-            : location.publicProfile?.funnelThanksPublicTitle ?? `Thanks for rating ${location.name}`}
+            : isWeHearYouReview
+              ? "Thanks for your review"
+              : location.publicProfile?.funnelThanksPublicTitle ?? `Thanks for rating ${location.name}`}
         </h1>
         <p className="mt-3 text-base leading-7 text-slate-600">
           {isPrivate
             ? location.publicProfile?.funnelThanksPrivateBody ?? "Your feedback has been sent privately to the team."
-            : location.publicProfile?.funnelThanksPublicBody ?? "One final step, post your review publicly if you'd like to help other customers discover this business."}
+            : isWeHearYouReview
+              ? `Your review has been published on ${location.name}'s profile. Thank you for helping others discover them.`
+              : location.publicProfile?.funnelThanksPublicBody ?? "One final step, post your review publicly if you'd like to help other customers discover this business."}
         </p>
 
         <div className="mt-4 rounded-3xl bg-slate-50 p-4 text-sm leading-7 text-slate-600">
@@ -55,11 +61,13 @@ export default async function PublicFunnelThanksPage({
           <p className="mt-1">
             {isPrivate
               ? "The team can now review your private feedback internally."
-              : "Your public review helps strengthen trust for future customers."}
+              : isWeHearYouReview
+                ? "Your review is now live on the business profile."
+                : "Your public review helps strengthen trust for future customers."}
           </p>
         </div>
 
-        {!isPrivate && reviewLink ? (
+        {!isPrivate && !isWeHearYouReview && reviewLink ? (
           <div className="mt-6 flex flex-wrap items-center gap-3">
             <Link href={reviewLink} target={isEmbed ? "_blank" : undefined} rel={isEmbed ? "noopener noreferrer" : undefined} className="inline-flex items-center gap-3 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold !text-white shadow-sm visited:!text-white hover:!text-white">
               <svg width="18" height="18" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
