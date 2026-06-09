@@ -101,6 +101,7 @@ export default async function FunnelBuilderPage({
               locationSlug={selectedLocation.slug}
               defaultValues={{
                 funnelRatingStyle: profile?.funnelRatingStyle ?? "stars",
+                positiveReviewDestination: profile?.positiveReviewDestination ?? "GOOGLE",
                 funnelPromptTitle: profile?.funnelPromptTitle ?? `How was your experience with ${selectedLocation.name}?`,
                 funnelPromptBody: profile?.funnelPromptBody ?? `Share a quick rating for ${selectedLocation.name}. Happy customers can continue to a public review, while lower ratings stay private so the team can follow up directly.`,
                 funnelPrivateTitle: profile?.funnelPrivateTitle ?? `Tell ${selectedLocation.name} how they can improve`,

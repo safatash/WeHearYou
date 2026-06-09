@@ -670,6 +670,7 @@ model LocationPublicProfile {
   funnelReviewButtonLabel  String?
   negativeFilterEnabled    Boolean     @default(false)
   negativeFilterThreshold  Int         @default(4)
+  positiveReviewDestination String     @default("GOOGLE") // GOOGLE (handoff) | WEHEARYOU (first-party capture)
   businessType         String?
   customDomain         String?
   showReviews          Boolean     @default(true)

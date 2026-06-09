@@ -21,6 +21,7 @@ import {
 } from "@/lib/google-sync-redirects";
 import { hasGoogleReviewChanged } from "@/lib/google-review-sync";
 import { buildGoogleWriteReviewLink } from "@/lib/locations";
+import { isPositiveReviewDestination, DEFAULT_POSITIVE_REVIEW_DESTINATION } from "@/lib/positive-review-destination";
 import { prisma } from "@/lib/prisma";
 import { requireLocationAccess, requireOrganizationAccess, requireTeamManagement } from "@/lib/authz";
 
@@ -897,10 +898,20 @@ export async function saveFunnelBuilderSettings(
     };
   }
 
+  const positiveReviewDestinationRaw = String(formData.get("positiveReviewDestination") ?? "").trim();
+  if (positiveReviewDestinationRaw && !isPositiveReviewDestination(positiveReviewDestinationRaw)) {
+    return {
+      success: false,
+      error: "Invalid positive review destination",
+    };
+  }
+  const positiveReviewDestination = positiveReviewDestinationRaw || DEFAULT_POSITIVE_REVIEW_DESTINATION;
+
   await prisma.locationPublicProfile.upsert({
     where: { locationId },
     update: {
       funnelRatingStyle,
+      positiveReviewDestination,
       funnelPromptTitle: String(formData.get("funnelPromptTitle") ?? "").trim() || null,
       funnelPromptBody: String(formData.get("funnelPromptBody") ?? "").trim() || null,
       funnelPrivateTitle: String(formData.get("funnelPrivateTitle") ?? "").trim() || null,
@@ -915,6 +926,7 @@ export async function saveFunnelBuilderSettings(
     create: {
       locationId,
       funnelRatingStyle,
+      positiveReviewDestination,
       funnelPromptTitle: String(formData.get("funnelPromptTitle") ?? "").trim() || null,
       funnelPromptBody: String(formData.get("funnelPromptBody") ?? "").trim() || null,
       funnelPrivateTitle: String(formData.get("funnelPrivateTitle") ?? "").trim() || null,

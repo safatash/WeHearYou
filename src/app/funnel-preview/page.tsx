@@ -77,6 +77,7 @@ export default async function FunnelPreviewPage({
                   funnelThanksPrivateTitle: profile.funnelThanksPrivateTitle,
                   funnelThanksPrivateBody: profile.funnelThanksPrivateBody,
                   funnelReviewButtonLabel: profile.funnelReviewButtonLabel,
+                  positiveReviewDestination: profile.positiveReviewDestination,
                 }
               : null
           }
