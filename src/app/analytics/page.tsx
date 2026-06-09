@@ -4,9 +4,11 @@ import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { OutcomeCard, StatCard } from "@/components/ui";
 import { getAnalyticsData } from "@/lib/analytics";
+import { requireActiveMembershipPage } from "@/lib/page-guards";
 
 export default async function AnalyticsPage() {
-  const analytics = await getAnalyticsData();
+  const membership = await requireActiveMembershipPage();
+  const analytics = await getAnalyticsData(membership.organizationId);
 
   return (
     <AppShell activeScreen="analytics">

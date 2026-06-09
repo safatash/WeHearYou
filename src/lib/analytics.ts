@@ -8,10 +8,13 @@ const engagedCampaignStatuses = new Set<CampaignStatus>([
   CampaignStatus.COMPLETED,
 ]);
 
-export async function getAnalyticsData() {
+export async function getAnalyticsData(organizationId: string) {
   const [reviews, recipients, privateFeedbackCount] = await Promise.all([
     prisma.review.findMany({
-      where: { status: { not: "PRIVATE_FEEDBACK" } },
+      where: {
+        status: { not: "PRIVATE_FEEDBACK" },
+        location: { organizationId },
+      },
       orderBy: [{ reviewedAt: "desc" }, { createdAt: "desc" }],
       select: {
         rating: true,
@@ -23,6 +26,7 @@ export async function getAnalyticsData() {
       },
     }),
     prisma.campaignRecipient.findMany({
+      where: { campaign: { location: { organizationId } } },
       orderBy: [{ sentAt: "desc" }, { createdAt: "desc" }],
       select: {
         status: true,
@@ -32,7 +36,12 @@ export async function getAnalyticsData() {
         outcome: true,
       },
     }),
-    prisma.review.count({ where: { status: "PRIVATE_FEEDBACK" } }),
+    prisma.review.count({
+      where: {
+        status: "PRIVATE_FEEDBACK",
+        location: { organizationId },
+      },
+    }),
   ]);
 
   const reviewVolume = reviews.length;
