@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
+import { CopyButton } from "@/components/copy-button";
 import { InviteUserForm } from "@/app/team/invite-user-form";
 import { Field, OutcomeCard, StatCard } from "@/components/ui";
 import { formatAccessSummary, formatMembershipRole, formatMembershipStatus, getAssignedLocations, getMembershipStats, getPermissionList, getTeamMembers } from "@/lib/team";
@@ -19,6 +20,7 @@ export default async function TeamPage({
   const inviteToken = typeof params?.invite === "string" ? params.invite : null;
   const members = await getTeamMembers(membership.organizationId);
   const stats = getMembershipStats(members);
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
   const inviteLocations = members[0]?.organization.locations.map((location) => ({
     id: location.id,
     name: location.name,
@@ -38,7 +40,9 @@ export default async function TeamPage({
             </p>
           </div>
           <div className="flex gap-3">
-            <button className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm">Role Templates</button>
+            <a href="#permission-defaults" className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm hover:border-slate-300">
+              Role defaults ↓
+            </a>
           </div>
         </div>
 
@@ -50,10 +54,16 @@ export default async function TeamPage({
 
         {inviteToken ? (
           <section className="rounded-3xl border border-indigo-200 bg-indigo-50 p-6 shadow-sm">
-            <p className="text-sm font-semibold uppercase tracking-[0.22em] text-indigo-700">Invite link</p>
-            <p className="mt-3 text-sm text-slate-700">Share this onboarding URL with the invited user:</p>
-            <div className="mt-4 rounded-2xl border border-indigo-200 bg-white px-4 py-3 text-sm font-medium text-slate-900">
-              /accept-invite?token={inviteToken}
+            <p className="text-sm font-semibold uppercase tracking-[0.22em] text-indigo-700">Invite created</p>
+            <p className="mt-2 text-sm text-slate-700">
+              Share this link with the invited user. It expires once accepted.
+              {" "}An invite email was sent if Resend is configured.
+            </p>
+            <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+              <div className="flex-1 rounded-2xl border border-indigo-200 bg-white px-4 py-3 text-sm font-medium text-slate-900 break-all">
+                {appUrl}/accept-invite?token={inviteToken}
+              </div>
+              <CopyButton value={`${appUrl}/accept-invite?token=${inviteToken}`} label="Copy link" copiedLabel="Copied!" />
             </div>
           </section>
         ) : null}
@@ -120,7 +130,7 @@ export default async function TeamPage({
           </section>
 
           <aside className="space-y-6">
-            <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+            <section id="permission-defaults" className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
               <h3 className="text-xl font-semibold text-slate-950">Permission Defaults</h3>
               <div className="mt-6 space-y-4">
                 <Field label="Agency Admin" value="Full access to billing, automations, all locations, team management" multiline />

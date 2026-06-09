@@ -145,3 +145,46 @@ export async function sendVideoTestimonialRequestEmail({
     `,
   });
 }
+
+export async function sendTeamInviteEmail({
+  to,
+  inviteUrl,
+  inviterName,
+  orgName,
+  role,
+}: {
+  to: string;
+  inviteUrl: string;
+  inviterName: string;
+  orgName: string;
+  role: string;
+}) {
+  const config = getResendConfig();
+  if (!config.apiKey) throw new Error("RESEND_API_KEY is not configured");
+
+  const resend = new Resend(config.apiKey);
+
+  await resend.emails.send({
+    from: config.from,
+    to,
+    subject: `You've been invited to join ${escapeHtml(orgName)} on WeHearYou`,
+    html: `
+      <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #0f172a; max-width: 600px; margin: 0 auto;">
+        <p style="font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase; color: #4f46e5; font-weight: 700;">Team Invitation</p>
+        <h1 style="font-size: 28px; line-height: 1.2; margin: 16px 0;">You're invited to join ${escapeHtml(orgName)}</h1>
+        <p>${escapeHtml(inviterName)} has invited you to join ${escapeHtml(orgName)} on WeHearYou as <strong>${escapeHtml(role)}</strong>.</p>
+        <p>Click the button below to set your password and get started.</p>
+        <p style="margin: 32px 0;">
+          <a href="${escapeHtml(inviteUrl)}" style="display: inline-block; background: #0f172a; color: #ffffff; text-decoration: none; padding: 14px 20px; border-radius: 14px; font-weight: 700;">
+            Accept Invitation
+          </a>
+        </p>
+        <p style="font-size: 14px; color: #475569;">If the button doesn't work, copy and paste this link:</p>
+        <p style="font-size: 14px; color: #475569; word-break: break-all;">${escapeHtml(inviteUrl)}</p>
+        <p style="font-size: 14px; color: #94a3b8;">This invitation link is single-use and expires once accepted.</p>
+        <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 32px 0;" />
+        <p style="font-size: 12px; color: #94a3b8;">Powered by WeHearYou</p>
+      </div>
+    `,
+  });
+}
