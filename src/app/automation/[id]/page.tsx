@@ -167,6 +167,8 @@ export default async function AutomationDetailPage({
       executeAt:    j.executeAt.toISOString(),
       executedAt:   j.executedAt?.toISOString() ?? null,
       errorMessage: j.errorMessage,
+      attemptCount: j.attemptCount,
+      maxAttempts:  j.maxAttempts,
       stepTitle:    j.automationStep.title,
       stepType:     j.automationStep.stepType,
       runId:        j.automationRun.id,

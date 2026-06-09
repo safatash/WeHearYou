@@ -51,6 +51,8 @@ export type ObserveJob = {
   executeAt: string;
   executedAt: string | null;
   errorMessage: string | null;
+  attemptCount: number;
+  maxAttempts: number;
   stepTitle: string;
   stepType: string;
   runId: string;
@@ -69,6 +71,7 @@ function statusPill(status: string) {
     failed:     "bg-rose-50 text-rose-700",
     pending:    "bg-slate-100 text-slate-500",
     processing: "bg-indigo-50 text-indigo-700",
+    retrying:   "bg-orange-50 text-orange-700",
   };
   return (
     <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold uppercase tracking-wide ${map[status] ?? "bg-slate-100 text-slate-500"}`}>
@@ -324,6 +327,13 @@ export function QueueTab({ jobs }: { jobs: ObserveJob[] }) {
               <div className="flex flex-wrap items-center gap-3">
                 {statusPill(job.status)}
                 {stepTypePill(job.stepType)}
+                {job.attemptCount > 0 && (
+                  <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
+                    job.status === "failed" ? "bg-rose-50 text-rose-700" : "bg-orange-50 text-orange-700"
+                  }`}>
+                    Attempt {job.attemptCount}/{job.maxAttempts}
+                  </span>
+                )}
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-slate-900 truncate">{job.stepTitle}</p>
                   <p className="text-xs text-slate-500 truncate">

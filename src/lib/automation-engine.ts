@@ -510,8 +510,12 @@ export async function executePendingAutomationJobs(limit = 25) {
     take: limit,
   });
 
-  const results: Array<{ jobId: string; status: "executed" | "failed"; detail: string; campaignId?: string | null }> = [];
+  const results: Array<{ jobId: string; status: "executed" | "failed" | "retrying"; detail: string; campaignId?: string | null }> = [];
 
+  // dueJobs is a snapshot taken once above; the loop iterates that fixed array.
+  // A job reset to "pending" for retry below will NOT be re-picked within this
+  // same invocation — it is only eligible on a future runner tick. This avoids
+  // infinite retry loops inside a single call.
   for (const job of dueJobs) {
     try {
       await prisma.automationJob.update({ where: { id: job.id }, data: { status: "processing" } });
@@ -559,21 +563,51 @@ export async function executePendingAutomationJobs(limit = 25) {
     } catch (error) {
       const message = error instanceof Error ? error.message : "Scheduled automation job failed";
       const now = new Date();
-      await prisma.automationJob.update({ where: { id: job.id }, data: { status: "failed", errorMessage: message } });
-      await prisma.automationRun.update({ where: { id: job.automationRunId }, data: { status: "failed", completedAt: now } });
-      await prisma.automationStepExecution.upsert({
-        where: { automationJobId: job.id },
-        update: { status: "failed", errorMessage: message, completedAt: now },
-        create: {
-          automationRunId: job.automationRunId,
-          automationStepId: job.automationStepId,
-          automationJobId: job.id,
-          status: "failed",
-          errorMessage: message,
-          completedAt: now,
-        },
-      });
-      results.push({ jobId: job.id, status: "failed", detail: message });
+      const attemptCount = job.attemptCount + 1;
+      const willRetry = attemptCount < job.maxAttempts;
+
+      if (willRetry) {
+        // Reset to "pending" so a future runner tick retries it. Preserve the
+        // errorMessage for observability and record the bumped attemptCount.
+        // The run is left in its current (scheduled) state — not failed — since
+        // a later attempt may still succeed.
+        await prisma.automationJob.update({
+          where: { id: job.id },
+          data: { status: "pending", errorMessage: message, attemptCount },
+        });
+        await prisma.automationStepExecution.upsert({
+          where: { automationJobId: job.id },
+          update: { status: "retrying", errorMessage: message, completedAt: null },
+          create: {
+            automationRunId: job.automationRunId,
+            automationStepId: job.automationStepId,
+            automationJobId: job.id,
+            status: "retrying",
+            errorMessage: message,
+          },
+        });
+        results.push({ jobId: job.id, status: "retrying", detail: `${message} (attempt ${attemptCount}/${job.maxAttempts}, will retry)` });
+      } else {
+        // Exhausted all attempts — mark permanently failed and fail the run.
+        await prisma.automationJob.update({
+          where: { id: job.id },
+          data: { status: "failed", errorMessage: message, attemptCount },
+        });
+        await prisma.automationRun.update({ where: { id: job.automationRunId }, data: { status: "failed", completedAt: now } });
+        await prisma.automationStepExecution.upsert({
+          where: { automationJobId: job.id },
+          update: { status: "failed", errorMessage: message, completedAt: now },
+          create: {
+            automationRunId: job.automationRunId,
+            automationStepId: job.automationStepId,
+            automationJobId: job.id,
+            status: "failed",
+            errorMessage: message,
+            completedAt: now,
+          },
+        });
+        results.push({ jobId: job.id, status: "failed", detail: `${message} (attempt ${attemptCount}/${job.maxAttempts}, giving up)` });
+      }
     }
   }
 
