@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getThumbnailUrl, getThumbnailAlt } from "@/lib/thumbnail-utils";
+import { getThumbnailUrl } from "@/lib/thumbnail-utils";
 
 export default async function EmbedVideoTestimonialPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -30,21 +30,14 @@ export default async function EmbedVideoTestimonialPage({ params }: { params: Pr
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-black">
-      {thumbnailUrl ? (
-        <img
-          src={thumbnailUrl}
-          alt={getThumbnailAlt(testimonial.submitterName)}
-          className="max-h-screen w-full max-w-3xl object-cover"
-        />
-      ) : (
-        <video
-          src={testimonial.videoUrl}
-          controls
-          autoPlay={false}
-          playsInline
-          className="max-h-screen w-full max-w-3xl"
-        />
-      )}
+      <video
+        src={testimonial.videoUrl}
+        poster={thumbnailUrl ?? undefined}
+        controls
+        autoPlay={false}
+        playsInline
+        className="max-h-screen w-full max-w-3xl"
+      />
     </div>
   );
 }
