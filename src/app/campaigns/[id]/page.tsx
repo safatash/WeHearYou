@@ -33,7 +33,7 @@ export default async function CampaignDetailPage({ params }: { params: Promise<{
             <p className="mt-4 text-sm font-semibold uppercase tracking-[0.22em] text-indigo-600">Request Detail</p>
             <h2 className="mt-2 text-4xl font-semibold tracking-tight text-slate-950">{campaign.name}</h2>
             <p className="mt-3 max-w-3xl text-slate-600">
-              This invite record now reads from Prisma, showing token metadata, delivery path, recipients, and what happened after send.
+              Delivery details for this review request, including channel, recipients, and the outcome after each invite was sent.
             </p>
           </div>
           <div className="flex gap-3">

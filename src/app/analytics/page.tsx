@@ -22,8 +22,24 @@ export default async function AnalyticsPage() {
             </p>
           </div>
           <div className="flex gap-3">
-            <button className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm">Export PDF</button>
-            <button className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold !text-white shadow-sm visited:!text-white hover:!text-white">Share Report</button>
+            <button
+              type="button"
+              disabled
+              title="PDF export is coming soon"
+              className="inline-flex cursor-not-allowed items-center rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-400 shadow-sm"
+            >
+              Export PDF
+              <span className="ml-2 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-400">Soon</span>
+            </button>
+            <button
+              type="button"
+              disabled
+              title="Shareable report links are coming soon"
+              className="inline-flex cursor-not-allowed items-center rounded-2xl border border-slate-200 bg-slate-100 px-5 py-3 text-sm font-semibold text-slate-400 shadow-sm"
+            >
+              Share Report
+              <span className="ml-2 rounded-full bg-white px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-400">Soon</span>
+            </button>
           </div>
         </div>
 
