@@ -1,0 +1,1 @@
+export default function DataDeletionPage() { return (<main><h1>Data Deletion Instructions</h1><p>Email safa@novaadvertising.com to request deletion of personal data associated with a WeHearYou account or connected third-party integrations including Facebook and Meta.</p></main>); }
