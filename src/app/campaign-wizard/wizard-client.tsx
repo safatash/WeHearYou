@@ -16,6 +16,7 @@ type Location = {
     funnelPromptBody: string | null;
     negativeFilterEnabled: boolean;
     negativeFilterThreshold: number;
+    positiveReviewDestination: string | null;
   } | null;
 };
 
@@ -193,6 +194,7 @@ export function CampaignWizard({
   );
   const [filterEnabled, setFilterEnabled] = useState(profile?.negativeFilterEnabled ?? false);
   const [threshold, setThreshold] = useState(profile?.negativeFilterThreshold ?? 4);
+  const [positiveReviewDestination, setPositiveReviewDestination] = useState(profile?.positiveReviewDestination ?? "GOOGLE");
 
   const funnelUrl = `${appUrl}/f/${selectedLocation?.slug}`;
 
@@ -205,6 +207,7 @@ export function CampaignWizard({
       fd.append("funnelPromptBody", promptBody);
       fd.append("negativeFilterEnabled", String(filterEnabled));
       fd.append("negativeFilterThreshold", String(threshold));
+      fd.append("positiveReviewDestination", positiveReviewDestination);
       await saveCampaignWizard(fd);
       setSaved(true);
     });
@@ -267,6 +270,7 @@ export function CampaignWizard({
                       setPromptBody(p?.funnelPromptBody ?? "Share a quick rating below.");
                       setFilterEnabled(p?.negativeFilterEnabled ?? false);
                       setThreshold(p?.negativeFilterThreshold ?? 4);
+                      setPositiveReviewDestination(p?.positiveReviewDestination ?? "GOOGLE");
                     }}
                     className={`w-full rounded-2xl border p-4 text-left transition ${
                       loc.id === selectedLocationId
@@ -518,6 +522,37 @@ export function CampaignWizard({
                   <p className="mt-3 text-xs text-slate-500">With thumbs, negative feedback stays private and positive goes to Google automatically.</p>
                 </div>
               )}
+
+              {/* Positive review destination — where HIGH ratings go */}
+              <div className="border-t border-slate-100 pt-5">
+                <p className="text-sm font-semibold text-slate-900">Where do positive reviews go?</p>
+                <p className="mt-1 text-sm text-slate-500">For high ratings, choose Google or capture a first-party review inside WeHearYou. Low ratings always stay in private feedback.</p>
+                <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                  <button
+                    type="button"
+                    onClick={() => setPositiveReviewDestination("GOOGLE")}
+                    className={`rounded-2xl border p-5 text-left transition ${
+                      positiveReviewDestination !== "WEHEARYOU" ? "border-indigo-300 bg-indigo-50" : "border-slate-200 bg-slate-50 hover:border-slate-300"
+                    }`}
+                  >
+                    <div className="text-2xl">🟦</div>
+                    <p className="mt-2 font-semibold text-slate-900">Send happy customers to Google</p>
+                    <p className="mt-1 text-sm text-slate-500">Default. High ratings continue to your public Google review.</p>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setPositiveReviewDestination("WEHEARYOU")}
+                    className={`rounded-2xl border p-5 text-left transition ${
+                      positiveReviewDestination === "WEHEARYOU" ? "border-indigo-300 bg-indigo-50" : "border-slate-200 bg-slate-50 hover:border-slate-300"
+                    }`}
+                  >
+                    <div className="text-2xl">💬</div>
+                    <p className="mt-2 font-semibold text-slate-900">Collect the review inside WeHearYou</p>
+                    <p className="mt-1 text-sm text-slate-500">High ratings open a first-party review form (/f/your-slug/review) instead of Google.</p>
+                  </button>
+                </div>
+              </div>
             </div>
           )}
 

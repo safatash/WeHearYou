@@ -55,6 +55,7 @@ export default async function CampaignWizardPage() {
                   funnelPromptBody: l.publicProfile.funnelPromptBody,
                   negativeFilterEnabled: l.publicProfile.negativeFilterEnabled,
                   negativeFilterThreshold: l.publicProfile.negativeFilterThreshold,
+                  positiveReviewDestination: l.publicProfile.positiveReviewDestination,
                 }
               : null,
           }))}
