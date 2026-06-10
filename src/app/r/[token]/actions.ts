@@ -45,6 +45,21 @@ export async function submitReviewRating(formData: FormData) {
   const isThumbsDown = ratingMode === "thumbs" && ratingValue === 1;
   const highRating = !isThumbsDown && (!filterEnabled || ratingValue >= filterThreshold);
 
+  // WeHearYou mode: positive raters leave a first-party review next. Mark
+  // engagement now; completion is recorded when the review is submitted.
+  // GOOGLE-mode behavior (below) is unchanged.
+  if (highRating && profile?.positiveReviewDestination === "WEHEARYOU") {
+    await prisma.campaignRecipient.update({
+      where: { id: recipient.id },
+      data: {
+        status: CampaignStatus.CLICKED,
+        outcome: "Positive rating — WeHearYou review pending",
+        openedAt: recipient.openedAt ?? new Date(),
+      },
+    });
+    redirect(`/r/${token}/review?rating=${ratingValue}`);
+  }
+
   await prisma.campaignRecipient.update({
     where: { id: recipient.id },
     data: {
@@ -60,6 +75,66 @@ export async function submitReviewRating(formData: FormData) {
   }
 
   redirect(`/r/${token}/feedback?rating=${ratingValue}`);
+}
+
+export async function submitCampaignPositiveReview(formData: FormData) {
+  const token = String(formData.get("token") ?? "").trim();
+  const ratingValue = Number(formData.get("rating"));
+  const body = String(formData.get("body") ?? "").trim();
+
+  if (!token || !Number.isInteger(ratingValue) || ratingValue < 1 || ratingValue > 5 || !body) {
+    redirect(`/r/${token}/review?rating=${ratingValue || ""}&error=invalid_review`);
+  }
+
+  const recipient = await prisma.campaignRecipient.findUnique({
+    where: { token },
+    include: {
+      contact: true,
+      campaign: {
+        include: {
+          location: true,
+        },
+      },
+    },
+  });
+
+  if (!recipient) {
+    redirect(`/r/${token}?error=missing_token`);
+  }
+  if (recipient.revokedAt) {
+    redirect(`/r/${token}?error=revoked`);
+  }
+  if (recipient.expiresAt && recipient.expiresAt < new Date()) {
+    redirect(`/r/${token}?error=expired`);
+  }
+
+  const reviewerName = recipient.contact.name || recipient.contact.email || "Anonymous customer";
+
+  await prisma.review.create({
+    data: {
+      locationId: recipient.campaign.locationId,
+      contactId: recipient.contactId,
+      source: ReviewSource.INTERNAL,
+      status: ReviewStatus.PUBLISHED,
+      sentiment: "positive",
+      rating: ratingValue,
+      reviewerName,
+      body,
+      reviewedAt: new Date(),
+      publishedExternally: false,
+    },
+  });
+
+  await prisma.campaignRecipient.update({
+    where: { id: recipient.id },
+    data: {
+      status: CampaignStatus.COMPLETED,
+      outcome: "WeHearYou review captured",
+      completedAt: new Date(),
+    },
+  });
+
+  redirect(`/r/${token}/thanks?rating=${ratingValue}&mode=why-public`);
 }
 
 export async function submitPrivateFeedback(formData: FormData) {

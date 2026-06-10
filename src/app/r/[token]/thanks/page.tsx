@@ -23,19 +23,23 @@ export default async function ReviewThanksPage({
   }
 
   const reviewLink = recipient.campaign.location.reviewLink ?? buildGoogleWriteReviewLink(recipient.campaign.location.googlePlaceId);
-  const isPrivate = mode === "private" || rating < 4;
+  // First-party WeHearYou review captured — thank the customer, do NOT push to Google.
+  const isWeHearYouReview = mode === "why-public";
+  const isPrivate = !isWeHearYouReview && (mode === "private" || rating < 4);
 
   return (
     <main className="min-h-screen bg-slate-50 px-4 py-10 text-slate-900 sm:px-6">
       <div className="mx-auto max-w-3xl rounded-[32px] border border-slate-200 bg-white p-8 shadow-[0_16px_50px_rgba(15,23,42,0.08)] sm:p-10">
         <p className="text-sm font-semibold uppercase tracking-[0.22em] text-indigo-600">Thank You</p>
         <h1 className="mt-3 text-4xl font-semibold tracking-tight text-slate-950">
-          {isPrivate ? "Thanks for sharing your feedback" : "Thanks for your rating"}
+          {isPrivate ? "Thanks for sharing your feedback" : isWeHearYouReview ? "Thanks for your review" : "Thanks for your rating"}
         </h1>
         <p className="mt-4 text-base leading-7 text-slate-600">
           {isPrivate
             ? "Your feedback has been sent privately to the team."
-            : "One final step, post your review publicly if you'd like to help other customers discover this business."}
+            : isWeHearYouReview
+              ? `Your review has been published on ${recipient.campaign.location.name}'s profile. Thank you for helping others discover them.`
+              : "One final step, post your review publicly if you'd like to help other customers discover this business."}
         </p>
 
         <div className="mt-6 rounded-3xl bg-slate-50 p-5 text-sm leading-7 text-slate-600">
@@ -45,11 +49,13 @@ export default async function ReviewThanksPage({
           <p className="mt-2">
             {isPrivate
               ? "The team can now review your private feedback internally."
-              : "Your public review helps strengthen trust for future customers."}
+              : isWeHearYouReview
+                ? "Your review is now live on the business profile."
+                : "Your public review helps strengthen trust for future customers."}
           </p>
         </div>
 
-        {!isPrivate && reviewLink ? (
+        {!isPrivate && !isWeHearYouReview && reviewLink ? (
           <div className="mt-8 flex flex-wrap gap-3">
             <Link href={reviewLink} className="inline-flex rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold !text-white shadow-sm visited:!text-white hover:!text-white">
               Leave a Google review
