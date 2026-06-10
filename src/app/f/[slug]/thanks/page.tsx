@@ -50,7 +50,7 @@ export default async function PublicFunnelThanksPage({
           {isPrivate
             ? location.publicProfile?.funnelThanksPrivateBody ?? "Your feedback has been sent privately to the team."
             : isWeHearYouReview
-              ? `Your review has been published on ${location.name}'s profile. Thank you for helping others discover them.`
+              ? `Your review has been shared with ${location.name}. We appreciate you taking the time!`
               : location.publicProfile?.funnelThanksPublicBody ?? "One final step, post your review publicly if you'd like to help other customers discover this business."}
         </p>
 
@@ -62,7 +62,7 @@ export default async function PublicFunnelThanksPage({
             {isPrivate
               ? "The team can now review your private feedback internally."
               : isWeHearYouReview
-                ? "Your review is now live on the business profile."
+                ? "The team has received your review."
                 : "Your public review helps strengthen trust for future customers."}
           </p>
         </div>

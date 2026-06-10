@@ -34,7 +34,7 @@ export default async function PublicFunnelPositiveReviewPage({
           Share your experience with {location.name}
         </h1>
         <p className="mt-3 text-base leading-7 text-slate-600">
-          Thanks for the great rating! Tell others what you loved — your review will be published on {location.name}&apos;s WeHearYou profile.
+          Thanks for the great rating! Share what stood out — your review goes straight to {location.name}.
         </p>
 
         <div className="mt-4 rounded-3xl bg-slate-50 p-4 text-sm leading-7 text-slate-600">
