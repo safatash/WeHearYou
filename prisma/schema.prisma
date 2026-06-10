@@ -670,7 +670,17 @@ model LocationPublicProfile {
   funnelReviewButtonLabel  String?
   negativeFilterEnabled    Boolean     @default(false)
   negativeFilterThreshold  Int         @default(4)
-  positiveReviewDestination String     @default("GOOGLE") // GOOGLE (handoff) | WEHEARYOU (first-party capture)
+  positiveReviewDestination String     @default("GOOGLE") // DEPRECATED — superseded by highRating* fields; retired in a later migration
+  // ── Review routing ──────────────────────────────────────────────────────
+  // Low ratings (< negativeFilterThreshold): recovery only.
+  lowRatingDestination     String      @default("PRIVATE")   // PRIVATE | CUSTOM
+  lowRatingCustomUrl       String?                            // recovery URL when lowRatingDestination = CUSTOM
+  // High ratings (>= negativeFilterThreshold): one or more public destinations.
+  highRatingMode           String      @default("SINGLE")     // SINGLE | MULTIPLE (choice page)
+  highRatingDestinations   String[]    @default(["GOOGLE"])   // subset of GOOGLE | FACEBOOK | WEHEARYOU | CUSTOM
+  highRatingPrimaryDestination String?                        // highlighted option on the choice page (MULTIPLE)
+  facebookReviewUrl        String?                            // FACEBOOK destination ("leave a review" URL)
+  customReviewUrl          String?                            // CUSTOM high-rating review URL
   businessType         String?
   customDomain         String?
   showReviews          Boolean     @default(true)
