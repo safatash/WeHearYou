@@ -70,6 +70,7 @@ export default async function PublicFunnelPage({
           reviewLink={location.reviewLink ?? buildGoogleWriteReviewLink(location.googlePlaceId)}
           filterEnabled={profile?.negativeFilterEnabled ?? false}
           filterThreshold={profile?.negativeFilterThreshold ?? 4}
+          lowRatingDestination={profile?.lowRatingDestination ?? "PRIVATE"}
           ratingMode={ratingMode}
           ratingOptions={ratingOptions}
           embed={isEmbed}

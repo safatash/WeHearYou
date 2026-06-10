@@ -10,6 +10,7 @@ export function FunnelRatingForm({
   reviewLink,
   filterEnabled = false,
   filterThreshold = 4,
+  lowRatingDestination = "PRIVATE",
   ratingMode = "stars",
   ratingOptions,
   embed = false,
@@ -19,6 +20,7 @@ export function FunnelRatingForm({
   reviewLink?: string | null;
   filterEnabled?: boolean;
   filterThreshold?: number;
+  lowRatingDestination?: string;
   ratingMode?: "stars" | "faces" | "thumbs";
   ratingOptions?: readonly RatingOption[];
   embed?: boolean;
@@ -33,9 +35,10 @@ export function FunnelRatingForm({
   const isStars = ratingMode === "stars";
 
   const handleRatingClick = (rating: number) => {
-    // Always route low ratings to the recovery form regardless of filterEnabled setting.
-    // High ratings submit immediately to the public thanks page.
-    if (rating >= filterThreshold) {
+    // High ratings submit immediately (server routes to the configured destination).
+    // Low ratings: PRIVATE shows the in-page recovery form; CUSTOM submits
+    // immediately so the server can redirect to the recovery URL.
+    if (rating >= filterThreshold || lowRatingDestination === "CUSTOM") {
       handleSubmit(rating, "", "", "");
     } else {
       setSelectedRating(rating);

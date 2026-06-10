@@ -27,6 +27,18 @@ export default async function ReviewThanksPage({
   const isWeHearYouReview = mode === "why-public";
   const isPrivate = !isWeHearYouReview && (mode === "private" || rating < 4);
 
+  // Single high-rating destination handoff button (default Google).
+  const dest = typeof query.dest === "string" ? query.dest : "GOOGLE";
+  const profile = recipient.campaign.location.publicProfile;
+  const ctaUrl =
+    dest === "FACEBOOK" ? (profile?.facebookReviewUrl ?? null)
+    : dest === "CUSTOM" ? (profile?.customReviewUrl ?? null)
+    : reviewLink;
+  const ctaLabel =
+    dest === "FACEBOOK" ? "Leave a Facebook review"
+    : dest === "CUSTOM" ? "Leave a review"
+    : "Leave a Google review";
+
   return (
     <main className="min-h-screen bg-slate-50 px-4 py-10 text-slate-900 sm:px-6">
       <div className="mx-auto max-w-3xl rounded-[32px] border border-slate-200 bg-white p-8 shadow-[0_16px_50px_rgba(15,23,42,0.08)] sm:p-10">
@@ -55,10 +67,10 @@ export default async function ReviewThanksPage({
           </p>
         </div>
 
-        {!isPrivate && !isWeHearYouReview && reviewLink ? (
+        {!isPrivate && !isWeHearYouReview && ctaUrl ? (
           <div className="mt-8 flex flex-wrap gap-3">
-            <Link href={reviewLink} className="inline-flex rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold !text-white shadow-sm visited:!text-white hover:!text-white">
-              Leave a Google review
+            <Link href={ctaUrl} className="inline-flex rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold !text-white shadow-sm visited:!text-white hover:!text-white">
+              {ctaLabel}
             </Link>
             <Link href="/" className="inline-flex rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm">
               Done

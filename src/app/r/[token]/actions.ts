@@ -3,6 +3,12 @@
 import { redirect } from "next/navigation";
 import { CampaignStatus, ReviewSource, ReviewStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { resolveHighRating, normalizeLowRatingDestination } from "@/lib/review-routing";
+
+function trimOrNull(value: string | null | undefined) {
+  const v = (value ?? "").trim();
+  return v.length > 0 ? v : null;
+}
 
 export async function submitReviewRating(formData: FormData) {
   const token = String(formData.get("token") ?? "").trim();
@@ -40,41 +46,65 @@ export async function submitReviewRating(formData: FormData) {
   }
 
   const profile = recipient.campaign.location.publicProfile;
-  const filterEnabled = profile?.negativeFilterEnabled ?? false;
-  const filterThreshold = profile?.negativeFilterThreshold ?? 4;
+  const threshold = profile?.negativeFilterThreshold ?? 4;
   const isThumbsDown = ratingMode === "thumbs" && ratingValue === 1;
-  const highRating = !isThumbsDown && (!filterEnabled || ratingValue >= filterThreshold);
+  const isHigh = !isThumbsDown && ratingValue >= threshold;
+  const openedAt = recipient.openedAt ?? new Date();
 
-  // WeHearYou mode: positive raters leave a first-party review next. Mark
-  // engagement now; completion is recorded when the review is submitted.
-  // GOOGLE-mode behavior (below) is unchanged.
-  if (highRating && profile?.positiveReviewDestination === "WEHEARYOU") {
+  // ── LOW: recovery only (private feedback or custom recovery URL) ─────────
+  if (!isHigh) {
+    const lowDest = normalizeLowRatingDestination(profile?.lowRatingDestination);
+    const recoveryUrl = trimOrNull(profile?.lowRatingCustomUrl);
+
+    if (lowDest === "CUSTOM" && recoveryUrl) {
+      await prisma.campaignRecipient.update({
+        where: { id: recipient.id },
+        data: { status: CampaignStatus.COMPLETED, outcome: "Sent to recovery page", openedAt, completedAt: new Date() },
+      });
+      redirect(recoveryUrl);
+    }
+
     await prisma.campaignRecipient.update({
       where: { id: recipient.id },
-      data: {
-        status: CampaignStatus.CLICKED,
-        outcome: "Positive rating — WeHearYou review pending",
-        openedAt: recipient.openedAt ?? new Date(),
-      },
+      data: { status: CampaignStatus.COMPLETED, outcome: "Private feedback requested", openedAt, completedAt: new Date() },
+    });
+    redirect(`/r/${token}/feedback?rating=${ratingValue}`);
+  }
+
+  // ── HIGH: one or more public destinations ────────────────────────────────
+  const resolution = resolveHighRating(
+    profile?.highRatingMode,
+    profile?.highRatingDestinations,
+    profile?.highRatingPrimaryDestination,
+  );
+
+  if (resolution.kind === "choice") {
+    await prisma.campaignRecipient.update({
+      where: { id: recipient.id },
+      data: { status: CampaignStatus.CLICKED, outcome: "Positive rating — choosing destination", openedAt },
+    });
+    redirect(`/r/${token}/choose?rating=${ratingValue}`);
+  }
+
+  const dest = resolution.destination;
+  if (dest === "WEHEARYOU") {
+    await prisma.campaignRecipient.update({
+      where: { id: recipient.id },
+      data: { status: CampaignStatus.CLICKED, outcome: "Positive rating — WeHearYou review pending", openedAt },
     });
     redirect(`/r/${token}/review?rating=${ratingValue}`);
   }
 
+  // External destination handoff (Google preserves existing semantics).
+  const outcome =
+    dest === "GOOGLE" ? "Redirected to Google"
+    : dest === "FACEBOOK" ? "Redirected to Facebook"
+    : "Redirected to custom review page";
   await prisma.campaignRecipient.update({
     where: { id: recipient.id },
-    data: {
-      status: highRating ? CampaignStatus.CLICKED : CampaignStatus.COMPLETED,
-      outcome: highRating ? "Redirected to Google" : "Private feedback requested",
-      openedAt: recipient.openedAt ?? new Date(),
-      completedAt: new Date(),
-    },
+    data: { status: CampaignStatus.CLICKED, outcome, openedAt, completedAt: new Date() },
   });
-
-  if (highRating) {
-    redirect(`/r/${token}/thanks?rating=${ratingValue}`);
-  }
-
-  redirect(`/r/${token}/feedback?rating=${ratingValue}`);
+  redirect(`/r/${token}/thanks?rating=${ratingValue}&dest=${dest}`);
 }
 
 export async function submitCampaignPositiveReview(formData: FormData) {
