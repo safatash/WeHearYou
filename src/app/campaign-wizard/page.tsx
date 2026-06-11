@@ -53,9 +53,13 @@ export default async function CampaignWizardPage() {
                   funnelRatingStyle: l.publicProfile.funnelRatingStyle,
                   funnelPromptTitle: l.publicProfile.funnelPromptTitle,
                   funnelPromptBody: l.publicProfile.funnelPromptBody,
-                  negativeFilterEnabled: l.publicProfile.negativeFilterEnabled,
                   negativeFilterThreshold: l.publicProfile.negativeFilterThreshold,
-                  positiveReviewDestination: l.publicProfile.positiveReviewDestination,
+                  lowRatingDestination: l.publicProfile.lowRatingDestination,
+                  lowRatingCustomUrl: l.publicProfile.lowRatingCustomUrl,
+                  highRatingDestinations: l.publicProfile.highRatingDestinations,
+                  highRatingPrimaryDestination: l.publicProfile.highRatingPrimaryDestination,
+                  facebookReviewUrl: l.publicProfile.facebookReviewUrl,
+                  customReviewUrl: l.publicProfile.customReviewUrl,
                 }
               : null,
           }))}

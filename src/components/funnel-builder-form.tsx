@@ -19,7 +19,6 @@ export function FunnelBuilderForm({
   locationSlug: string;
   defaultValues: {
     funnelRatingStyle: string;
-    positiveReviewDestination: string;
     funnelPromptTitle: string;
     funnelPromptBody: string;
     funnelPrivateTitle: string;
@@ -86,18 +85,11 @@ export function FunnelBuilderForm({
               <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">What happens after rating</p>
               <p className="mt-1 text-sm text-slate-600">Control the actual review funnel behavior after someone selects a rating.</p>
             </div>
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs leading-5 text-slate-600 md:col-span-2">
+              Review routing (where low and high ratings go — Google, Facebook, WeHearYou, custom links, or a choice page) is configured in the{" "}
+              <a href="/campaign-wizard" className="font-semibold text-indigo-600 hover:underline">Campaign Wizard → Review Routing</a> step.
+            </div>
             <div className="grid gap-4 md:grid-cols-2">
-              <label className="grid gap-2 text-sm font-semibold text-slate-700 md:col-span-2">
-                Positive review destination
-                <select name="positiveReviewDestination" defaultValue={defaultValues.positiveReviewDestination} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-normal text-slate-700">
-                  <option value="GOOGLE">Send happy customers to Google (default)</option>
-                  <option value="WEHEARYOU">Collect the review inside WeHearYou</option>
-                </select>
-                <span className="text-xs font-normal leading-5 text-slate-500">
-                  Where high ratings go. <span className="font-semibold">Google</span> hands promoters off to your public Google review (current behavior).{" "}
-                  <span className="font-semibold">WeHearYou</span> asks them to leave a first-party review captured here instead. Low ratings always stay in the private feedback flow either way.
-                </span>
-              </label>
               <label className="grid gap-2 text-sm font-semibold text-slate-700">
                 Public review button label
                 <input name="funnelReviewButtonLabel" defaultValue={defaultValues.funnelReviewButtonLabel} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-normal text-slate-700" />

@@ -69,7 +69,15 @@ type PreviewProfile = {
   funnelThanksPrivateTitle: string | null;
   funnelThanksPrivateBody: string | null;
   funnelReviewButtonLabel: string | null;
-  positiveReviewDestination: string | null;
+  lowRatingDestination: string | null;
+  highRatingDestinations: string[] | null;
+};
+
+const HIGH_DEST_LABEL: Record<string, string> = {
+  GOOGLE: "Google",
+  FACEBOOK: "Facebook",
+  WEHEARYOU: "WeHearYou",
+  CUSTOM: "a custom link",
 };
 
 export function FunnelPreviewSimulator({
@@ -96,7 +104,11 @@ export function FunnelPreviewSimulator({
 
   const primaryCta = profile?.ctaUrl ?? profile?.bookingUrl ?? null;
   const modeConfig = ratingModes[ratingMode];
-  const positiveToWeHearYou = profile?.positiveReviewDestination === "WEHEARYOU";
+  const highDests = (profile?.highRatingDestinations && profile.highRatingDestinations.length > 0
+    ? profile.highRatingDestinations
+    : ["GOOGLE"]);
+  const isChoice = highDests.length > 1;
+  const lowIsCustom = profile?.lowRatingDestination === "CUSTOM";
 
   return (
     <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
@@ -201,30 +213,34 @@ export function FunnelPreviewSimulator({
                 </div>
               ) : branch === "promoter" ? (
                 <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5">
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">4 to 5 star path</p>
-                  {positiveToWeHearYou ? (
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">High rating path</p>
+                  {isChoice ? (
                     <>
-                      <h4 className="mt-2 text-xl font-semibold text-emerald-950">Collect a review inside WeHearYou</h4>
+                      <h4 className="mt-2 text-xl font-semibold text-emerald-950">Show a choice of review destinations</h4>
                       <p className="mt-3 text-sm leading-6 text-emerald-900">
-                        This customer would be asked to write a first-party review captured in WeHearYou — they are <span className="font-semibold">not</span> sent to Google.
+                        This customer would see a choice page (primary highlighted first): {highDests.map((d) => HIGH_DEST_LABEL[d] ?? d).join(", ")}.
                       </p>
-                      <div className="mt-4 flex flex-wrap gap-3">
-                        <span className="rounded-2xl bg-emerald-900 px-4 py-3 text-sm font-semibold text-white">
-                          Leave a review on WeHearYou
-                        </span>
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        {highDests.map((d, i) => (
+                          <span key={d} className={`rounded-2xl px-4 py-2 text-sm font-semibold ${i === 0 ? "bg-emerald-900 text-white" : "border border-emerald-200 bg-white text-emerald-800"}`}>
+                            {HIGH_DEST_LABEL[d] ?? d}
+                          </span>
+                        ))}
                       </div>
                     </>
                   ) : (
                     <>
-                      <h4 className="mt-2 text-xl font-semibold text-emerald-950">Send customer to Google review</h4>
+                      <h4 className="mt-2 text-xl font-semibold text-emerald-950">
+                        {highDests[0] === "WEHEARYOU" ? "Collect a review inside WeHearYou" : `Send customer to ${HIGH_DEST_LABEL[highDests[0]] ?? highDests[0]}`}
+                      </h4>
                       <p className="mt-3 text-sm leading-6 text-emerald-900">
-                        {selectedLocation.reviewLink
-                          ? `This customer would be prompted to continue to ${selectedLocation.reviewLink}.`
-                          : "No public review destination is configured yet, so this path still needs setup in the builder."}
+                        {highDests[0] === "WEHEARYOU"
+                          ? "This customer would write a first-party review captured in WeHearYou."
+                          : `This customer would be handed off to leave a review on ${HIGH_DEST_LABEL[highDests[0]] ?? highDests[0]}.`}
                       </p>
                       <div className="mt-4 flex flex-wrap gap-3">
                         <span className="rounded-2xl bg-emerald-900 px-4 py-3 text-sm font-semibold text-white">
-                          {profile?.funnelReviewButtonLabel ?? "Leave a Google review"}
+                          {highDests[0] === "WEHEARYOU" ? "Leave a review on WeHearYou" : `Review on ${HIGH_DEST_LABEL[highDests[0]] ?? highDests[0]}`}
                         </span>
                         {primaryCta ? <span className="rounded-2xl border border-emerald-200 bg-white px-4 py-3 text-sm font-semibold text-emerald-800">Fallback CTA available</span> : null}
                       </div>
@@ -233,10 +249,12 @@ export function FunnelPreviewSimulator({
                 </div>
               ) : (
                 <div className="rounded-3xl border border-amber-200 bg-amber-50 p-5">
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-700">1 to 3 star path</p>
-                  <h4 className="mt-2 text-xl font-semibold text-amber-950">Keep feedback private</h4>
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-700">Low rating path</p>
+                  <h4 className="mt-2 text-xl font-semibold text-amber-950">{lowIsCustom ? "Send to a custom recovery page" : "Keep feedback private"}</h4>
                   <p className="mt-3 text-sm leading-6 text-amber-900">
-                    This customer stays in the funnel and sees a private recovery form instead of a public review redirect.
+                    {lowIsCustom
+                      ? "This customer would be redirected to your custom recovery URL (support/complaint/helpdesk) — not a public review site."
+                      : "This customer stays in the funnel and sees a private recovery form instead of a public review redirect."}
                   </p>
                   <div className="mt-4 rounded-2xl border border-amber-200 bg-white p-4">
                     <p className="text-sm font-semibold text-slate-900">{profile?.funnelPrivateTitle ?? "Private feedback form preview"}</p>

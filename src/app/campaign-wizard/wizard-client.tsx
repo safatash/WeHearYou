@@ -14,9 +14,13 @@ type Location = {
     funnelRatingStyle: string | null;
     funnelPromptTitle: string | null;
     funnelPromptBody: string | null;
-    negativeFilterEnabled: boolean;
     negativeFilterThreshold: number;
-    positiveReviewDestination: string | null;
+    lowRatingDestination: string | null;
+    lowRatingCustomUrl: string | null;
+    highRatingDestinations: string[];
+    highRatingPrimaryDestination: string | null;
+    facebookReviewUrl: string | null;
+    customReviewUrl: string | null;
   } | null;
 };
 
@@ -24,23 +28,30 @@ const STEPS = [
   { id: "location", label: "Location", icon: "📍" },
   { id: "appearance", label: "Appearance", icon: "🎨" },
   { id: "message", label: "Message", icon: "✉️" },
-  { id: "filter", label: "Review Filter", icon: "🔀" },
+  { id: "filter", label: "Review Routing", icon: "🔀" },
   { id: "share", label: "Share", icon: "🔗" },
 ];
+
+const HIGH_DEST_SHORT: Record<string, string> = {
+  GOOGLE: "Google",
+  FACEBOOK: "Facebook",
+  WEHEARYOU: "WeHearYou",
+  CUSTOM: "Custom link",
+};
 
 function PhonePreview({
   title,
   body,
   ratingStyle,
-  filterEnabled,
-  threshold,
+  lowRatingDestination,
+  highDests,
   locationName,
 }: {
   title: string;
   body: string;
   ratingStyle: string;
-  filterEnabled: boolean;
-  threshold: number;
+  lowRatingDestination: string;
+  highDests: string[];
   locationName: string;
 }) {
   const stars = [1, 2, 3, 4, 5];
@@ -96,16 +107,20 @@ function PhonePreview({
           )}
         </div>
 
-        {/* Filter legend */}
-        {filterEnabled && (
+        {/* Routing legend */}
+        {(
           <div className="mt-3 space-y-1">
             <div className="flex items-center gap-1.5 rounded-lg bg-indigo-50 px-2 py-1">
               <div className="h-1.5 w-1.5 rounded-full bg-indigo-500" />
-              <p className="text-[8px] text-indigo-700">→ Google review</p>
+              <p className="text-[8px] text-indigo-700">
+                High → {highDests.length === 0 ? "—" : highDests.length === 1 ? HIGH_DEST_SHORT[highDests[0]] ?? highDests[0] : `choice: ${highDests.map((d) => HIGH_DEST_SHORT[d] ?? d).join(", ")}`}
+              </p>
             </div>
             <div className="flex items-center gap-1.5 rounded-lg bg-orange-50 px-2 py-1">
               <div className="h-1.5 w-1.5 rounded-full bg-orange-500" />
-              <p className="text-[8px] text-orange-700">→ Private feedback (saved in WHY)</p>
+              <p className="text-[8px] text-orange-700">
+                Low → {lowRatingDestination === "CUSTOM" ? "Custom recovery URL" : "Private feedback (saved in WHY)"}
+              </p>
             </div>
           </div>
         )}
@@ -192,9 +207,17 @@ export function CampaignWizard({
   const [messageBody, setMessageBody] = useState(
     `Hi {name}, thanks for visiting ${selectedLocation?.name}. We'd love to hear your feedback!`
   );
-  const [filterEnabled, setFilterEnabled] = useState(profile?.negativeFilterEnabled ?? false);
   const [threshold, setThreshold] = useState(profile?.negativeFilterThreshold ?? 4);
-  const [positiveReviewDestination, setPositiveReviewDestination] = useState(profile?.positiveReviewDestination ?? "GOOGLE");
+  const [lowRatingDestination, setLowRatingDestination] = useState(profile?.lowRatingDestination ?? "PRIVATE");
+  const [lowRatingCustomUrl, setLowRatingCustomUrl] = useState(profile?.lowRatingCustomUrl ?? "");
+  const [highDests, setHighDests] = useState<string[]>(
+    profile?.highRatingDestinations && profile.highRatingDestinations.length > 0 ? profile.highRatingDestinations : ["GOOGLE"],
+  );
+  const [highPrimary, setHighPrimary] = useState(profile?.highRatingPrimaryDestination ?? "");
+  const [facebookReviewUrl, setFacebookReviewUrl] = useState(profile?.facebookReviewUrl ?? "");
+  const [customReviewUrl, setCustomReviewUrl] = useState(profile?.customReviewUrl ?? "");
+  const toggleHighDest = (d: string) =>
+    setHighDests((prev) => (prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d]));
 
   const funnelUrl = `${appUrl}/f/${selectedLocation?.slug}`;
 
@@ -205,9 +228,19 @@ export function CampaignWizard({
       fd.append("funnelRatingStyle", ratingStyle);
       fd.append("funnelPromptTitle", promptTitle);
       fd.append("funnelPromptBody", promptBody);
-      fd.append("negativeFilterEnabled", String(filterEnabled));
+      fd.append("negativeFilterEnabled", "true");
       fd.append("negativeFilterThreshold", String(threshold));
-      fd.append("positiveReviewDestination", positiveReviewDestination);
+      fd.append("lowRatingDestination", lowRatingDestination);
+      fd.append("lowRatingCustomUrl", lowRatingCustomUrl);
+      const dests = highDests.length > 0 ? highDests : ["GOOGLE"];
+      dests.forEach((d) => fd.append("highRatingDestinations", d));
+      fd.append("highRatingMode", dests.length > 1 ? "MULTIPLE" : "SINGLE");
+      fd.append(
+        "highRatingPrimaryDestination",
+        dests.length > 1 ? (dests.includes(highPrimary) ? highPrimary : dests[0]) : "",
+      );
+      fd.append("facebookReviewUrl", facebookReviewUrl);
+      fd.append("customReviewUrl", customReviewUrl);
       await saveCampaignWizard(fd);
       setSaved(true);
     });
@@ -268,9 +301,13 @@ export function CampaignWizard({
                       setRatingStyle(p?.funnelRatingStyle ?? "stars");
                       setPromptTitle(p?.funnelPromptTitle ?? `How was your experience with ${loc.name}?`);
                       setPromptBody(p?.funnelPromptBody ?? "Share a quick rating below.");
-                      setFilterEnabled(p?.negativeFilterEnabled ?? false);
                       setThreshold(p?.negativeFilterThreshold ?? 4);
-                      setPositiveReviewDestination(p?.positiveReviewDestination ?? "GOOGLE");
+                      setLowRatingDestination(p?.lowRatingDestination ?? "PRIVATE");
+                      setLowRatingCustomUrl(p?.lowRatingCustomUrl ?? "");
+                      setHighDests(p?.highRatingDestinations && p.highRatingDestinations.length > 0 ? p.highRatingDestinations : ["GOOGLE"]);
+                      setHighPrimary(p?.highRatingPrimaryDestination ?? "");
+                      setFacebookReviewUrl(p?.facebookReviewUrl ?? "");
+                      setCustomReviewUrl(p?.customReviewUrl ?? "");
                     }}
                     className={`w-full rounded-2xl border p-4 text-left transition ${
                       loc.id === selectedLocationId
@@ -399,68 +436,20 @@ export function CampaignWizard({
             </div>
           )}
 
-          {/* Step 4: Review Filter */}
+          {/* Step 4: Review Routing */}
           {step === 3 && (
-            <div className="space-y-5">
+            <div className="space-y-6">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.22em] text-indigo-600">Step 4 of 5</p>
-                <h3 className="mt-2 text-2xl font-semibold text-slate-950">Review filter</h3>
-                <p className="mt-2 text-sm text-slate-500">Control how ratings are routed. This applies to your live funnel page.</p>
+                <h3 className="mt-2 text-2xl font-semibold text-slate-950">Review routing</h3>
+                <p className="mt-2 text-sm text-slate-500">Decide where customers go after rating. This applies to your live funnel page and campaign links.</p>
               </div>
 
-              <div className="grid gap-3 sm:grid-cols-2">
-                <button
-                  type="button"
-                  onClick={() => setFilterEnabled(false)}
-                  className={`rounded-2xl border p-5 text-left transition ${
-                    !filterEnabled ? "border-indigo-300 bg-indigo-50" : "border-slate-200 bg-slate-50 hover:border-slate-300"
-                  }`}
-                >
-                  <div className="text-2xl">⭐</div>
-                  <p className="mt-2 font-semibold text-slate-900">Filter off</p>
-                  <p className="mt-1 text-sm text-slate-500">All ratings go to Google. Maximum public reviews.</p>
-                  <div className="mt-3 space-y-1.5">
-                    <div className="flex items-center gap-2 text-xs text-slate-600">
-                      <span>{ratingStyle === "faces" ? "😞 😐 😊" : ratingStyle === "thumbs" ? "👎 👍" : "1-5★"}</span>
-                      <span>→</span>
-                      <span className="font-semibold text-indigo-600">Google review</span>
-                    </div>
-                  </div>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setFilterEnabled(true)}
-                  className={`rounded-2xl border p-5 text-left transition ${
-                    filterEnabled ? "border-indigo-300 bg-indigo-50" : "border-slate-200 bg-slate-50 hover:border-slate-300"
-                  }`}
-                >
-                  <div className="text-2xl">🔀</div>
-                  <p className="mt-2 font-semibold text-slate-900">Filter on</p>
-                  <p className="mt-1 text-sm text-slate-500">Low ratings stay private in WHY. High ratings go to Google.</p>
-                  <div className="mt-3 space-y-1.5">
-                    <div className="flex items-center gap-2 text-xs text-slate-600">
-                      <span className="text-orange-600">
-                        {ratingStyle === "thumbs" ? "👎" : ratingStyle === "faces" ? (threshold >= 5 ? "😞 😐" : "😞") : `Below ${threshold}★`}
-                      </span>
-                      <span>→</span>
-                      <span className="font-semibold text-orange-600">Private in WHY</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-xs text-slate-600">
-                      <span className="text-indigo-600">
-                        {ratingStyle === "thumbs" ? "👍" : ratingStyle === "faces" ? (threshold >= 5 ? "😊" : "😐 😊") : `${threshold}★ and above`}
-                      </span>
-                      <span>→</span>
-                      <span className="font-semibold text-indigo-600">Google review</span>
-                    </div>
-                  </div>
-                </button>
-              </div>
-
-              {filterEnabled && ratingStyle === "stars" && (
-                <div className="rounded-2xl border border-indigo-100 bg-indigo-50 p-4">
+              {/* Threshold — where the low/high boundary sits */}
+              {ratingStyle === "stars" && (
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                   <label className="mb-3 block text-sm font-semibold text-slate-700">
-                    Threshold — send to Google at <span className="text-indigo-600">{threshold} stars</span> and above
+                    High ratings start at <span className="text-indigo-600">{threshold} stars</span>
                   </label>
                   <input
                     type="range"
@@ -471,87 +460,105 @@ export function CampaignWizard({
                     className="w-full accent-indigo-600"
                   />
                   <div className="mt-2 flex justify-between text-xs text-slate-500">
-                    <span>2★ (strict)</span>
-                    <span>3★</span>
-                    <span>4★ (default)</span>
-                    <span>5★ (only perfect)</span>
+                    <span>2★</span><span>3★</span><span>4★ (default)</span><span>5★</span>
                   </div>
-                  <p className="mt-3 text-xs text-slate-500">
-                    Reviews below {threshold}★ are saved privately in WHY and can be shown in your review widget alongside Google reviews.
-                  </p>
+                  <p className="mt-2 text-xs text-slate-500">Below {threshold}★ = low (recovery). {threshold}★ and above = high (public review).</p>
                 </div>
               )}
-
-              {filterEnabled && ratingStyle === "faces" && (
-                <div className="rounded-2xl border border-indigo-100 bg-indigo-50 p-4">
-                  <p className="mb-3 text-sm font-semibold text-slate-700">Which faces go to Google?</p>
+              {ratingStyle === "faces" && (
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <p className="mb-3 text-sm font-semibold text-slate-700">Which faces count as high ratings?</p>
                   <div className="grid grid-cols-2 gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setThreshold(5)}
-                      className={`rounded-2xl border p-3 text-center transition ${threshold >= 5 ? "border-indigo-300 bg-white" : "border-slate-200 bg-white/60 hover:border-slate-300"}`}
-                    >
-                      <div className="text-2xl">😊</div>
-                      <div className="mt-1 text-xs font-semibold text-slate-700">Only happy</div>
-                      <div className="mt-0.5 text-xs text-slate-400">😞 😐 → Private</div>
+                    <button type="button" onClick={() => setThreshold(5)} className={`rounded-2xl border p-3 text-center transition ${threshold >= 5 ? "border-indigo-300 bg-white" : "border-slate-200 bg-white/60 hover:border-slate-300"}`}>
+                      <div className="text-2xl">😊</div><div className="mt-1 text-xs font-semibold text-slate-700">Only happy</div><div className="mt-0.5 text-xs text-slate-400">😞 😐 → low</div>
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => setThreshold(3)}
-                      className={`rounded-2xl border p-3 text-center transition ${threshold < 5 ? "border-indigo-300 bg-white" : "border-slate-200 bg-white/60 hover:border-slate-300"}`}
-                    >
-                      <div className="text-2xl">😐 😊</div>
-                      <div className="mt-1 text-xs font-semibold text-slate-700">Neutral + happy</div>
-                      <div className="mt-0.5 text-xs text-slate-400">😞 → Private</div>
+                    <button type="button" onClick={() => setThreshold(3)} className={`rounded-2xl border p-3 text-center transition ${threshold < 5 ? "border-indigo-300 bg-white" : "border-slate-200 bg-white/60 hover:border-slate-300"}`}>
+                      <div className="text-2xl">😐 😊</div><div className="mt-1 text-xs font-semibold text-slate-700">Neutral + happy</div><div className="mt-0.5 text-xs text-slate-400">😞 → low</div>
                     </button>
                   </div>
                 </div>
               )}
-
-              {filterEnabled && ratingStyle === "thumbs" && (
-                <div className="rounded-2xl border border-indigo-100 bg-indigo-50 p-4">
-                  <p className="mb-2 text-sm font-semibold text-slate-700">Fixed threshold</p>
-                  <div className="space-y-1.5">
-                    <div className="flex items-center gap-2 text-sm text-slate-600">
-                      <span>👎</span><span>→</span><span className="font-semibold text-orange-600">Private in WHY</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm text-slate-600">
-                      <span>👍</span><span>→</span><span className="font-semibold text-indigo-600">Google review</span>
-                    </div>
-                  </div>
-                  <p className="mt-3 text-xs text-slate-500">With thumbs, negative feedback stays private and positive goes to Google automatically.</p>
+              {ratingStyle === "thumbs" && (
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
+                  👎 = low (recovery) · 👍 = high (public review).
                 </div>
               )}
 
-              {/* Positive review destination — where HIGH ratings go */}
+              {/* Low rating destination */}
               <div className="border-t border-slate-100 pt-5">
-                <p className="text-sm font-semibold text-slate-900">Where do positive reviews go?</p>
-                <p className="mt-1 text-sm text-slate-500">For high ratings, choose Google or capture a first-party review inside WeHearYou. Low ratings always stay in private feedback.</p>
+                <p className="text-sm font-semibold text-slate-900">Low ratings</p>
+                <p className="mt-1 text-sm text-slate-500">Keep unhappy customers in a private recovery flow.</p>
                 <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                  <button
-                    type="button"
-                    onClick={() => setPositiveReviewDestination("GOOGLE")}
-                    className={`rounded-2xl border p-5 text-left transition ${
-                      positiveReviewDestination !== "WEHEARYOU" ? "border-indigo-300 bg-indigo-50" : "border-slate-200 bg-slate-50 hover:border-slate-300"
-                    }`}
-                  >
-                    <div className="text-2xl">🟦</div>
-                    <p className="mt-2 font-semibold text-slate-900">Send happy customers to Google</p>
-                    <p className="mt-1 text-sm text-slate-500">Default. High ratings continue to your public Google review.</p>
+                  <button type="button" onClick={() => setLowRatingDestination("PRIVATE")} className={`rounded-2xl border p-4 text-left transition ${lowRatingDestination !== "CUSTOM" ? "border-indigo-300 bg-indigo-50" : "border-slate-200 bg-slate-50 hover:border-slate-300"}`}>
+                    <p className="font-semibold text-slate-900">🔒 Private feedback in WeHearYou</p>
+                    <p className="mt-1 text-sm text-slate-500">Default. Saved privately for the team to follow up.</p>
                   </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setPositiveReviewDestination("WEHEARYOU")}
-                    className={`rounded-2xl border p-5 text-left transition ${
-                      positiveReviewDestination === "WEHEARYOU" ? "border-indigo-300 bg-indigo-50" : "border-slate-200 bg-slate-50 hover:border-slate-300"
-                    }`}
-                  >
-                    <div className="text-2xl">💬</div>
-                    <p className="mt-2 font-semibold text-slate-900">Collect the review inside WeHearYou</p>
-                    <p className="mt-1 text-sm text-slate-500">High ratings open a first-party review form (/f/your-slug/review) instead of Google.</p>
+                  <button type="button" onClick={() => setLowRatingDestination("CUSTOM")} className={`rounded-2xl border p-4 text-left transition ${lowRatingDestination === "CUSTOM" ? "border-indigo-300 bg-indigo-50" : "border-slate-200 bg-slate-50 hover:border-slate-300"}`}>
+                    <p className="font-semibold text-slate-900">🔗 Custom recovery URL</p>
+                    <p className="mt-1 text-sm text-slate-500">Send to a support form, complaint page, or helpdesk.</p>
                   </button>
                 </div>
+                {lowRatingDestination === "CUSTOM" && (
+                  <input
+                    type="url"
+                    value={lowRatingCustomUrl}
+                    onChange={(e) => setLowRatingCustomUrl(e.target.value)}
+                    placeholder="https://support.example.com/contact"
+                    className={`mt-3 ${inputClass}`}
+                  />
+                )}
+              </div>
+
+              {/* High rating destinations */}
+              <div className="border-t border-slate-100 pt-5">
+                <p className="text-sm font-semibold text-slate-900">High ratings</p>
+                <p className="mt-1 text-sm text-slate-500">Pick one or more places happy customers can leave a public review. Choose several and they&apos;ll see a choice page.</p>
+                <div className="mt-3 space-y-2">
+                  {[
+                    { key: "GOOGLE", label: "Google", hint: "Uses your Google review link" },
+                    { key: "FACEBOOK", label: "Facebook", hint: "Uses the Facebook review URL below" },
+                    { key: "WEHEARYOU", label: "WeHearYou", hint: "First-party review captured here" },
+                    { key: "CUSTOM", label: "Custom link", hint: "Uses the custom review URL below" },
+                  ].map((d) => {
+                    const checked = highDests.includes(d.key);
+                    return (
+                      <label key={d.key} className={`flex items-start gap-3 rounded-2xl border px-4 py-3 cursor-pointer transition ${checked ? "border-indigo-300 bg-indigo-50" : "border-slate-200 bg-slate-50 hover:border-slate-300"}`}>
+                        <input type="checkbox" checked={checked} onChange={() => toggleHighDest(d.key)} className="mt-1 h-4 w-4 accent-indigo-600" />
+                        <div>
+                          <p className="text-sm font-semibold text-slate-900">{d.label}</p>
+                          <p className="text-xs text-slate-500">{d.hint}</p>
+                        </div>
+                      </label>
+                    );
+                  })}
+                </div>
+
+                {highDests.includes("FACEBOOK") && (
+                  <input type="url" value={facebookReviewUrl} onChange={(e) => setFacebookReviewUrl(e.target.value)} placeholder="https://www.facebook.com/yourpage/reviews" className={`mt-3 ${inputClass}`} />
+                )}
+                {highDests.includes("CUSTOM") && (
+                  <input type="url" value={customReviewUrl} onChange={(e) => setCustomReviewUrl(e.target.value)} placeholder="https://example.com/leave-a-review" className={`mt-3 ${inputClass}`} />
+                )}
+
+                {highDests.length > 1 ? (
+                  <div className="mt-4 rounded-2xl border border-indigo-100 bg-indigo-50 p-4">
+                    <p className="text-sm font-semibold text-slate-700">Choice page — primary (highlighted) destination</p>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {highDests.map((d) => {
+                        const active = (highPrimary || highDests[0]) === d;
+                        return (
+                          <button key={d} type="button" onClick={() => setHighPrimary(d)} className={`rounded-xl border px-3 py-2 text-sm font-semibold transition ${active ? "border-indigo-400 bg-white text-indigo-700" : "border-slate-200 bg-white/60 text-slate-600 hover:border-slate-300"}`}>
+                            {d === "WEHEARYOU" ? "WeHearYou" : d === "CUSTOM" ? "Custom" : d.charAt(0) + d.slice(1).toLowerCase()}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : highDests.length === 1 ? (
+                  <p className="mt-3 text-xs text-slate-500">Customers go straight to {highDests[0] === "WEHEARYOU" ? "the WeHearYou review form" : highDests[0].charAt(0) + highDests[0].slice(1).toLowerCase()}.</p>
+                ) : (
+                  <p className="mt-3 text-xs text-rose-600">Select at least one high-rating destination.</p>
+                )}
               </div>
             </div>
           )}
@@ -651,8 +658,8 @@ export function CampaignWizard({
             title={promptTitle}
             body={promptBody}
             ratingStyle={ratingStyle}
-            filterEnabled={filterEnabled}
-            threshold={threshold}
+            lowRatingDestination={lowRatingDestination}
+            highDests={highDests}
             locationName={selectedLocation?.name ?? ""}
           />
           <p className="text-center text-xs text-slate-400">{selectedLocation?.name}</p>

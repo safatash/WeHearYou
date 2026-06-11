@@ -2,7 +2,17 @@
 
 import { prisma } from "@/lib/prisma";
 import { requireLocationAccess } from "@/lib/authz";
-import { isPositiveReviewDestination, DEFAULT_POSITIVE_REVIEW_DESTINATION } from "@/lib/positive-review-destination";
+import {
+  normalizeLowRatingDestination,
+  normalizeHighRatingDestinations,
+  normalizeHighRatingMode,
+  isHighRatingDestination,
+} from "@/lib/review-routing";
+
+function trimOrNull(value: FormDataEntryValue | null) {
+  const v = (typeof value === "string" ? value : "").trim();
+  return v.length > 0 ? v : null;
+}
 
 export async function saveCampaignWizard(formData: FormData) {
   const locationId = String(formData.get("locationId") ?? "").trim();
@@ -11,35 +21,45 @@ export async function saveCampaignWizard(formData: FormData) {
   await requireLocationAccess(locationId);
 
   const funnelRatingStyle = String(formData.get("funnelRatingStyle") ?? "stars").trim() || "stars";
-  const funnelPromptTitle = String(formData.get("funnelPromptTitle") ?? "").trim() || null;
-  const funnelPromptBody = String(formData.get("funnelPromptBody") ?? "").trim() || null;
+  const funnelPromptTitle = trimOrNull(formData.get("funnelPromptTitle"));
+  const funnelPromptBody = trimOrNull(formData.get("funnelPromptBody"));
   const negativeFilterEnabled = formData.get("negativeFilterEnabled") === "true";
   const negativeFilterThreshold = Number(formData.get("negativeFilterThreshold") ?? 4);
 
-  const positiveRaw = String(formData.get("positiveReviewDestination") ?? "").trim();
-  const positiveReviewDestination = isPositiveReviewDestination(positiveRaw)
-    ? positiveRaw
-    : DEFAULT_POSITIVE_REVIEW_DESTINATION;
+  // Review routing
+  const lowRatingDestination = normalizeLowRatingDestination(formData.get("lowRatingDestination"));
+  const lowRatingCustomUrl = trimOrNull(formData.get("lowRatingCustomUrl"));
+  const highRatingDestinations = normalizeHighRatingDestinations(
+    formData.getAll("highRatingDestinations").map((v) => String(v)),
+  );
+  const highRatingMode = normalizeHighRatingMode(formData.get("highRatingMode"));
+  const primaryRaw = trimOrNull(formData.get("highRatingPrimaryDestination"));
+  const highRatingPrimaryDestination =
+    primaryRaw && isHighRatingDestination(primaryRaw) && highRatingDestinations.includes(primaryRaw)
+      ? primaryRaw
+      : null;
+  const facebookReviewUrl = trimOrNull(formData.get("facebookReviewUrl"));
+  const customReviewUrl = trimOrNull(formData.get("customReviewUrl"));
+
+  const data = {
+    funnelRatingStyle,
+    funnelPromptTitle,
+    funnelPromptBody,
+    negativeFilterEnabled,
+    negativeFilterThreshold: isNaN(negativeFilterThreshold) ? 4 : negativeFilterThreshold,
+    lowRatingDestination,
+    lowRatingCustomUrl,
+    highRatingDestinations,
+    highRatingMode,
+    highRatingPrimaryDestination,
+    facebookReviewUrl,
+    customReviewUrl,
+  };
 
   await prisma.locationPublicProfile.upsert({
     where: { locationId },
-    update: {
-      funnelRatingStyle,
-      funnelPromptTitle,
-      funnelPromptBody,
-      negativeFilterEnabled,
-      negativeFilterThreshold: isNaN(negativeFilterThreshold) ? 4 : negativeFilterThreshold,
-      positiveReviewDestination,
-    },
-    create: {
-      locationId,
-      funnelRatingStyle,
-      funnelPromptTitle,
-      funnelPromptBody,
-      negativeFilterEnabled,
-      negativeFilterThreshold: isNaN(negativeFilterThreshold) ? 4 : negativeFilterThreshold,
-      positiveReviewDestination,
-    },
+    update: data,
+    create: { locationId, ...data },
   });
 
   return { success: true };
