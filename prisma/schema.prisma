@@ -670,7 +670,6 @@ model LocationPublicProfile {
   funnelReviewButtonLabel  String?
   negativeFilterEnabled    Boolean     @default(false)
   negativeFilterThreshold  Int         @default(4)
-  positiveReviewDestination String     @default("GOOGLE") // DEPRECATED — superseded by highRating* fields; retired in a later migration
   // ── Review routing ──────────────────────────────────────────────────────
   // Low ratings (< negativeFilterThreshold): recovery only.
   lowRatingDestination     String      @default("PRIVATE")   // PRIVATE | CUSTOM
