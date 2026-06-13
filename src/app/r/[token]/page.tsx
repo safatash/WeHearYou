@@ -2,26 +2,8 @@ export const dynamic = "force-dynamic";
 
 import { notFound } from "next/navigation";
 import { getRecipientByToken } from "@/lib/funnel";
+import { getRatingOptions, normalizeRatingMode } from "@/lib/rating-styles";
 import { TokenRatingForm } from "./token-rating-form";
-
-const liveRatingModes = {
-  stars: [
-    { value: 1, label: "1 star", shortLabel: "1", icon: "★" },
-    { value: 2, label: "2 stars", shortLabel: "2", icon: "★" },
-    { value: 3, label: "3 stars", shortLabel: "3", icon: "★" },
-    { value: 4, label: "4 stars", shortLabel: "4", icon: "★" },
-    { value: 5, label: "5 stars", shortLabel: "5", icon: "★" },
-  ],
-  faces: [
-    { value: 1, label: "Very unhappy", shortLabel: "Sad", icon: "😞" },
-    { value: 3, label: "Neutral", shortLabel: "Okay", icon: "😐" },
-    { value: 5, label: "Very happy", shortLabel: "Happy", icon: "😊" },
-  ],
-  thumbs: [
-    { value: 1, label: "Thumbs down", shortLabel: "Needs work", icon: "👎" },
-    { value: 5, label: "Thumbs up", shortLabel: "Loved it", icon: "👍" },
-  ],
-} as const;
 
 export default async function ReviewLandingPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
@@ -34,10 +16,8 @@ export default async function ReviewLandingPage({ params }: { params: Promise<{ 
   const location = recipient.campaign.location;
   const profile = location.publicProfile;
 
-  const ratingMode = (profile?.funnelRatingStyle && profile.funnelRatingStyle in liveRatingModes
-    ? profile.funnelRatingStyle
-    : "stars") as keyof typeof liveRatingModes;
-  const ratingOptions = liveRatingModes[ratingMode];
+  const ratingMode = normalizeRatingMode(profile?.funnelRatingStyle);
+  const ratingOptions = getRatingOptions(ratingMode);
 
   return (
     <main className="min-h-screen bg-slate-50 px-4 py-10 text-slate-900 sm:px-6">

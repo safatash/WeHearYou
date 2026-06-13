@@ -45,11 +45,11 @@ export default async function LoginPage({
           </Link>
         </p>
 
-        <div className="mt-6 rounded-2xl bg-slate-50 p-4 text-sm text-slate-600">
+        {/* <div className="mt-6 rounded-2xl bg-slate-50 p-4 text-sm text-slate-600">
           <p className="font-semibold text-slate-900">Demo account</p>
           <p className="mt-2">Email: safa@wehearyou.app</p>
           <p>Password: demo1234</p>
-        </div>
+        </div> */}
       </div>
     </main>
   );

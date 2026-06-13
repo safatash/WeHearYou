@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { RATING_MODES } from "@/lib/rating-styles";
 import { saveCampaignWizard } from "@/app/campaign-wizard/actions";
 
 type Location = {
@@ -54,9 +55,6 @@ function PhonePreview({
   highDests: string[];
   locationName: string;
 }) {
-  const stars = [1, 2, 3, 4, 5];
-  const faces = ["😞", "😐", "😊"];
-  const thumbs = ["👎", "👍"];
 
   return (
     <div className="mx-auto w-[240px] rounded-[32px] border-4 border-slate-800 bg-slate-800 shadow-2xl">
@@ -78,8 +76,8 @@ function PhonePreview({
         <div className="mt-4 flex justify-center gap-1.5">
           {ratingStyle === "stars" && (
             <div className="flex gap-1.5">
-              {stars.map((s) => (
-                <div key={s} className="text-slate-400">
+              {RATING_MODES.stars.map((opt) => (
+                <div key={opt.value} className="text-slate-400">
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
                   </svg>
@@ -89,18 +87,18 @@ function PhonePreview({
           )}
           {ratingStyle === "faces" && (
             <div className="flex gap-1">
-              {faces.map((f, i) => (
-                <div key={i} className="text-base">
-                  {f}
+              {RATING_MODES.faces.map((opt) => (
+                <div key={opt.value} className="text-base">
+                  {opt.icon}
                 </div>
               ))}
             </div>
           )}
           {ratingStyle === "thumbs" && (
             <div className="flex gap-1">
-              {thumbs.map((t, i) => (
-                <div key={i} className="text-lg">
-                  {t}
+              {RATING_MODES.thumbs.map((opt) => (
+                <div key={opt.value} className="text-lg">
+                  {opt.icon}
                 </div>
               ))}
             </div>

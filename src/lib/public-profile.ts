@@ -8,6 +8,7 @@ const publicLocationInclude = {
       OR: [
         { source: "GOOGLE", status: "PUBLISHED" },
         { source: "FACEBOOK", status: "PUBLISHED" },
+        { source: "INTERNAL", status: "PUBLISHED" },
         { isTestimonial: true, isWidgetVisible: true },
       ],
     },
@@ -33,7 +34,7 @@ export function getVisiblePublicReviews(location: PublicLocationProfile) {
     return [];
   }
 
-  return location.reviews.filter((review) => !review.isTestimonial && (review.source === "GOOGLE" || review.source === "FACEBOOK"));
+  return location.reviews.filter((review) => !review.isTestimonial && (review.source === "GOOGLE" || review.source === "FACEBOOK" || review.source === "INTERNAL"));
 }
 
 export function getVisibleTestimonials(location: PublicLocationProfile) {

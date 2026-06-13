@@ -3,6 +3,8 @@ export const dynamic = "force-dynamic";
 import { notFound } from "next/navigation";
 import { submitPrivateFeedback } from "@/app/r/[token]/actions";
 import { getRecipientByToken } from "@/lib/funnel";
+import { normalizeRatingMode } from "@/lib/rating-styles";
+import { RatingDisplay } from "@/components/rating-display";
 
 export default async function PrivateFeedbackPage({
   params,
@@ -22,26 +24,7 @@ export default async function PrivateFeedbackPage({
 
   const location = recipient.campaign.location;
   const profile = location.publicProfile;
-  const ratingStyle = profile?.funnelRatingStyle ?? "stars";
-
-  const ratingDisplay = (() => {
-    if (ratingStyle === "thumbs") {
-      return <span className="text-5xl">{rating === 1 ? "👎" : "👍"}</span>;
-    }
-    if (ratingStyle === "faces") {
-      const icon = rating <= 1 ? "😞" : rating <= 3 ? "😐" : "😊";
-      return <span className="text-5xl">{icon}</span>;
-    }
-    return (
-      <div className="flex gap-2">
-        {[1, 2, 3, 4, 5].map((n) => (
-          <svg key={n} width="32" height="32" viewBox="0 0 24 24" fill="currentColor" className={n <= rating ? "text-emerald-500" : "text-slate-300"}>
-            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-          </svg>
-        ))}
-      </div>
-    );
-  })();
+  const ratingMode = normalizeRatingMode(profile?.funnelRatingStyle);
 
   return (
     <main className="min-h-screen bg-slate-50 px-4 py-10 text-slate-900 sm:px-6">
@@ -53,7 +36,7 @@ export default async function PrivateFeedbackPage({
         <div className="mt-8 rounded-3xl border border-slate-200 bg-white p-8 space-y-6">
           <div>
             <p className="text-lg font-semibold text-slate-900 mb-4">Rate your experience</p>
-            {ratingDisplay}
+            <RatingDisplay value={rating} mode={ratingMode} />
           </div>
 
           {/* Feedback form */}

@@ -2,39 +2,24 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { RATING_MODES } from "@/lib/rating-styles";
 
-const ratingModes = {
+const PREVIEW_LABELS: Record<string, { label: string; branchCopy: string }> = {
   stars: {
     label: "Stars (1 to 5)",
-    options: [
-      { value: 1, label: "1 star", shortLabel: "1", icon: "★" },
-      { value: 2, label: "2 stars", shortLabel: "2", icon: "★" },
-      { value: 3, label: "3 stars", shortLabel: "3", icon: "★" },
-      { value: 4, label: "4 stars", shortLabel: "4", icon: "★" },
-      { value: 5, label: "5 stars", shortLabel: "5", icon: "★" },
-    ],
     branchCopy: "4 to 5 stars = promoter, 1 to 3 stars = detractor.",
   },
   faces: {
     label: "Happy / neutral / sad faces",
-    options: [
-      { value: 1, label: "Very unhappy", shortLabel: "Sad", icon: "😞" },
-      { value: 3, label: "Neutral", shortLabel: "Okay", icon: "😐" },
-      { value: 5, label: "Very happy", shortLabel: "Happy", icon: "😊" },
-    ],
     branchCopy: "Happy face = promoter, neutral or sad face = private recovery.",
   },
   thumbs: {
     label: "Thumbs up / thumbs down",
-    options: [
-      { value: 1, label: "Thumbs down", shortLabel: "Needs work", icon: "👎" },
-      { value: 5, label: "Thumbs up", shortLabel: "Loved it", icon: "👍" },
-    ],
     branchCopy: "Thumbs up = promoter, thumbs down = detractor.",
   },
 } as const;
 
-type RatingMode = keyof typeof ratingModes;
+type RatingMode = "stars" | "faces" | "thumbs";
 
 type PreviewStep = {
   id: string;
@@ -91,9 +76,12 @@ export function FunnelPreviewSimulator({
   profile: PreviewProfile | null;
   previewSteps: PreviewStep[];
 }) {
-  const initialRatingMode = (profile?.funnelRatingStyle && profile.funnelRatingStyle in ratingModes
-    ? profile.funnelRatingStyle
-    : "stars") as RatingMode;
+  const initialRatingMode = (
+    (profile?.funnelRatingStyle as RatingMode | null) &&
+    ["stars", "faces", "thumbs"].includes(profile?.funnelRatingStyle || "")
+      ? (profile?.funnelRatingStyle as RatingMode)
+      : "stars"
+  );
   const [rating, setRating] = useState<number | null>(null);
   const [ratingMode, setRatingMode] = useState<RatingMode>(initialRatingMode);
 
@@ -103,7 +91,8 @@ export function FunnelPreviewSimulator({
   }, [rating]);
 
   const primaryCta = profile?.ctaUrl ?? profile?.bookingUrl ?? null;
-  const modeConfig = ratingModes[ratingMode];
+  const ratingOptions = RATING_MODES[ratingMode];
+  const previewLabel = PREVIEW_LABELS[ratingMode];
   const highDests = (profile?.highRatingDestinations && profile.highRatingDestinations.length > 0
     ? profile.highRatingDestinations
     : ["GOOGLE"]);
@@ -150,7 +139,7 @@ export function FunnelPreviewSimulator({
             <div className="mt-6 rounded-3xl border border-slate-200 bg-slate-50 p-4">
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Segmentation control</p>
               <div className="mt-3 flex flex-wrap gap-2">
-                {(Object.entries(ratingModes) as Array<[RatingMode, (typeof ratingModes)[RatingMode]]>).map(([mode, config]) => {
+                {(["stars", "faces", "thumbs"] as const).map((mode) => {
                   const active = mode === ratingMode;
                   return (
                     <button
@@ -164,16 +153,16 @@ export function FunnelPreviewSimulator({
                         active ? "border-indigo-200 bg-indigo-50 text-indigo-700" : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
                       }`}
                     >
-                      {config.label}
+                      {PREVIEW_LABELS[mode].label}
                     </button>
                   );
                 })}
               </div>
-              <p className="mt-3 text-sm text-slate-600">{modeConfig.branchCopy}</p>
+              <p className="mt-3 text-sm text-slate-600">{previewLabel.branchCopy}</p>
             </div>
 
             <div className="mt-6 flex flex-wrap gap-2">
-              {modeConfig.options.map((option) => {
+              {ratingOptions.map((option) => {
                 const active = rating === option.value || (ratingMode === "stars" && rating !== null && option.value <= rating);
                 return (
                   <button
@@ -202,7 +191,7 @@ export function FunnelPreviewSimulator({
               >
                 Reset preview
               </button>
-              {rating !== null ? <p className="self-center text-sm text-slate-600">Selected signal: <span className="font-semibold text-slate-900">{modeConfig.options.find((option) => option.value === rating)?.label ?? `${rating} / 5`}</span></p> : null}
+              {rating !== null ? <p className="self-center text-sm text-slate-600">Selected signal: <span className="font-semibold text-slate-900">{ratingOptions.find((option) => option.value === rating)?.label ?? `${rating} / 5`}</span></p> : null}
             </div>
 
             <div className="mt-6">
@@ -310,7 +299,7 @@ export function FunnelPreviewSimulator({
             <p><span className="font-semibold text-slate-900">Funnel prompt:</span> {profile?.funnelPromptTitle ?? profile?.headline ?? selectedLocation.name}</p>
             <p><span className="font-semibold text-slate-900">Review button:</span> {profile?.funnelReviewButtonLabel ?? "Leave a Google review"}</p>
             <p><span className="font-semibold text-slate-900">Live funnel:</span> /f/{selectedLocation.slug}</p>
-            <p><span className="font-semibold text-slate-900">Preview mode:</span> {modeConfig.label}</p>
+            <p><span className="font-semibold text-slate-900">Preview mode:</span> {previewLabel.label}</p>
             <p><span className="font-semibold text-slate-900">Public review link:</span> {selectedLocation.reviewLink ?? "Not set"}</p>
             <p><span className="font-semibold text-slate-900">Booking URL:</span> {profile?.bookingUrl ?? "Not set"}</p>
             <p><span className="font-semibold text-slate-900">Theme:</span> {profile?.theme ?? "light"}</p>

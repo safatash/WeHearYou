@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { buildGoogleWriteReviewLink } from "@/lib/locations";
+import { normalizeRatingMode } from "@/lib/rating-styles";
 import { ReviewLinkBeacon } from "./review-link-beacon";
 
 export default async function ReviewLinkPage({
@@ -22,6 +23,11 @@ export default async function ReviewLinkPage({
       name: true,
       reviewLink: true,
       googlePlaceId: true,
+      publicProfile: {
+        select: {
+          funnelRatingStyle: true,
+        },
+      },
     },
   });
 
@@ -33,6 +39,8 @@ export default async function ReviewLinkPage({
 
   const googleUrl =
     location.reviewLink ?? buildGoogleWriteReviewLink(location.googlePlaceId);
+
+  const ratingMode = normalizeRatingMode(location.publicProfile?.funnelRatingStyle);
 
   const happyHref = googleUrl
     ? `/review/${slug}/google?${new URLSearchParams({
@@ -61,40 +69,144 @@ export default async function ReviewLinkPage({
         </h1>
         <p className="mt-2 text-sm text-slate-500">Your feedback helps us improve.</p>
 
-        <div className="mt-8 flex gap-4">
-          {happyHref ? (
-            <a
-              href={happyHref}
-              className="flex flex-1 flex-col items-center rounded-2xl border-2 border-emerald-200 bg-emerald-50 p-6 text-center transition hover:border-emerald-300 hover:bg-emerald-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
-              aria-label="Yes, I had a great experience — leave a public review"
-            >
-              <span aria-hidden="true" className="text-4xl">👍</span>
-              <span className="mt-3 font-semibold text-emerald-800">Yes, I had a great experience</span>
-              <span className="mt-1 text-xs text-emerald-700">Leave a public review</span>
-            </a>
-          ) : (
-            <div
-              className="flex flex-1 flex-col items-center rounded-2xl border-2 border-slate-200 bg-slate-50 p-6 text-center opacity-60 cursor-not-allowed"
-              aria-label="Google review link is not yet configured"
-              aria-disabled="true"
-            >
-              <span aria-hidden="true" className="text-4xl">👍</span>
-              <span className="mt-3 font-semibold text-slate-500">Great experience</span>
-              <span className="mt-1 text-xs text-slate-400">Google review link is not yet configured — please contact us.</span>
-            </div>
-          )}
-
-          <a
-            href={unhappyHref}
-            className="flex flex-1 flex-col items-center rounded-2xl border-2 border-orange-200 bg-orange-50 p-6 text-center transition hover:border-orange-300 hover:bg-orange-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500"
-            aria-label="Not quite — share private feedback"
-          >
-            <span aria-hidden="true" className="text-4xl">👎</span>
-            <span className="mt-3 font-semibold text-orange-800">Not quite</span>
-            <span className="mt-1 text-xs text-orange-700">Share private feedback</span>
-          </a>
-        </div>
+        <ReviewChoicePage
+          ratingMode={ratingMode}
+          slug={slug}
+          happyHref={happyHref}
+          unhappyHref={unhappyHref}
+          src={src}
+          medium={medium}
+        />
       </div>
     </main>
+  );
+}
+
+function ReviewChoicePage({
+  ratingMode,
+  slug,
+  happyHref,
+  unhappyHref,
+  src,
+  medium,
+}: {
+  ratingMode: string;
+  slug: string;
+  happyHref: string | null;
+  unhappyHref: string;
+  src: string | null;
+  medium: string | null;
+}) {
+  if (ratingMode === "faces") {
+    return (
+      <div className="mt-8 flex gap-4">
+        {happyHref ? (
+          <a
+            href={happyHref}
+            className="flex flex-1 flex-col items-center rounded-2xl border-2 border-emerald-200 bg-emerald-50 p-6 text-center transition hover:border-emerald-300 hover:bg-emerald-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+            aria-label="Very happy — leave a public review"
+          >
+            <span aria-hidden="true" className="text-5xl">😊</span>
+            <span className="mt-3 font-semibold text-emerald-800">Very happy</span>
+            <span className="mt-1 text-xs text-emerald-700">Leave a public review</span>
+          </a>
+        ) : (
+          <div
+            className="flex flex-1 flex-col items-center rounded-2xl border-2 border-slate-200 bg-slate-50 p-6 text-center opacity-60 cursor-not-allowed"
+            aria-label="Google review link is not yet configured"
+            aria-disabled="true"
+          >
+            <span aria-hidden="true" className="text-5xl">😊</span>
+            <span className="mt-3 font-semibold text-slate-500">Very happy</span>
+            <span className="mt-1 text-xs text-slate-400">Google review link is not yet configured — please contact us.</span>
+          </div>
+        )}
+
+        <a
+          href={unhappyHref}
+          className="flex flex-1 flex-col items-center rounded-2xl border-2 border-orange-200 bg-orange-50 p-6 text-center transition hover:border-orange-300 hover:bg-orange-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500"
+          aria-label="Very unhappy — share private feedback"
+        >
+          <span aria-hidden="true" className="text-5xl">😞</span>
+          <span className="mt-3 font-semibold text-orange-800">Very unhappy</span>
+          <span className="mt-1 text-xs text-orange-700">Share private feedback</span>
+        </a>
+      </div>
+    );
+  }
+
+  if (ratingMode === "thumbs") {
+    return (
+      <div className="mt-8 flex gap-4">
+        {happyHref ? (
+          <a
+            href={happyHref}
+            className="flex flex-1 flex-col items-center rounded-2xl border-2 border-emerald-200 bg-emerald-50 p-6 text-center transition hover:border-emerald-300 hover:bg-emerald-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+            aria-label="Thumbs up — leave a public review"
+          >
+            <span aria-hidden="true" className="text-5xl">👍</span>
+            <span className="mt-3 font-semibold text-emerald-800">Thumbs up</span>
+            <span className="mt-1 text-xs text-emerald-700">Leave a public review</span>
+          </a>
+        ) : (
+          <div
+            className="flex flex-1 flex-col items-center rounded-2xl border-2 border-slate-200 bg-slate-50 p-6 text-center opacity-60 cursor-not-allowed"
+            aria-label="Google review link is not yet configured"
+            aria-disabled="true"
+          >
+            <span aria-hidden="true" className="text-5xl">👍</span>
+            <span className="mt-3 font-semibold text-slate-500">Thumbs up</span>
+            <span className="mt-1 text-xs text-slate-400">Google review link is not yet configured — please contact us.</span>
+          </div>
+        )}
+
+        <a
+          href={unhappyHref}
+          className="flex flex-1 flex-col items-center rounded-2xl border-2 border-orange-200 bg-orange-50 p-6 text-center transition hover:border-orange-300 hover:bg-orange-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500"
+          aria-label="Thumbs down — share private feedback"
+        >
+          <span aria-hidden="true" className="text-5xl">👎</span>
+          <span className="mt-3 font-semibold text-orange-800">Thumbs down</span>
+          <span className="mt-1 text-xs text-orange-700">Share private feedback</span>
+        </a>
+      </div>
+    );
+  }
+
+  // Stars: show 5-star scale instead of binary choice
+  return (
+    <div className="mt-8 flex gap-4">
+      {happyHref ? (
+        <a
+          href={happyHref}
+          className="flex flex-1 flex-col items-center rounded-2xl border-2 border-emerald-200 bg-emerald-50 p-6 text-center transition hover:border-emerald-300 hover:bg-emerald-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+          aria-label="5 stars — leave a public review"
+        >
+          <span aria-hidden="true" className="text-3xl">⭐⭐⭐⭐⭐</span>
+          <span className="mt-3 font-semibold text-emerald-800">5 Stars</span>
+          <span className="mt-1 text-xs text-emerald-700">Leave a public review</span>
+        </a>
+      ) : (
+        <div
+          className="flex flex-1 flex-col items-center rounded-2xl border-2 border-slate-200 bg-slate-50 p-6 text-center opacity-60 cursor-not-allowed"
+          aria-label="Google review link is not yet configured"
+          aria-disabled="true"
+        >
+          <span aria-hidden="true" className="text-3xl">⭐⭐⭐⭐⭐</span>
+          <span className="mt-3 font-semibold text-slate-500">5 Stars</span>
+          <span className="mt-1 text-xs text-slate-400">Google review link is not yet configured — please contact us.</span>
+        </div>
+      )}
+
+      <a
+        href={unhappyHref}
+        className="flex flex-1 flex-col items-center rounded-2xl border-2 border-orange-200 bg-orange-50 p-6 text-center transition hover:border-orange-300 hover:bg-orange-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500"
+        aria-label="Low rating — share private feedback"
+      >
+        <span aria-hidden="true" className="text-3xl">⭐⭐</span>
+        <span className="mt-3 font-semibold text-orange-800">Lower rating</span>
+        <span className="mt-1 text-xs text-orange-700">Share private feedback</span>
+      </a>
+    </div>
   );
 }

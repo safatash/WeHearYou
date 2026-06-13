@@ -196,7 +196,7 @@ export async function getReviewWidgetById(id: string) {
   const reviewCount = await prisma.review.count({
     where: {
       locationId: widget.locationId,
-      source: ReviewSource.GOOGLE,
+      source: { in: [ReviewSource.GOOGLE, ReviewSource.INTERNAL] },
       status: ReviewStatus.PUBLISHED,
     },
   });
@@ -361,7 +361,7 @@ export async function getPublicReviewWidgetPayload(publicToken: string, page = 1
     const floatingReviews = await prisma.review.findMany({
       where: {
         locationId: widget.locationId,
-        source: ReviewSource.GOOGLE,
+        source: { in: [ReviewSource.GOOGLE, ReviewSource.INTERNAL] },
         status: ReviewStatus.PUBLISHED,
         rating: { gte: minRating },
       },
@@ -383,7 +383,9 @@ export async function getPublicReviewWidgetPayload(publicToken: string, page = 1
         reviewerName: r.reviewerName,
         reviewerPhotoUrl: r.reviewerPhotoUrl ?? null,
         sourceReviewUrl: r.sourceReviewUrl ?? null,
-        sourceReplyText: r.sourceReplyText ?? ((r.replyPublishedAt || r.replySentAt) ? r.replyDraft : null) ?? null,
+        sourceReplyText: r.source === ReviewSource.INTERNAL
+          ? (r.replyPublishedAt ? r.replyDraft : null)
+          : (r.sourceReplyText ?? ((r.replyPublishedAt || r.replySentAt) ? r.replyDraft : null) ?? null),
         rating: r.rating ?? 5,
         body: r.body,
         reviewedAt: r.reviewedAt ? r.reviewedAt.toISOString() : null,
@@ -400,7 +402,7 @@ export async function getPublicReviewWidgetPayload(publicToken: string, page = 1
 
   const where = {
     locationId: widget.locationId,
-    source: ReviewSource.GOOGLE,
+    source: { in: [ReviewSource.GOOGLE, ReviewSource.INTERNAL] },
     status: ReviewStatus.PUBLISHED,
     rating: {
       gte: widget.minRating,
@@ -479,7 +481,9 @@ export async function getPublicReviewWidgetPayload(publicToken: string, page = 1
       reviewerName: review.reviewerName,
       reviewerPhotoUrl: review.reviewerPhotoUrl ?? null,
       sourceReviewUrl: review.sourceReviewUrl ?? null,
-      sourceReplyText: review.sourceReplyText ?? ((review.replyPublishedAt || review.replySentAt) ? review.replyDraft : null) ?? null,
+      sourceReplyText: review.source === ReviewSource.INTERNAL
+        ? (review.replyPublishedAt ? review.replyDraft : null)
+        : (review.sourceReplyText ?? ((review.replyPublishedAt || review.replySentAt) ? review.replyDraft : null) ?? null),
       rating: review.rating ?? 0,
       body: review.body,
       reviewedAt: review.reviewedAt ? review.reviewedAt.toISOString() : null,
@@ -511,7 +515,7 @@ export async function getOrganizationReviewWidgets(organizationId: string) {
       const reviewCount = await prisma.review.count({
         where: {
           locationId: widget.locationId,
-          source: ReviewSource.GOOGLE,
+          source: { in: [ReviewSource.GOOGLE, ReviewSource.INTERNAL] },
           status: ReviewStatus.PUBLISHED,
         },
       });
@@ -547,7 +551,7 @@ export async function getWidgetEligibleLocations(organizationId: string) {
       const reviewCount = await prisma.review.count({
         where: {
           locationId: location.id,
-          source: ReviewSource.GOOGLE,
+          source: { in: [ReviewSource.GOOGLE, ReviewSource.INTERNAL] },
           status: ReviewStatus.PUBLISHED,
         },
       });
@@ -580,7 +584,7 @@ export async function getWidgetPickerData(locationId: string) {
     prisma.review.findMany({
       where: {
         locationId,
-        source: ReviewSource.GOOGLE,
+        source: { in: [ReviewSource.GOOGLE, ReviewSource.INTERNAL] },
         status: ReviewStatus.PUBLISHED,
       },
       orderBy: [{ reviewedAt: "desc" }, { createdAt: "desc" }],

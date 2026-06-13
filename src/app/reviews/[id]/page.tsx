@@ -171,17 +171,31 @@ export default async function ReviewDetailPage({
             </section>
 
             <section id="reply-tracking" className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-              <h3 className="text-xl font-semibold text-slate-950">Reply Tracking</h3>
+              <h3 className="text-xl font-semibold text-slate-950">
+                {review.source === "INTERNAL" ? "Reply Management" : "Reply Tracking"}
+              </h3>
               <div className="mt-4 space-y-3 text-sm text-slate-600">
-                <p><span className="font-semibold text-slate-900">Last sent:</span> {review.replySentAt ? formatReviewDate(review.replySentAt) : "Not sent yet"}</p>
-                <p><span className="font-semibold text-slate-900">Sent by:</span> {review.replySentByMembership?.user.name ?? "Not recorded"}</p>
-                <p><span className="font-semibold text-slate-900">Google owner reply:</span> {review.sourceReplyText ?? "Not imported"}</p>
+                {review.source === "INTERNAL" ? (
+                  <>
+                    <p><span className="font-semibold text-slate-900">Last published:</span> {review.replyPublishedAt ? formatReviewDate(review.replyPublishedAt) : "Not published yet"}</p>
+                    <p><span className="font-semibold text-slate-900">Published by:</span> {review.replySentByMembership?.user.name ?? "Not recorded"}</p>
+                    <p className="rounded-2xl bg-indigo-50 p-3 text-indigo-700">
+                      <span className="font-semibold">ℹ️ WeHearYou reviews:</span> Your reply will be published to the widget and mini-site immediately when you click &quot;Publish reply.&quot;
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p><span className="font-semibold text-slate-900">Last sent:</span> {review.replySentAt ? formatReviewDate(review.replySentAt) : "Not sent yet"}</p>
+                    <p><span className="font-semibold text-slate-900">Sent by:</span> {review.replySentByMembership?.user.name ?? "Not recorded"}</p>
+                    <p><span className="font-semibold text-slate-900">External reply:</span> {review.sourceReplyText ?? "Not imported"}</p>
+                  </>
+                )}
               </div>
 
               <form action={saveReviewReply} className="mt-6 space-y-4">
                 <input type="hidden" name="reviewId" value={review.id} />
                 <label className="grid gap-2 text-sm font-semibold text-slate-700">
-                  Reply draft
+                  {review.source === "INTERNAL" ? "Reply text" : "Reply draft"}
                   <textarea
                     name="replyDraft"
                     defaultValue={replyDraft}
@@ -194,7 +208,7 @@ export default async function ReviewDetailPage({
                     Save draft
                   </button>
                   <button type="submit" name="markSent" value="true" className="rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold !text-white shadow-sm visited:!text-white hover:!text-white">
-                    Mark reply as sent
+                    {review.source === "INTERNAL" ? "Publish reply" : "Mark reply as sent"}
                   </button>
                 </div>
               </form>
