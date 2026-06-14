@@ -128,8 +128,11 @@ export async function submitPublicPositiveReview(formData: FormData) {
   const slug = String(formData.get("slug") ?? "").trim();
   const ratingValue = Number(formData.get("rating"));
   const body = String(formData.get("body") ?? "").trim();
+  const title = String(formData.get("title") ?? "").trim() || null;
   const name = String(formData.get("name") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim();
+  const reviewedAtStr = String(formData.get("reviewedAt") ?? "").trim();
+  const reviewedAt = reviewedAtStr ? new Date(reviewedAtStr) : null;
   const embed = formData.get("embed") === "1";
   const embedSuffix = embed ? "&embed=1" : "";
 
@@ -153,6 +156,16 @@ export async function submitPublicPositiveReview(formData: FormData) {
   const internalNoteParts: string[] = [];
   if (email) internalNoteParts.push(`Contact email: ${email}.`);
 
+  // TODO: Handle image upload - currently stored as placeholder
+  // In production, upload to S3/cloud storage and store the URL
+  let reviewImageUrl: string | null = null;
+  const imageFile = formData.get("reviewImage");
+  if (imageFile instanceof File && imageFile.size > 0) {
+    // For now, we'll store a placeholder
+    // In production: upload to S3 and store the URL
+    internalNoteParts.push(`Image attached: ${imageFile.name}`);
+  }
+
   await prisma.review.create({
     data: {
       locationId: location.id,
@@ -160,10 +173,12 @@ export async function submitPublicPositiveReview(formData: FormData) {
       status: ReviewStatus.PUBLISHED,
       sentiment: "positive",
       rating: ratingValue,
+      title: title,
       reviewerName: name || "Anonymous customer",
       body,
+      reviewImageUrl,
+      reviewedAt: reviewedAt || new Date(),
       internalNotes: internalNoteParts.length > 0 ? internalNoteParts.join(" ") : null,
-      reviewedAt: new Date(),
       publishedExternally: false,
     },
   });

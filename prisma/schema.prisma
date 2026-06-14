@@ -245,6 +245,10 @@ model Location {
   yelpLastSyncAt        DateTime?
   yelpLastSyncStatus    String?
   yelpLastSyncCount     Int?
+  googleAutoReplyEnabled Boolean      @default(false)
+  googleAutoReplyThreshold Int        @default(4)
+  googleAutoReplyDailyCap Int         @default(0)
+  googleAutoReplyLastUsedAt DateTime?
   lastSyncStatus        String?
   lastSyncMessage       String?
   lastSyncImportedCount Int?
@@ -390,6 +394,7 @@ model Review {
   sentiment             String?
   title                 String?
   body                  String
+  reviewImageUrl        String?
   internalNotes         String?
   replyDraft            String?
   replyPublishedAt      DateTime?
@@ -419,6 +424,26 @@ model Review {
   @@index([source])
   @@index([isTestimonial])
   @@index([isWidgetVisible])
+}
+
+model ReplyAuditLog {
+  id                     String        @id @default(cuid())
+  reviewId               String
+  locationId             String
+  userId                 String?
+  action                 String        // DRAFT_GENERATED, DRAFT_EDITED, SENT_TO_GOOGLE, FAILED, SAFETY_BLOCKED
+  resultStatus           String        // SUCCESS, FAILED, BLOCKED
+  draftText              String?
+  errorMessage           String?
+  safetyClassification   Json?         // { isRisky, riskCategories, reason }
+  metadata               Json?         // { accountId, googleReviewId, httpStatus, etc }
+  createdAt              DateTime      @default(now())
+
+  @@index([reviewId])
+  @@index([locationId])
+  @@index([userId])
+  @@index([action])
+  @@index([resultStatus])
 }
 
 model Automation {

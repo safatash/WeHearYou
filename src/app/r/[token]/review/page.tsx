@@ -23,6 +23,9 @@ export default async function CampaignPositiveReviewPage({
 
   const location = recipient.campaign.location;
   const firstName = (recipient.contact.name || "").trim().split(" ")[0];
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const locationSlug = location.slug;
+  const videoTestimonialUrl = `${appUrl}/vt/${locationSlug}`;
 
   return (
     <main className="min-h-screen bg-slate-50 px-4 py-10 text-slate-900 sm:px-6">
@@ -53,6 +56,16 @@ export default async function CampaignPositiveReviewPage({
         <form action={submitCampaignPositiveReview} className="mt-6 space-y-4">
           <input type="hidden" name="token" value={token} />
           <input type="hidden" name="rating" value={rating} />
+
+          <label className="block text-sm font-semibold text-slate-700">
+            Review title (optional)
+            <input
+              name="title"
+              className="mt-2 w-full rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-normal text-slate-700 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+              placeholder="e.g. Amazing service and friendly staff"
+            />
+          </label>
+
           <label className="block text-sm font-semibold text-slate-700">
             Your review
             <textarea
@@ -62,6 +75,59 @@ export default async function CampaignPositiveReviewPage({
               placeholder="What stood out? What would you tell a friend about this business?"
             />
           </label>
+
+          <label className="block text-sm font-semibold text-slate-700">
+            When did you have this experience? (optional)
+            <input
+              name="reviewedAt"
+              type="date"
+              className="mt-2 w-full rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-normal text-slate-700 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+            />
+          </label>
+
+          <label className="block text-sm font-semibold text-slate-700">
+            Attach a photo (optional)
+            <input
+              name="reviewImage"
+              type="file"
+              accept="image/*"
+              className="mt-2 w-full rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-normal text-slate-700 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+            />
+            <span className="mt-1 text-xs text-slate-500">Photos help other customers see what you experienced. Max 5MB.</span>
+          </label>
+
+          <label className="block text-sm font-semibold text-slate-700">
+            Your name (optional)
+            <input
+              name="name"
+              className="mt-2 w-full rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-normal text-slate-700 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+              placeholder="Shown with your review"
+              defaultValue={recipient.contact.name || ""}
+            />
+          </label>
+
+          <label className="block text-sm font-semibold text-slate-700">
+            Your email (optional)
+            <input
+              name="email"
+              type="email"
+              className="mt-2 w-full rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-normal text-slate-700 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+              placeholder="Only used by the team to follow up — never published"
+              defaultValue={recipient.contact.email || ""}
+            />
+          </label>
+
+          <div className="space-y-3 rounded-3xl border border-slate-200 bg-slate-50 p-5">
+            <p className="text-sm font-semibold text-slate-700">Want to share more?</p>
+            <p className="text-sm text-slate-600">Record a video testimonial to show your real experience and help others decide.</p>
+            <a
+              href={videoTestimonialUrl}
+              className="inline-block rounded-2xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 transition"
+            >
+              Record a Video 🎥
+            </a>
+          </div>
+
           <button
             type="submit"
             className="w-full rounded-2xl bg-emerald-500 hover:bg-emerald-600 px-5 py-4 text-base font-semibold text-white shadow-sm transition"

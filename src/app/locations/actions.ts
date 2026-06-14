@@ -24,6 +24,7 @@ import { buildGoogleWriteReviewLink } from "@/lib/locations";
 import { prisma } from "@/lib/prisma";
 import { requireLocationAccess, requireOrganizationAccess, requireTeamManagement } from "@/lib/authz";
 
+import { tryAutoSendGoogleReplyForReview } from "@/lib/auto-send-reply";
 function formatGoogleWeekdayDescriptions(weekdayDescriptions?: string[] | null) {
   if (!weekdayDescriptions || weekdayDescriptions.length === 0) {
     return null;
@@ -306,7 +307,7 @@ export async function performGoogleReviewSync(locationId: string) {
         skippedCount += 1;
       }
     } else {
-      await prisma.review.create({
+      const newReview = await prisma.review.create({
         data: {
           locationId: location.id,
           source: ReviewSource.GOOGLE,
@@ -325,6 +326,11 @@ export async function performGoogleReviewSync(locationId: string) {
         },
       });
       createdCount += 1;
+      
+      // Attempt auto-send if enabled for this location
+      await tryAutoSendGoogleReplyForReview(newReview.id).catch(() => {
+        // Silently fail if auto-send doesn't work - doesn't block sync
+      });
     }
   }
 
@@ -1521,4 +1527,38 @@ export async function toggleAiReviewSummaryAction(formData: FormData) {
 
   revalidatePath(`/locations/${locationId}`);
   if (location?.slug) revalidatePath(`/b/${location.slug}`);
+}
+
+export async function saveAutomationSettings(formData: FormData) {
+  const locationId = String(formData.get("locationId") ?? "").trim();
+  const googleAutoReplyEnabled = formData.get("googleAutoReplyEnabled") === "true";
+  const googleAutoReplyThreshold = parseInt(String(formData.get("googleAutoReplyThreshold") ?? "4"), 10);
+  const googleAutoReplyDailyCap = parseInt(String(formData.get("googleAutoReplyDailyCap") ?? "0"), 10);
+
+  if (!locationId) {
+    throw new Error("Location ID is required");
+  }
+
+  await requireLocationAccess(locationId);
+
+  if (googleAutoReplyThreshold < 1 || googleAutoReplyThreshold > 5) {
+    redirectToLocationSettingsError(locationId, "Rating threshold must be between 1 and 5");
+  }
+
+  if (googleAutoReplyDailyCap < 0) {
+    redirectToLocationSettingsError(locationId, "Daily cap must be 0 or greater");
+  }
+
+  await prisma.location.update({
+    where: { id: locationId },
+    data: {
+      googleAutoReplyEnabled,
+      googleAutoReplyThreshold,
+      googleAutoReplyDailyCap,
+    },
+  });
+
+  revalidatePath(`/locations/${locationId}`);
+
+  redirect(`/locations/${locationId}?flash=${encodeURIComponent("Automation settings saved")}&tone=success`);
 }

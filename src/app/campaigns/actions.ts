@@ -25,25 +25,40 @@ async function sendCampaignEmailInvites({
   locationName,
   emailSubject,
   recipients,
+  destination,
 }: {
   locationName: string;
   emailSubject: string | null;
   recipients: Array<{ token: string; contact: { name: string; email: string | null } }>;
+  destination: string | null;
 }) {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+
+  const { sendVideoTestimonialRequestEmail } = await import("@/lib/email");
 
   for (const recipient of recipients) {
     if (!recipient.contact.email) {
       continue;
     }
 
-    await sendReviewRequestEmail({
-      to: recipient.contact.email,
-      subject: emailSubject ?? `How was your experience with ${locationName}?`,
-      recipientName: recipient.contact.name,
-      locationName,
-      reviewUrl: `${appUrl}/r/${recipient.token}`,
-    });
+    if (destination === "VIDEO_TESTIMONIAL") {
+      // Send video testimonial request
+      await sendVideoTestimonialRequestEmail({
+        to: recipient.contact.email,
+        recipientName: recipient.contact.name,
+        locationName,
+        recorderUrl: `${appUrl}/vt/${recipient.token}`,
+      });
+    } else {
+      // Send review request (default)
+      await sendReviewRequestEmail({
+        to: recipient.contact.email,
+        subject: emailSubject ?? `How was your experience with ${locationName}?`,
+        recipientName: recipient.contact.name,
+        locationName,
+        reviewUrl: `${appUrl}/r/${recipient.token}`,
+      });
+    }
   }
 }
 
@@ -149,6 +164,7 @@ export async function createCampaign(formData: FormData) {
           token: recipient.token,
           contact: contacts.find((entry) => entry.id === recipient.contactId)!,
         })),
+        destination,
       });
     }
   }
@@ -252,6 +268,7 @@ export async function resendCampaignInvites(formData: FormData) {
       token: recipient.token,
       contact: recipient.contact,
     })),
+    destination: campaign.destination,
   });
 
   const resentAt = new Date();

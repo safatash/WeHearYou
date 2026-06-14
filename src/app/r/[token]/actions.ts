@@ -111,6 +111,11 @@ export async function submitCampaignPositiveReview(formData: FormData) {
   const token = String(formData.get("token") ?? "").trim();
   const ratingValue = Number(formData.get("rating"));
   const body = String(formData.get("body") ?? "").trim();
+  const title = String(formData.get("title") ?? "").trim() || null;
+  const name = String(formData.get("name") ?? "").trim();
+  const email = String(formData.get("email") ?? "").trim();
+  const reviewedAtStr = String(formData.get("reviewedAt") ?? "").trim();
+  const reviewedAt = reviewedAtStr ? new Date(reviewedAtStr) : null;
 
   if (!token || !Number.isInteger(ratingValue) || ratingValue < 1 || ratingValue > 5 || !body) {
     redirect(`/r/${token}/review?rating=${ratingValue || ""}&error=invalid_review`);
@@ -122,45 +127,45 @@ export async function submitCampaignPositiveReview(formData: FormData) {
       contact: true,
       campaign: {
         include: {
-          location: true,
+          location: {
+            include: {
+              publicProfile: true,
+            },
+          },
         },
       },
     },
   });
 
   if (!recipient) {
-    redirect(`/r/${token}?error=missing_token`);
-  }
-  if (recipient.revokedAt) {
-    redirect(`/r/${token}?error=revoked`);
-  }
-  if (recipient.expiresAt && recipient.expiresAt < new Date()) {
-    redirect(`/r/${token}?error=expired`);
+    redirect(`/r/${token}?error=missing_recipient`);
   }
 
-  const reviewerName = recipient.contact.name || recipient.contact.email || "Anonymous customer";
+  const internalNoteParts: string[] = [];
+  if (email) internalNoteParts.push(`Contact email: ${email}.`);
+
+  // TODO: Handle image upload - currently stored as placeholder
+  // In production, upload to S3/cloud storage and store the URL
+  let reviewImageUrl: string | null = null;
+  const imageFile = formData.get("reviewImage");
+  if (imageFile instanceof File && imageFile.size > 0) {
+    internalNoteParts.push(`Image attached: ${imageFile.name}`);
+  }
 
   await prisma.review.create({
     data: {
-      locationId: recipient.campaign.locationId,
-      contactId: recipient.contactId,
+      locationId: recipient.campaign.location.id,
       source: ReviewSource.INTERNAL,
       status: ReviewStatus.PUBLISHED,
       sentiment: "positive",
       rating: ratingValue,
-      reviewerName,
+      title: title,
+      reviewerName: name || "Anonymous customer",
       body,
-      reviewedAt: new Date(),
+      reviewImageUrl,
+      reviewedAt: reviewedAt || new Date(),
+      internalNotes: internalNoteParts.length > 0 ? internalNoteParts.join(" ") : null,
       publishedExternally: false,
-    },
-  });
-
-  await prisma.campaignRecipient.update({
-    where: { id: recipient.id },
-    data: {
-      status: CampaignStatus.COMPLETED,
-      outcome: "WeHearYou review captured",
-      completedAt: new Date(),
     },
   });
 

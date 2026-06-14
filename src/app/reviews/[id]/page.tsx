@@ -172,7 +172,7 @@ export default async function ReviewDetailPage({
 
             <section id="reply-tracking" className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
               <h3 className="text-xl font-semibold text-slate-950">
-                {review.source === "INTERNAL" ? "Reply Management" : "Reply Tracking"}
+                {review.source === "INTERNAL" ? "Reply Management" : review.source === "GOOGLE" ? "Send to Google" : "Reply Tracking"}
               </h3>
               <div className="mt-4 space-y-3 text-sm text-slate-600">
                 {review.source === "INTERNAL" ? (
@@ -181,6 +181,14 @@ export default async function ReviewDetailPage({
                     <p><span className="font-semibold text-slate-900">Published by:</span> {review.replySentByMembership?.user.name ?? "Not recorded"}</p>
                     <p className="rounded-2xl bg-indigo-50 p-3 text-indigo-700">
                       <span className="font-semibold">ℹ️ WeHearYou reviews:</span> Your reply will be published to the widget and mini-site immediately when you click &quot;Publish reply.&quot;
+                    </p>
+                  </>
+                ) : review.source === "GOOGLE" ? (
+                  <>
+                    <p><span className="font-semibold text-slate-900">Status:</span> {review.replySentAt ? `✓ Sent to Google on ${formatReviewDate(review.replySentAt)}` : "Not sent yet"}</p>
+                    {review.replySentAt && <p><span className="font-semibold text-slate-900">Sent by:</span> {review.replySentByMembership?.user.name ?? "Not recorded"}</p>}
+                    <p className="rounded-2xl bg-blue-50 p-3 text-blue-700">
+                      <span className="font-semibold">ℹ️ Google replies:</span> Once you send, the reply will appear on Google Business Profile. Safety checks prevent risky content.
                     </p>
                   </>
                 ) : (
@@ -194,12 +202,14 @@ export default async function ReviewDetailPage({
 
               <form action={saveReviewReply} className="mt-6 space-y-4">
                 <input type="hidden" name="reviewId" value={review.id} />
+                {review.source === "GOOGLE" && <input type="hidden" name="sendToGoogle" value="true" />}
                 <label className="grid gap-2 text-sm font-semibold text-slate-700">
-                  {review.source === "INTERNAL" ? "Reply text" : "Reply draft"}
+                  {review.source === "INTERNAL" ? "Reply text" : "Reply text"}
                   <textarea
                     name="replyDraft"
                     defaultValue={replyDraft}
-                    className="min-h-40 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-normal leading-7 text-slate-700"
+                    disabled={review.replySentAt ? true : false}
+                    className={`min-h-40 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-normal leading-7 text-slate-700 ${review.replySentAt && review.source === "GOOGLE" ? "opacity-50 cursor-not-allowed" : ""}`}
                   />
                 </label>
 
@@ -207,8 +217,8 @@ export default async function ReviewDetailPage({
                   <button type="submit" name="markSent" value="false" className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm">
                     Save draft
                   </button>
-                  <button type="submit" name="markSent" value="true" className="rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold !text-white shadow-sm visited:!text-white hover:!text-white">
-                    {review.source === "INTERNAL" ? "Publish reply" : "Mark reply as sent"}
+                  <button type="submit" name="markSent" value="true" disabled={review.replySentAt ? true : false} className={`rounded-2xl px-4 py-3 text-sm font-semibold !text-white shadow-sm visited:!text-white hover:!text-white ${review.replySentAt && review.source === "GOOGLE" ? "bg-slate-300 cursor-not-allowed" : "bg-slate-950"}`}>
+                    {review.source === "INTERNAL" ? "Publish reply" : review.source === "GOOGLE" ? (review.replySentAt ? "✓ Sent to Google" : "Send to Google") : "Mark reply as sent"}
                   </button>
                 </div>
               </form>

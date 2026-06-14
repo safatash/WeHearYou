@@ -4,6 +4,11 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireReviewReplyAccess } from "@/lib/authz";
+import { generateReplyDraft } from "@/lib/ai-reply";
+import { classifyReviewSafety } from "@/lib/review-safety";
+import { sendGoogleReviewReply } from "@/lib/google-reply";
+import { logReplyAudit } from "@/lib/reply-audit";
+import { tryAutoSendGoogleReplyForReview } from "@/lib/auto-send-reply";
 
 export async function updateReviewWorkflow(formData: FormData) {
   const reviewId = String(formData.get("reviewId") ?? "").trim();
@@ -129,6 +134,7 @@ export async function saveReviewReply(formData: FormData) {
   const reviewId = String(formData.get("reviewId") ?? "").trim();
   const replyDraft = String(formData.get("replyDraft") ?? "").trim() || null;
   const markSent = String(formData.get("markSent") ?? "").trim() === "true";
+  const sendToGoogle = String(formData.get("sendToGoogle") ?? "").trim() === "true";
 
   if (!reviewId) {
     throw new Error("Review is required");
@@ -153,8 +159,25 @@ export async function saveReviewReply(formData: FormData) {
   await requireReviewReplyAccess(review.locationId);
 
   let replySentByMembershipId = review.replySentByMembershipId;
+  let replyPublishedAt = review.replyPublishedAt;
 
-  if (markSent) {
+  if (markSent && review.source === "INTERNAL") {
+    // For INTERNAL reviews, publish the reply
+    const fallbackSender = await prisma.userMembership.findFirst({
+      where: {
+        organizationId: review.location.organizationId,
+        status: "ACTIVE",
+      },
+      orderBy: [{ createdAt: "asc" }],
+      select: {
+        id: true,
+      },
+    });
+
+    replySentByMembershipId = fallbackSender?.id ?? null;
+    replyPublishedAt = new Date();
+  } else if (markSent && review.source !== "INTERNAL" && !sendToGoogle) {
+    // For non-INTERNAL reviews without Google send, just mark as sent
     const fallbackSender = await prisma.userMembership.findFirst({
       where: {
         organizationId: review.location.organizationId,
@@ -169,12 +192,90 @@ export async function saveReviewReply(formData: FormData) {
     replySentByMembershipId = fallbackSender?.id ?? null;
   }
 
+  // Handle Google send (only if flag is set)
+  if (sendToGoogle && markSent && review.source === "GOOGLE") {
+    if (!replyDraft) {
+      throw new Error("Reply text is required to send to Google");
+    }
+
+    // Check safety
+    const safety = classifyReviewSafety(replyDraft);
+    if (safety.isRisky) {
+      await logReplyAudit({
+        reviewId,
+        locationId: review.locationId,
+        action: "SAFETY_BLOCKED",
+        resultStatus: "BLOCKED",
+        draftText: replyDraft,
+        safetyClassification: safety,
+      });
+      throw new Error(`Safety check failed: ${safety.reason}`);
+    }
+
+    // Send to Google
+    const sendResult = await sendGoogleReviewReply(reviewId, replyDraft);
+    if (!sendResult.success) {
+      await logReplyAudit({
+        reviewId,
+        locationId: review.locationId,
+        action: "FAILED",
+        resultStatus: "FAILED",
+        draftText: replyDraft,
+        errorMessage: sendResult.error,
+        metadata: sendResult.metadata,
+      });
+      throw new Error(sendResult.error || "Failed to send reply to Google");
+    }
+
+    // Update review with sent info
+    const fallbackSender = await prisma.userMembership.findFirst({
+      where: {
+        organizationId: review.location.organizationId,
+        status: "ACTIVE",
+      },
+      orderBy: [{ createdAt: "asc" }],
+      select: {
+        id: true,
+      },
+    });
+
+    replySentByMembershipId = fallbackSender?.id ?? null;
+
+    await logReplyAudit({
+      reviewId,
+      locationId: review.locationId,
+      action: "SENT_TO_GOOGLE",
+      resultStatus: "SUCCESS",
+      draftText: replyDraft,
+      metadata: sendResult.metadata,
+    });
+
+    // Update review with Google send info
+    await prisma.review.update({
+      where: { id: reviewId },
+      data: {
+        replyDraft,
+        sourceReplyText: replyDraft,
+        replySentAt: sendResult.publishedAt,
+        replySentByMembershipId,
+      },
+    });
+
+    revalidatePath("/reviews");
+    revalidatePath(`/reviews/${reviewId}`);
+    revalidatePath(`/b/${review.location.slug}`);
+
+    redirect(`/reviews/${reviewId}?flash=Reply+sent+to+Google&tone=success`);
+  }
+
+  // Standard save for INTERNAL or draft-only updates
   await prisma.review.update({
     where: { id: reviewId },
     data: {
       replyDraft,
-      replySentAt: markSent ? new Date() : null,
-      replySentByMembershipId: markSent ? replySentByMembershipId : null,
+      replyPublishedAt: markSent && review.source === "INTERNAL" ? replyPublishedAt : undefined,
+      replySentAt: markSent && review.source !== "INTERNAL" ? new Date() : undefined,
+      replySentByMembershipId: markSent ? replySentByMembershipId : undefined,
     },
   });
 
@@ -182,5 +283,73 @@ export async function saveReviewReply(formData: FormData) {
   revalidatePath(`/reviews/${reviewId}`);
   revalidatePath(`/b/${review.location.slug}`);
 
-  redirect(`/reviews/${reviewId}?flash=${markSent ? "Reply+marked+as+sent" : "Reply+draft+saved"}&tone=success`);
+  const flashMessage = markSent
+    ? (review.source === "INTERNAL" ? "Reply+published" : "Reply+marked+as+sent")
+    : "Reply+draft+saved";
+
+  redirect(`/reviews/${reviewId}?flash=${flashMessage}&tone=success`);
 }
+
+export async function generateAiReplyDraft(reviewId: string): Promise<{ success: boolean; draft?: string; error?: string }> {
+  if (!reviewId) {
+    return { success: false, error: "Review ID is required" };
+  }
+
+  const review = await prisma.review.findUnique({
+    where: { id: reviewId },
+    include: {
+      location: {
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          organizationId: true,
+        },
+      },
+    },
+  });
+
+  if (!review) {
+    return { success: false, error: "Review not found" };
+  }
+
+  await requireReviewReplyAccess(review.locationId);
+
+  if (!review.rating) {
+    return { success: false, error: "Review rating is required for AI draft generation" };
+  }
+
+  try {
+    const draft = await generateReplyDraft({
+      reviewerName: review.reviewerName,
+      rating: review.rating,
+      body: review.body,
+    });
+
+    // Log the draft generation
+    await logReplyAudit({
+      reviewId,
+      locationId: review.locationId,
+      action: "DRAFT_GENERATED",
+      resultStatus: "SUCCESS",
+      draftText: draft,
+    });
+
+    return { success: true, draft };
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : "Failed to generate draft";
+
+    await logReplyAudit({
+      reviewId,
+      locationId: review.locationId,
+      action: "DRAFT_GENERATED",
+      resultStatus: "FAILED",
+      errorMessage,
+    });
+
+    return { success: false, error: errorMessage };
+  }
+}
+
+// Re-export for use in server actions
+export { tryAutoSendGoogleReplyForReview as tryAutoSendGoogleReply };

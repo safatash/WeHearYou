@@ -5,7 +5,7 @@ import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { FormSubmitButton } from "@/components/form-submit-button";
 import { Field, OutcomeCard, StatCard } from "@/components/ui";
-import { deleteLocation, mapLocationToGoogle, refreshGoogleLocationDetails, regenerateAiReviewSummaryAction, saveLocationSettings, syncGoogleReviews, toggleAiReviewSummaryAction } from "@/app/locations/actions";
+import { deleteLocation, mapLocationToGoogle, refreshGoogleLocationDetails, regenerateAiReviewSummaryAction, saveLocationSettings, saveAutomationSettings, syncGoogleReviews, toggleAiReviewSummaryAction } from "@/app/locations/actions";
 import { formatCampaignStatus, formatDateTime } from "@/lib/campaigns";
 import { formatPreferredChannel } from "@/lib/contacts";
 import { buildGoogleLastSyncResultSummary, buildGoogleSyncSummary, buildLocationSyncErrorMessage } from "@/lib/google-sync-summary";
@@ -596,6 +596,89 @@ export default async function LocationDetailPage({
               ⚠ No Google review URL configured. Happy-path redirection will be disabled until a Google Place ID or review URL is set.
             </p>
           )}
+        </section>
+
+        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <h3 className="text-xl font-semibold text-slate-950">Google Reply Automation</h3>
+              <p className="mt-2 text-sm text-slate-600">
+                Automatically send AI-generated replies to new Google reviews matching your criteria.
+              </p>
+            </div>
+          </div>
+
+          <form action={saveAutomationSettings} className="mt-6 space-y-6">
+            <input type="hidden" name="locationId" value={location.id} />
+
+            <div className="space-y-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  name="googleAutoReplyEnabled"
+                  value="true"
+                  defaultChecked={location.googleAutoReplyEnabled ?? false}
+                  className="h-4 w-4 rounded border-slate-300"
+                />
+                <span className="text-sm font-semibold text-slate-700">Enable automatic replies to Google reviews</span>
+              </label>
+
+              {location.googleAutoReplyEnabled && (
+                <div className="space-y-4 border-t border-slate-200 pt-4">
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <label className="grid gap-2 text-sm font-semibold text-slate-700">
+                      Minimum Rating to Auto-Send
+                      <select name="googleAutoReplyThreshold" defaultValue={String(location.googleAutoReplyThreshold ?? 4)} className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-normal text-slate-700">
+                        <option value="1">1+ stars (all reviews)</option>
+                        <option value="2">2+ stars</option>
+                        <option value="3">3+ stars</option>
+                        <option value="4">4+ stars (default, positive reviews)</option>
+                        <option value="5">5 stars only</option>
+                      </select>
+                      <span className="text-xs text-slate-500">Auto-send replies only to reviews with rating ≥ this threshold</span>
+                    </label>
+
+                    <label className="grid gap-2 text-sm font-semibold text-slate-700">
+                      Daily Auto-Send Cap
+                      <input
+                        type="number"
+                        name="googleAutoReplyDailyCap"
+                        min="0"
+                        max="100"
+                        defaultValue={location.googleAutoReplyDailyCap ?? 0}
+                        className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-normal text-slate-700"
+                      />
+                      <span className="text-xs text-slate-500">0 = unlimited. Caps reset at midnight UTC.</span>
+                    </label>
+                  </div>
+
+                  {location.googleAutoReplyLastUsedAt && (
+                    <div className="text-xs text-slate-600">
+                      Last auto-send: {formatDateTime(location.googleAutoReplyLastUsedAt)}
+                    </div>
+                  )}
+
+                  <div className="rounded-2xl bg-blue-50 p-3 text-sm text-blue-700">
+                    <p className="font-semibold">ℹ️ How it works:</p>
+                    <ul className="mt-2 space-y-1 pl-4 text-xs">
+                      <li>• New Google reviews are checked against these settings</li>
+                      <li>• AI generates a draft reply if needed</li>
+                      <li>• Safety checks run automatically (blocks medical, legal, discrimination content)</li>
+                      <li>• Only reviews matching the rating threshold are sent automatically</li>
+                      <li>• All auto-sends are logged in audit trail</li>
+                      <li>• You can still manually review/edit replies in the inbox</li>
+                    </ul>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <FormSubmitButton
+              idleLabel="Save Automation Settings"
+              pendingLabel="Saving..."
+              className="rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold !text-white shadow-sm visited:!text-white hover:!text-white"
+            />
+          </form>
         </section>
 
         <section className="rounded-3xl border border-rose-200 bg-rose-50 p-6 shadow-sm">
