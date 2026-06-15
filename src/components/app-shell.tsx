@@ -5,8 +5,10 @@ import { FlashToast } from "@/components/flash-toast";
 import { SignOutButton } from "@/components/sign-out-button";
 import { MotivationBlock } from "@/components/motivation-block";
 import { Icon } from "@/components/icon";
+import { SearchInput } from "@/components/search-input";
+import { NotificationButton } from "@/components/notification-button";
+import { ExitImpersonationButton } from "@/components/exit-impersonation-button";
 import { getCurrentMembership } from "@/lib/authz";
-import { stopImpersonation } from "@/app/admin/actions";
 import { navItems, type ScreenKey } from "@/lib/navigation";
 import { prisma } from "@/lib/prisma";
 import { LocationSwitcher } from "@/components/location-switcher";
@@ -194,30 +196,12 @@ export async function AppShell({
         {/* Header */}
         <header style={{ position: "sticky", top: 0, zIndex: 10, display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid var(--ink-200)", background: "rgba(255, 255, 255, 0.95)", paddingLeft: 16, paddingRight: 16, paddingTop: 16, paddingBottom: 16, backdropFilter: "blur(10px)" }} className="lg:px-8">
           <div style={{ display: "flex", flex: 1, alignItems: "center", gap: 16 }}>
-            <input
-              type="text"
-              placeholder="Search..."
-              style={{
-                borderRadius: "9999px",
-                border: "1px solid var(--ink-200)",
-                background: "var(--white)",
-                padding: "8px 16px",
-                fontSize: 14,
-                color: "var(--ink-600)",
-                width: 256,
-              }}
-              onFocus={(e) => { e.currentTarget.style.borderColor = "var(--accent)"; e.currentTarget.style.boxShadow = "0 0 0 3px var(--accent-ring)"; }}
-              onBlur={(e) => { e.currentTarget.style.borderColor = "var(--ink-200)"; e.currentTarget.style.boxShadow = "none"; }}
-            />
+            <SearchInput />
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <LocationSwitcher locations={locations} />
-
-            <button style={{ borderRadius: "var(--r-md)", border: "1px solid var(--ink-200)", background: "var(--white)", padding: "8px 12px", fontSize: 14, fontWeight: 600, color: "var(--ink-600)", cursor: "pointer", transition: "all 0.2s ease" }} onMouseEnter={(e) => { e.currentTarget.style.background = "var(--ink-50)"; }} onMouseLeave={(e) => { e.currentTarget.style.background = "var(--white)"; }}>
-              🔔
-            </button>
-
+            <NotificationButton />
             <UserDropdown userName={userName} userEmail={userEmail} />
           </div>
         </header>
@@ -228,11 +212,7 @@ export async function AppShell({
             <p style={{ fontSize: 14, fontWeight: 600, color: "#78350f", margin: 0 }}>
               👁 Viewing as <span style={{ color: "#b45309" }}>{membership?.user.name ?? membership?.user.email}</span> · {membership?.organization.name}
             </p>
-            <form action={stopImpersonation}>
-              <button type="submit" style={{ borderRadius: "var(--r-md)", background: "#78350f", paddingLeft: 12, paddingRight: 12, paddingTop: 6, paddingBottom: 6, fontSize: 12, fontWeight: 600, color: "white", cursor: "pointer", transition: "all 0.2s ease" }} onMouseEnter={(e) => { e.currentTarget.style.background = "#451a03"; }} onMouseLeave={(e) => { e.currentTarget.style.background = "#78350f"; }}>
-                Exit impersonation
-              </button>
-            </form>
+            <ExitImpersonationButton />
           </div>
         )}
 
