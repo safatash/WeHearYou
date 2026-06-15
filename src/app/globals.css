@@ -16,11 +16,11 @@
   --ink-900: #111827;
   --ink-950: #0f1117;
 
-  /* Primary accent (indigo) */
-  --accent: #4f46e5;
-  --accent-soft: #eef2ff;
-  --accent-softer: #f5f3ff;
-  --accent-strong: #3730a3;
+  /* Primary accent (brand teal) */
+  --accent: #37AEB7;
+  --accent-soft: #e0f2f4;
+  --accent-softer: #f0f8f9;
+  --accent-strong: #2a8a92;
   --accent-border: color-mix(in srgb, var(--accent) 26%, var(--ink-200));
   --accent-ring: color-mix(in srgb, var(--accent) 10%, transparent);
 
