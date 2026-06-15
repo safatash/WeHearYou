@@ -47,7 +47,7 @@ export async function AppShell({
   return (
     <div style={{ display: "flex", minHeight: "100vh", background: "var(--white)", color: "var(--ink-900)" }}>
       {/* Sidebar */}
-      <aside style={{ display: "none", flexDirection: "column", width: 248, borderRight: "1px solid var(--ink-200)", background: "var(--white)", paddingLeft: 20, paddingRight: 20, paddingTop: 24, paddingBottom: 24, position: "sticky", top: 0, height: "100vh", overflowY: "auto" }} className="lg:flex">
+      <aside style={{ flexDirection: "column", width: 248, borderRight: "1px solid var(--ink-200)", background: "var(--white)", paddingLeft: 20, paddingRight: 20, paddingTop: 24, paddingBottom: 24, position: "sticky", top: 0, height: "100vh", overflowY: "auto" }} className="hidden lg:flex flex-col">
         <div>
           <Link
             href="/"
