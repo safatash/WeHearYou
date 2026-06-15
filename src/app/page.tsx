@@ -9,7 +9,6 @@ import { getCurrentMembership } from "@/lib/authz";
 import { prisma } from "@/lib/prisma";
 import { OnboardingChecklist } from "@/components/onboarding-checklist";
 import { canManageTeam } from "@/lib/team";
-import { formatRelativeSyncTime } from "@/lib/relative-time";
 
 export default async function DashboardPage() {
   const membership = await getCurrentMembership();
@@ -49,14 +48,12 @@ export default async function DashboardPage() {
 
   const locationIds = await getCurrentAccessibleLocationIds();
   const dashboard = await getDashboardData(locationIds);
-
-  const sortedLocations = [...dashboard.locations].sort(
-    (a, b) => (b.avgRating ?? 0) - (a.avgRating ?? 0),
-  );
+  const userName = membership.user.name || "there";
+  const greeting = getGreeting(userName);
 
   return (
     <AppShell activeScreen="dashboard">
-      <div className="space-y-6">
+      <div style={{ maxWidth: 1240, margin: "0 auto", padding: "var(--gutter)" }}>
         {showChecklist && (
           <OnboardingChecklist
             hasLocation={hasLocation}
@@ -66,209 +63,143 @@ export default async function DashboardPage() {
           />
         )}
 
-        {/* Page header */}
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-slate-900">Dashboard</h1>
-            <p className="mt-1 text-sm text-slate-500">Your reputation at a glance</p>
-          </div>
-          <div className="flex shrink-0 gap-3">
-            <Link
-              href="/funnel-preview"
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:border-slate-300"
-            >
-              View Funnel
-            </Link>
-            <Link
-              href="/campaigns/new"
-              className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700"
-            >
-              Send New Request
-            </Link>
-          </div>
+        {/* Greeting section */}
+        <div style={{ marginBottom: "var(--gutter)" }}>
+          <h1 style={{ fontSize: 26, fontWeight: 680, letterSpacing: "-.025em", marginBottom: 8, color: "var(--ink-900)" }}>
+            {greeting}
+          </h1>
+          <p style={{ fontSize: 15, color: "var(--ink-500)", margin: 0 }}>
+            {dashboard.totalReviews} total reviews • {dashboard.googleAvgRating}★ average rating
+          </p>
         </div>
 
-        {/* Stat cards */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-[1.4fr_1fr_1fr]">
-          {/* Google Reviews — hero */}
-          <div className="rounded-2xl border border-indigo-100 bg-white p-6 shadow-sm">
-            <p className="text-xs font-bold uppercase tracking-widest text-slate-400">
-              Google Reviews
-            </p>
-            <p className="mt-2 text-4xl font-extrabold text-indigo-700">
-              {dashboard.googleReviewCount}
-            </p>
-            <p className="mt-1 text-sm font-semibold text-indigo-400">
-              ★ {dashboard.googleAvgRating} average
-            </p>
-            {dashboard.googleReviewsThisMonth > 0 && (
-              <p className="mt-1 text-xs font-semibold text-emerald-600">
-                ↑ {dashboard.googleReviewsThisMonth} this month
-              </p>
-            )}
-          </div>
-
-          {/* Funnel Conversion */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <p className="text-xs font-bold uppercase tracking-widest text-slate-400">
-              Funnel Conversion
-            </p>
-            <p className="mt-2 text-4xl font-extrabold text-slate-900">
-              {dashboard.requestConversion}
-            </p>
-            <p className="mt-1 text-sm text-slate-400">sent → meaningful activity</p>
-          </div>
-
-          {/* Private Feedback */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <p className="text-xs font-bold uppercase tracking-widest text-slate-400">
-              Private Feedback
-            </p>
-            <p
-              className={`mt-2 text-4xl font-extrabold ${
-                dashboard.funnelOutcomes.privateFeedback > 0
-                  ? "text-amber-500"
-                  : "text-slate-900"
-              }`}
-            >
-              {dashboard.funnelOutcomes.privateFeedback}
-            </p>
-            <p className="mt-1 text-sm text-slate-400">private feedback</p>
-            {dashboard.funnelOutcomes.privateFeedback > 0 ? (
-              <p className="mt-1 text-xs font-semibold text-amber-500">needs attention</p>
-            ) : (
-              <p className="mt-1 text-xs font-semibold text-emerald-600">all clear</p>
-            )}
-          </div>
+        {/* Metrics grid */}
+        <div className="metrics-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: "var(--gutter)" }}>
+          <MetricCard label="Total Reviews" value={dashboard.totalReviews} />
+          <MetricCard label="Avg. Rating" value={dashboard.googleAvgRating} />
+          <MetricCard label="Response Rate" value={dashboard.requestConversion} />
+          <MetricCard label="This Month" value={dashboard.googleReviewsThisMonth} />
         </div>
 
-        {/* Body grid */}
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1.4fr_1fr]">
-          {/* Recent Activity */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-sm font-bold text-slate-900">Recent Activity</h3>
-              <Link
-                href="/reviews"
-                className="text-xs font-semibold text-indigo-600 hover:text-indigo-800"
-              >
-                Open inbox →
-              </Link>
-            </div>
-            <div className="space-y-2">
-              {dashboard.recentActivity.length === 0 ? (
-                <p className="text-sm text-slate-400">No reviews yet.</p>
-              ) : (
-                dashboard.recentActivity.map((item) => (
-                  <div
-                    key={item.createdAt.toISOString()}
-                    className={`flex items-start gap-3 rounded-xl px-3 py-2.5 ${
-                      item.isPrivate
-                        ? "border-l-2 border-amber-400 bg-amber-50"
-                        : "border-l-2 border-emerald-400 bg-slate-50"
-                    }`}
-                  >
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold text-slate-900">
-                        {item.reviewerName || "Anonymous"}
-                      </p>
-                      <p className="text-xs text-amber-400" aria-label={(item.rating ?? 0) > 0 ? `${item.rating} out of 5 stars` : "No rating"}>
-                        {(item.rating ?? 0) > 0 ? "★".repeat(item.rating ?? 0) : "—"}
-                      </p>
-                      <p className="text-xs text-slate-400">
-                        {item.sourceLabel} · {formatRelativeSyncTime(item.createdAt)}
-                      </p>
-                    </div>
-                    <span
-                      className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-bold uppercase tracking-wide ${
-                        item.isPrivate
-                          ? "bg-amber-100 text-amber-700"
-                          : "bg-emerald-100 text-emerald-700"
-                      }`}
-                    >
-                      {item.isPrivate ? "Private" : item.sourceLabel}
-                    </span>
-                  </div>
-                ))
-              )}
-            </div>
+        {/* Main content grid */}
+        <div className="main-grid" style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: "var(--gutter)" }}>
+          {/* Left column */}
+          <div style={{ display: "flex", flexDirection: "column", gap: "var(--gutter)" }}>
+            {/* Recent reviews */}
+            <RecentReviewsSection reviews={dashboard.recentActivity} />
+
+            {/* Funnel outcomes */}
+            <FunnelOutcomesSection outcomes={dashboard.funnelOutcomes} />
           </div>
 
-          {/* Locations + Funnel Outcomes */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-sm font-bold text-slate-900">Locations</h3>
-              <Link
-                href="/locations"
-                className="text-xs font-semibold text-indigo-600 hover:text-indigo-800"
-              >
-                Manage →
-              </Link>
-            </div>
-            <div className="space-y-2">
-              {sortedLocations.length === 0 ? (
-                <p className="text-sm text-slate-400">No locations yet.</p>
-              ) : (
-                sortedLocations.map((loc) => {
-                  const displayName = loc.name.includes(", ")
-                    ? loc.name.split(", ").slice(1).join(", ")
-                    : loc.name;
-                  const reviewCount = loc._count.reviews;
-                  return (
-                    <div
-                      key={loc.id}
-                      className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2.5"
-                    >
-                      <div>
-                        <p className="text-sm font-semibold text-slate-900">{displayName}</p>
-                        <p className="text-xs text-slate-400">
-                          {reviewCount} {reviewCount === 1 ? "review" : "reviews"} · {loc.status}
-                        </p>
-                      </div>
-                      {loc.avgRating !== null && (
-                        <span
-                          className={`text-sm font-bold ${
-                            loc.avgRating >= 4.5 ? "text-emerald-600" : "text-amber-500"
-                          }`}
-                        >
-                          {loc.avgRating.toFixed(1)} ★
-                        </span>
-                      )}
-                    </div>
-                  );
-                })
-              )}
-            </div>
-
-            {/* Funnel Outcomes mini row */}
-            <div className="mt-4 border-t border-slate-100 pt-4">
-              <p className="mb-2 text-xs font-bold uppercase tracking-widest text-slate-400">
-                Funnel Outcomes
-              </p>
-              <div className="grid grid-cols-3 gap-2">
-                <div className="rounded-xl bg-emerald-50 p-2 text-center">
-                  <p className="text-lg font-extrabold text-emerald-700">
-                    {dashboard.funnelOutcomes.redirectedToGoogle}
-                  </p>
-                  <p className="text-xs font-semibold text-emerald-500">→ Google</p>
-                </div>
-                <div className="rounded-xl bg-amber-50 p-2 text-center">
-                  <p className="text-lg font-extrabold text-amber-700">
-                    {dashboard.funnelOutcomes.privateFeedback}
-                  </p>
-                  <p className="text-xs font-semibold text-amber-500">Feedback</p>
-                </div>
-                <div className="rounded-xl bg-slate-100 p-2 text-center">
-                  <p className="text-lg font-extrabold text-slate-500">
-                    {dashboard.funnelOutcomes.awaitingResponse}
-                  </p>
-                  <p className="text-xs font-semibold text-slate-400">Awaiting</p>
-                </div>
-              </div>
-            </div>
+          {/* Right column */}
+          <div style={{ display: "flex", flexDirection: "column", gap: "var(--gutter)" }}>
+            {/* Quick stats */}
+            <QuickStatsSection dashboard={dashboard} />
           </div>
         </div>
       </div>
     </AppShell>
+  );
+}
+
+function getGreeting(name: string): string {
+  const hour = new Date().getHours();
+  if (hour < 12) return `Good morning, ${name}`;
+  if (hour < 18) return `Good afternoon, ${name}`;
+  return `Good evening, ${name}`;
+}
+
+function MetricCard({ label, value }: { label: string; value: string | number }) {
+  return (
+    <div className="card" style={{ padding: "var(--card-pad)", display: "flex", flexDirection: "column", gap: 8 }}>
+      <p style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-500)", margin: 0 }}>{label}</p>
+      <p style={{ fontSize: 24, fontWeight: 680, color: "var(--ink-900)", margin: 0 }}>{value}</p>
+    </div>
+  );
+}
+
+function RecentReviewsSection({ reviews }: { reviews: any[] }) {
+  return (
+    <div className="card" style={{ padding: "var(--card-pad)" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+        <h2 style={{ fontSize: 15, fontWeight: 640, color: "var(--ink-900)", margin: 0 }}>Recent activity</h2>
+        <Link href="/reviews" style={{ fontSize: 13, color: "var(--accent)", fontWeight: 600, textDecoration: "none" }}>
+          View all →
+        </Link>
+      </div>
+
+      {reviews.length === 0 ? (
+        <p style={{ fontSize: 13.5, color: "var(--ink-500)", margin: 0 }}>No activity yet</p>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          {reviews.slice(0, 5).map((item: any, idx: number) => (
+            <div key={idx} style={{ paddingBottom: 12, borderBottom: "1px solid var(--ink-150)" }}>
+              <p style={{ fontSize: 13, color: "var(--ink-600)", margin: 0 }}>{item.description || item.type}</p>
+              <p style={{ fontSize: 12, color: "var(--ink-400)", margin: "2px 0 0 0" }}>{item.location || "Unknown location"}</p>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function FunnelOutcomesSection({ outcomes }: { outcomes: any }) {
+  return (
+    <div className="card" style={{ padding: "var(--card-pad)" }}>
+      <h2 style={{ fontSize: 15, fontWeight: 640, color: "var(--ink-900)", margin: "0 0 16px 0" }}>Funnel outcomes</h2>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        <OutcomeRow label="Google Reviews" value={outcomes.redirectedToGoogle} />
+        <OutcomeRow label="Private Feedback" value={outcomes.privateFeedback} />
+        <OutcomeRow label="Awaiting Response" value={outcomes.awaitingResponse} />
+        <OutcomeRow label="Testimonials" value={outcomes.testimonials} />
+      </div>
+    </div>
+  );
+}
+
+function OutcomeRow({ label, value }: { label: string; value: number }) {
+  return (
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: 10, background: "var(--ink-50)", borderRadius: "var(--r-sm)" }}>
+      <p style={{ fontSize: 13, color: "var(--ink-700)", margin: 0, fontWeight: 600 }}>{label}</p>
+      <p style={{ fontSize: 15, fontWeight: 680, color: "var(--ink-900)", margin: 0 }}>{value}</p>
+    </div>
+  );
+}
+
+function QuickStatsSection({ dashboard }: { dashboard: any }) {
+  return (
+    <div className="card" style={{ padding: "var(--card-pad)" }}>
+      <h2 style={{ fontSize: 15, fontWeight: 640, color: "var(--ink-900)", margin: "0 0 16px 0" }}>Quick stats</h2>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        <div>
+          <p style={{ fontSize: 11, fontWeight: 600, color: "var(--ink-500)", textTransform: "uppercase", letterSpacing: "0.05em", margin: "0 0 4px 0" }}>
+            Locations
+          </p>
+          <p style={{ fontSize: 20, fontWeight: 680, color: "var(--ink-900)", margin: 0 }}>{dashboard.locations.length}</p>
+        </div>
+
+        <div style={{ borderTop: "1px solid var(--ink-150)", paddingTop: 16 }}>
+          <p style={{ fontSize: 11, fontWeight: 600, color: "var(--ink-500)", textTransform: "uppercase", letterSpacing: "0.05em", margin: "0 0 4px 0" }}>
+            Top Location
+          </p>
+          {dashboard.locations.length > 0 ? (
+            <>
+              <p style={{ fontSize: 14, fontWeight: 620, color: "var(--ink-900)", margin: "0 0 2px 0" }}>
+                {dashboard.locations[0].name}
+              </p>
+              <p style={{ fontSize: 12, color: "var(--ink-500)", margin: 0 }}>
+                {dashboard.locations[0].avgRating?.toFixed(1)}★ ({dashboard.locations[0].reviewCount} reviews)
+              </p>
+            </>
+          ) : (
+            <p style={{ fontSize: 13, color: "var(--ink-400)" }}>No locations</p>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }

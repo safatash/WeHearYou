@@ -7,6 +7,9 @@ import { MotivationBlock } from "@/components/motivation-block";
 import { getCurrentMembership } from "@/lib/authz";
 import { stopImpersonation } from "@/app/admin/actions";
 import { navItems, type ScreenKey } from "@/lib/navigation";
+import { prisma } from "@/lib/prisma";
+import { LocationSwitcher } from "@/components/location-switcher";
+import { UserDropdown } from "@/components/user-dropdown";
 
 export async function AppShell({
   children,
@@ -22,30 +25,74 @@ export async function AppShell({
   const [session, membership] = await Promise.all([auth(), getCurrentMembership()]);
   const userName = membership?.user.name ?? session?.user?.name ?? "Unknown User";
   const userEmail = membership?.user.email ?? session?.user?.email ?? "No email";
-  const initials = userName
-    .split(" ")
-    .map((part) => part[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
+
+  // Fetch locations for the switcher
+  const locations = membership
+    ? await prisma.location.findMany({
+        where: { organizationId: membership.organizationId },
+        select: { id: true, name: true },
+        orderBy: { createdAt: "asc" },
+      })
+    : [];
 
   return (
-    <div className="flex min-h-screen bg-slate-50 text-slate-900">
-      <aside className="hidden w-72 flex-col border-r border-slate-700 bg-slate-900 px-5 py-6 lg:flex">
-        <div>
-          <div className="flex items-center gap-3 rounded-xl px-3 py-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-yellow-400 text-lg font-bold text-slate-900">
+    <div style={{ display: "flex", minHeight: "100vh", background: "var(--page)", color: "var(--ink-900)" }}>
+      {/* Sidebar */}
+      <aside
+        style={{
+          display: "none",
+          width: "var(--sidebar-w)",
+          flexDirection: "column",
+          borderRight: "1px solid var(--ink-200)",
+          background: "var(--white)",
+          padding: "24px 20px",
+          position: "sticky",
+          top: 0,
+          height: "100vh",
+          overflowY: "auto",
+        }}
+        className="lg:flex"
+      >
+        {/* Logo */}
+        <div style={{ marginBottom: 24 }}>
+          <Link
+            href="/"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 12,
+              padding: "12px 16px",
+              borderRadius: "var(--r-md)",
+              textDecoration: "none",
+              color: "inherit",
+            }}
+          >
+            <div
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: "var(--r-md)",
+                background: "var(--accent)",
+                color: "white",
+                display: "grid",
+                placeItems: "center",
+                fontSize: 20,
+                fontWeight: 700,
+              }}
+            >
               W
             </div>
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">WeHearYou</p>
-              <h1 className="text-base font-semibold text-white">Reputation OS</h1>
+              <p style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-500)", textTransform: "uppercase", letterSpacing: "0.05em", margin: 0 }}>
+                WeHearYou
+              </p>
+              <h1 style={{ fontSize: 14, fontWeight: 600, color: "var(--ink-900)", margin: 0 }}>Reputation</h1>
             </div>
-          </div>
+          </Link>
         </div>
 
-        <nav className="mt-10 space-y-6">
-          {/* Group items by their group property */}
+        {/* Navigation */}
+        <nav style={{ flex: 1, display: "flex", flexDirection: "column", gap: 24 }}>
           {(() => {
             const grouped = navItems.reduce(
               (acc, item) => {
@@ -57,7 +104,6 @@ export async function AppShell({
               {} as Record<string, typeof navItems>
             );
 
-            // Maintain order: dashboard first, then groups in order
             const orderedGroups = [
               "REQUESTS & FEEDBACK",
               "FUNNEL SETUP",
@@ -68,7 +114,7 @@ export async function AppShell({
 
             return (
               <>
-                {/* Dashboard - no group */}
+                {/* Dashboard */}
                 {navItems
                   .filter((item) => !item.group)
                   .map((item) => {
@@ -77,15 +123,21 @@ export async function AppShell({
                       <Link
                         key={item.key}
                         href={item.href}
-                        className={`flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left text-sm font-medium transition ${
-                          active
-                            ? "bg-indigo-600 text-white shadow-sm"
-                            : "text-white hover:bg-slate-800 hover:text-white"
-                        }`}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 12,
+                          padding: "10px 16px",
+                          borderRadius: "var(--r-md)",
+                          fontSize: 14,
+                          fontWeight: 600,
+                          textDecoration: "none",
+                          color: active ? "white" : "var(--ink-700)",
+                          background: active ? "var(--accent)" : "transparent",
+                          transition: "all 0.2s",
+                        }}
                       >
-                        <span className={`text-base`}>
-                          {item.icon}
-                        </span>
+                        <span style={{ fontSize: 18 }}>{item.icon}</span>
                         <span>{item.label}</span>
                       </Link>
                     );
@@ -98,21 +150,32 @@ export async function AppShell({
 
                   return (
                     <div key={groupName}>
-                      <p className="px-4 py-2 text-xs font-semibold uppercase tracking-widest text-slate-500">
+                      <p style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-400)", textTransform: "uppercase", letterSpacing: "0.05em", padding: "8px 16px", margin: 0 }}>
                         {groupName}
                       </p>
-                      <div className="space-y-1">
+                      <div style={{ display: "flex", flexDirection: "column", gap: 2, marginTop: 8 }}>
                         {items.map((item) => {
                           const active = item.key === activeScreen;
                           if (item.comingSoon) {
                             return (
                               <div
                                 key={item.key}
-                                className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left text-sm font-medium text-white opacity-40 cursor-not-allowed"
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: 12,
+                                  padding: "10px 16px",
+                                  borderRadius: "var(--r-md)",
+                                  fontSize: 14,
+                                  fontWeight: 600,
+                                  color: "var(--ink-400)",
+                                  opacity: 0.5,
+                                  cursor: "not-allowed",
+                                }}
                               >
-                                <span className="text-base">{item.icon}</span>
-                                <span>{item.label}</span>
-                                <span className="ml-auto text-[10px] font-bold uppercase tracking-wider opacity-70">Soon</span>
+                                <span style={{ fontSize: 18 }}>{item.icon}</span>
+                                <span style={{ flex: 1 }}>{item.label}</span>
+                                <span style={{ fontSize: 10, fontWeight: 700, color: "var(--ink-400)" }}>Soon</span>
                               </div>
                             );
                           }
@@ -120,15 +183,21 @@ export async function AppShell({
                             <Link
                               key={item.key}
                               href={item.href}
-                              className={`flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left text-sm font-medium transition ${
-                                active
-                                  ? "bg-indigo-600 text-white shadow-sm"
-                                  : "text-white hover:bg-slate-800 hover:text-white"
-                              }`}
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 12,
+                                padding: "10px 16px",
+                                borderRadius: "var(--r-md)",
+                                fontSize: 14,
+                                fontWeight: 600,
+                                textDecoration: "none",
+                                color: active ? "white" : "var(--ink-700)",
+                                background: active ? "var(--accent)" : "transparent",
+                                transition: "all 0.2s",
+                              }}
                             >
-                              <span className={`text-base`}>
-                                {item.icon}
-                              </span>
+                              <span style={{ fontSize: 18 }}>{item.icon}</span>
                               <span>{item.label}</span>
                             </Link>
                           );
@@ -142,55 +211,96 @@ export async function AppShell({
           })()}
         </nav>
 
-        {/* Motivation Block */}
-        <div className="mt-auto pt-6 border-t border-slate-700">
+        {/* Footer motivation block */}
+        <div style={{ marginTop: "auto", paddingTop: 24, borderTop: "1px solid var(--ink-150)" }}>
           <MotivationBlock
             title="You're doing great!"
             subtitle="Keep collecting those reviews."
             icon="🏆"
           />
         </div>
-
       </aside>
 
-      <div className="flex min-h-screen flex-1 flex-col">
-        <header className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-200/80 bg-white/85 px-4 py-4 backdrop-blur lg:px-8">
-          <div className="flex items-center gap-3">
-            <div className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm text-slate-500 shadow-sm ring-1 ring-slate-100">
-              Search contacts, invite tokens, reviews, workflows...
-            </div>
+      {/* Main content */}
+      <div style={{ display: "flex", flex: 1, flexDirection: "column", minHeight: "100vh" }}>
+        {/* Header */}
+        <header
+          style={{
+            position: "sticky",
+            top: 0,
+            zIndex: 10,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            height: "var(--topbar-h)",
+            borderBottom: "1px solid var(--ink-200)",
+            background: "var(--white)",
+            padding: "0 20px",
+            backdropFilter: "blur(10px)",
+            backgroundColor: "rgba(255, 255, 255, 0.95)",
+          }}
+          className="lg:px-8"
+        >
+          {/* Left side - Search */}
+          <div style={{ display: "flex", alignItems: "center", gap: 12, flex: 1 }}>
+            <input
+              type="text"
+              placeholder="Search..."
+              style={{
+                padding: "8px 16px",
+                borderRadius: "var(--r-full)",
+                border: "1px solid var(--ink-200)",
+                background: "var(--white)",
+                fontSize: 14,
+                width: "300px",
+              }}
+            />
           </div>
-          <div className="flex items-center gap-3">
-            <button className="rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600 shadow-sm">
-              Notifications
+
+          {/* Right side - Location switcher, notifications, user */}
+          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+            <LocationSwitcher locations={locations} />
+
+            <button
+              style={{
+                padding: "8px 16px",
+                borderRadius: "var(--r-md)",
+                border: "1px solid var(--ink-200)",
+                background: "var(--white)",
+                fontSize: 14,
+                fontWeight: 600,
+                cursor: "pointer",
+                color: "var(--ink-700)",
+              }}
+            >
+              🔔
             </button>
-            <Link href="/profile" className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-3 py-2 shadow-sm transition hover:border-indigo-200 hover:bg-indigo-50">
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-900 text-sm font-semibold text-white">
-                {initials || "WU"}
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-slate-900">{userName}</p>
-                <p className="text-xs text-slate-500">{userEmail}</p>
-              </div>
-            </Link>
-            <SignOutButton />
+
+            <UserDropdown userName={userName} userEmail={userEmail} />
           </div>
         </header>
 
+        {/* Impersonation banner */}
         {isImpersonating && (
-          <div className="flex items-center justify-between gap-4 border-b border-amber-300 bg-amber-100 px-4 py-2.5 lg:px-8">
-            <p className="text-sm font-semibold text-amber-900">
-              👁 Viewing as <span className="text-amber-700">{membership?.user.name ?? membership?.user.email}</span> · {membership?.organization.name}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, padding: "10px 20px", borderBottom: "1px solid var(--warning)", background: "color-mix(in srgb, var(--warning) 10%, var(--white))", fontSize: 14, fontWeight: 600, color: "var(--ink-900)" }} className="lg:px-8">
+            <p style={{ margin: 0 }}>
+              👁 Viewing as <strong>{membership?.user.name ?? membership?.user.email}</strong> · {membership?.organization.name}
             </p>
             <form action={stopImpersonation}>
-              <button type="submit" className="rounded-xl bg-amber-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-800 transition">
+              <button type="submit" className="btn btn-sm btn-secondary">
                 Exit impersonation
               </button>
             </form>
           </div>
         )}
-        <main className="flex-1 px-4 py-6 lg:px-8">
-          {flash ? <div className="mb-4"><FlashToast tone={flash.tone} message={flash.message} /></div> : null}
+
+        {/* Main content area */}
+        <main style={{ flex: 1, padding: "0 20px" }} className="lg:px-8">
+          {flash ? (
+            <div style={{ marginBottom: 16 }}>
+              <FlashToast tone={flash.tone} message={flash.message} />
+            </div>
+          ) : null}
           {children}
         </main>
       </div>

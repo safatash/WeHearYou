@@ -1,15 +1,65 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f8fafc;
-  --foreground: #0f172a;
-}
+  /* Ink color ramp (neutral) */
+  --ink-50: #fafafa;
+  --ink-100: #f3f4f6;
+  --ink-150: #eeeff3;
+  --ink-200: #e5e7eb;
+  --ink-250: #dfe2e8;
+  --ink-300: #d1d5db;
+  --ink-400: #9ca3af;
+  --ink-500: #6b7280;
+  --ink-600: #4b5563;
+  --ink-700: #374151;
+  --ink-800: #1f2937;
+  --ink-900: #111827;
+  --ink-950: #0f1117;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  /* Primary accent (indigo) */
+  --accent: #4f46e5;
+  --accent-soft: #eef2ff;
+  --accent-softer: #f5f3ff;
+  --accent-strong: #3730a3;
+  --accent-border: color-mix(in srgb, var(--accent) 26%, var(--ink-200));
+  --accent-ring: color-mix(in srgb, var(--accent) 10%, transparent);
+
+  /* Semantic colors */
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --star: #fbbf24;
+
+  /* Shadows */
+  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-pop: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+
+  /* Border radius */
+  --r-xs: 4px;
+  --r-sm: 6px;
+  --r-md: 12px;
+  --r-lg: 16px;
+  --r-xl: 20px;
+  --r-full: 9999px;
+
+  /* Layout metrics */
+  --sidebar-w: 248px;
+  --topbar-h: 60px;
+  --gutter: 28px;
+  --card-pad: 22px;
+
+  /* Brand colors */
+  --google: #4285f4;
+  --facebook: #1877f2;
+  --yelp: #af0606;
+  --trustpilot: #00b800;
+
+  /* Page colors */
+  --page: #fafafa;
+  --white: #ffffff;
 }
 
 * {
@@ -23,17 +73,17 @@ body {
 
 body {
   margin: 0;
-  background:
-    radial-gradient(circle at top left, rgba(99, 102, 241, 0.14) 0%, rgba(248, 250, 252, 0) 32%),
-    radial-gradient(circle at top right, rgba(56, 189, 248, 0.09) 0%, rgba(248, 250, 252, 0) 26%),
-    linear-gradient(180deg, #f8fbff 0%, #f8fafc 100%);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--page);
+  color: var(--ink-900);
+  font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
 }
 
 button,
 input,
-textarea {
+textarea,
+select {
   font: inherit;
 }
 
@@ -47,13 +97,186 @@ a {
   text-decoration: none;
 }
 
-/* Ensure white text on dark buttons is never overridden */
-.text-white,
-a.text-white,
-button.text-white {
-  color: #ffffff !important;
-}
-
 textarea {
   resize: none;
+}
+
+/* ===== Component Styles ===== */
+
+/* Eyebrow label */
+.eyebrow {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink-500);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Card styling */
+.card {
+  border-radius: var(--r-md);
+  border: 1px solid var(--ink-200);
+  background: var(--white);
+  box-shadow: var(--shadow-xs);
+}
+
+/* Button styles */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: var(--r-md);
+  border: none;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: white;
+}
+
+.btn-primary:hover {
+  background: var(--accent-strong);
+  box-shadow: var(--shadow-md);
+}
+
+.btn-secondary {
+  background: var(--white);
+  border: 1px solid var(--ink-200);
+  color: var(--ink-900);
+}
+
+.btn-secondary:hover {
+  background: var(--ink-50);
+  border-color: var(--ink-300);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--ink-700);
+}
+
+.btn-ghost:hover {
+  background: var(--ink-100);
+}
+
+.btn-soft {
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+
+.btn-sm {
+  padding: 6px 12px;
+  font-size: 13px;
+}
+
+.btn-icon {
+  padding: 8px;
+  border-radius: var(--r-sm);
+}
+
+/* Badge styles */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.badge-neutral {
+  background: var(--ink-100);
+  color: var(--ink-700);
+}
+
+.badge-success {
+  background: color-mix(in srgb, var(--success) 10%, var(--white));
+  color: var(--success);
+}
+
+/* Input styling */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+textarea,
+select {
+  padding: 8px 12px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--ink-200);
+  background: var(--white);
+  color: var(--ink-900);
+}
+
+input[type="text"]:focus,
+input[type="email"]:focus,
+input[type="password"]:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-ring);
+}
+
+/* Horizontal rule */
+.hr {
+  border: none;
+  border-top: 1px solid var(--ink-200);
+  margin: 12px 0;
+}
+
+/* Focus ring utility */
+.focus-ring {
+  outline: none;
+}
+
+.focus-ring:focus-visible {
+  box-shadow: 0 0 0 3px var(--white), 0 0 0 6px var(--accent);
+}
+
+/* Tap feedback */
+.tap:active {
+  opacity: 0.8;
+  transform: scale(0.98);
+}
+
+/* Widget Studio responsive */
+@media (max-width: 1080px) {
+  .wstudio-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .main-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .metrics-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  .wtype-grid {
+    grid-template-columns: repeat(3, 1fr) !important;
+  }
+}
+
+@media (max-width: 768px) {
+  :root {
+    --gutter: 18px;
+  }
+  .wtype-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  .metrics-grid {
+    grid-template-columns: 1fr 1fr !important;
+  }
+}
+
+@media (max-width: 560px) {
+  .metrics-grid {
+    grid-template-columns: 1fr !important;
+  }
 }
