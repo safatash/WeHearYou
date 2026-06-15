@@ -3,12 +3,15 @@ export const dynamic = "force-dynamic";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
-import { getDashboardData } from "@/lib/dashboard";
+import { getDashboardData, type DashboardMetric } from "@/lib/dashboard";
 import { getCurrentAccessibleLocationIds } from "@/lib/current-scope";
 import { getCurrentMembership } from "@/lib/authz";
 import { prisma } from "@/lib/prisma";
 import { OnboardingChecklist } from "@/components/onboarding-checklist";
 import { canManageTeam } from "@/lib/team";
+import { Icon } from "@/components/icon";
+import { Sparkline, RatingTrendChart, Donut, SourceBars } from "@/components/dashboard/charts";
+import { RecentReviews } from "@/components/dashboard/recent-reviews";
 
 export default async function DashboardPage() {
   const membership = await getCurrentMembership();
@@ -48,8 +51,9 @@ export default async function DashboardPage() {
 
   const locationIds = await getCurrentAccessibleLocationIds();
   const dashboard = await getDashboardData(locationIds);
-  const userName = membership.user.name || "there";
+  const userName = membership.user.name?.split(" ")[0] || "there";
   const greeting = getGreeting(userName);
+  const dateLabel = new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
 
   return (
     <AppShell activeScreen="dashboard">
@@ -63,132 +67,122 @@ export default async function DashboardPage() {
           />
         )}
 
-        {/* Header with greeting and action buttons */}
-        <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 16, flexWrap: "wrap", marginBottom: 32 }}>
+        {/* Page header */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "flex-end",
+            justifyContent: "space-between",
+            gap: 16,
+            flexWrap: "wrap",
+            marginBottom: "var(--gutter)",
+          }}
+        >
           <div>
-            <h1 style={{ fontSize: 26, fontWeight: 680, letterSpacing: "-.025em", marginBottom: 8, color: "var(--ink-900)" }}>
-              {greeting}
-            </h1>
-            <p style={{ fontSize: 14, color: "var(--ink-500)", margin: 0 }}>
-              You have <strong style={{ color: "var(--ink-700)" }}>{dashboard.funnelOutcomes.awaitingResponse} reviews</strong> waiting for a reply and <strong style={{ color: "var(--ink-700)" }}>8 campaigns</strong> running.
+            <div className="eyebrow" style={{ marginBottom: 6 }}>
+              {dateLabel}
+            </div>
+            <h1 style={{ fontSize: 26, fontWeight: 680, letterSpacing: "-.025em" }}>{greeting}</h1>
+            <p style={{ fontSize: 13.5, color: "var(--ink-500)", marginTop: 5 }}>
+              You have{" "}
+              <b style={{ color: "var(--ink-800)" }}>{dashboard.funnelOutcomes.awaitingResponse} reviews</b>{" "}
+              waiting for a reply and {dashboard.runningCampaigns} campaigns running.
             </p>
           </div>
-          <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+          <div style={{ display: "flex", gap: 10 }}>
             <Link href="/reviews" className="btn btn-secondary">
-              📥 Review inbox
+              <Icon name="inbox" size={16} />
+              Review inbox
             </Link>
             <Link href="/campaigns/new" className="btn btn-primary">
-              ➕ New campaign
+              <Icon name="plus" size={16} />
+              New campaign
             </Link>
           </div>
         </div>
 
-        {/* SUNDAY, JUNE 14 date divider */}
-        <div style={{ marginBottom: 20 }}>
-          <p style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-400)", textTransform: "uppercase", letterSpacing: "0.1em", margin: 0 }}>
-            {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }).toUpperCase()}
-          </p>
+        {/* Metrics */}
+        <div
+          className="metrics-grid"
+          style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "var(--gutter)", marginBottom: "var(--gutter)" }}
+        >
+          {dashboard.metrics.map((m) => (
+            <MetricCard key={m.key} m={m} />
+          ))}
         </div>
 
-        {/* Metrics grid - 4 columns */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 32 }}>
-          <DashboardMetricCard
-            label="Total reviews"
-            value={dashboard.totalReviews}
-            change="+8.2"
-            changeType="positive"
-          />
-          <DashboardMetricCard
-            label="Average rating"
-            value={`${dashboard.googleAvgRating}★`}
-            change="+0.2"
-            changeType="positive"
-          />
-          <DashboardMetricCard
-            label="Response rate"
-            value={`${dashboard.requestConversion}%`}
-            change="+5.0"
-            changeType="positive"
-          />
-          <DashboardMetricCard
-            label="Pending replies"
-            value={dashboard.funnelOutcomes.awaitingResponse}
-            change="-3"
-            changeType="negative"
-          />
-        </div>
-
-        {/* Main content grid - 2/3 left, 1/3 right */}
-        <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 28 }}>
-          {/* Left column */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
-            {/* Rating & volume trend chart */}
+        {/* Main grid */}
+        <div
+          className="main-grid"
+          style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.9fr) minmax(0, 1fr)", gap: "var(--gutter)", alignItems: "start" }}
+        >
+          {/* LEFT column */}
+          <div style={{ display: "flex", flexDirection: "column", gap: "var(--gutter)" }}>
+            {/* Rating trend */}
             <div className="card" style={{ padding: "var(--card-pad)" }}>
-              <h2 style={{ fontSize: 15, fontWeight: 640, color: "var(--ink-900)", margin: "0 0 16px 0" }}>Rating & volume trend</h2>
-              <p style={{ fontSize: 13, color: "var(--ink-500)", margin: 0 }}>Average star rating over the last 12 weeks</p>
-              <div style={{ height: 200, marginTop: 16, background: "var(--ink-50)", borderRadius: "var(--r-sm)", display: "flex", alignItems: "flex-end", justifyContent: "space-around", padding: 16 }}>
-                {/* Chart placeholder - showing mock bars */}
-                {[40, 60, 50, 70, 65, 80, 75, 85, 90, 70, 65, 75].map((height, idx) => (
-                  <div key={idx} style={{ width: 6, height: `${height}%`, background: "var(--accent)", borderRadius: 2 }} />
-                ))}
+              <SectionHead
+                title="Rating & volume trend"
+                sub="Average star rating over the last 12 weeks"
+                action={
+                  <span className="badge badge-accent">
+                    <span style={{ width: 7, height: 7, borderRadius: "50%", background: "var(--accent)" }} />
+                    Avg rating
+                  </span>
+                }
+              />
+              <div style={{ marginTop: 14 }}>
+                <RatingTrendChart data={dashboard.weeklyTrend} height={224} />
               </div>
             </div>
 
-            {/* Sentiment section */}
+            {/* Recent reviews */}
             <div className="card" style={{ padding: "var(--card-pad)" }}>
-              <h2 style={{ fontSize: 15, fontWeight: 640, color: "var(--ink-900)", margin: "0 0 16px 0" }}>Sentiment</h2>
-              <p style={{ fontSize: 13, color: "var(--ink-500)", margin: "0 0 16px 0" }}>Last 30 days</p>
-              <div style={{ display: "flex", gap: 16 }}>
-                <SentimentCard label="Positive" value={142} color="var(--success)" />
-                <SentimentCard label="Neutral" value={45} color="var(--ink-400)" />
-                <SentimentCard label="Negative" value={12} color="var(--danger)" />
-              </div>
+              <SectionHead
+                title="Recent reviews"
+                sub="Across all connected sources"
+                action={
+                  <Link href="/reviews" className="btn btn-ghost btn-sm">
+                    View all
+                    <Icon name="chevRight" size={14} />
+                  </Link>
+                }
+              />
+              <RecentReviews reviews={dashboard.recentReviews} />
             </div>
           </div>
 
-          {/* Right column */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
-            {/* Quick stats sidebar */}
+          {/* RIGHT column */}
+          <div style={{ display: "flex", flexDirection: "column", gap: "var(--gutter)" }}>
+            {/* Sentiment */}
             <div className="card" style={{ padding: "var(--card-pad)" }}>
-              <h2 style={{ fontSize: 15, fontWeight: 640, color: "var(--ink-900)", margin: "0 0 16px 0" }}>Quick stats</h2>
-
-              <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-                <div>
-                  <p style={{ fontSize: 11, fontWeight: 600, color: "var(--ink-500)", textTransform: "uppercase", letterSpacing: "0.05em", margin: "0 0 4px 0" }}>
-                    Locations
-                  </p>
-                  <p style={{ fontSize: 20, fontWeight: 680, color: "var(--ink-900)", margin: 0 }}>{dashboard.locations.length}</p>
-                </div>
-
-                <div style={{ borderTop: "1px solid var(--ink-150)", paddingTop: 16 }}>
-                  <p style={{ fontSize: 11, fontWeight: 600, color: "var(--ink-500)", textTransform: "uppercase", letterSpacing: "0.05em", margin: "0 0 4px 0" }}>
-                    Top Location
-                  </p>
-                  {dashboard.locations.length > 0 ? (
-                    <>
-                      <p style={{ fontSize: 14, fontWeight: 620, color: "var(--ink-900)", margin: "0 0 2px 0" }}>
-                        {dashboard.locations[0].name}
-                      </p>
-                      <p style={{ fontSize: 12, color: "var(--ink-500)", margin: 0 }}>
-                        {dashboard.locations[0].avgRating?.toFixed(1)}★ ({dashboard.locations[0]._count.reviews} reviews)
-                      </p>
-                    </>
-                  ) : (
-                    <p style={{ fontSize: 13, color: "var(--ink-400)" }}>No locations</p>
-                  )}
-                </div>
-
-                <div style={{ borderTop: "1px solid var(--ink-150)", paddingTop: 16 }}>
-                  <p style={{ fontSize: 11, fontWeight: 600, color: "var(--ink-500)", textTransform: "uppercase", letterSpacing: "0.05em", margin: "0 0 4px 0" }}>
-                    Recent Activity
-                  </p>
-                  <p style={{ fontSize: 13, color: "var(--ink-600)", margin: 0 }}>
-                    {dashboard.recentActivity.length > 0
-                      ? `${dashboard.recentActivity.length} activities`
-                      : "No recent activity"}
-                  </p>
-                </div>
+              <SectionHead title="Sentiment" sub="Based on review ratings" />
+              <div style={{ marginTop: 16, display: "grid", placeItems: "center" }}>
+                <Donut data={dashboard.sentiment} centerLabel={`${dashboard.positivePct}%`} centerSub="Positive" />
               </div>
+            </div>
+
+            {/* Sources */}
+            <div className="card" style={{ padding: "var(--card-pad)" }}>
+              <SectionHead title="Review sources" sub="Where reviews come from" />
+              <div style={{ marginTop: 16 }}>
+                <SourceBars data={dashboard.sources} />
+              </div>
+            </div>
+
+            {/* Locations */}
+            <div className="card" style={{ padding: "var(--card-pad)" }}>
+              <SectionHead title="Locations" sub={`${dashboard.locations.length} connected`} />
+              <div style={{ marginTop: 4 }}>
+                {dashboard.locations.length === 0 ? (
+                  <p style={{ fontSize: 13, color: "var(--ink-400)", padding: "12px 0", margin: 0 }}>No locations yet</p>
+                ) : (
+                  dashboard.locations.slice(0, 4).map((loc) => <LocationRow key={loc.id} loc={loc} />)
+                )}
+              </div>
+              <Link href="/locations" className="btn btn-secondary btn-sm" style={{ width: "100%", marginTop: 14 }}>
+                Manage locations
+                <Icon name="arrowRight" size={14} />
+              </Link>
             </div>
           </div>
         </div>
@@ -204,39 +198,98 @@ function getGreeting(name: string): string {
   return `Good evening, ${name}`;
 }
 
-interface DashboardMetricCardProps {
-  label: string;
-  value: string | number;
-  change: string;
-  changeType: 'positive' | 'negative';
-}
-
-function DashboardMetricCard({ label, value, change, changeType }: DashboardMetricCardProps) {
-  const changeColor = changeType === 'positive' ? 'var(--success)' : 'var(--danger)';
-
+function SectionHead({ title, sub, action }: { title: string; sub?: string; action?: React.ReactNode }) {
   return (
-    <div className="card" style={{ padding: "var(--card-pad)", display: "flex", flexDirection: "column", gap: 12 }}>
-      <p style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-500)", margin: 0 }}>{label}</p>
-      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
-        <p style={{ fontSize: 28, fontWeight: 680, color: "var(--ink-900)", margin: 0 }}>{value}</p>
-        <p style={{ fontSize: 12, fontWeight: 600, color: changeColor, margin: 0 }}>{change}</p>
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+      <div>
+        <h3 style={{ fontSize: 15, fontWeight: 640, letterSpacing: "-.01em" }}>{title}</h3>
+        {sub && <div style={{ fontSize: 12, color: "var(--ink-400)", marginTop: 2 }}>{sub}</div>}
       </div>
-      {/* Mini trend chart */}
-      <div style={{ height: 30, background: "var(--ink-50)", borderRadius: 4, display: "flex", alignItems: "flex-end", justifyContent: "space-around", padding: "4px 6px", gap: 2 }}>
-        {[30, 35, 32, 38, 40, 35, 42, 45, 48, 50, 55, 58].map((h, i) => (
-          <div key={i} style={{ flex: 1, height: `${h}%`, background: changeColor, borderRadius: 1, opacity: 0.6 }} />
-        ))}
-      </div>
+      {action}
     </div>
   );
 }
 
-function SentimentCard({ label, value, color }: { label: string; value: number; color: string }) {
+function MetricCard({ m }: { m: DashboardMetric }) {
+  const positive = m.tone === "up" || m.tone === "down-good";
+  const deltaColor = positive ? "var(--success)" : m.tone === "down" ? "var(--danger)" : "var(--ink-400)";
+  const sparkColor = m.key === "pending" ? "var(--ink-400)" : "var(--accent)";
+  const showDelta = m.delta !== null;
+  const deltaDown = m.tone === "down" || m.tone === "down-good";
+
   return (
-    <div style={{ flex: 1, textAlign: "center" }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 60, height: 60, borderRadius: "50%", background: color, margin: "0 auto 8px", opacity: 0.2 }}></div>
-      <p style={{ fontSize: 13, fontWeight: 600, color: "var(--ink-900)", margin: "0 0 4px 0" }}>{value}</p>
-      <p style={{ fontSize: 12, color: "var(--ink-500)", margin: 0 }}>{label}</p>
+    <div className="card" style={{ padding: "var(--card-pad)", display: "flex", flexDirection: "column", gap: 10 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+        <span style={{ fontSize: 12.5, color: "var(--ink-500)", fontWeight: 540 }}>{m.label}</span>
+        {showDelta && (
+          <span
+            className="badge"
+            style={{ background: `color-mix(in srgb, ${deltaColor} 12%, #fff)`, color: deltaColor, height: 20, paddingLeft: 6 }}
+          >
+            <Icon name="arrowUp" size={11} style={{ transform: deltaDown ? "rotate(180deg)" : "none" }} />
+            <span className="tnum">
+              {m.delta! > 0 ? "+" : ""}
+              {m.delta}
+              {m.key === "rating" ? "" : m.key === "pending" ? "" : "%"}
+            </span>
+          </span>
+        )}
+      </div>
+      <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 12 }}>
+        <div style={{ display: "flex", alignItems: "baseline", gap: 3 }}>
+          <span className="tnum" style={{ fontSize: 31, fontWeight: 680, letterSpacing: "-.03em", lineHeight: 1 }}>
+            {m.value}
+          </span>
+          {m.suffix && (
+            <span style={{ fontSize: 18, fontWeight: 600, color: m.key === "rating" ? "var(--star)" : "var(--ink-400)" }}>
+              {m.suffix}
+            </span>
+          )}
+        </div>
+        <Sparkline data={m.spark} color={sparkColor} w={88} h={32} />
+      </div>
+      <div style={{ fontSize: 11.5, color: "var(--ink-400)" }}>{m.deltaLabel}</div>
+    </div>
+  );
+}
+
+function LocationRow({ loc }: { loc: { id: string; name: string; status: string; avgRating: number | null; _count: { reviews: number } } }) {
+  const attention = loc.status !== "healthy" && loc.status !== "ACTIVE";
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 4px", borderTop: "1px solid var(--ink-150)" }}>
+      <span
+        style={{
+          width: 30,
+          height: 30,
+          borderRadius: 8,
+          flex: "none",
+          display: "grid",
+          placeContent: "center",
+          background: "var(--accent-soft)",
+          color: "var(--accent-strong)",
+        }}
+      >
+        <Icon name="pin" size={15} />
+      </span>
+      <div style={{ minWidth: 0, flex: 1 }}>
+        <div style={{ fontSize: 13, fontWeight: 560, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+          {loc.name}
+        </div>
+        <div style={{ fontSize: 11.5, color: "var(--ink-400)" }} className="tnum">
+          {loc._count.reviews.toLocaleString()} reviews
+        </div>
+      </div>
+      <div style={{ textAlign: "right" }}>
+        <div className="tnum" style={{ fontSize: 13.5, fontWeight: 640 }}>
+          {loc.avgRating != null ? loc.avgRating.toFixed(1) : "—"}★
+        </div>
+        <div style={{ fontSize: 11, color: "var(--ink-400)" }}>avg rating</div>
+      </div>
+      <span
+        className={`badge ${attention ? "badge-warning" : "badge-success"}`}
+        style={{ width: 8, height: 8, padding: 0, borderRadius: "50%" }}
+        title={loc.status}
+      />
     </div>
   );
 }

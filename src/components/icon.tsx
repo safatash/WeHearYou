@@ -32,6 +32,13 @@ import {
   Plug,
   Package,
   Map,
+  Reply,
+  Tag,
+  Archive,
+  MoreHorizontal,
+  ChevronRight,
+  ArrowRight,
+  ArrowUp,
   LucideIcon,
 } from 'lucide-react';
 
@@ -39,7 +46,8 @@ export type IconName =
   | 'search' | 'bell' | 'settings' | 'logout' | 'pin' | 'chevDown' | 'check' | 'plus'
   | 'eye' | 'mail' | 'megaphone' | 'trash' | 'upload' | 'grid' | 'layers' | 'film'
   | 'star' | 'chat' | 'send' | 'sliders' | 'code' | 'copy' | 'sun' | 'moon'
-  | 'monitor' | 'phone' | 'chevLeft' | 'close' | 'sparkles' | 'inbox' | 'plug' | 'package' | 'map';
+  | 'monitor' | 'phone' | 'chevLeft' | 'close' | 'sparkles' | 'inbox' | 'plug' | 'package' | 'map'
+  | 'reply' | 'tag' | 'archive' | 'dots' | 'chevRight' | 'arrowRight' | 'arrowUp';
 
 const iconMap: Record<IconName, LucideIcon> = {
   search: Search,
@@ -75,6 +83,13 @@ const iconMap: Record<IconName, LucideIcon> = {
   plug: Plug,
   package: Package,
   map: Map,
+  reply: Reply,
+  tag: Tag,
+  archive: Archive,
+  dots: MoreHorizontal,
+  chevRight: ChevronRight,
+  arrowRight: ArrowRight,
+  arrowUp: ArrowUp,
 };
 
 interface IconProps {

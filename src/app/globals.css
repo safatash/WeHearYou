@@ -26,9 +26,24 @@
 
   /* Semantic colors */
   --success: #10b981;
+  --success-soft: #d1fae5;
   --warning: #f59e0b;
+  --warning-soft: #fef3c7;
   --danger: #ef4444;
+  --danger-soft: #fee2e2;
   --star: #fbbf24;
+
+  /* Review source brand colors */
+  --src-google: #4285f4;
+  --src-facebook: #1877f2;
+  --src-yelp: #af0606;
+  --src-trustpilot: #00b67a;
+
+  /* Monospace / tabular numerals */
+  --font-mono: ui-monospace, "SF Mono", "Geist Mono", Menlo, monospace;
+
+  /* Row padding for list items */
+  --row-pad: 13px;
 
   /* Shadows */
   --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
@@ -200,6 +215,56 @@ textarea {
 .badge-success {
   background: color-mix(in srgb, var(--success) 10%, var(--white));
   color: var(--success);
+}
+
+.badge-accent {
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+
+.badge-warning {
+  background: color-mix(in srgb, var(--warning) 14%, var(--white));
+  color: var(--warning);
+}
+
+.badge-danger {
+  background: color-mix(in srgb, var(--danger) 12%, var(--white));
+  color: var(--danger);
+}
+
+/* Tabular numerals for aligned figures */
+.tnum {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/* Inline SVG icon baseline alignment */
+.ic {
+  display: inline-block;
+  vertical-align: middle;
+  flex: none;
+}
+
+/* Entrance animations */
+@keyframes growW {
+  from {
+    width: 0 !important;
+  }
+}
+
+@keyframes animUp {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.anim-up {
+  animation: animUp 0.18s cubic-bezier(0.2, 0.7, 0.2, 1) both;
 }
 
 /* Input styling */
