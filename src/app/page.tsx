@@ -63,14 +63,24 @@ export default async function DashboardPage() {
           />
         )}
 
-        {/* Greeting section */}
-        <div style={{ marginBottom: "var(--gutter)" }}>
-          <h1 style={{ fontSize: 26, fontWeight: 680, letterSpacing: "-.025em", marginBottom: 8, color: "var(--ink-900)" }}>
-            {greeting}
-          </h1>
-          <p style={{ fontSize: 15, color: "var(--ink-500)", margin: 0 }}>
-            {dashboard.totalReviews} total reviews • {dashboard.googleAvgRating}★ average rating
-          </p>
+        {/* Greeting section with action buttons */}
+        <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 16, flexWrap: "wrap", marginBottom: "var(--gutter)" }}>
+          <div>
+            <h1 style={{ fontSize: 26, fontWeight: 680, letterSpacing: "-.025em", marginBottom: 8, color: "var(--ink-900)" }}>
+              {greeting}
+            </h1>
+            <p style={{ fontSize: 15, color: "var(--ink-500)", margin: 0 }}>
+              {dashboard.totalReviews} total reviews • {dashboard.googleAvgRating}★ average rating
+            </p>
+          </div>
+          <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+            <Link href="/reviews" className="btn btn-secondary">
+              📥 Review inbox
+            </Link>
+            <Link href="/campaigns/new" className="btn btn-primary">
+              ➕ New campaign
+            </Link>
+          </div>
         </div>
 
         {/* Metrics grid */}

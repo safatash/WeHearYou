@@ -4,6 +4,7 @@ import { auth } from "@/auth";
 import { FlashToast } from "@/components/flash-toast";
 import { SignOutButton } from "@/components/sign-out-button";
 import { MotivationBlock } from "@/components/motivation-block";
+import { Icon } from "@/components/icon";
 import { getCurrentMembership } from "@/lib/authz";
 import { stopImpersonation } from "@/app/admin/actions";
 import { navItems, type ScreenKey } from "@/lib/navigation";
@@ -42,25 +43,25 @@ export async function AppShell({
     : [];
 
   return (
-    <div className="flex min-h-screen bg-white text-slate-900">
+    <div style={{ display: "flex", minHeight: "100vh", background: "var(--white)", color: "var(--ink-900)" }}>
       {/* Sidebar */}
-      <aside className="hidden w-72 flex-col border-r border-slate-200 bg-white px-5 py-6 lg:flex sticky top-0 h-screen overflow-y-auto">
+      <aside style={{ display: "none", flexDirection: "column", width: 248, borderRight: "1px solid var(--ink-200)", background: "var(--white)", paddingLeft: 20, paddingRight: 20, paddingTop: 24, paddingBottom: 24, position: "sticky", top: 0, height: "100vh", overflowY: "auto" }} className="lg:flex">
         <div>
           <Link
             href="/"
             className="flex items-center gap-3 rounded-lg px-3 py-3 text-decoration-none"
           >
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-600 text-lg font-bold text-white">
+            <div style={{ display: "flex", height: 40, width: 40, alignItems: "center", justifyContent: "center", borderRadius: "var(--r-md)", background: "var(--accent)", fontSize: 18, fontWeight: "bold", color: "white" }}>
               W
             </div>
             <div>
-              <p className="text-xs font-bold uppercase tracking-[0.05em] text-slate-500">WeHearYou</p>
-              <h1 className="text-sm font-semibold text-slate-900">Reputation</h1>
+              <p style={{ fontSize: 11, fontWeight: "bold", textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--ink-500)", margin: 0 }}>WeHearYou</p>
+              <h1 style={{ fontSize: 14, fontWeight: 600, color: "var(--ink-900)", margin: "4px 0 0 0" }}>Reputation</h1>
             </div>
           </Link>
         </div>
 
-        <nav className="mt-8 flex flex-1 flex-col gap-6">
+        <nav style={{ marginTop: 32, display: "flex", flex: 1, flexDirection: "column", gap: 24 }}>
           {(() => {
             const grouped = navItems.reduce(
               (acc, item) => {
@@ -91,13 +92,21 @@ export async function AppShell({
                       <Link
                         key={item.key}
                         href={item.href}
-                        className={`flex items-center gap-3 rounded-lg px-4 py-2 text-sm font-semibold transition ${
-                          active
-                            ? "bg-indigo-600 text-white shadow-sm"
-                            : "text-slate-700 hover:bg-slate-50"
-                        }`}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 12,
+                          borderRadius: "var(--r-md)",
+                          padding: "8px 16px",
+                          fontSize: 14,
+                          fontWeight: 600,
+                          transition: "all 0.2s ease",
+                          background: active ? "var(--accent)" : "transparent",
+                          color: active ? "white" : "var(--ink-700)",
+                          boxShadow: active ? "var(--shadow-sm)" : "none",
+                        }}
                       >
-                        <span className="text-base">{item.icon}</span>
+                        <Icon name={item.icon} size={20} style={{ color: "currentColor" }} />
                         <span>{item.label}</span>
                       </Link>
                     );
@@ -110,21 +119,32 @@ export async function AppShell({
 
                   return (
                     <div key={groupName}>
-                      <p className="px-4 py-2 text-xs font-bold uppercase tracking-[0.05em] text-slate-400">
+                      <p style={{ padding: "8px 16px", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--ink-400)", margin: 0 }}>
                         {groupName}
                       </p>
-                      <div className="space-y-1">
+                      <div style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: 8 }}>
                         {items.map((item) => {
                           const active = item.key === activeScreen;
                           if (item.comingSoon) {
                             return (
                               <div
                                 key={item.key}
-                                className="flex items-center gap-3 rounded-lg px-4 py-2 text-sm font-semibold text-slate-400 opacity-50 cursor-not-allowed"
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: 12,
+                                  borderRadius: "var(--r-md)",
+                                  padding: "8px 16px",
+                                  fontSize: 14,
+                                  fontWeight: 600,
+                                  color: "var(--ink-400)",
+                                  opacity: 0.5,
+                                  cursor: "not-allowed",
+                                }}
                               >
-                                <span className="text-base">{item.icon}</span>
+                                <Icon name={item.icon} size={20} style={{ color: "currentColor" }} />
                                 <span>{item.label}</span>
-                                <span className="ml-auto text-[10px] font-bold uppercase">Soon</span>
+                                <span style={{ marginLeft: "auto", fontSize: 10, fontWeight: "bold", textTransform: "uppercase" }}>Soon</span>
                               </div>
                             );
                           }
@@ -132,13 +152,21 @@ export async function AppShell({
                             <Link
                               key={item.key}
                               href={item.href}
-                              className={`flex items-center gap-3 rounded-lg px-4 py-2 text-sm font-semibold transition ${
-                                active
-                                  ? "bg-indigo-600 text-white shadow-sm"
-                                  : "text-slate-700 hover:bg-slate-50"
-                              }`}
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 12,
+                                borderRadius: "var(--r-md)",
+                                padding: "8px 16px",
+                                fontSize: 14,
+                                fontWeight: 600,
+                                transition: "all 0.2s ease",
+                                background: active ? "var(--accent)" : "transparent",
+                                color: active ? "white" : "var(--ink-700)",
+                                boxShadow: active ? "var(--shadow-sm)" : "none",
+                              }}
                             >
-                              <span className="text-base">{item.icon}</span>
+                              <Icon name={item.icon} size={20} style={{ color: "currentColor" }} />
                               <span>{item.label}</span>
                             </Link>
                           );
@@ -153,7 +181,7 @@ export async function AppShell({
         </nav>
 
         {/* Motivation block */}
-        <div className="mt-auto border-t border-slate-200 pt-6">
+        <div style={{ marginTop: "auto", borderTop: "1px solid var(--ink-200)", paddingTop: 24 }}>
           <MotivationBlock
             title="You're doing great!"
             subtitle="Keep collecting those reviews."
@@ -162,21 +190,31 @@ export async function AppShell({
         </div>
       </aside>
 
-      <div className="flex flex-1 flex-col">
+      <div style={{ display: "flex", flex: 1, flexDirection: "column" }}>
         {/* Header */}
-        <header className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-200 bg-white/95 px-4 py-4 backdrop-blur lg:px-8">
-          <div className="flex flex-1 items-center gap-4">
+        <header style={{ position: "sticky", top: 0, zIndex: 10, display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid var(--ink-200)", background: "rgba(255, 255, 255, 0.95)", paddingLeft: 16, paddingRight: 16, paddingTop: 16, paddingBottom: 16, backdropFilter: "blur(10px)" }} className="lg:px-8">
+          <div style={{ display: "flex", flex: 1, alignItems: "center", gap: 16 }}>
             <input
               type="text"
               placeholder="Search..."
-              className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm text-slate-600 placeholder-slate-400 focus:border-indigo-300 focus:outline-none w-64"
+              style={{
+                borderRadius: "9999px",
+                border: "1px solid var(--ink-200)",
+                background: "var(--white)",
+                padding: "8px 16px",
+                fontSize: 14,
+                color: "var(--ink-600)",
+                width: 256,
+              }}
+              onFocus={(e) => { e.currentTarget.style.borderColor = "var(--accent)"; e.currentTarget.style.boxShadow = "0 0 0 3px var(--accent-ring)"; }}
+              onBlur={(e) => { e.currentTarget.style.borderColor = "var(--ink-200)"; e.currentTarget.style.boxShadow = "none"; }}
             />
           </div>
 
-          <div className="flex items-center gap-3">
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <LocationSwitcher locations={locations} />
 
-            <button className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50">
+            <button style={{ borderRadius: "var(--r-md)", border: "1px solid var(--ink-200)", background: "var(--white)", padding: "8px 12px", fontSize: 14, fontWeight: 600, color: "var(--ink-600)", cursor: "pointer", transition: "all 0.2s ease" }} onMouseEnter={(e) => { e.currentTarget.style.background = "var(--ink-50)"; }} onMouseLeave={(e) => { e.currentTarget.style.background = "var(--white)"; }}>
               🔔
             </button>
 
@@ -186,12 +224,12 @@ export async function AppShell({
 
         {/* Impersonation banner */}
         {isImpersonating && (
-          <div className="flex items-center justify-between gap-4 border-b border-amber-300 bg-amber-100 px-4 py-2.5 lg:px-8">
-            <p className="text-sm font-semibold text-amber-900">
-              👁 Viewing as <span className="text-amber-700">{membership?.user.name ?? membership?.user.email}</span> · {membership?.organization.name}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, borderBottom: "1px solid #fcd34d", background: "#fef3c7", paddingLeft: 16, paddingRight: 16, paddingTop: 10, paddingBottom: 10 }} className="lg:px-8">
+            <p style={{ fontSize: 14, fontWeight: 600, color: "#78350f", margin: 0 }}>
+              👁 Viewing as <span style={{ color: "#b45309" }}>{membership?.user.name ?? membership?.user.email}</span> · {membership?.organization.name}
             </p>
             <form action={stopImpersonation}>
-              <button type="submit" className="rounded-lg bg-amber-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-800 transition">
+              <button type="submit" style={{ borderRadius: "var(--r-md)", background: "#78350f", paddingLeft: 12, paddingRight: 12, paddingTop: 6, paddingBottom: 6, fontSize: 12, fontWeight: 600, color: "white", cursor: "pointer", transition: "all 0.2s ease" }} onMouseEnter={(e) => { e.currentTarget.style.background = "#451a03"; }} onMouseLeave={(e) => { e.currentTarget.style.background = "#78350f"; }}>
                 Exit impersonation
               </button>
             </form>
@@ -199,8 +237,8 @@ export async function AppShell({
         )}
 
         {/* Main content */}
-        <main className="flex-1 px-4 py-6 lg:px-8">
-          {flash ? <div className="mb-4"><FlashToast tone={flash.tone} message={flash.message} /></div> : null}
+        <main style={{ flex: 1, paddingLeft: 16, paddingRight: 16, paddingTop: 24, paddingBottom: 24 }} className="lg:px-8">
+          {flash ? <div style={{ marginBottom: 16 }}><FlashToast tone={flash.tone} message={flash.message} /></div> : null}
           {children}
         </main>
       </div>

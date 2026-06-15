@@ -31,14 +31,15 @@ import {
   Inbox,
   Plug,
   Package,
+  Map,
   LucideIcon,
 } from 'lucide-react';
 
-type IconName =
+export type IconName =
   | 'search' | 'bell' | 'settings' | 'logout' | 'pin' | 'chevDown' | 'check' | 'plus'
   | 'eye' | 'mail' | 'megaphone' | 'trash' | 'upload' | 'grid' | 'layers' | 'film'
   | 'star' | 'chat' | 'send' | 'sliders' | 'code' | 'copy' | 'sun' | 'moon'
-  | 'monitor' | 'phone' | 'chevLeft' | 'close' | 'sparkles' | 'inbox' | 'plug' | 'package';
+  | 'monitor' | 'phone' | 'chevLeft' | 'close' | 'sparkles' | 'inbox' | 'plug' | 'package' | 'map';
 
 const iconMap: Record<IconName, LucideIcon> = {
   search: Search,
@@ -73,6 +74,7 @@ const iconMap: Record<IconName, LucideIcon> = {
   inbox: Inbox,
   plug: Plug,
   package: Package,
+  map: Map,
 };
 
 interface IconProps {
