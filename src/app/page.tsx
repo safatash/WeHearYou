@@ -63,14 +63,14 @@ export default async function DashboardPage() {
           />
         )}
 
-        {/* Greeting section with action buttons */}
-        <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 16, flexWrap: "wrap", marginBottom: "var(--gutter)" }}>
+        {/* Header with greeting and action buttons */}
+        <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 16, flexWrap: "wrap", marginBottom: 32 }}>
           <div>
             <h1 style={{ fontSize: 26, fontWeight: 680, letterSpacing: "-.025em", marginBottom: 8, color: "var(--ink-900)" }}>
               {greeting}
             </h1>
-            <p style={{ fontSize: 15, color: "var(--ink-500)", margin: 0 }}>
-              {dashboard.totalReviews} total reviews • {dashboard.googleAvgRating}★ average rating
+            <p style={{ fontSize: 14, color: "var(--ink-500)", margin: 0 }}>
+              You have <strong style={{ color: "var(--ink-700)" }}>{dashboard.funnelOutcomes.awaitingResponse} reviews</strong> waiting for a reply and <strong style={{ color: "var(--ink-700)" }}>8 campaigns</strong> running.
             </p>
           </div>
           <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
@@ -83,29 +83,113 @@ export default async function DashboardPage() {
           </div>
         </div>
 
-        {/* Metrics grid */}
-        <div className="metrics-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: "var(--gutter)" }}>
-          <MetricCard label="Total Reviews" value={dashboard.totalReviews} />
-          <MetricCard label="Avg. Rating" value={dashboard.googleAvgRating} />
-          <MetricCard label="Response Rate" value={dashboard.requestConversion} />
-          <MetricCard label="This Month" value={dashboard.googleReviewsThisMonth} />
+        {/* SUNDAY, JUNE 14 date divider */}
+        <div style={{ marginBottom: 20 }}>
+          <p style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-400)", textTransform: "uppercase", letterSpacing: "0.1em", margin: 0 }}>
+            {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }).toUpperCase()}
+          </p>
         </div>
 
-        {/* Main content grid */}
-        <div className="main-grid" style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: "var(--gutter)" }}>
-          {/* Left column */}
-          <div style={{ display: "flex", flexDirection: "column", gap: "var(--gutter)" }}>
-            {/* Recent reviews */}
-            <RecentReviewsSection reviews={dashboard.recentActivity} />
+        {/* Metrics grid - 4 columns */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 32 }}>
+          <DashboardMetricCard
+            label="Total reviews"
+            value={dashboard.totalReviews}
+            change="+8.2"
+            changeType="positive"
+          />
+          <DashboardMetricCard
+            label="Average rating"
+            value={`${dashboard.googleAvgRating}★`}
+            change="+0.2"
+            changeType="positive"
+          />
+          <DashboardMetricCard
+            label="Response rate"
+            value={`${dashboard.requestConversion}%`}
+            change="+5.0"
+            changeType="positive"
+          />
+          <DashboardMetricCard
+            label="Pending replies"
+            value={dashboard.funnelOutcomes.awaitingResponse}
+            change="-3"
+            changeType="negative"
+          />
+        </div>
 
-            {/* Funnel outcomes */}
-            <FunnelOutcomesSection outcomes={dashboard.funnelOutcomes} />
+        {/* Main content grid - 2/3 left, 1/3 right */}
+        <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 28 }}>
+          {/* Left column */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
+            {/* Rating & volume trend chart */}
+            <div className="card" style={{ padding: "var(--card-pad)" }}>
+              <h2 style={{ fontSize: 15, fontWeight: 640, color: "var(--ink-900)", margin: "0 0 16px 0" }}>Rating & volume trend</h2>
+              <p style={{ fontSize: 13, color: "var(--ink-500)", margin: 0 }}>Average star rating over the last 12 weeks</p>
+              <div style={{ height: 200, marginTop: 16, background: "var(--ink-50)", borderRadius: "var(--r-sm)", display: "flex", alignItems: "flex-end", justifyContent: "space-around", padding: 16 }}>
+                {/* Chart placeholder - showing mock bars */}
+                {[40, 60, 50, 70, 65, 80, 75, 85, 90, 70, 65, 75].map((height, idx) => (
+                  <div key={idx} style={{ width: 6, height: `${height}%`, background: "var(--accent)", borderRadius: 2 }} />
+                ))}
+              </div>
+            </div>
+
+            {/* Sentiment section */}
+            <div className="card" style={{ padding: "var(--card-pad)" }}>
+              <h2 style={{ fontSize: 15, fontWeight: 640, color: "var(--ink-900)", margin: "0 0 16px 0" }}>Sentiment</h2>
+              <p style={{ fontSize: 13, color: "var(--ink-500)", margin: "0 0 16px 0" }}>Last 30 days</p>
+              <div style={{ display: "flex", gap: 16 }}>
+                <SentimentCard label="Positive" value={142} color="var(--success)" />
+                <SentimentCard label="Neutral" value={45} color="var(--ink-400)" />
+                <SentimentCard label="Negative" value={12} color="var(--danger)" />
+              </div>
+            </div>
           </div>
 
           {/* Right column */}
-          <div style={{ display: "flex", flexDirection: "column", gap: "var(--gutter)" }}>
-            {/* Quick stats */}
-            <QuickStatsSection dashboard={dashboard} />
+          <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
+            {/* Quick stats sidebar */}
+            <div className="card" style={{ padding: "var(--card-pad)" }}>
+              <h2 style={{ fontSize: 15, fontWeight: 640, color: "var(--ink-900)", margin: "0 0 16px 0" }}>Quick stats</h2>
+
+              <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                <div>
+                  <p style={{ fontSize: 11, fontWeight: 600, color: "var(--ink-500)", textTransform: "uppercase", letterSpacing: "0.05em", margin: "0 0 4px 0" }}>
+                    Locations
+                  </p>
+                  <p style={{ fontSize: 20, fontWeight: 680, color: "var(--ink-900)", margin: 0 }}>{dashboard.locations.length}</p>
+                </div>
+
+                <div style={{ borderTop: "1px solid var(--ink-150)", paddingTop: 16 }}>
+                  <p style={{ fontSize: 11, fontWeight: 600, color: "var(--ink-500)", textTransform: "uppercase", letterSpacing: "0.05em", margin: "0 0 4px 0" }}>
+                    Top Location
+                  </p>
+                  {dashboard.locations.length > 0 ? (
+                    <>
+                      <p style={{ fontSize: 14, fontWeight: 620, color: "var(--ink-900)", margin: "0 0 2px 0" }}>
+                        {dashboard.locations[0].name}
+                      </p>
+                      <p style={{ fontSize: 12, color: "var(--ink-500)", margin: 0 }}>
+                        {dashboard.locations[0].avgRating?.toFixed(1)}★ ({dashboard.locations[0]._count.reviews} reviews)
+                      </p>
+                    </>
+                  ) : (
+                    <p style={{ fontSize: 13, color: "var(--ink-400)" }}>No locations</p>
+                  )}
+                </div>
+
+                <div style={{ borderTop: "1px solid var(--ink-150)", paddingTop: 16 }}>
+                  <p style={{ fontSize: 11, fontWeight: 600, color: "var(--ink-500)", textTransform: "uppercase", letterSpacing: "0.05em", margin: "0 0 4px 0" }}>
+                    Recent Activity
+                  </p>
+                  <p style={{ fontSize: 13, color: "var(--ink-600)", margin: 0 }}>
+                    {dashboard.recentActivity.length > 0
+                      ? `${dashboard.recentActivity.length} activities`
+                      : "No recent activity"}
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -120,96 +204,39 @@ function getGreeting(name: string): string {
   return `Good evening, ${name}`;
 }
 
-function MetricCard({ label, value }: { label: string; value: string | number }) {
+interface DashboardMetricCardProps {
+  label: string;
+  value: string | number;
+  change: string;
+  changeType: 'positive' | 'negative';
+}
+
+function DashboardMetricCard({ label, value, change, changeType }: DashboardMetricCardProps) {
+  const changeColor = changeType === 'positive' ? 'var(--success)' : 'var(--danger)';
+
   return (
-    <div className="card" style={{ padding: "var(--card-pad)", display: "flex", flexDirection: "column", gap: 8 }}>
+    <div className="card" style={{ padding: "var(--card-pad)", display: "flex", flexDirection: "column", gap: 12 }}>
       <p style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-500)", margin: 0 }}>{label}</p>
-      <p style={{ fontSize: 24, fontWeight: 680, color: "var(--ink-900)", margin: 0 }}>{value}</p>
-    </div>
-  );
-}
-
-function RecentReviewsSection({ reviews }: { reviews: any[] }) {
-  return (
-    <div className="card" style={{ padding: "var(--card-pad)" }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-        <h2 style={{ fontSize: 15, fontWeight: 640, color: "var(--ink-900)", margin: 0 }}>Recent activity</h2>
-        <Link href="/reviews" style={{ fontSize: 13, color: "var(--accent)", fontWeight: 600, textDecoration: "none" }}>
-          View all →
-        </Link>
+      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
+        <p style={{ fontSize: 28, fontWeight: 680, color: "var(--ink-900)", margin: 0 }}>{value}</p>
+        <p style={{ fontSize: 12, fontWeight: 600, color: changeColor, margin: 0 }}>{change}</p>
       </div>
-
-      {reviews.length === 0 ? (
-        <p style={{ fontSize: 13.5, color: "var(--ink-500)", margin: 0 }}>No activity yet</p>
-      ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          {reviews.slice(0, 5).map((item: any, idx: number) => (
-            <div key={idx} style={{ paddingBottom: 12, borderBottom: "1px solid var(--ink-150)" }}>
-              <p style={{ fontSize: 13, color: "var(--ink-600)", margin: 0 }}>{item.description || item.type}</p>
-              <p style={{ fontSize: 12, color: "var(--ink-400)", margin: "2px 0 0 0" }}>{item.location || "Unknown location"}</p>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function FunnelOutcomesSection({ outcomes }: { outcomes: any }) {
-  return (
-    <div className="card" style={{ padding: "var(--card-pad)" }}>
-      <h2 style={{ fontSize: 15, fontWeight: 640, color: "var(--ink-900)", margin: "0 0 16px 0" }}>Funnel outcomes</h2>
-
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        <OutcomeRow label="Google Reviews" value={outcomes.redirectedToGoogle} />
-        <OutcomeRow label="Private Feedback" value={outcomes.privateFeedback} />
-        <OutcomeRow label="Awaiting Response" value={outcomes.awaitingResponse} />
-        <OutcomeRow label="Testimonials" value={outcomes.testimonials} />
+      {/* Mini trend chart */}
+      <div style={{ height: 30, background: "var(--ink-50)", borderRadius: 4, display: "flex", alignItems: "flex-end", justifyContent: "space-around", padding: "4px 6px", gap: 2 }}>
+        {[30, 35, 32, 38, 40, 35, 42, 45, 48, 50, 55, 58].map((h, i) => (
+          <div key={i} style={{ flex: 1, height: `${h}%`, background: changeColor, borderRadius: 1, opacity: 0.6 }} />
+        ))}
       </div>
     </div>
   );
 }
 
-function OutcomeRow({ label, value }: { label: string; value: number }) {
+function SentimentCard({ label, value, color }: { label: string; value: number; color: string }) {
   return (
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: 10, background: "var(--ink-50)", borderRadius: "var(--r-sm)" }}>
-      <p style={{ fontSize: 13, color: "var(--ink-700)", margin: 0, fontWeight: 600 }}>{label}</p>
-      <p style={{ fontSize: 15, fontWeight: 680, color: "var(--ink-900)", margin: 0 }}>{value}</p>
-    </div>
-  );
-}
-
-function QuickStatsSection({ dashboard }: { dashboard: any }) {
-  return (
-    <div className="card" style={{ padding: "var(--card-pad)" }}>
-      <h2 style={{ fontSize: 15, fontWeight: 640, color: "var(--ink-900)", margin: "0 0 16px 0" }}>Quick stats</h2>
-
-      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-        <div>
-          <p style={{ fontSize: 11, fontWeight: 600, color: "var(--ink-500)", textTransform: "uppercase", letterSpacing: "0.05em", margin: "0 0 4px 0" }}>
-            Locations
-          </p>
-          <p style={{ fontSize: 20, fontWeight: 680, color: "var(--ink-900)", margin: 0 }}>{dashboard.locations.length}</p>
-        </div>
-
-        <div style={{ borderTop: "1px solid var(--ink-150)", paddingTop: 16 }}>
-          <p style={{ fontSize: 11, fontWeight: 600, color: "var(--ink-500)", textTransform: "uppercase", letterSpacing: "0.05em", margin: "0 0 4px 0" }}>
-            Top Location
-          </p>
-          {dashboard.locations.length > 0 ? (
-            <>
-              <p style={{ fontSize: 14, fontWeight: 620, color: "var(--ink-900)", margin: "0 0 2px 0" }}>
-                {dashboard.locations[0].name}
-              </p>
-              <p style={{ fontSize: 12, color: "var(--ink-500)", margin: 0 }}>
-                {dashboard.locations[0].avgRating?.toFixed(1)}★ ({dashboard.locations[0].reviewCount} reviews)
-              </p>
-            </>
-          ) : (
-            <p style={{ fontSize: 13, color: "var(--ink-400)" }}>No locations</p>
-          )}
-        </div>
-      </div>
+    <div style={{ flex: 1, textAlign: "center" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 60, height: 60, borderRadius: "50%", background: color, margin: "0 auto 8px", opacity: 0.2 }}></div>
+      <p style={{ fontSize: 13, fontWeight: 600, color: "var(--ink-900)", margin: "0 0 4px 0" }}>{value}</p>
+      <p style={{ fontSize: 12, color: "var(--ink-500)", margin: 0 }}>{label}</p>
     </div>
   );
 }
