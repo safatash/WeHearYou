@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 
 /* ---------- Tiny sparkline ---------- */
 export function Sparkline({
@@ -16,6 +16,7 @@ export function Sparkline({
   color?: string;
   fill?: boolean;
 }) {
+  const gid = "sg" + useId().replace(/:/g, "");
   if (data.length < 2) return <svg width={w} height={h} />;
   const max = Math.max(...data);
   const min = Math.min(...data);
@@ -23,7 +24,6 @@ export function Sparkline({
   const pts = data.map((d, i) => [(i / (data.length - 1)) * w, h - 4 - ((d - min) / rng) * (h - 8)] as const);
   const line = pts.map((p, i) => `${i ? "L" : "M"}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(" ");
   const area = `${line} L${w},${h} L0,${h} Z`;
-  const gid = useRef("sg" + Math.random().toString(36).slice(2, 7)).current;
   const last = pts[pts.length - 1];
   return (
     <svg viewBox={`0 0 ${w} ${h}`} width={w} height={h} style={{ display: "block", overflow: "visible" }}>
