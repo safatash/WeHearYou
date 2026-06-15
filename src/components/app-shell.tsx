@@ -25,6 +25,12 @@ export async function AppShell({
   const [session, membership] = await Promise.all([auth(), getCurrentMembership()]);
   const userName = membership?.user.name ?? session?.user?.name ?? "Unknown User";
   const userEmail = membership?.user.email ?? session?.user?.email ?? "No email";
+  const initials = userName
+    .split(" ")
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
 
   // Fetch locations for the switcher
   const locations = membership
@@ -36,63 +42,25 @@ export async function AppShell({
     : [];
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh", background: "var(--page)", color: "var(--ink-900)" }}>
+    <div className="flex min-h-screen bg-white text-slate-900">
       {/* Sidebar */}
-      <aside
-        style={{
-          display: "none",
-          width: "var(--sidebar-w)",
-          flexDirection: "column",
-          borderRight: "1px solid var(--ink-200)",
-          background: "var(--white)",
-          padding: "24px 20px",
-          position: "sticky",
-          top: 0,
-          height: "100vh",
-          overflowY: "auto",
-        }}
-        className="lg:flex"
-      >
-        {/* Logo */}
-        <div style={{ marginBottom: 24 }}>
+      <aside className="hidden w-72 flex-col border-r border-slate-200 bg-white px-5 py-6 lg:flex sticky top-0 h-screen overflow-y-auto">
+        <div>
           <Link
             href="/"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 12,
-              padding: "12px 16px",
-              borderRadius: "var(--r-md)",
-              textDecoration: "none",
-              color: "inherit",
-            }}
+            className="flex items-center gap-3 rounded-lg px-3 py-3 text-decoration-none"
           >
-            <div
-              style={{
-                width: 40,
-                height: 40,
-                borderRadius: "var(--r-md)",
-                background: "var(--accent)",
-                color: "white",
-                display: "grid",
-                placeItems: "center",
-                fontSize: 20,
-                fontWeight: 700,
-              }}
-            >
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-600 text-lg font-bold text-white">
               W
             </div>
             <div>
-              <p style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-500)", textTransform: "uppercase", letterSpacing: "0.05em", margin: 0 }}>
-                WeHearYou
-              </p>
-              <h1 style={{ fontSize: 14, fontWeight: 600, color: "var(--ink-900)", margin: 0 }}>Reputation</h1>
+              <p className="text-xs font-bold uppercase tracking-[0.05em] text-slate-500">WeHearYou</p>
+              <h1 className="text-sm font-semibold text-slate-900">Reputation</h1>
             </div>
           </Link>
         </div>
 
-        {/* Navigation */}
-        <nav style={{ flex: 1, display: "flex", flexDirection: "column", gap: 24 }}>
+        <nav className="mt-8 flex flex-1 flex-col gap-6">
           {(() => {
             const grouped = navItems.reduce(
               (acc, item) => {
@@ -123,59 +91,40 @@ export async function AppShell({
                       <Link
                         key={item.key}
                         href={item.href}
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 12,
-                          padding: "10px 16px",
-                          borderRadius: "var(--r-md)",
-                          fontSize: 14,
-                          fontWeight: 600,
-                          textDecoration: "none",
-                          color: active ? "white" : "var(--ink-700)",
-                          background: active ? "var(--accent)" : "transparent",
-                          transition: "all 0.2s",
-                        }}
+                        className={`flex items-center gap-3 rounded-lg px-4 py-2 text-sm font-semibold transition ${
+                          active
+                            ? "bg-indigo-600 text-white shadow-sm"
+                            : "text-slate-700 hover:bg-slate-50"
+                        }`}
                       >
-                        <span style={{ fontSize: 18 }}>{item.icon}</span>
+                        <span className="text-base">{item.icon}</span>
                         <span>{item.label}</span>
                       </Link>
                     );
                   })}
 
-                {/* Grouped items */}
+                {/* Groups */}
                 {orderedGroups.map((groupName) => {
                   const items = grouped[groupName] || [];
                   if (items.length === 0) return null;
 
                   return (
                     <div key={groupName}>
-                      <p style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-400)", textTransform: "uppercase", letterSpacing: "0.05em", padding: "8px 16px", margin: 0 }}>
+                      <p className="px-4 py-2 text-xs font-bold uppercase tracking-[0.05em] text-slate-400">
                         {groupName}
                       </p>
-                      <div style={{ display: "flex", flexDirection: "column", gap: 2, marginTop: 8 }}>
+                      <div className="space-y-1">
                         {items.map((item) => {
                           const active = item.key === activeScreen;
                           if (item.comingSoon) {
                             return (
                               <div
                                 key={item.key}
-                                style={{
-                                  display: "flex",
-                                  alignItems: "center",
-                                  gap: 12,
-                                  padding: "10px 16px",
-                                  borderRadius: "var(--r-md)",
-                                  fontSize: 14,
-                                  fontWeight: 600,
-                                  color: "var(--ink-400)",
-                                  opacity: 0.5,
-                                  cursor: "not-allowed",
-                                }}
+                                className="flex items-center gap-3 rounded-lg px-4 py-2 text-sm font-semibold text-slate-400 opacity-50 cursor-not-allowed"
                               >
-                                <span style={{ fontSize: 18 }}>{item.icon}</span>
-                                <span style={{ flex: 1 }}>{item.label}</span>
-                                <span style={{ fontSize: 10, fontWeight: 700, color: "var(--ink-400)" }}>Soon</span>
+                                <span className="text-base">{item.icon}</span>
+                                <span>{item.label}</span>
+                                <span className="ml-auto text-[10px] font-bold uppercase">Soon</span>
                               </div>
                             );
                           }
@@ -183,21 +132,13 @@ export async function AppShell({
                             <Link
                               key={item.key}
                               href={item.href}
-                              style={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 12,
-                                padding: "10px 16px",
-                                borderRadius: "var(--r-md)",
-                                fontSize: 14,
-                                fontWeight: 600,
-                                textDecoration: "none",
-                                color: active ? "white" : "var(--ink-700)",
-                                background: active ? "var(--accent)" : "transparent",
-                                transition: "all 0.2s",
-                              }}
+                              className={`flex items-center gap-3 rounded-lg px-4 py-2 text-sm font-semibold transition ${
+                                active
+                                  ? "bg-indigo-600 text-white shadow-sm"
+                                  : "text-slate-700 hover:bg-slate-50"
+                              }`}
                             >
-                              <span style={{ fontSize: 18 }}>{item.icon}</span>
+                              <span className="text-base">{item.icon}</span>
                               <span>{item.label}</span>
                             </Link>
                           );
@@ -211,8 +152,8 @@ export async function AppShell({
           })()}
         </nav>
 
-        {/* Footer motivation block */}
-        <div style={{ marginTop: "auto", paddingTop: 24, borderTop: "1px solid var(--ink-150)" }}>
+        {/* Motivation block */}
+        <div className="mt-auto border-t border-slate-200 pt-6">
           <MotivationBlock
             title="You're doing great!"
             subtitle="Keep collecting those reviews."
@@ -221,58 +162,21 @@ export async function AppShell({
         </div>
       </aside>
 
-      {/* Main content */}
-      <div style={{ display: "flex", flex: 1, flexDirection: "column", minHeight: "100vh" }}>
+      <div className="flex flex-1 flex-col">
         {/* Header */}
-        <header
-          style={{
-            position: "sticky",
-            top: 0,
-            zIndex: 10,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            height: "var(--topbar-h)",
-            borderBottom: "1px solid var(--ink-200)",
-            background: "var(--white)",
-            padding: "0 20px",
-            backdropFilter: "blur(10px)",
-            backgroundColor: "rgba(255, 255, 255, 0.95)",
-          }}
-          className="lg:px-8"
-        >
-          {/* Left side - Search */}
-          <div style={{ display: "flex", alignItems: "center", gap: 12, flex: 1 }}>
+        <header className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-200 bg-white/95 px-4 py-4 backdrop-blur lg:px-8">
+          <div className="flex flex-1 items-center gap-4">
             <input
               type="text"
               placeholder="Search..."
-              style={{
-                padding: "8px 16px",
-                borderRadius: "var(--r-full)",
-                border: "1px solid var(--ink-200)",
-                background: "var(--white)",
-                fontSize: 14,
-                width: "300px",
-              }}
+              className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm text-slate-600 placeholder-slate-400 focus:border-indigo-300 focus:outline-none w-64"
             />
           </div>
 
-          {/* Right side - Location switcher, notifications, user */}
-          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+          <div className="flex items-center gap-3">
             <LocationSwitcher locations={locations} />
 
-            <button
-              style={{
-                padding: "8px 16px",
-                borderRadius: "var(--r-md)",
-                border: "1px solid var(--ink-200)",
-                background: "var(--white)",
-                fontSize: 14,
-                fontWeight: 600,
-                cursor: "pointer",
-                color: "var(--ink-700)",
-              }}
-            >
+            <button className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50">
               🔔
             </button>
 
@@ -282,25 +186,21 @@ export async function AppShell({
 
         {/* Impersonation banner */}
         {isImpersonating && (
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, padding: "10px 20px", borderBottom: "1px solid var(--warning)", background: "color-mix(in srgb, var(--warning) 10%, var(--white))", fontSize: 14, fontWeight: 600, color: "var(--ink-900)" }} className="lg:px-8">
-            <p style={{ margin: 0 }}>
-              👁 Viewing as <strong>{membership?.user.name ?? membership?.user.email}</strong> · {membership?.organization.name}
+          <div className="flex items-center justify-between gap-4 border-b border-amber-300 bg-amber-100 px-4 py-2.5 lg:px-8">
+            <p className="text-sm font-semibold text-amber-900">
+              👁 Viewing as <span className="text-amber-700">{membership?.user.name ?? membership?.user.email}</span> · {membership?.organization.name}
             </p>
             <form action={stopImpersonation}>
-              <button type="submit" className="btn btn-sm btn-secondary">
+              <button type="submit" className="rounded-lg bg-amber-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-800 transition">
                 Exit impersonation
               </button>
             </form>
           </div>
         )}
 
-        {/* Main content area */}
-        <main style={{ flex: 1, padding: "0 20px" }} className="lg:px-8">
-          {flash ? (
-            <div style={{ marginBottom: 16 }}>
-              <FlashToast tone={flash.tone} message={flash.message} />
-            </div>
-          ) : null}
+        {/* Main content */}
+        <main className="flex-1 px-4 py-6 lg:px-8">
+          {flash ? <div className="mb-4"><FlashToast tone={flash.tone} message={flash.message} /></div> : null}
           {children}
         </main>
       </div>
