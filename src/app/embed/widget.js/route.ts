@@ -453,6 +453,7 @@ const script = `
   }
 
   function renderAiSummary(data) {
+    if (data.widget.showAiSummary === false) return "";
     if (!data.location.aiReviewSummary) return "";
     var countHtml = data.location.aiReviewSummaryReviewCount
       ? '<p style="margin:0;font-size:10px;color:#a5b4fc">Based on ' + escapeHtml(String(data.location.aiReviewSummaryReviewCount)) + ' reviews</p>'

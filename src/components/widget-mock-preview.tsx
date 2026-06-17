@@ -11,13 +11,15 @@ import { Icon } from "@/components/icon";
 const st = (s: React.CSSProperties): React.CSSProperties => s;
 
 export type PreviewSettings = {
-  type: "grid" | "carousel" | "single" | "badge" | "floating" | "cta";
+  type: "grid" | "carousel" | "single" | "badge" | "floating" | "collecting";
   theme: "light" | "dark";
   accent: string;
   radius: number;
   device: "desktop" | "mobile";
   content: "reviews" | "videos" | "mixed";
   aiSummary: boolean;
+  aiSummaryText: string | null;
+  aiSummaryCount: number | null;
   sources: Record<string, boolean>;
   minRating: number;
   maxReviews: number;
@@ -26,6 +28,18 @@ export type PreviewSettings = {
   showSources: boolean;
   showHeader: boolean;
   showBranding: boolean;
+  // Badge
+  badgeStyle: "rating" | "compact" | "review_cta" | "trust";
+  // Collecting
+  collectPosition: "bottom-right" | "bottom-left" | "right" | "left";
+  collectTheme: "default" | "minimal" | "branded";
+  collectColor: string | null;
+  // Floating
+  floatingCardStyle: "dark_solid_pill" | "frosted_glass_pill" | "notification_compact" | "below_card";
+  floatingVariation: "compact" | "standard" | "rich";
+  floatingPosition: "bottom-right" | "bottom-left" | "right" | "left";
+  floatingAccentColor: string;
+  floatingMinRating: number;
 };
 
 export const PREVIEW_DEFAULTS: PreviewSettings = {
@@ -36,6 +50,8 @@ export const PREVIEW_DEFAULTS: PreviewSettings = {
   device: "desktop",
   content: "mixed",
   aiSummary: true,
+  aiSummaryText: null,
+  aiSummaryCount: null,
   sources: { Google: true, Facebook: true, Yelp: true, Trustpilot: true },
   minRating: 4,
   maxReviews: 6,
@@ -44,6 +60,15 @@ export const PREVIEW_DEFAULTS: PreviewSettings = {
   showSources: true,
   showHeader: true,
   showBranding: true,
+  badgeStyle: "rating",
+  collectPosition: "bottom-right",
+  collectTheme: "default",
+  collectColor: null,
+  floatingCardStyle: "dark_solid_pill",
+  floatingVariation: "standard",
+  floatingPosition: "bottom-right",
+  floatingAccentColor: "#4f46e5",
+  floatingMinRating: 4,
 };
 
 const SOURCE_META: Record<string, { color: string; letter: string }> = {
@@ -74,11 +99,6 @@ const VIDEOS: Video[] = [
   { id: 3, name: "Hannah Kim", rating: 5, quote: "The most comfortable visit I've ever had. Truly.", time: "3 weeks ago", source: "Facebook", length: "0:55" },
 ];
 
-const AI_SUMMARY = {
-  count: 1284,
-  text: "Customers consistently praise the friendly, professional staff and the clean, welcoming space. Many highlight short wait times, clear communication, and results that exceeded expectations.",
-  highlights: ["Friendly staff", "Clean office", "Short waits", "Great results"],
-};
 
 const Stars = ({ value = 0, size = 14, gap = 1.5 }: { value?: number; size?: number; gap?: number }) => {
   const full = Math.floor(value);
@@ -194,6 +214,8 @@ const VideoCardW = ({ v, s, tk }: { v: Video; s: PreviewSettings; tk: Tokens }) 
 
 const AISummaryBox = ({ s, tk }: { s: PreviewSettings; tk: Tokens }) => {
   const dark = s.theme === "dark";
+  const text = s.aiSummaryText;
+  const chips = text ? ["Highly rated", "Recommended", "Verified reviews"] : [];
   return (
     <div style={st({ borderRadius: s.radius, padding: 16, marginBottom: 18, border: `1px solid color-mix(in srgb, ${s.accent} ${dark ? 40 : 26}%, ${tk.line})`, background: `color-mix(in srgb, ${s.accent} ${dark ? 16 : 8}%, ${tk.bg})` })}>
       <div style={st({ display: "flex", alignItems: "center", gap: 8, marginBottom: 9 })}>
@@ -201,17 +223,37 @@ const AISummaryBox = ({ s, tk }: { s: PreviewSettings; tk: Tokens }) => {
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 3l1.7 5L19 9.7 14 11l-2 5-2-5-5-1.3L10 8z" fill={s.accent} /></svg>
           AI Summary
         </span>
-        <span style={st({ marginLeft: "auto", fontSize: 11, color: tk.muted, whiteSpace: "nowrap" })}>Based on {AI_SUMMARY.count} reviews</span>
+        {text && s.aiSummaryCount ? (
+          <span style={st({ marginLeft: "auto", fontSize: 11, color: tk.muted, whiteSpace: "nowrap" })}>Based on {s.aiSummaryCount} reviews</span>
+        ) : null}
       </div>
-      <p style={st({ fontSize: 13, lineHeight: 1.6, color: tk.sub, margin: 0 })}>{AI_SUMMARY.text}</p>
-      <div style={st({ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 11 })}>
-        {AI_SUMMARY.highlights.map((h) => (
-          <span key={h} style={st({ fontSize: 11.5, fontWeight: 540, padding: "3px 9px", borderRadius: 999, background: tk.card, border: `1px solid ${tk.line}`, color: tk.sub })}>{h}</span>
-        ))}
-      </div>
+      {text ? (
+        <>
+          <p style={st({ fontSize: 13, lineHeight: 1.6, color: tk.sub, margin: 0 })}>{text}</p>
+          <div style={st({ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 11 })}>
+            {chips.map((h) => (
+              <span key={h} style={st({ fontSize: 11.5, fontWeight: 540, padding: "3px 9px", borderRadius: 999, background: tk.card, border: `1px solid ${tk.line}`, color: tk.sub })}>{h}</span>
+            ))}
+          </div>
+        </>
+      ) : (
+        <p style={st({ fontSize: 12.5, lineHeight: 1.6, color: tk.muted, margin: 0, fontStyle: "italic" })}>
+          Your AI review summary will appear here once it&rsquo;s generated for this location.
+        </p>
+      )}
     </div>
   );
 };
+
+// Corner placement for floating / collecting overlays within the preview frame.
+function cornerStyle(pos: string): React.CSSProperties {
+  switch (pos) {
+    case "bottom-left": return { left: 18, bottom: 18 };
+    case "right": return { right: 0, top: "50%", transform: "translateY(-50%)" };
+    case "left": return { left: 0, top: "50%", transform: "translateY(-50%)" };
+    default: return { right: 18, bottom: 18 };
+  }
+}
 
 export function WidgetMockPreview({ settings }: { settings: Partial<PreviewSettings> }) {
   const s: PreviewSettings = { ...PREVIEW_DEFAULTS, ...settings };
@@ -233,23 +275,86 @@ export function WidgetMockPreview({ settings }: { settings: Partial<PreviewSetti
     ) : null;
 
   if (s.type === "floating") {
-    return (
-      <div style={st({ position: "absolute", right: 22, bottom: 22, display: "flex", alignItems: "center", gap: 11, background: tk.card, border: `1px solid ${tk.line}`, borderRadius: 999, padding: "9px 16px 9px 11px", boxShadow: "0 12px 30px -8px rgba(0,0,0,.28)" })}>
-        <span style={st({ width: 34, height: 34, borderRadius: "50%", background: s.accent, display: "grid", placeItems: "center", flex: "none" })}>
-          <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M4 11.5a7.5 7.5 0 0 1 15 0c0 5-7 9.5-7 9.5" stroke="#fff" strokeWidth="2" strokeLinecap="round" /><path d="M8.5 11.5h.01M12 11.5h.01M15.5 11.5h.01" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" /></svg>
-        </span>
-        <div style={st({ lineHeight: 1.25 })}>
-          <div style={st({ display: "flex", alignItems: "center", gap: 6 })}>
-            <span style={st({ fontSize: 15, fontWeight: 720, color: tk.text, fontFamily: "var(--font-mono)" })}>{avg}</span>
-            <Stars value={avg} size={13} />
+    const r = REVIEWS.find((x) => x.rating >= s.floatingMinRating) || REVIEWS[0];
+    const accent = s.floatingAccentColor || s.accent;
+    const compact = s.floatingVariation === "compact";
+    const quote = r.text.length > (compact ? 60 : 110) ? r.text.slice(0, compact ? 60 : 110) + "…" : r.text;
+    const source = r.source === "Google" ? "On Google" : "On " + r.source;
+    const cardBase: React.CSSProperties = { background: "#fff", borderRadius: 14, boxShadow: "0 6px 20px rgba(0,0,0,.16)", padding: "12px 14px", border: "1px solid rgba(0,0,0,.06)", width: s.floatingVariation === "rich" ? 270 : 240 };
+    const avatar = <span style={st({ width: 30, height: 30, borderRadius: "50%", background: accent, color: "#fff", display: "grid", placeItems: "center", fontWeight: 700, fontSize: 12, flex: "none" })}>{r.name[0]}</span>;
+
+    let card: React.ReactNode;
+    if (s.floatingCardStyle === "notification_compact") {
+      card = (
+        <div style={st(cardBase)}>
+          <div style={st({ display: "flex", alignItems: "center", gap: 8 })}>
+            {avatar}
+            <div>
+              <div style={st({ fontSize: 12, fontWeight: 700, color: "#0f172a" })}>{r.name}</div>
+              <div style={st({ fontSize: 11, color: "#64748b" })}>just left a {r.rating}-star review</div>
+              <div style={st({ display: "flex", alignItems: "center", gap: 6, marginTop: 2 })}><Stars value={r.rating} size={11} /><span style={st({ fontSize: 10, color: "#64748b", fontWeight: 500 })}>{source}</span></div>
+            </div>
           </div>
-          <div style={st({ fontSize: 11, color: tk.muted })}>{total} reviews</div>
         </div>
-      </div>
-    );
+      );
+    } else if (s.floatingCardStyle === "below_card") {
+      card = (
+        <div style={st(cardBase)}>
+          <Stars value={r.rating} size={13} />
+          {!compact && <p style={st({ fontSize: 11, color: "#475569", lineHeight: 1.5, paddingLeft: 7, margin: "7px 0", borderLeft: `2px solid ${accent}` })}>{quote}</p>}
+          <div style={st({ display: "flex", alignItems: "center", gap: 7, marginTop: 7 })}>{avatar}<div><div style={st({ fontSize: 11, fontWeight: 700, color: "#0f172a" })}>{r.name}</div><div style={st({ fontSize: 9, color: "#64748b" })}>{source}</div></div></div>
+        </div>
+      );
+    } else {
+      const pillBg = s.floatingCardStyle === "frosted_glass_pill" ? "rgba(15,23,42,.65)" : "#0f172a";
+      card = (
+        <div style={st(cardBase)}>
+          <Stars value={r.rating} size={13} />
+          {!compact && <p style={st({ fontSize: 11, color: "#475569", lineHeight: 1.5, paddingLeft: 7, margin: "7px 0", borderLeft: `2px solid ${accent}` })}>{quote}</p>}
+          <div style={st({ display: "inline-flex", alignItems: "center", gap: 7, borderRadius: 999, padding: "4px 10px 4px 4px", background: pillBg, marginTop: 7, backdropFilter: s.floatingCardStyle === "frosted_glass_pill" ? "blur(4px)" : undefined })}>
+            {avatar}
+            <div><div style={st({ fontSize: 11, fontWeight: 700, color: "#fff" })}>{r.name}</div><div style={st({ fontSize: 9, color: "rgba(255,255,255,.7)" })}>{source}</div></div>
+          </div>
+        </div>
+      );
+    }
+    return <div style={st({ position: "absolute", zIndex: 5, maxWidth: 280, ...cornerStyle(s.floatingPosition) })}>{card}</div>;
   }
 
   if (s.type === "badge") {
+    if (s.badgeStyle === "compact") {
+      return (
+        <span style={st({ display: "inline-flex", alignItems: "center", gap: 8, background: tk.card, border: `1px solid ${tk.line}`, borderRadius: 999, padding: "6px 13px", boxShadow: "var(--shadow-sm)" })}>
+          <span style={st({ fontSize: 15, fontWeight: 720, color: tk.text, fontFamily: "var(--font-mono)" })}>{avg}</span>
+          <Stars value={avg} size={13} />
+          <span style={st({ fontSize: 11.5, color: tk.muted })}>({total})</span>
+        </span>
+      );
+    }
+    if (s.badgeStyle === "review_cta") {
+      return (
+        <div style={st({ display: "inline-flex", flexDirection: "column", gap: 12, background: tk.card, border: `1px solid ${tk.line}`, borderRadius: s.radius, padding: "16px 20px", boxShadow: "var(--shadow-sm)", textAlign: "center", alignItems: "center" })}>
+          <div style={st({ display: "flex", alignItems: "center", gap: 10 })}>
+            <span style={st({ fontSize: 24, fontWeight: 720, color: tk.text, fontFamily: "var(--font-mono)" })}>{avg}</span>
+            <div><Stars value={avg} size={15} /><div style={st({ fontSize: 11, color: tk.muted, marginTop: 2 })}>{total} reviews</div></div>
+          </div>
+          <button style={st({ border: 0, cursor: "pointer", background: s.accent, color: "#fff", borderRadius: 8, padding: "8px 18px", fontSize: 13, fontWeight: 600 })}>Write a review</button>
+        </div>
+      );
+    }
+    if (s.badgeStyle === "trust") {
+      return (
+        <div style={st({ display: "inline-flex", alignItems: "center", gap: 13, background: tk.card, border: `1px solid ${tk.line}`, borderRadius: s.radius, padding: "11px 18px", boxShadow: "var(--shadow-sm)" })}>
+          <span style={st({ display: "grid", placeItems: "center", width: 30, height: 30, borderRadius: 8, background: `color-mix(in srgb, ${s.accent} 14%, ${tk.bg})`, color: s.accent })}>
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z" stroke={s.accent} strokeWidth="2" strokeLinejoin="round" /></svg>
+          </span>
+          <div style={st({ width: 1, height: 26, background: tk.line })} />
+          <span style={st({ fontSize: 20, fontWeight: 720, color: tk.text, fontFamily: "var(--font-mono)" })}>{avg}</span>
+          <Stars value={avg} size={15} />
+          <span style={st({ fontSize: 12, color: tk.muted, whiteSpace: "nowrap" })}>{total} reviews · Excellent</span>
+        </div>
+      );
+    }
     return (
       <div style={st({ display: "inline-flex", alignItems: "center", gap: 12, background: tk.card, border: `1px solid ${tk.line}`, borderRadius: s.radius, padding: "12px 18px", boxShadow: "var(--shadow-sm)" })}>
         <span style={st({ fontSize: 26, fontWeight: 720, color: tk.text, fontFamily: "var(--font-mono)", letterSpacing: "-.02em" })}>{avg}</span>
@@ -262,22 +367,38 @@ export function WidgetMockPreview({ settings }: { settings: Partial<PreviewSetti
     );
   }
 
-  if (s.type === "cta") {
+  if (s.type === "collecting") {
+    const color = s.collectColor || s.accent;
+    const isTab = s.collectPosition === "right" || s.collectPosition === "left";
+    const themed: React.CSSProperties =
+      s.collectTheme === "minimal"
+        ? { background: "#fff", color, border: `2px solid ${color}` }
+        : { background: color, color: "#fff", border: "none" };
+    const tabRadius = s.collectPosition === "right" ? "10px 0 0 10px" : "0 10px 10px 0";
     return (
-      <div style={st({ maxWidth: 460, margin: "0 auto", background: tk.card, border: `1px solid ${tk.line}`, borderRadius: s.radius, padding: 26, textAlign: "center" })}>
-        <div style={st({ width: 50, height: 50, borderRadius: 14, margin: "0 auto 14px", display: "grid", placeItems: "center", background: `color-mix(in srgb, ${s.accent} 14%, ${tk.bg})`, color: s.accent })}>
-          <Icon name="chat" size={24} />
-        </div>
-        <h3 style={st({ fontSize: 19, fontWeight: 680, color: tk.text, letterSpacing: "-.02em" })}>How was your visit?</h3>
-        <p style={st({ fontSize: 13.5, color: tk.sub, margin: "8px 0 18px", lineHeight: 1.5 })}>Your feedback helps others find great care. It only takes a minute.</p>
-        <div style={st({ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" })}>
-          {Object.keys(s.sources).filter((k) => s.sources[k]).map((src) => (
-            <span key={src} style={st({ display: "inline-flex", alignItems: "center", gap: 7, border: `1px solid ${tk.line}`, background: tk.bg, color: tk.text, borderRadius: 8, padding: "9px 13px", fontSize: 13, fontWeight: 560 })}>
-              <SourceBadge source={src} size={16} />{src}
-            </span>
-          ))}
-        </div>
-        <div style={st({ marginTop: 16 })}><VerifiedTag s={s} tk={tk} /></div>
+      <div style={st({ position: "absolute", zIndex: 5, ...cornerStyle(s.collectPosition) })}>
+        <button
+          style={st({
+            ...themed,
+            cursor: "pointer",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 7,
+            fontSize: 13,
+            fontWeight: 600,
+            boxShadow: "0 6px 18px rgba(0,0,0,.18)",
+            padding: isTab ? "14px 9px" : "11px 17px",
+            borderRadius: isTab ? tabRadius : 999,
+            writingMode: isTab ? "vertical-rl" : undefined,
+            transform: s.collectPosition === "left" ? "rotate(180deg)" : undefined,
+          })}
+        >
+          {!isTab && <Icon name="chat" size={15} />}
+          Share Feedback
+          {s.collectTheme === "branded" && !isTab && (
+            <span style={st({ fontSize: 9, fontWeight: 700, opacity: 0.75, borderLeft: "1px solid rgba(255,255,255,.4)", paddingLeft: 6 })}>WeHearYou</span>
+          )}
+        </button>
       </div>
     );
   }
@@ -372,7 +493,7 @@ export function mapWidgetToPreviewSettings(w: {
   let type: PreviewSettings["type"] = "grid";
   if (w.widgetType === "BADGE" || w.layout === "badge") type = "badge";
   else if (w.widgetType === "FLOATING" || w.layout === "floating") type = "floating";
-  else if (w.widgetType === "COLLECTING") type = "cta";
+  else if (w.widgetType === "COLLECTING") type = "collecting";
   else if (w.widgetType === "SINGLE_TESTIMONIAL") type = "single";
   else if (w.layout === "carousel" || w.layout === "slider" || w.layout === "video-carousel" || w.layout === "mixed-carousel") type = "carousel";
   else type = "grid";

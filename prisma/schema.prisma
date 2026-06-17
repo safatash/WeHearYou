@@ -610,6 +610,7 @@ model ReviewWidget {
   showDate         Boolean      @default(true)
   showWriteReview  Boolean      @default(true)
   showResponses    Boolean      @default(false)
+  showAiSummary    Boolean      @default(true)
   bodyMaxChars     Int          @default(280)
 
   // Appearance panel

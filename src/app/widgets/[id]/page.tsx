@@ -12,9 +12,7 @@ import { deleteReviewWidget } from "@/app/widgets/actions";
 // Simple text widgets get the mock-style Studio; floating/collecting/video
 // widgets keep the detailed customizer so their advanced config isn't lost.
 function isSimpleWidget(w: { widgetType: string | null; contentType: string; layout: string }): boolean {
-  if (w.widgetType === "FLOATING" || w.widgetType === "COLLECTING") return false;
-  if (w.layout === "floating") return false;
-  // Advanced layouts that only the detailed customizer can configure.
+  // Advanced video/mixed layouts that only the detailed customizer can configure.
   const advancedLayouts = new Set(["featured-video", "video-wall", "tabbed", "featured-video-reviews"]);
   if (advancedLayouts.has(w.layout)) return false;
   return true;
@@ -78,7 +76,22 @@ export default async function WidgetDetailPage({
       showSourceLogo: widget.showSourceLogo,
       primaryColor: widget.primaryColor,
       starColor: widget.starColor,
+      showAiSummary: widget.showAiSummary,
       badgeStyle: widget.badgeStyle ?? null,
+      collectButtonPosition: widget.collectButtonPosition ?? null,
+      collectButtonTheme: widget.collectButtonTheme ?? null,
+      collectButtonColor: widget.collectButtonColor ?? null,
+      collectMobileBehavior: widget.collectMobileBehavior ?? null,
+      floatingCardStyle: widget.floatingCardStyle ?? null,
+      floatingVariation: widget.floatingVariation ?? null,
+      floatingPosition: widget.floatingPosition ?? null,
+      floatingRotationEnabled: widget.floatingRotationEnabled ?? null,
+      floatingRotationIntervalSec: widget.floatingRotationIntervalSec ?? null,
+      floatingAccentColorMode: widget.floatingAccentColorMode ?? null,
+      floatingAccentColor: widget.floatingAccentColor ?? null,
+      floatingMobileBehavior: widget.floatingMobileBehavior ?? null,
+      floatingApprovedOnly: widget.floatingApprovedOnly ?? null,
+      floatingMinRating: widget.floatingMinRating ?? null,
       sort: widget.sort,
       headerAlign: widget.headerAlign,
       bodyMaxChars: widget.bodyMaxChars,
@@ -89,9 +102,12 @@ export default async function WidgetDetailPage({
       showReviewCount: widget.showReviewCount,
       showResponses: widget.showResponses,
     };
+    const profile = widget.location.publicProfile;
+    const aiSummaryText = profile?.showAiReviewSummary ? (profile.aiReviewSummary ?? null) : null;
+    const aiSummaryCount = profile?.showAiReviewSummary ? (profile.aiReviewSummaryReviewCount ?? null) : null;
     return (
       <AppShell activeScreen="widgets" flash={flash ? { message: flash, tone } : null}>
-        <WidgetStudioEditor widget={studioWidget} embedScriptUrl={embedScriptUrl} locations={locationOptions} />
+        <WidgetStudioEditor widget={studioWidget} embedScriptUrl={embedScriptUrl} locations={locationOptions} aiSummaryText={aiSummaryText} aiSummaryCount={aiSummaryCount} />
       </AppShell>
     );
   }

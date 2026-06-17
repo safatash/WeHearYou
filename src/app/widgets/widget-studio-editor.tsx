@@ -12,16 +12,19 @@ const st = (s: React.CSSProperties): React.CSSProperties => s;
 const PAGE_SIZE_OPTIONS = [2, 4, 6, 8, 10, 12, 16];
 const ACCENTS = ["#4f46e5", "#2563eb", "#0e9488", "#7c3aed", "#e0533d", "#18181b"];
 
-type TypeKey = "grid" | "carousel" | "single" | "badge";
+type TypeKey = "grid" | "carousel" | "single" | "badge" | "collecting" | "floating";
 
 const STUDIO_TYPES: Array<{ id: TypeKey; label: string; icon: IconName; desc: string }> = [
   { id: "grid", label: "Wall of Love", icon: "grid", desc: "Masonry of reviews" },
   { id: "carousel", label: "Review carousel", icon: "layers", desc: "Scrolling row of reviews" },
   { id: "single", label: "Single testimonial", icon: "film", desc: "One standout quote" },
   { id: "badge", label: "Rating badge", icon: "star", desc: "Compact score + stars" },
+  { id: "collecting", label: "Collect reviews", icon: "send", desc: "Floating feedback button" },
+  { id: "floating", label: "Floating badge", icon: "chat", desc: "Sticky social-proof card" },
 ];
 
 type ContentKey = "reviews" | "videos" | "mixed";
+type BadgeStyle = "rating" | "compact" | "review_cta" | "trust";
 
 // What each type maps to in the real schema. The embed keys video/mixed off
 // contentType (not the layout name), so layout stays masonry/carousel/grid/badge.
@@ -30,6 +33,8 @@ const TYPE_TO_FIELDS: Record<TypeKey, { widgetType: string; layout: string }> = 
   carousel: { widgetType: "WALL_OF_LOVE", layout: "carousel" },
   single: { widgetType: "SINGLE_TESTIMONIAL", layout: "grid" },
   badge: { widgetType: "BADGE", layout: "badge" },
+  collecting: { widgetType: "COLLECTING", layout: "grid" },
+  floating: { widgetType: "FLOATING", layout: "floating" },
 };
 
 function deriveContent(contentType: string): ContentKey {
@@ -39,7 +44,7 @@ function deriveContent(contentType: string): ContentKey {
 }
 
 function resolveContentType(typeKey: TypeKey, content: ContentKey): string {
-  if (typeKey === "badge") return "TEXT";
+  if (typeKey === "badge" || typeKey === "collecting" || typeKey === "floating") return "TEXT";
   if (typeKey === "single") return content === "videos" ? "VIDEO" : "TEXT";
   return content === "videos" ? "VIDEO" : content === "mixed" ? "MIXED" : "TEXT";
 }
@@ -64,8 +69,25 @@ export type StudioWidget = {
   showSourceLogo: boolean;
   primaryColor: string;
   starColor: string;
-  // preserved-as-is fields (not exposed in this simple editor)
+  showAiSummary: boolean;
   badgeStyle: string | null;
+  // Collecting
+  collectButtonPosition: string | null;
+  collectButtonTheme: string | null;
+  collectButtonColor: string | null;
+  collectMobileBehavior: string | null;
+  // Floating
+  floatingCardStyle: string | null;
+  floatingVariation: string | null;
+  floatingPosition: string | null;
+  floatingRotationEnabled: boolean | null;
+  floatingRotationIntervalSec: number | null;
+  floatingAccentColorMode: string | null;
+  floatingAccentColor: string | null;
+  floatingMobileBehavior: string | null;
+  floatingApprovedOnly: boolean | null;
+  floatingMinRating: number | null;
+  // preserved-as-is fields (not exposed in this editor)
   sort: string;
   headerAlign: string;
   bodyMaxChars: number;
@@ -78,6 +100,8 @@ export type StudioWidget = {
 };
 
 function deriveTypeKey(w: StudioWidget): TypeKey {
+  if (w.widgetType === "FLOATING" || w.layout === "floating") return "floating";
+  if (w.widgetType === "COLLECTING") return "collecting";
   if (w.widgetType === "BADGE" || w.layout === "badge") return "badge";
   if (w.widgetType === "SINGLE_TESTIMONIAL") return "single";
   if (w.layout === "carousel" || w.layout === "slider") return "carousel";
@@ -110,6 +134,29 @@ const Segmented = <T extends string>({ value, options, onChange }: { value: T; o
         </button>
       );
     })}
+  </div>
+);
+
+const OptionGroup = ({ value, options, onChange, cols = 2 }: { value: string; options: Array<{ value: string; label: string }>; onChange: (v: string) => void; cols?: number }) => (
+  <div style={st({ display: "grid", gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: 6 })}>
+    {options.map((o) => {
+      const active = value === o.value;
+      return (
+        <button key={o.value} type="button" onClick={() => onChange(o.value)}
+          style={st({ borderRadius: 8, padding: "8px 10px", fontSize: 12.5, fontWeight: 560, cursor: "pointer", textAlign: "center", border: active ? "1px solid var(--accent)" : "1px solid var(--ink-200)", background: active ? "var(--accent-softer)" : "var(--white)", color: active ? "var(--accent-strong)" : "var(--ink-700)" })}>
+          {o.label}
+        </button>
+      );
+    })}
+  </div>
+);
+
+const ColorField = ({ mode, color, onMode, onColor }: { mode: string; color: string; onMode: (v: string) => void; onColor: (v: string) => void }) => (
+  <div style={st({ display: "flex", flexDirection: "column", gap: 8 })}>
+    <Segmented value={mode} onChange={onMode} options={[{ value: "inherit", label: "Inherit brand" }, { value: "custom", label: "Custom" }]} />
+    {mode === "custom" && (
+      <input type="color" value={color} onChange={(e) => onColor(e.target.value)} style={st({ width: "100%", height: 34, borderRadius: "var(--r-sm)", border: "1px solid var(--ink-200)", background: "var(--white)", cursor: "pointer", padding: 2 })} />
+    )}
   </div>
 );
 
@@ -170,7 +217,7 @@ const EmbedCode = ({ code }: { code: string }) => {
 };
 
 /* ================= Studio editor ================= */
-export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [] }: { widget: StudioWidget; embedScriptUrl: string; locations?: Array<{ id: string; name: string }> }) {
+export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [], aiSummaryText = null, aiSummaryCount = null }: { widget: StudioWidget; embedScriptUrl: string; locations?: Array<{ id: string; name: string }>; aiSummaryText?: string | null; aiSummaryCount?: number | null }) {
   const [name, setName] = useState(widget.name);
   const [locationId, setLocationId] = useState(widget.locationId);
   const [typeKey, setTypeKey] = useState<TypeKey>(deriveTypeKey(widget));
@@ -185,10 +232,36 @@ export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [] }: {
   const [showSourceLogo, setShowSourceLogo] = useState(widget.showSourceLogo);
   const [showRating, setShowRating] = useState(widget.showRating);
   const [showWriteReview, setShowWriteReview] = useState(widget.showWriteReview);
+  const [showAiSummary, setShowAiSummary] = useState(widget.showAiSummary);
   const [isActive, setIsActive] = useState(widget.isActive);
+  // Badge
+  const [badgeStyle, setBadgeStyle] = useState<BadgeStyle>((widget.badgeStyle as BadgeStyle) || "rating");
+  // Collecting
+  const [collectPosition, setCollectPosition] = useState(widget.collectButtonPosition || "bottom-right");
+  const [collectTheme, setCollectTheme] = useState(widget.collectButtonTheme || "default");
+  const [collectColorMode, setCollectColorMode] = useState(widget.collectButtonColor ? "custom" : "inherit");
+  const [collectColor, setCollectColor] = useState(widget.collectButtonColor || "#4f46e5");
+  const [collectMobile, setCollectMobile] = useState(widget.collectMobileBehavior || "pill");
+  // Floating
+  const [floatingCardStyle, setFloatingCardStyle] = useState(widget.floatingCardStyle || "dark_solid_pill");
+  const [floatingVariation, setFloatingVariation] = useState(widget.floatingVariation || "standard");
+  const [floatingPosition, setFloatingPosition] = useState(widget.floatingPosition || "bottom-right");
+  const [floatingRotation, setFloatingRotation] = useState(widget.floatingRotationEnabled ?? true);
+  const [floatingInterval, setFloatingInterval] = useState(widget.floatingRotationIntervalSec ?? 8);
+  const [floatingAccentMode, setFloatingAccentMode] = useState(widget.floatingAccentColorMode || "inherit");
+  const [floatingAccentColor, setFloatingAccentColor] = useState(widget.floatingAccentColor || "#4f46e5");
+  const [floatingMobile, setFloatingMobile] = useState(widget.floatingMobileBehavior || "show");
+  const [floatingApprovedOnly, setFloatingApprovedOnly] = useState(widget.floatingApprovedOnly ?? true);
+  const [floatingMinRating, setFloatingMinRating] = useState(widget.floatingMinRating ?? 4);
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
 
-  const effectiveContent: ContentKey = typeKey === "badge" ? "reviews" : typeKey === "single" && content === "mixed" ? "reviews" : content;
+  const isBadge = typeKey === "badge";
+  const isSingle = typeKey === "single";
+  const isCollecting = typeKey === "collecting";
+  const isFloating = typeKey === "floating";
+  const isReviewWall = typeKey === "grid" || typeKey === "carousel";
+
+  const effectiveContent: ContentKey = !isReviewWall ? "reviews" : content;
   const previewSettings: Partial<PreviewSettings> = {
     type: typeKey,
     theme: dark ? "dark" : "light",
@@ -201,14 +274,22 @@ export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [] }: {
     showAvatars: showReviewerName,
     showSources: showSourceLogo,
     showBranding: true,
-    aiSummary: false,
+    aiSummary: showAiSummary && isReviewWall && content !== "videos",
+    aiSummaryText,
+    aiSummaryCount,
+    badgeStyle,
+    collectPosition: collectPosition as PreviewSettings["collectPosition"],
+    collectTheme: collectTheme as PreviewSettings["collectTheme"],
+    collectColor: collectColorMode === "custom" ? collectColor : null,
+    floatingCardStyle: floatingCardStyle as PreviewSettings["floatingCardStyle"],
+    floatingVariation: floatingVariation as PreviewSettings["floatingVariation"],
+    floatingPosition: floatingPosition as PreviewSettings["floatingPosition"],
+    floatingAccentColor: floatingAccentMode === "custom" ? floatingAccentColor : accent,
+    floatingMinRating,
   };
 
   const scriptSrc = `${embedScriptUrl}?t=${widget.publicToken}`;
   const embedCode = `<div id="why-widget-${widget.publicToken}"></div>\n<script src="${scriptSrc}" data-token="${widget.publicToken}" data-mount="#why-widget-${widget.publicToken}"></script>`;
-
-  const isBadge = typeKey === "badge";
-  const isSingle = typeKey === "single";
 
   const handleSave = async () => {
     setSaveState("saving");
@@ -231,8 +312,28 @@ export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [] }: {
     if (showDate) fd.append("showDate", "on");
     if (showWriteReview) fd.append("showWriteReview", "on");
     if (showSourceLogo) fd.append("showSourceLogo", "on");
-    // preserved-as-is fields the simple editor doesn't expose
-    fd.append("badgeStyle", widget.badgeStyle ?? "");
+    if (showAiSummary) fd.append("showAiSummary", "on");
+
+    // Badge
+    fd.append("badgeStyle", badgeStyle);
+    // Collecting (display frequency intentionally omitted)
+    fd.append("collectButtonPosition", collectPosition);
+    fd.append("collectButtonTheme", collectTheme);
+    fd.append("collectButtonColor", collectColorMode === "custom" ? collectColor : "");
+    fd.append("collectMobileBehavior", collectMobile);
+    // Floating (display frequency intentionally omitted)
+    fd.append("floatingCardStyle", floatingCardStyle);
+    fd.append("floatingVariation", floatingVariation);
+    fd.append("floatingPosition", floatingPosition);
+    if (floatingRotation) fd.append("floatingRotationEnabled", "on");
+    fd.append("floatingRotationIntervalSec", String(floatingInterval));
+    fd.append("floatingAccentColorMode", floatingAccentMode);
+    fd.append("floatingAccentColor", floatingAccentMode === "custom" ? floatingAccentColor : "");
+    fd.append("floatingMobileBehavior", floatingMobile);
+    if (floatingApprovedOnly) fd.append("floatingApprovedOnly", "on");
+    fd.append("floatingMinRating", String(floatingMinRating));
+
+    // preserved-as-is fields the editor doesn't expose
     fd.append("sort", widget.sort);
     fd.append("headerAlign", widget.headerAlign);
     fd.append("bodyMaxChars", String(widget.bodyMaxChars));
@@ -277,7 +378,7 @@ export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [] }: {
       </div>
 
       {/* type selector */}
-      <div style={st({ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: "var(--gutter)" })} className="wtype-grid">
+      <div style={st({ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12, marginBottom: "var(--gutter)" })} className="wtype-grid">
         {STUDIO_TYPES.map((w) => {
           const active = typeKey === w.id;
           return (
@@ -317,21 +418,22 @@ export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [] }: {
             </Field>
           )}
 
-          {typeKey !== "badge" && (
+          {isReviewWall && (
             <Field label="Content">
-              {typeKey === "single" ? (
-                <Segmented<ContentKey>
-                  value={content === "videos" ? "videos" : "reviews"}
-                  onChange={setContent}
-                  options={[{ value: "reviews", label: "Text" }, { value: "videos", label: "Video" }]}
-                />
-              ) : (
-                <Segmented<ContentKey>
-                  value={content}
-                  onChange={setContent}
-                  options={[{ value: "reviews", label: "Reviews" }, { value: "videos", label: "Videos" }, { value: "mixed", label: "Mixed" }]}
-                />
-              )}
+              <Segmented<ContentKey>
+                value={content}
+                onChange={setContent}
+                options={[{ value: "reviews", label: "Reviews" }, { value: "videos", label: "Videos" }, { value: "mixed", label: "Mixed" }]}
+              />
+            </Field>
+          )}
+          {isSingle && (
+            <Field label="Content">
+              <Segmented<ContentKey>
+                value={content === "videos" ? "videos" : "reviews"}
+                onChange={setContent}
+                options={[{ value: "reviews", label: "Text" }, { value: "videos", label: "Video" }]}
+              />
             </Field>
           )}
 
@@ -342,37 +444,140 @@ export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [] }: {
             <Swatches value={accent} onChange={setAccent} options={ACCENTS} />
           </Field>
 
-          <div className="hr" />
+          {/* ── Badge style ── */}
+          {isBadge && (
+            <>
+              <div className="hr" />
+              <Field label="Badge style">
+                <OptionGroup value={badgeStyle} onChange={(v) => setBadgeStyle(v as BadgeStyle)} options={[
+                  { value: "rating", label: "Rating" },
+                  { value: "compact", label: "Compact" },
+                  { value: "review_cta", label: "Review CTA" },
+                  { value: "trust", label: "Trust" },
+                ]} />
+              </Field>
+            </>
+          )}
 
-          <Field label="Minimum rating" hint={`${minRating}★ and up`}>
-            <input type="range" min={1} max={5} value={minRating} onChange={(e) => setMinRating(Number(e.target.value))} style={st({ width: "100%", accentColor: "var(--accent)" })} />
-          </Field>
+          {/* ── Collecting controls ── */}
+          {isCollecting && (
+            <>
+              <div className="hr" />
+              <Field label="Button position">
+                <OptionGroup value={collectPosition} onChange={setCollectPosition} options={[
+                  { value: "bottom-right", label: "Bottom Right" },
+                  { value: "bottom-left", label: "Bottom Left" },
+                  { value: "right", label: "Right Tab" },
+                  { value: "left", label: "Left Tab" },
+                ]} />
+              </Field>
+              <Field label="Button style">
+                <OptionGroup cols={3} value={collectTheme} onChange={setCollectTheme} options={[
+                  { value: "default", label: "Default" },
+                  { value: "minimal", label: "Minimal" },
+                  { value: "branded", label: "Branded" },
+                ]} />
+              </Field>
+              <Field label="Button color">
+                <ColorField mode={collectColorMode} color={collectColor} onMode={setCollectColorMode} onColor={setCollectColor} />
+              </Field>
+              <Field label="Mobile behavior">
+                <Segmented value={collectMobile} onChange={setCollectMobile} options={[{ value: "pill", label: "Show on mobile" }, { value: "hidden", label: "Hide on mobile" }]} />
+              </Field>
+            </>
+          )}
 
-          {!isBadge && !isSingle && (
-            <Field label="Max reviews shown" hint={`${pageSize}`}>
-              <div style={st({ display: "flex", flexWrap: "wrap", gap: 6 })}>
-                {PAGE_SIZE_OPTIONS.map((opt) => (
-                  <button key={opt} type="button" onClick={() => setPageSize(opt)}
-                    style={st({ minWidth: 38, borderRadius: 8, padding: "6px 9px", fontSize: 13, fontWeight: 600, cursor: "pointer", border: pageSize === opt ? "1px solid var(--accent)" : "1px solid var(--ink-200)", background: pageSize === opt ? "var(--accent-softer)" : "var(--white)", color: pageSize === opt ? "var(--accent-strong)" : "var(--ink-600)" })}>
-                    {opt}
-                  </button>
-                ))}
-              </div>
-            </Field>
+          {/* ── Floating controls ── */}
+          {isFloating && (
+            <>
+              <div className="hr" />
+              <Field label="Card style">
+                <OptionGroup value={floatingCardStyle} onChange={setFloatingCardStyle} options={[
+                  { value: "dark_solid_pill", label: "Dark Pill" },
+                  { value: "frosted_glass_pill", label: "Frosted Pill" },
+                  { value: "notification_compact", label: "Notification" },
+                  { value: "below_card", label: "Below Card" },
+                ]} />
+              </Field>
+              <Field label="Size">
+                <OptionGroup cols={3} value={floatingVariation} onChange={setFloatingVariation} options={[
+                  { value: "compact", label: "Compact" },
+                  { value: "standard", label: "Standard" },
+                  { value: "rich", label: "Rich" },
+                ]} />
+              </Field>
+              <Field label="Position">
+                <OptionGroup value={floatingPosition} onChange={setFloatingPosition} options={[
+                  { value: "bottom-right", label: "Bottom Right" },
+                  { value: "bottom-left", label: "Bottom Left" },
+                  { value: "right", label: "Right Edge" },
+                  { value: "left", label: "Left Edge" },
+                ]} />
+              </Field>
+              <Field label="Rotation">
+                <div style={st({ display: "flex", flexDirection: "column", gap: 10 })}>
+                  <Toggle checked={floatingRotation} onChange={setFloatingRotation} label="Auto-rotate reviews" />
+                  {floatingRotation && (
+                    <OptionGroup cols={4} value={String(floatingInterval)} onChange={(v) => setFloatingInterval(Number(v))} options={[
+                      { value: "5", label: "5s" }, { value: "8", label: "8s" }, { value: "12", label: "12s" }, { value: "30", label: "30s" },
+                    ]} />
+                  )}
+                </div>
+              </Field>
+              <Field label="Accent color">
+                <ColorField mode={floatingAccentMode} color={floatingAccentColor} onMode={setFloatingAccentMode} onColor={setFloatingAccentColor} />
+              </Field>
+              <Field label="Mobile behavior">
+                <OptionGroup cols={3} value={floatingMobile} onChange={setFloatingMobile} options={[
+                  { value: "show", label: "Show" }, { value: "compact", label: "Compact" }, { value: "hide", label: "Hide" },
+                ]} />
+              </Field>
+              <Field label="Content filters">
+                <div style={st({ display: "flex", flexDirection: "column", gap: 12 })}>
+                  <Toggle checked={floatingApprovedOnly} onChange={setFloatingApprovedOnly} label="Approved reviews only" />
+                  <Segmented value={String(floatingMinRating)} onChange={(v) => setFloatingMinRating(Number(v))} options={[{ value: "4", label: "4★ & up" }, { value: "5", label: "5★ only" }]} />
+                </div>
+              </Field>
+            </>
+          )}
+
+          {/* ── Review wall + single shared controls ── */}
+          {(isReviewWall || isSingle) && (
+            <>
+              <div className="hr" />
+              <Field label="Minimum rating" hint={`${minRating}★ and up`}>
+                <input type="range" min={1} max={5} value={minRating} onChange={(e) => setMinRating(Number(e.target.value))} style={st({ width: "100%", accentColor: "var(--accent)" })} />
+              </Field>
+              {isReviewWall && (
+                <Field label="Max reviews shown" hint={`${pageSize}`}>
+                  <div style={st({ display: "flex", flexWrap: "wrap", gap: 6 })}>
+                    {PAGE_SIZE_OPTIONS.map((opt) => (
+                      <button key={opt} type="button" onClick={() => setPageSize(opt)}
+                        style={st({ minWidth: 38, borderRadius: 8, padding: "6px 9px", fontSize: 13, fontWeight: 600, cursor: "pointer", border: pageSize === opt ? "1px solid var(--accent)" : "1px solid var(--ink-200)", background: pageSize === opt ? "var(--accent-softer)" : "var(--white)", color: pageSize === opt ? "var(--accent-strong)" : "var(--ink-600)" })}>
+                        {opt}
+                      </button>
+                    ))}
+                  </div>
+                </Field>
+              )}
+              <div className="hr" />
+              <Field label="Display">
+                <div style={st({ display: "flex", flexDirection: "column", gap: 12 })}>
+                  <Toggle checked={showHeader} onChange={setShowHeader} label="Summary header" />
+                  <Toggle checked={showReviewerName} onChange={setShowReviewerName} label="Reviewer names & avatars" />
+                  <Toggle checked={showRating} onChange={setShowRating} label="Star ratings" />
+                  <Toggle checked={showDate} onChange={setShowDate} label="Review dates" />
+                  <Toggle checked={showSourceLogo} onChange={setShowSourceLogo} label="Source logos" />
+                  {isReviewWall && <Toggle checked={showWriteReview} onChange={setShowWriteReview} label="Write a review link" />}
+                  {isReviewWall && content !== "videos" && <Toggle checked={showAiSummary} onChange={setShowAiSummary} label="AI review summary" />}
+                </div>
+              </Field>
+            </>
           )}
 
           <div className="hr" />
-
-          <Field label="Display">
-            <div style={st({ display: "flex", flexDirection: "column", gap: 12 })}>
-              {!isBadge && <Toggle checked={showHeader} onChange={setShowHeader} label="Summary header" />}
-              {!isBadge && <Toggle checked={showReviewerName} onChange={setShowReviewerName} label="Reviewer names & avatars" />}
-              {!isBadge && <Toggle checked={showRating} onChange={setShowRating} label="Star ratings" />}
-              {!isBadge && <Toggle checked={showDate} onChange={setShowDate} label="Review dates" />}
-              {!isBadge && <Toggle checked={showSourceLogo} onChange={setShowSourceLogo} label="Source logos" />}
-              {!isBadge && !isSingle && <Toggle checked={showWriteReview} onChange={setShowWriteReview} label="Write a review link" />}
-              <Toggle checked={isActive} onChange={setIsActive} label="Widget active" />
-            </div>
+          <Field label="Status">
+            <Toggle checked={isActive} onChange={setIsActive} label="Widget active" />
           </Field>
         </div>
 
