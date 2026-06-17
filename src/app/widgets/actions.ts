@@ -260,6 +260,36 @@ export async function deleteReviewWidget(formData: FormData) {
   redirect("/widgets?flash=Widget+deleted&tone=success");
 }
 
+export async function duplicateReviewWidget(formData: FormData) {
+  const widgetId = String(formData.get("widgetId") ?? "").trim();
+  if (!widgetId) throw new Error("Widget is required");
+
+  const existing = await prisma.reviewWidget.findUnique({ where: { id: widgetId } });
+  if (!existing) throw new Error("Widget not found");
+
+  await requireOrganizationAccess(existing.organizationId);
+
+  // Clone every field except identity/token/timestamps.
+  const {
+    id: _id,
+    publicToken: _publicToken,
+    createdAt: _createdAt,
+    updatedAt: _updatedAt,
+    name,
+    ...rest
+  } = existing;
+
+  const copy = await prisma.reviewWidget.create({
+    data: {
+      ...rest,
+      name: `${name} copy`,
+      publicToken: generateReviewWidgetToken(),
+    },
+  });
+
+  redirect(`/widgets/${copy.id}?flash=Widget+duplicated&tone=success`);
+}
+
 export async function regenerateReviewWidgetToken(formData: FormData) {
   const widgetId = String(formData.get("widgetId") ?? "").trim();
 
