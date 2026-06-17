@@ -11,16 +11,7 @@ export default async function NewWidgetPage() {
 
   return (
     <AppShell activeScreen="widgets">
-      <div className="space-y-8">
-        <div className="border-b border-slate-200 pb-6">
-          <p className="text-sm font-semibold uppercase tracking-[0.22em] text-indigo-600">Widget Showcase</p>
-          <h2 className="mt-4 text-4xl font-bold tracking-tight text-slate-950">Select widget layout</h2>
-          <p className="mt-3 text-base text-slate-600">
-            Choose a layout — then give it a name and pick a location.
-          </p>
-        </div>
-        <WidgetLayoutPicker locations={locations} />
-      </div>
+      <WidgetLayoutPicker locations={locations} />
     </AppShell>
   );
 }
