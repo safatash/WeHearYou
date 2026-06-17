@@ -33,6 +33,7 @@ export type StudioWidget = {
   id: string;
   publicToken: string;
   name: string;
+  locationId: string;
   layout: string;
   contentType: string;
   widgetType: string | null;
@@ -154,8 +155,9 @@ const EmbedCode = ({ code }: { code: string }) => {
 };
 
 /* ================= Studio editor ================= */
-export function WidgetStudioEditor({ widget, embedScriptUrl }: { widget: StudioWidget; embedScriptUrl: string }) {
+export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [] }: { widget: StudioWidget; embedScriptUrl: string; locations?: Array<{ id: string; name: string }> }) {
   const [name, setName] = useState(widget.name);
+  const [locationId, setLocationId] = useState(widget.locationId);
   const [typeKey, setTypeKey] = useState<TypeKey>(deriveTypeKey(widget));
   const [dark, setDark] = useState(widget.theme === "dark");
   const [accent, setAccent] = useState(widget.primaryColor || "#4f46e5");
@@ -196,6 +198,7 @@ export function WidgetStudioEditor({ widget, embedScriptUrl }: { widget: StudioW
     const { widgetType, layout } = TYPE_TO_FIELDS[typeKey];
     const fd = new FormData();
     fd.append("widgetId", widget.id);
+    fd.append("locationId", locationId);
     fd.append("name", (name || "").trim() || "Untitled widget");
     fd.append("widgetType", widgetType);
     fd.append("layout", layout);
@@ -281,6 +284,21 @@ export function WidgetStudioEditor({ widget, embedScriptUrl }: { widget: StudioW
             <Icon name="sliders" size={16} style={{ color: "var(--accent)" }} />
             <span style={st({ fontSize: 14, fontWeight: 640 })}>Customize</span>
           </div>
+
+          {locations.length > 0 && (
+            <Field label="Location">
+              <select
+                value={locationId}
+                onChange={(e) => setLocationId(e.target.value)}
+                style={st({ width: "100%", borderRadius: "var(--r-sm)", border: "1px solid var(--ink-200)", background: "var(--ink-50)", padding: "8px 11px", fontSize: 13, color: "var(--ink-900)", outline: "none" })}
+              >
+                {locations.some((l) => l.id === locationId) ? null : <option value={locationId}>Current location</option>}
+                {locations.map((l) => (
+                  <option key={l.id} value={l.id}>{l.name}</option>
+                ))}
+              </select>
+            </Field>
+          )}
 
           <Field label="Appearance">
             <Segmented value={dark ? "dark" : "light"} onChange={(v) => setDark(v === "dark")} options={[{ value: "light", label: "Light", icon: "sun" }, { value: "dark", label: "Dark", icon: "moon" }]} />

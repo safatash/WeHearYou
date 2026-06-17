@@ -6,7 +6,7 @@ import { AppShell } from "@/components/app-shell";
 import { FormSubmitButton } from "@/components/form-submit-button";
 import { WidgetCustomizer } from "@/components/widget-customizer";
 import { WidgetStudioEditor, type StudioWidget } from "@/app/widgets/widget-studio-editor";
-import { getPublicReviewWidgetPayload, getReviewWidgetById, getWidgetPickerData } from "@/lib/review-widgets";
+import { getPublicReviewWidgetPayload, getReviewWidgetById, getWidgetPickerData, getWidgetEligibleLocations } from "@/lib/review-widgets";
 import { deleteReviewWidget } from "@/app/widgets/actions";
 
 // Simple text widgets get the mock-style Studio; floating/collecting/video
@@ -51,10 +51,16 @@ export default async function WidgetDetailPage({
 
   // Simple text widgets → mock-style Studio editor.
   if (isSimpleWidget(widget)) {
+    const eligibleLocations = await getWidgetEligibleLocations(widget.organizationId);
+    const locationOptions = eligibleLocations.map((l) => ({ id: l.id, name: l.name }));
+    if (!locationOptions.some((l) => l.id === widget.locationId)) {
+      locationOptions.unshift({ id: widget.locationId, name: widget.location.name });
+    }
     const studioWidget: StudioWidget = {
       id: widget.id,
       publicToken: widget.publicToken,
       name: widget.name,
+      locationId: widget.locationId,
       layout: widget.layout,
       contentType: widget.contentType,
       widgetType: widget.widgetType ?? null,
@@ -83,7 +89,7 @@ export default async function WidgetDetailPage({
     };
     return (
       <AppShell activeScreen="widgets" flash={flash ? { message: flash, tone } : null}>
-        <WidgetStudioEditor widget={studioWidget} embedScriptUrl={embedScriptUrl} />
+        <WidgetStudioEditor widget={studioWidget} embedScriptUrl={embedScriptUrl} locations={locationOptions} />
       </AppShell>
     );
   }

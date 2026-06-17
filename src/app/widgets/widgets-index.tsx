@@ -4,7 +4,7 @@ import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Icon, type IconName } from "@/components/icon";
 import { WidgetMockPreview, mapWidgetToPreviewSettings } from "@/components/widget-mock-preview";
-import { deleteReviewWidget, duplicateReviewWidget } from "@/app/widgets/actions";
+import { createDraftReviewWidget, deleteReviewWidget, duplicateReviewWidget } from "@/app/widgets/actions";
 
 const st = (s: React.CSSProperties): React.CSSProperties => s;
 
@@ -161,9 +161,9 @@ function WidgetsEmpty() {
         <p style={st({ fontSize: 14, color: "var(--ink-500)", marginTop: 9, lineHeight: 1.6 })}>
           Widgets embed your reviews, ratings, and video testimonials anywhere on your site. Create your first one — pick a style, customize it, and copy the embed code.
         </p>
-        <div style={st({ display: "flex", justifyContent: "center", marginTop: 22 })}>
-          <Link href="/widgets/new" className="btn btn-primary"><Icon name="plus" size={16} />Create a widget</Link>
-        </div>
+        <form action={createDraftReviewWidget} style={st({ display: "flex", justifyContent: "center", marginTop: 22 })}>
+          <button type="submit" className="btn btn-primary"><Icon name="plus" size={16} />Create a widget</button>
+        </form>
         <div style={st({ display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "center", marginTop: 28 })}>
           {TYPE_HINTS.map((t) => (
             <span key={t.label} style={st({ display: "inline-flex", alignItems: "center", gap: 7, fontSize: 12.5, color: "var(--ink-500)", border: "1px solid var(--ink-200)", background: "var(--white)", borderRadius: 999, padding: "6px 12px", boxShadow: "var(--shadow-xs)" })}>
@@ -189,7 +189,9 @@ export function WidgetsIndex({ widgets }: { widgets: IndexWidget[] }) {
           </p>
         </div>
         {count > 0 && (
-          <Link href="/widgets/new" className="btn btn-primary"><Icon name="plus" size={16} />New widget</Link>
+          <form action={createDraftReviewWidget}>
+            <button type="submit" className="btn btn-primary"><Icon name="plus" size={16} />New widget</button>
+          </form>
         )}
       </div>
 
@@ -200,12 +202,14 @@ export function WidgetsIndex({ widgets }: { widgets: IndexWidget[] }) {
           {widgets.map((w) => (
             <WidgetCard key={w.id} w={w} />
           ))}
-          <Link href="/widgets/new" className="tap focus-ring" style={st({ minHeight: 240, border: "1.5px dashed var(--ink-300)", borderRadius: "var(--r-lg)", background: "var(--white)", textDecoration: "none", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, color: "var(--ink-500)" })}>
-            <span style={st({ width: 46, height: 46, borderRadius: 13, display: "grid", placeItems: "center", background: "var(--accent-soft)", color: "var(--accent-strong)" })}>
-              <Icon name="plus" size={22} />
-            </span>
-            <span style={st({ fontSize: 13.5, fontWeight: 580 })}>New widget</span>
-          </Link>
+          <form action={createDraftReviewWidget} style={st({ display: "flex" })}>
+            <button type="submit" className="tap focus-ring" style={st({ width: "100%", minHeight: 240, border: "1.5px dashed var(--ink-300)", borderRadius: "var(--r-lg)", background: "var(--white)", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, color: "var(--ink-500)" })}>
+              <span style={st({ width: 46, height: 46, borderRadius: 13, display: "grid", placeItems: "center", background: "var(--accent-soft)", color: "var(--accent-strong)" })}>
+                <Icon name="plus" size={22} />
+              </span>
+              <span style={st({ fontSize: 13.5, fontWeight: 580 })}>New widget</span>
+            </button>
+          </form>
         </div>
       )}
     </div>

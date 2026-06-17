@@ -89,6 +89,52 @@ export async function createReviewWidget(formData: FormData) {
   redirect(`/widgets/${widget.id}`);
 }
 
+// Create a blank draft for the first eligible location and open it in the
+// editor. Replaces the standalone /widgets/new layout picker.
+export async function createDraftReviewWidget() {
+  const membership = await getCurrentMembership();
+  if (!membership) {
+    throw new Error("Organization is required");
+  }
+  const organizationId = membership.organizationId;
+  await requireOrganizationAccess(organizationId);
+
+  const locations = await prisma.location.findMany({
+    where: { organizationId },
+    select: { id: true, googleLocationName: true },
+    orderBy: { name: "asc" },
+  });
+
+  let chosenLocationId: string | null = null;
+  for (const loc of locations) {
+    if (!loc.googleLocationName) continue;
+    const reviewCount = await prisma.review.count({
+      where: { locationId: loc.id, source: "GOOGLE", status: "PUBLISHED" },
+    });
+    if (reviewCount > 0) {
+      chosenLocationId = loc.id;
+      break;
+    }
+  }
+
+  if (!chosenLocationId) {
+    redirect(`/widgets?flash=${encodeURIComponent("Sync Google reviews for a location before creating a widget")}&tone=error`);
+  }
+
+  const widget = await prisma.reviewWidget.create({
+    data: {
+      organizationId,
+      locationId: chosenLocationId,
+      name: "Untitled widget",
+      layout: "masonry",
+      contentType: "TEXT",
+      publicToken: generateReviewWidgetToken(),
+    },
+  });
+
+  redirect(`/widgets/${widget.id}`);
+}
+
 export async function updateReviewWidget(formData: FormData) {
   const widgetId = String(formData.get("widgetId") ?? "").trim();
 
@@ -169,6 +215,17 @@ export async function updateReviewWidget(formData: FormData) {
   const rawCollectButtonPosition = String(formData.get("collectButtonPosition") ?? "").trim();
   const rawCollectButtonColor = String(formData.get("collectButtonColor") ?? "").trim();
 
+  // Optional location change (validate it belongs to the same org).
+  const rawLocationId = String(formData.get("locationId") ?? "").trim();
+  let locationUpdate: { locationId?: string } = {};
+  if (rawLocationId) {
+    const loc = await prisma.location.findFirst({
+      where: { id: rawLocationId, organizationId: existing.organizationId },
+      select: { id: true },
+    });
+    if (loc) locationUpdate = { locationId: loc.id };
+  }
+
   const rawLayout = String(formData.get("layout") ?? "grid");
   const rawAlign = String(formData.get("headerAlign") ?? "left");
   const rawFont = String(formData.get("fontFamily") ?? "system");
@@ -184,6 +241,7 @@ export async function updateReviewWidget(formData: FormData) {
   await prisma.reviewWidget.update({
     where: { id: widgetId },
     data: {
+      ...locationUpdate,
       name: String(formData.get("name") ?? "").trim(),
       layout: allowedLayouts.has(rawLayout) ? rawLayout : "grid",
       contentType,
