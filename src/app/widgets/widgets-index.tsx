@@ -63,7 +63,7 @@ function fmtDate(iso: string): string {
 function WidgetThumb({ w }: { w: IndexWidget }) {
   const settings = { ...mapWidgetToPreviewSettings(w), device: "desktop" as const, maxReviews: Math.min(w.pageSize || 3, 3) };
   return (
-    <div style={st({ height: 150, overflow: "hidden", position: "relative", background: w.theme === "dark" ? "#17171b" : "#fff", borderBottom: "1px solid var(--ink-200)" })}>
+    <div style={st({ height: 150, overflow: "hidden", position: "relative", background: w.theme === "dark" ? "#17171b" : "#fff", borderBottom: "1px solid var(--ink-200)", borderTopLeftRadius: "var(--r-md)", borderTopRightRadius: "var(--r-md)" })}>
       <div style={st({ position: "absolute", top: 0, left: 0, width: 720, transformOrigin: "top left", transform: "scale(.52)", padding: 18, pointerEvents: "none" })}>
         <WidgetMockPreview settings={settings} />
       </div>
@@ -87,7 +87,7 @@ function WidgetCard({ w }: { w: IndexWidget }) {
   const accent = w.primaryColor || "#4f46e5";
 
   return (
-    <div className="card" style={st({ padding: 0, overflow: "hidden", display: "flex", flexDirection: "column" })}>
+    <div className="card" style={st({ padding: 0, display: "flex", flexDirection: "column", position: "relative", zIndex: menu ? 30 : undefined })}>
       <Link href={`/widgets/${w.id}`} className="tap" style={st({ display: "block", textDecoration: "none" })}>
         <WidgetThumb w={w} />
       </Link>
