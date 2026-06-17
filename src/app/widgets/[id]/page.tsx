@@ -5,8 +5,18 @@ import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { FormSubmitButton } from "@/components/form-submit-button";
 import { WidgetCustomizer } from "@/components/widget-customizer";
+import { WidgetStudioEditor, type StudioWidget } from "@/app/widgets/widget-studio-editor";
 import { getPublicReviewWidgetPayload, getReviewWidgetById, getWidgetPickerData } from "@/lib/review-widgets";
 import { deleteReviewWidget } from "@/app/widgets/actions";
+
+// Simple text widgets get the mock-style Studio; floating/collecting/video
+// widgets keep the detailed customizer so their advanced config isn't lost.
+function isSimpleWidget(w: { widgetType: string | null; contentType: string; layout: string }): boolean {
+  if (w.contentType !== "TEXT") return false;
+  if (w.widgetType === "FLOATING" || w.widgetType === "COLLECTING") return false;
+  if (w.layout === "floating" || /^(video|featured|mixed|tabbed)/.test(w.layout)) return false;
+  return true;
+}
 
 export default async function WidgetDetailPage({
   params,
@@ -38,6 +48,46 @@ export default async function WidgetDetailPage({
     (host ? `${proto}://${host}` : "");
   const embedScriptUrl = `${appUrl}/embed/widget.js`;
   const localTestUrl = `/widgets/${widget.id}/test`;
+
+  // Simple text widgets → mock-style Studio editor.
+  if (isSimpleWidget(widget)) {
+    const studioWidget: StudioWidget = {
+      id: widget.id,
+      publicToken: widget.publicToken,
+      name: widget.name,
+      layout: widget.layout,
+      contentType: widget.contentType,
+      widgetType: widget.widgetType ?? null,
+      theme: widget.theme,
+      minRating: widget.minRating,
+      pageSize: widget.pageSize,
+      isActive: widget.isActive,
+      showHeader: widget.showHeader,
+      showRating: widget.showRating,
+      showReviewerName: widget.showReviewerName,
+      showDate: widget.showDate,
+      showWriteReview: widget.showWriteReview,
+      showSourceLogo: widget.showSourceLogo,
+      primaryColor: widget.primaryColor,
+      starColor: widget.starColor,
+      badgeStyle: widget.badgeStyle ?? null,
+      sort: widget.sort,
+      headerAlign: widget.headerAlign,
+      bodyMaxChars: widget.bodyMaxChars,
+      backgroundColor: widget.backgroundColor,
+      textColor: widget.textColor,
+      fontFamily: widget.fontFamily,
+      showAvgRating: widget.showAvgRating,
+      showReviewCount: widget.showReviewCount,
+      showResponses: widget.showResponses,
+    };
+    return (
+      <AppShell activeScreen="widgets" flash={flash ? { message: flash, tone } : null}>
+        <WidgetStudioEditor widget={studioWidget} embedScriptUrl={embedScriptUrl} />
+      </AppShell>
+    );
+  }
+
   const [preview, pickerData] = await Promise.all([
     getPublicReviewWidgetPayload(widget.publicToken, 1),
     getWidgetPickerData(widget.locationId),
