@@ -21,13 +21,28 @@ const STUDIO_TYPES: Array<{ id: TypeKey; label: string; icon: IconName; desc: st
   { id: "badge", label: "Rating badge", icon: "star", desc: "Compact score + stars" },
 ];
 
-// What each type maps to in the real schema.
+type ContentKey = "reviews" | "videos" | "mixed";
+
+// What each type maps to in the real schema. The embed keys video/mixed off
+// contentType (not the layout name), so layout stays masonry/carousel/grid/badge.
 const TYPE_TO_FIELDS: Record<TypeKey, { widgetType: string; layout: string }> = {
   grid: { widgetType: "WALL_OF_LOVE", layout: "masonry" },
   carousel: { widgetType: "WALL_OF_LOVE", layout: "carousel" },
   single: { widgetType: "SINGLE_TESTIMONIAL", layout: "grid" },
   badge: { widgetType: "BADGE", layout: "badge" },
 };
+
+function deriveContent(contentType: string): ContentKey {
+  if (contentType === "VIDEO") return "videos";
+  if (contentType === "MIXED") return "mixed";
+  return "reviews";
+}
+
+function resolveContentType(typeKey: TypeKey, content: ContentKey): string {
+  if (typeKey === "badge") return "TEXT";
+  if (typeKey === "single") return content === "videos" ? "VIDEO" : "TEXT";
+  return content === "videos" ? "VIDEO" : content === "mixed" ? "MIXED" : "TEXT";
+}
 
 export type StudioWidget = {
   id: string;
@@ -159,6 +174,7 @@ export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [] }: {
   const [name, setName] = useState(widget.name);
   const [locationId, setLocationId] = useState(widget.locationId);
   const [typeKey, setTypeKey] = useState<TypeKey>(deriveTypeKey(widget));
+  const [content, setContent] = useState<ContentKey>(deriveContent(widget.contentType));
   const [dark, setDark] = useState(widget.theme === "dark");
   const [accent, setAccent] = useState(widget.primaryColor || "#4f46e5");
   const [minRating, setMinRating] = useState(widget.minRating || 1);
@@ -172,11 +188,12 @@ export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [] }: {
   const [isActive, setIsActive] = useState(widget.isActive);
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
 
+  const effectiveContent: ContentKey = typeKey === "badge" ? "reviews" : typeKey === "single" && content === "mixed" ? "reviews" : content;
   const previewSettings: Partial<PreviewSettings> = {
     type: typeKey,
     theme: dark ? "dark" : "light",
     accent,
-    content: "reviews",
+    content: effectiveContent,
     minRating,
     maxReviews: pageSize,
     showHeader,
@@ -202,7 +219,7 @@ export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [] }: {
     fd.append("name", (name || "").trim() || "Untitled widget");
     fd.append("widgetType", widgetType);
     fd.append("layout", layout);
-    fd.append("contentType", "TEXT");
+    fd.append("contentType", resolveContentType(typeKey, content));
     fd.append("theme", dark ? "dark" : "light");
     fd.append("primaryColor", accent);
     fd.append("minRating", String(minRating));
@@ -297,6 +314,24 @@ export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [] }: {
                   <option key={l.id} value={l.id}>{l.name}</option>
                 ))}
               </select>
+            </Field>
+          )}
+
+          {typeKey !== "badge" && (
+            <Field label="Content">
+              {typeKey === "single" ? (
+                <Segmented<ContentKey>
+                  value={content === "videos" ? "videos" : "reviews"}
+                  onChange={setContent}
+                  options={[{ value: "reviews", label: "Text" }, { value: "videos", label: "Video" }]}
+                />
+              ) : (
+                <Segmented<ContentKey>
+                  value={content}
+                  onChange={setContent}
+                  options={[{ value: "reviews", label: "Reviews" }, { value: "videos", label: "Videos" }, { value: "mixed", label: "Mixed" }]}
+                />
+              )}
             </Field>
           )}
 

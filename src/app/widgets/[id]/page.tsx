@@ -12,9 +12,11 @@ import { deleteReviewWidget } from "@/app/widgets/actions";
 // Simple text widgets get the mock-style Studio; floating/collecting/video
 // widgets keep the detailed customizer so their advanced config isn't lost.
 function isSimpleWidget(w: { widgetType: string | null; contentType: string; layout: string }): boolean {
-  if (w.contentType !== "TEXT") return false;
   if (w.widgetType === "FLOATING" || w.widgetType === "COLLECTING") return false;
-  if (w.layout === "floating" || /^(video|featured|mixed|tabbed)/.test(w.layout)) return false;
+  if (w.layout === "floating") return false;
+  // Advanced layouts that only the detailed customizer can configure.
+  const advancedLayouts = new Set(["featured-video", "video-wall", "tabbed", "featured-video-reviews"]);
+  if (advancedLayouts.has(w.layout)) return false;
   return true;
 }
 
