@@ -453,7 +453,9 @@ const script = `
   }
 
   function renderAiSummary(data) {
-    if (data.widget.showAiSummary === false) return "";
+    // Render whenever the location has a summary (location-level showAiReviewSummary
+    // is already applied server-side). Matches the dashboard preview; renders
+    // nothing — no empty placeholder — when there is no summary.
     if (!data.location.aiReviewSummary) return "";
     var countHtml = data.location.aiReviewSummaryReviewCount
       ? '<p style="margin:0;font-size:10px;color:#a5b4fc">Based on ' + escapeHtml(String(data.location.aiReviewSummaryReviewCount)) + ' reviews</p>'
@@ -506,6 +508,35 @@ const script = `
       '<span class="why-widget-badge-stars" style="color:' + escapeHtml(data.widget.starColor) + '">' + escapeHtml(roundedStars) + '</span>' +
       '<span class="why-widget-badge-text"><strong>' + escapeHtml(data.location.name) + '</strong>' + countSuffix + '</span>' +
     '</' + tag + '>';
+  }
+
+  function renderSingleTestimonial(data) {
+    var w = data.widget;
+    var wrapOpen = '<div class="why-widget" style="font-family:' + fontStack(w.fontFamily) + ';background:' + escapeHtml(w.backgroundColor) + ';color:' + escapeHtml(w.textColor) + ';border-radius:18px;padding:24px;border:1px solid rgba(0,0,0,.06);max-width:560px;margin:0 auto">';
+    var vids = data.videoTestimonials || [];
+    if (w.contentType === "VIDEO" && vids.length) {
+      return wrapOpen + renderVideoCard(vids[0]) + '</div>';
+    }
+    var reviews = data.reviews || [];
+    if (!reviews.length) {
+      return wrapOpen + '<div style="font-size:14px;color:#64748b">This testimonial is currently unavailable.</div></div>';
+    }
+    var r = reviews[0];
+    var reviewerHtml = '';
+    if (w.showReviewerName !== false) {
+      var avatarHtml = r.reviewerPhotoUrl
+        ? '<img class="why-widget-avatar" src="' + escapeHtml(r.reviewerPhotoUrl) + '" alt="' + escapeHtml(r.reviewerName || '') + '" />'
+        : '<div class="why-widget-avatar-fallback">' + escapeHtml((r.reviewerName || '?').slice(0, 1).toUpperCase()) + '</div>';
+      reviewerHtml = '<div style="display:flex;align-items:center;gap:11px">' + avatarHtml +
+        '<div><div style="font-weight:700;font-size:14px">' + escapeHtml(r.reviewerName || 'Anonymous') + '</div>' +
+        (w.showDate !== false && r.reviewedAt ? '<div style="font-size:12px;color:#64748b">' + escapeHtml(formatDate(r.reviewedAt)) + (r.source ? ' · ' + escapeHtml(String(r.source)) : '') + '</div>' : '') +
+        '</div></div>';
+    }
+    return wrapOpen +
+      (w.showRating !== false ? '<div style="color:' + escapeHtml(w.starColor) + ';font-size:18px;margin-bottom:12px">' + escapeHtml(stars(r.rating)) + '</div>' : '') +
+      '<p style="font-size:18px;line-height:1.55;font-weight:500;margin:0 0 18px">' + escapeHtml(r.body || '') + '</p>' +
+      reviewerHtml +
+    '</div>';
   }
 
   function formatDuration(seconds) {
@@ -743,8 +774,12 @@ const script = `
         if (overrides.showDate !== null) data.widget.showDate = overrides.showDate !== "false";
         if (overrides.showWriteReview !== null) data.widget.showWriteReview = overrides.showWriteReview !== "false";
 
+        // Render kind is resolved server-side (collecting | floating | single |
+        // badge | list) so the embed never guesses from raw type/layout strings.
+        var renderKind = data.widget.renderKind || "list";
+
         // Collecting Widget: render floating button, skip review rendering entirely
-        if (nextPage === 1 && data.widget.widgetType === "COLLECTING") {
+        if (nextPage === 1 && renderKind === "collecting") {
           renderCollectingWidget(data, token, baseUrl.origin);
           done = true;
           setLoadingState(false);
@@ -752,8 +787,16 @@ const script = `
         }
 
         // Floating Widget: render fixed-position card with rotation, skip review grid
-        if (nextPage === 1 && data.widget.widgetType === "FLOATING") {
+        if (nextPage === 1 && renderKind === "floating") {
           renderFloatingWidget(data, token, baseUrl.origin);
+          done = true;
+          setLoadingState(false);
+          return;
+        }
+
+        // Single Testimonial: render exactly one pinned review or video.
+        if (nextPage === 1 && renderKind === "single") {
+          mount.innerHTML = renderSingleTestimonial(data);
           done = true;
           setLoadingState(false);
           return;
@@ -772,8 +815,8 @@ const script = `
         }
 
         if (nextPage === 1) {
-          // Badge layout: render once and bail — no pagination needed.
-          if (data.widget.layout === "badge") {
+          // Badge: render once and bail — no pagination needed.
+          if (renderKind === "badge") {
             mount.innerHTML = '<div class="why-widget" style="font-family:' + fontStack(data.widget.fontFamily) + ';color:' + escapeHtml(data.widget.textColor) + '">' + renderBadge(data) + '</div>';
             done = true;
             setLoadingState(false);

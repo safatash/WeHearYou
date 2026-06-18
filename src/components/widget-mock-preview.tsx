@@ -215,7 +215,9 @@ const VideoCardW = ({ v, s, tk }: { v: Video; s: PreviewSettings; tk: Tokens }) 
 const AISummaryBox = ({ s, tk }: { s: PreviewSettings; tk: Tokens }) => {
   const dark = s.theme === "dark";
   const text = s.aiSummaryText;
-  const chips = text ? ["Highly rated", "Recommended", "Verified reviews"] : [];
+  // No real summary → render nothing (no empty placeholder), matching the embed.
+  if (!text || !text.trim()) return null;
+  const chips = ["Highly rated", "Recommended", "Verified reviews"];
   return (
     <div style={st({ borderRadius: s.radius, padding: 16, marginBottom: 18, border: `1px solid color-mix(in srgb, ${s.accent} ${dark ? 40 : 26}%, ${tk.line})`, background: `color-mix(in srgb, ${s.accent} ${dark ? 16 : 8}%, ${tk.bg})` })}>
       <div style={st({ display: "flex", alignItems: "center", gap: 8, marginBottom: 9 })}>
@@ -223,24 +225,16 @@ const AISummaryBox = ({ s, tk }: { s: PreviewSettings; tk: Tokens }) => {
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 3l1.7 5L19 9.7 14 11l-2 5-2-5-5-1.3L10 8z" fill={s.accent} /></svg>
           AI Summary
         </span>
-        {text && s.aiSummaryCount ? (
+        {s.aiSummaryCount ? (
           <span style={st({ marginLeft: "auto", fontSize: 11, color: tk.muted, whiteSpace: "nowrap" })}>Based on {s.aiSummaryCount} reviews</span>
         ) : null}
       </div>
-      {text ? (
-        <>
-          <p style={st({ fontSize: 13, lineHeight: 1.6, color: tk.sub, margin: 0 })}>{text}</p>
-          <div style={st({ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 11 })}>
-            {chips.map((h) => (
-              <span key={h} style={st({ fontSize: 11.5, fontWeight: 540, padding: "3px 9px", borderRadius: 999, background: tk.card, border: `1px solid ${tk.line}`, color: tk.sub })}>{h}</span>
-            ))}
-          </div>
-        </>
-      ) : (
-        <p style={st({ fontSize: 12.5, lineHeight: 1.6, color: tk.muted, margin: 0, fontStyle: "italic" })}>
-          Your AI review summary will appear here once it&rsquo;s generated for this location.
-        </p>
-      )}
+      <p style={st({ fontSize: 13, lineHeight: 1.6, color: tk.sub, margin: 0 })}>{text}</p>
+      <div style={st({ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 11 })}>
+        {chips.map((h) => (
+          <span key={h} style={st({ fontSize: 11.5, fontWeight: 540, padding: "3px 9px", borderRadius: 999, background: tk.card, border: `1px solid ${tk.line}`, color: tk.sub })}>{h}</span>
+        ))}
+      </div>
     </div>
   );
 };
