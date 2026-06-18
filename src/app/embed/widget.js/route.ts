@@ -848,9 +848,9 @@ const script = `
             listWrapper = '<div class="' + layoutClass + '"></div>';
           }
 
-          var titleHtml = data.widget.name ? '<h2 style="font-size:18px;font-weight:700;margin:0 0 12px 0;color:' + escapeHtml(data.widget.textColor) + '">' + escapeHtml(data.widget.name) + '</h2>' : '';
+          // The widget "name" is an internal admin label — never render it on the
+          // public/embed site. Customer-facing heading comes from renderHeader.
           mount.innerHTML = '<div class="why-widget" style="font-family:' + fontStack(data.widget.fontFamily) + ';background:' + escapeHtml(data.widget.backgroundColor) + ';color:' + escapeHtml(data.widget.textColor) + ';border-radius:18px;padding:20px;border:1px solid rgba(0,0,0,.06)">' +
-            titleHtml +
             renderHeader(data) +
             renderAiSummary(data) +
             listWrapper +

@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { resolveEmbedRenderKind, embedShowsAiSummary } from "./widget-embed.ts";
+import { readFileSync } from "node:fs";
+import { resolveEmbedRenderKind, embedShowsAiSummary, isKnownWidgetType } from "./widget-embed.ts";
 
 test("Single Testimonial resolves to single, not badge", () => {
   assert.equal(resolveEmbedRenderKind("SINGLE_TESTIMONIAL", "grid"), "single");
@@ -41,6 +42,24 @@ test("Unknown widgets fall back to list, never badge", () => {
   assert.equal(resolveEmbedRenderKind("", ""), "list");
   assert.equal(resolveEmbedRenderKind(null, null), "list");
   assert.equal(resolveEmbedRenderKind(undefined, undefined), "list");
+});
+
+test("isKnownWidgetType recognizes the supported types and flags unknown ones", () => {
+  for (const t of ["WALL_OF_LOVE", "SINGLE_TESTIMONIAL", "BADGE", "COLLECTING", "FLOATING", "single-testimonial", "wall of love", ""]) {
+    assert.equal(isKnownWidgetType(t), true, `"${t}" should be known`);
+  }
+  for (const t of ["CAROUSEL_WIDGET", "SOMETHING_NEW", "wall_of_love_v2"]) {
+    assert.equal(isKnownWidgetType(t), false, `"${t}" should be unknown`);
+  }
+});
+
+test("embed script does not render the internal widget name/title", () => {
+  const src = readFileSync(new URL("../app/embed/widget.js/route.ts", import.meta.url), "utf8");
+  // The widget.name is an internal admin label; it must not be emitted into the
+  // public embed markup. After the fix the embed script references neither the
+  // name nor a titleHtml heading built from it.
+  assert.equal(/data\.widget\.name/.test(src), false, "embed must not reference data.widget.name");
+  assert.equal(/titleHtml/.test(src), false, "embed must not build a title from the widget name");
 });
 
 test("embedShowsAiSummary only true when a non-empty summary exists", () => {

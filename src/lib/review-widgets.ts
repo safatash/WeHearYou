@@ -2,7 +2,7 @@ import crypto from "node:crypto";
 import { ReviewSource, ReviewStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireOrganizationAccess } from "@/lib/authz";
-import { resolveEmbedRenderKind, type EmbedRenderKind } from "@/lib/widget-embed";
+import { resolveEmbedRenderKind, isKnownWidgetType, type EmbedRenderKind } from "@/lib/widget-embed";
 
 export type PublicWidgetReview = {
   id: string;
@@ -232,6 +232,12 @@ export async function getPublicReviewWidgetPayload(publicToken: string, page = 1
 
   if (!widget || !widget.isActive) {
     return null;
+  }
+
+  // Surface genuinely unknown widget types instead of silently rendering the
+  // default review list for them.
+  if (!isKnownWidgetType(widget.widgetType)) {
+    console.warn(`[widget-embed] Unknown widgetType "${widget.widgetType}" for widget ${widget.id} — falling back to review list.`);
   }
 
   // Shared widget sub-object builder

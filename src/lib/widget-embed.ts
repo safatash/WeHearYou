@@ -4,6 +4,23 @@
 
 export type EmbedRenderKind = "collecting" | "floating" | "single" | "badge" | "list";
 
+// Widget types the renderer explicitly understands. A non-empty widgetType
+// outside this set is genuinely unknown and should be logged (not silently
+// rendered as some other known type).
+const KNOWN_WIDGET_TYPES = new Set([
+  "WALL_OF_LOVE",
+  "SINGLE_TESTIMONIAL",
+  "TESTIMONIAL",
+  "BADGE",
+  "COLLECTING",
+  "FLOATING",
+]);
+
+export function isKnownWidgetType(widgetType?: string | null): boolean {
+  const t = String(widgetType ?? "").trim().toUpperCase().replace(/[\s-]+/g, "_");
+  return t.length === 0 || KNOWN_WIDGET_TYPES.has(t);
+}
+
 /**
  * Resolve the embed render kind from a widget's type and layout.
  *
