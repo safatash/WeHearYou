@@ -23,6 +23,7 @@ export type PreviewSettings = {
   sources: Record<string, boolean>;
   minRating: number;
   maxReviews: number;
+  marqueeSpeed: string;
   showAvatars: boolean;
   showDates: boolean;
   showSources: boolean;
@@ -55,6 +56,7 @@ export const PREVIEW_DEFAULTS: PreviewSettings = {
   sources: { Google: true, Facebook: true, Yelp: true, Trustpilot: true },
   minRating: 4,
   maxReviews: 6,
+  marqueeSpeed: "normal",
   showAvatars: true,
   showDates: true,
   showSources: true,
@@ -238,6 +240,17 @@ const AISummaryBox = ({ s, tk }: { s: PreviewSettings; tk: Tokens }) => {
     </div>
   );
 };
+
+// Split items into two staggered rows, cycling so each row stays comfortably
+// full for a seamless auto-scrolling marquee.
+function buildMarqueeRows<T>(pool: T[]): [T[], T[]] {
+  if (pool.length === 0) return [[], []];
+  const filled: T[] = [];
+  while (filled.length < Math.max(6, pool.length)) filled.push(...pool);
+  const half = Math.ceil(filled.length / 2);
+  const rowB = filled.slice(half).concat(filled.slice(0, Math.max(0, half - (filled.length - half))));
+  return [filled.slice(0, half), rowB.length ? rowB : filled.slice(0, half)];
+}
 
 // Corner placement for floating / collecting overlays within the preview frame.
 function cornerStyle(pos: string): React.CSSProperties {
@@ -441,6 +454,8 @@ export function WidgetMockPreview({ settings }: { settings: Partial<PreviewSetti
       if (ri < rs.length) items.push(rs[ri++]);
     }
   } else items = reviews.map((r) => ({ kind: "review" as const, data: r }));
+  const marqueeRows = buildMarqueeRows(items);
+  const marqueeDur = s.marqueeSpeed === "slow" ? 60 : s.marqueeSpeed === "fast" ? 26 : 40;
   items = items.slice(0, s.maxReviews);
   const showSummary = s.aiSummary && s.content !== "videos";
 
@@ -457,12 +472,20 @@ export function WidgetMockPreview({ settings }: { settings: Partial<PreviewSetti
           ))}
         </div>
       ) : (
-        <div style={st({ display: "flex", gap: 14, overflowX: "auto", paddingBottom: 6 })}>
-          {items.map((it) => (
-            <div key={it.kind + it.data.id} style={st({ width: 270, flex: "none" })}>
-              {it.kind === "video" ? <VideoCardW v={it.data} s={s} tk={tk} /> : <ReviewCardW r={it.data} s={s} tk={tk} />}
-            </div>
-          ))}
+        <div style={st({ display: "flex", flexDirection: "column", gap: 14 })}>
+          {([["l", marqueeRows[0]], ["r", marqueeRows[1]]] as Array<["l" | "r", typeof items]>).map(([dir, row], idx) =>
+            row.length ? (
+              <div key={dir} className="why-marq">
+                <div className={`why-marq-track why-marq-track--${dir}`} style={st({ gap: 14, animationDuration: `${idx === 0 ? marqueeDur : Math.round(marqueeDur * 1.22)}s` })}>
+                  {[...row, ...row].map((it, i) => (
+                    <div key={it.kind + it.data.id + "-" + i} style={st({ width: s.device === "mobile" ? 250 : 300, flex: "none" })}>
+                      {it.kind === "video" ? <VideoCardW v={it.data} s={s} tk={tk} /> : <ReviewCardW r={it.data} s={s} tk={tk} />}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null,
+          )}
         </div>
       )}
       {items.length === 0 && <div style={st({ textAlign: "center", padding: 30, color: tk.muted, fontSize: 13 })}>No content matches these filters.</div>}
@@ -479,6 +502,7 @@ export function mapWidgetToPreviewSettings(w: {
   primaryColor?: string | null;
   minRating?: number | null;
   pageSize?: number | null;
+  marqueeSpeed?: string | null;
   showHeader?: boolean | null;
   showDate?: boolean | null;
   showReviewerName?: boolean | null;
@@ -502,6 +526,7 @@ export function mapWidgetToPreviewSettings(w: {
     content,
     minRating: w.minRating ?? 4,
     maxReviews: w.pageSize ?? 6,
+    marqueeSpeed: w.marqueeSpeed ?? "normal",
     showHeader: w.showHeader ?? true,
     showDates: w.showDate ?? true,
     showAvatars: w.showReviewerName ?? true,

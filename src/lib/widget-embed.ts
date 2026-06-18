@@ -57,3 +57,19 @@ export function resolveEmbedRenderKind(widgetType?: string | null, layout?: stri
 export function embedShowsAiSummary(aiReviewSummary?: string | null): boolean {
   return typeof aiReviewSummary === "string" && aiReviewSummary.trim().length > 0;
 }
+
+export type MarqueeSpeed = "slow" | "normal" | "fast";
+
+export function normalizeMarqueeSpeed(speed?: string | null): MarqueeSpeed {
+  const s = String(speed ?? "").trim().toLowerCase();
+  return s === "slow" || s === "fast" ? s : "normal";
+}
+
+/** Seconds for one full marquee row loop. Lower = faster. */
+export function marqueeDurationFor(speed?: string | null): number {
+  switch (normalizeMarqueeSpeed(speed)) {
+    case "slow": return 60;
+    case "fast": return 26;
+    default: return 40;
+  }
+}

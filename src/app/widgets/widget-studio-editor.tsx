@@ -16,7 +16,7 @@ type TypeKey = "grid" | "carousel" | "single" | "badge" | "collecting" | "floati
 
 const STUDIO_TYPES: Array<{ id: TypeKey; label: string; icon: IconName; desc: string }> = [
   { id: "grid", label: "Wall of Love", icon: "grid", desc: "Masonry of reviews" },
-  { id: "carousel", label: "Review carousel", icon: "layers", desc: "Scrolling row of reviews" },
+  { id: "carousel", label: "Review marquee", icon: "layers", desc: "Auto-scrolling rows of reviews" },
   { id: "single", label: "Single testimonial", icon: "film", desc: "One standout quote" },
   { id: "badge", label: "Rating badge", icon: "star", desc: "Compact score + stars" },
   { id: "collecting", label: "Collect reviews", icon: "send", desc: "Floating feedback button" },
@@ -70,6 +70,7 @@ export type StudioWidget = {
   primaryColor: string;
   starColor: string;
   showAiSummary: boolean;
+  marqueeSpeed: string;
   badgeStyle: string | null;
   // Collecting
   collectButtonPosition: string | null;
@@ -226,6 +227,7 @@ export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [], aiS
   const [accent, setAccent] = useState(widget.primaryColor || "#4f46e5");
   const [minRating, setMinRating] = useState(widget.minRating || 1);
   const [pageSize, setPageSize] = useState(snapPageSize(widget.pageSize || 12));
+  const [marqueeSpeed, setMarqueeSpeed] = useState(widget.marqueeSpeed || "normal");
   const [showHeader, setShowHeader] = useState(widget.showHeader);
   const [showReviewerName, setShowReviewerName] = useState(widget.showReviewerName);
   const [showDate, setShowDate] = useState(widget.showDate);
@@ -268,6 +270,7 @@ export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [], aiS
     content: effectiveContent,
     minRating,
     maxReviews: pageSize,
+    marqueeSpeed,
     showHeader,
     showDates: showDate,
     showAvatars: showReviewerName,
@@ -304,6 +307,7 @@ export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [], aiS
     fd.append("primaryColor", accent);
     fd.append("minRating", String(minRating));
     fd.append("pageSize", String(pageSize));
+    fd.append("marqueeSpeed", marqueeSpeed);
     if (isActive) fd.append("isActive", "on");
     if (showHeader) fd.append("showHeader", "on");
     if (showRating) fd.append("showRating", "on");
@@ -556,6 +560,11 @@ export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [], aiS
                       </button>
                     ))}
                   </div>
+                </Field>
+              )}
+              {typeKey === "carousel" && (
+                <Field label="Scroll speed">
+                  <Segmented value={marqueeSpeed} onChange={setMarqueeSpeed} options={[{ value: "slow", label: "Slow" }, { value: "normal", label: "Normal" }, { value: "fast", label: "Fast" }]} />
                 </Field>
               )}
               <div className="hr" />

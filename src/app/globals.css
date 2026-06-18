@@ -354,3 +354,12 @@ select:focus {
 @media (max-width: 720px) {
   .cw-body { grid-template-columns: minmax(0, 1fr) !important; }
 }
+
+/* Review marquee (auto-scrolling rows) — used by the widget Studio preview */
+.why-marq { overflow: hidden; width: 100%; }
+.why-marq:hover .why-marq-track { animation-play-state: paused; }
+.why-marq-track { display: flex; width: max-content; will-change: transform; animation: why-marq-l linear infinite; }
+.why-marq-track--r { animation-name: why-marq-r; }
+@keyframes why-marq-l { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+@keyframes why-marq-r { from { transform: translateX(-50%); } to { transform: translateX(0); } }
+@media (prefers-reduced-motion: reduce) { .why-marq-track { animation: none; } }

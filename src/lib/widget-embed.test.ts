@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
-import { resolveEmbedRenderKind, embedShowsAiSummary, isKnownWidgetType } from "./widget-embed.ts";
+import { resolveEmbedRenderKind, embedShowsAiSummary, isKnownWidgetType, normalizeMarqueeSpeed, marqueeDurationFor } from "./widget-embed.ts";
 
 test("Single Testimonial resolves to single, not badge", () => {
   assert.equal(resolveEmbedRenderKind("SINGLE_TESTIMONIAL", "grid"), "single");
@@ -60,6 +60,15 @@ test("embed script does not render the internal widget name/title", () => {
   // name nor a titleHtml heading built from it.
   assert.equal(/data\.widget\.name/.test(src), false, "embed must not reference data.widget.name");
   assert.equal(/titleHtml/.test(src), false, "embed must not build a title from the widget name");
+});
+
+test("marquee speed normalizes and maps to durations (lower = faster)", () => {
+  assert.equal(normalizeMarqueeSpeed("slow"), "slow");
+  assert.equal(normalizeMarqueeSpeed("FAST"), "fast");
+  assert.equal(normalizeMarqueeSpeed("nonsense"), "normal");
+  assert.equal(normalizeMarqueeSpeed(null), "normal");
+  assert.ok(marqueeDurationFor("slow") > marqueeDurationFor("normal"));
+  assert.ok(marqueeDurationFor("normal") > marqueeDurationFor("fast"));
 });
 
 test("embedShowsAiSummary only true when a non-empty summary exists", () => {

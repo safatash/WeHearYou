@@ -268,6 +268,7 @@ export async function updateReviewWidget(formData: FormData) {
       showDate: String(formData.get("showDate") ?? "") === "on",
       showWriteReview: String(formData.get("showWriteReview") ?? "") === "on",
       showResponses: String(formData.get("showResponses") ?? "") === "on",
+      marqueeSpeed: ["slow", "normal", "fast"].includes(String(formData.get("marqueeSpeed") ?? "")) ? String(formData.get("marqueeSpeed")) : "normal",
       bodyMaxChars: Number.isFinite(rawBodyMaxChars) ? Math.max(40, Math.min(2000, Math.floor(rawBodyMaxChars))) : 280,
 
       // Appearance panel

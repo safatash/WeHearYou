@@ -106,7 +106,17 @@ const script = `
       ".why-video-duration{position:absolute;bottom:6px;right:8px;font-size:11px;color:rgba(255,255,255,.8);background:rgba(0,0,0,.5);padding:1px 5px;border-radius:4px}" +
       ".why-video-info{padding:10px 12px}" +
       ".why-video-name{font-size:13px;font-weight:600}" +
-      ".why-widget-masonry{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));align-items:start}";
+      ".why-widget-masonry{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));align-items:start}" +
+      ".why-marq{overflow:hidden;width:100%}" +
+      ".why-marq+.why-marq{margin-top:14px}" +
+      ".why-marq:hover .why-marq-track{animation-play-state:paused}" +
+      ".why-marq-track{display:flex;gap:14px;width:max-content;will-change:transform;animation:why-marq-l linear infinite}" +
+      ".why-marq-track--r{animation-name:why-marq-r}" +
+      ".why-marq-item{flex:none;width:300px}" +
+      "@keyframes why-marq-l{from{transform:translateX(0)}to{transform:translateX(-50%)}}" +
+      "@keyframes why-marq-r{from{transform:translateX(-50%)}to{transform:translateX(0)}}" +
+      "@media(max-width:639px){.why-marq-item{width:250px}}" +
+      "@media(prefers-reduced-motion:reduce){.why-marq-track{animation:none}}";
     document.head.appendChild(style);
   }
 
@@ -539,6 +549,43 @@ const script = `
     '</div>';
   }
 
+  function buildMarqueeRows(pool) {
+    if (!pool.length) return [[], []];
+    var filled = [];
+    while (filled.length < Math.max(6, pool.length)) filled = filled.concat(pool);
+    var half = Math.ceil(filled.length / 2);
+    var rowB = filled.slice(half).concat(filled.slice(0, Math.max(0, half - (filled.length - half))));
+    return [filled.slice(0, half), rowB.length ? rowB : filled.slice(0, half)];
+  }
+
+  function renderMarquee(data, items) {
+    var w = data.widget;
+    var rows = buildMarqueeRows(items);
+    var dur = w.marqueeSpeed === "slow" ? 60 : w.marqueeSpeed === "fast" ? 26 : 40;
+    function rowHtml(row, dir, d) {
+      if (!row.length) return "";
+      var cards = row.concat(row).map(function (it) {
+        var card = it.type === "video" ? renderVideoCard(it.data) : renderCard(it.data, w);
+        return '<div class="why-marq-item">' + card + '</div>';
+      }).join("");
+      return '<div class="why-marq"><div class="why-marq-track' + (dir === "r" ? " why-marq-track--r" : "") + '" style="animation-duration:' + d + 's">' + cards + '</div></div>';
+    }
+    var footerHtml = '';
+    if (w.showWriteReview && data.location.reviewLink && w.contentType !== "VIDEO") {
+      footerHtml += '<a class="why-widget-link" href="' + escapeHtml(data.location.reviewLink) + '" target="_blank" rel="noopener noreferrer" style="color:' + escapeHtml(w.primaryColor) + '">Write a review</a>';
+    }
+    if (w.showBranding !== false) {
+      footerHtml += '<div class="why-widget-branding">Powered by <a href="https://www.wehearyou.io" target="_blank" rel="noopener noreferrer">WeHearYou</a></div>';
+    }
+    return '<div class="why-widget" style="font-family:' + fontStack(w.fontFamily) + ';background:' + escapeHtml(w.backgroundColor) + ';color:' + escapeHtml(w.textColor) + ';border-radius:18px;padding:20px;border:1px solid rgba(0,0,0,.06)">' +
+      renderHeader(data) +
+      renderAiSummary(data) +
+      rowHtml(rows[0], "l", dur) +
+      rowHtml(rows[1], "r", Math.round(dur * 1.22)) +
+      '<div class="why-widget-footer">' + footerHtml + '</div>' +
+    '</div>';
+  }
+
   function formatDuration(seconds) {
     if (!seconds) return "";
     var m = Math.floor(seconds / 60);
@@ -818,6 +865,14 @@ const script = `
           // Badge: render once and bail — no pagination needed.
           if (renderKind === "badge") {
             mount.innerHTML = '<div class="why-widget" style="font-family:' + fontStack(data.widget.fontFamily) + ';color:' + escapeHtml(data.widget.textColor) + '">' + renderBadge(data) + '</div>';
+            done = true;
+            setLoadingState(false);
+            return;
+          }
+
+          // Review marquee: the carousel layout renders as auto-scrolling rows.
+          if (data.widget.layout === "carousel") {
+            mount.innerHTML = renderMarquee(data, items);
             done = true;
             setLoadingState(false);
             return;

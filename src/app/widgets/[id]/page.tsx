@@ -77,6 +77,7 @@ export default async function WidgetDetailPage({
       primaryColor: widget.primaryColor,
       starColor: widget.starColor,
       showAiSummary: widget.showAiSummary,
+      marqueeSpeed: widget.marqueeSpeed,
       badgeStyle: widget.badgeStyle ?? null,
       collectButtonPosition: widget.collectButtonPosition ?? null,
       collectButtonTheme: widget.collectButtonTheme ?? null,

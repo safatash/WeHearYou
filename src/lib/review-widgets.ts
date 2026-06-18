@@ -2,7 +2,7 @@ import crypto from "node:crypto";
 import { ReviewSource, ReviewStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireOrganizationAccess } from "@/lib/authz";
-import { resolveEmbedRenderKind, isKnownWidgetType, type EmbedRenderKind } from "@/lib/widget-embed";
+import { resolveEmbedRenderKind, isKnownWidgetType, normalizeMarqueeSpeed, type EmbedRenderKind } from "@/lib/widget-embed";
 
 export type PublicWidgetReview = {
   id: string;
@@ -34,6 +34,7 @@ export type PublicWidgetPayload = {
     name: string;
     layout: string;
     renderKind: EmbedRenderKind;
+    marqueeSpeed: string;
     theme: string;
     pageSize: number;
     contentType: string;
@@ -245,6 +246,7 @@ export async function getPublicReviewWidgetPayload(publicToken: string, page = 1
     name: widget.name,
     layout: widget.layout,
     renderKind: resolveEmbedRenderKind(widget.widgetType, widget.layout),
+    marqueeSpeed: normalizeMarqueeSpeed(widget.marqueeSpeed),
     theme: widget.theme,
     pageSize: ps,
     contentType: widget.contentType,

@@ -611,6 +611,7 @@ model ReviewWidget {
   showWriteReview  Boolean      @default(true)
   showResponses    Boolean      @default(false)
   showAiSummary    Boolean      @default(true)
+  marqueeSpeed     String       @default("normal")
   bodyMaxChars     Int          @default(280)
 
   // Appearance panel
