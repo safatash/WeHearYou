@@ -48,14 +48,21 @@ The displayed status badge is **derived**, not stored (see Derived status below)
 ### `LocationPublicProfile`
 - `accentColor String?` — brand accent; falls back to teal `#37AEB7`.
 - `services String[] @default([])` — services/categories chips.
-- `ctaType String? @default("REVIEW")` — one of `CALL | WEBSITE | DIRECTIONS | BOOK | REVIEW`.
+- `ctaType String? @default("REVIEW")` — primary CTA, one of `CALL | WEBSITE | DIRECTIONS | BOOK | REVIEW`.
+- `secondaryCtaType String?` — secondary CTA, same value set (or null = none).
+- `secondaryCtaLabel String?` — secondary CTA button text.
+- `enabledReviewSources String[] @default([])` — which sources appear in the public
+  "Leave a Review" section (subset of `GOOGLE | FACEBOOK | YELP | TRUSTPILOT`). Empty =
+  derive from whatever sources are connected.
 - `reviewHighlights String[] @default([])` — AI-generated highlight phrases, admin-editable.
 - Visibility toggles (booleans, defaults noted):
   - `showReviewSummary @default(true)` — the rating/count trust block.
   - `showFeaturedReviews @default(true)`
+  - `showServices @default(true)` — services/categories section.
   - `showSourceBadges @default(true)`
   - `showVerifiedBadge @default(true)`
   - `showPoweredBy @default(true)` — "powered by WeHearYou" footer line.
+- `ctaLabel` (existing) is reused as the **primary CTA label**.
 - **Reused existing fields:** `headline` (display name), `subheadline` (description),
   `phone`, `email`, `addressLine1/2`, `postalCode`, `googleHours`, `googleMapsUrl`,
   `bookingUrl`, `ctaLabel`, `ctaUrl`, `logoUrl`, `heroImageUrl`, `showReviews`,
@@ -65,6 +72,10 @@ The displayed status badge is **derived**, not stored (see Derived status below)
 - `isHiddenFromMiniSite Boolean @default(false)` — "Hide from mini page".
 - Featured-first ordering uses the existing `isFeatured` field. "Add to widget" uses
   existing `isWidgetVisible`.
+- **Note on "featured review IDs / hidden review IDs":** the spec phrases these as ID lists
+  on the location. We model them instead as per-review booleans (`isFeatured`,
+  `isHiddenFromMiniSite`) — functionally equivalent, already partially present, and avoids a
+  denormalized array that can drift from the reviews it references.
 
 ### `ReviewLinkEventType` enum — add values
 - `MINISITE_VIEWED`
@@ -137,32 +148,39 @@ and composes these sections:
 
 1. **`LocationHeader`** — back link to All Locations · location name · derived status badge ·
    address · primary rating + total review count · **public URL pill** (`<app>/b/{slug}` with
-   a copy button) · connected-source mini-badges · quick actions: Copy mini page link, Open
-   public page, Edit location, Send review request, Manage sources.
-2. **`SummaryCards`** — Average rating · Total reviews · New reviews this month · Request
-   conversion · Pending replies · Public page views · Clicks (website/directions/call).
-   Cards with no backing data show `—` + hint.
+   a copy button) · connected-source mini-badges · quick actions: Copy public link, Open
+   public page, Customize mini site, Edit location, Send review request, Manage sources.
+2. **`SummaryCards`** — Average rating · Total reviews · New reviews this month · Pending
+   replies · Request conversion · Mini-site page views · Direction clicks · Call clicks ·
+   Website clicks (the three click types are separate cards). Cards with no backing data show
+   `—` + hint.
 3. **`MiniSitePreview`** (major section) — browser-chrome frame wrapping
    `<iframe src="/b/{slug}?preview=1">`; desktop/mobile width toggle; actions Copy link · Open
    page · Customize mini page (scrolls to settings) · Publish/Unpublish (server action toggling
    `miniSitePublished` + `miniSitePublishedAt`); current publish state + last-updated date;
    **missing-setup checklist** when the profile is incomplete.
-4. **`MiniSiteSettings`** — reorganized settings form covering business name, display name,
-   address, phone, website, hours, hero image / accent color, description, services/categories,
-   CTA text, CTA destination type, and all show/hide toggles (review summary, featured reviews,
-   video testimonials, source badges, map, hours, verified badge, powered-by). Submits through
-   the existing `saveLocationSettings` server action (extended for the new fields).
-5. **`LocationReviewsPanel`** — review list filtered to this location with filters
-   (All / Needs reply / 5★ / 4★ / 1–3★ / Google / Facebook / Yelp / Trustpilot) and row actions
-   Reply · Mark as featured (`isFeatured`) · Hide from mini page (`isHiddenFromMiniSite`) ·
-   Add to widget (`isWidgetVisible`). Filtering is URL-param driven (server-rendered).
-6. **`RequestPerformance`** — requests sent, open rate, click rate, conversion, best channel,
-   plus Send new request / Create campaign for this location actions.
-7. **`ConnectedSources`** — Google, Facebook, Yelp, Trustpilot rows with connection status and
-   Connect / Reconnect / Sync now / Manage mapping actions. Absorbs the current Google
-   mapping + sync block. Facebook + Trustpilot render a "Coming soon" connect state.
-8. **`LocationDetailsCard`** — address, phone, website, time zone, business hours, internal
-   location ID, created date, last synced date, assigned team/users.
+4. **`MiniSiteSettings`** — reorganized settings form covering display name, address, phone,
+   website, hours, time zone, short description, services/categories, hero image / accent
+   color, primary CTA type + label, secondary CTA type + label, enabled review sources, and
+   all show/hide toggles (AI review summary, featured reviews, video testimonials, source
+   badges, map, hours, services, verified badge, powered-by). Submits through the existing
+   `saveLocationSettings` server action (extended for the new fields).
+5. **`LocationReviewsPanel`** — review list filtered to this location showing reviewer name,
+   rating, source, date, text, reply status, public-visibility status, and featured status.
+   Filters: All / Needs reply / Featured / Hidden from public page / 5★ / 4★ / 1–3★ / Google /
+   Facebook / Yelp / Trustpilot. Row actions: Reply · Mark as featured / Remove from featured
+   (`isFeatured`) · Hide from public page / Show on public page (`isHiddenFromMiniSite`) · Add
+   to widget (`isWidgetVisible`). Filtering is URL-param driven (server-rendered).
+6. **`RequestPerformance`** — requests sent, open rate, click rate, review conversion, best
+   performing channel, latest campaign, last request sent; actions Send new review request /
+   Create campaign for this location / View campaign history.
+7. **`ConnectedSources`** — Google, Facebook, Yelp, Trustpilot rows. Each row shows connection
+   status, last synced date, number of reviews imported, that source's rating, and sync
+   status, with Connect / Reconnect / Sync now / Manage mapping actions. Absorbs the current
+   Google mapping + sync block. Facebook + Trustpilot render a "Coming soon" connect state
+   (status/counts shown as `—`).
+8. **`LocationDetailsCard`** — address, phone, website, business hours, time zone, internal
+   location ID, created date, updated date, last synced date, assigned team/users.
 
 The existing AI-summary, Google-reply-automation, and danger-zone blocks are retained and
 folded into the relevant sections (AI summary → near Mini Site Settings; automation →
@@ -181,18 +199,20 @@ WeHearYou design language. Keep the admin dense and operational — not a landin
 Restructured into the spec's section order, each honoring its visibility toggle and hiding
 gracefully when its data is empty:
 
-1. **Hero / Location Summary** — name, short description, average rating, total reviews,
-   source badges, Verified-by-WeHearYou badge, primary CTA (driven by `ctaType`), secondary
-   CTAs (visit website / view reviews), address + phone.
+1. **Hero / Location Summary** — name, short description, average rating, total reviews, star
+   rating, source badges, Verified-by-WeHearYou badge, address + phone, primary CTA (driven by
+   `ctaType` + `ctaLabel`) and secondary CTA (driven by `secondaryCtaType` + `secondaryCtaLabel`,
+   hidden when not set).
 2. **Trust Summary** — average rating, review count, recent review activity, AI review
    summary (when `showAiReviewSummary`), highlight chips from `reviewHighlights`.
 3. **Featured Reviews** — visible public reviews, **featured first** (`isFeatured`), excluding
    `isHiddenFromMiniSite`; supports text reviews and video testimonials; source filter chips
    when enough reviews exist.
-4. **Leave a Review** — friendly prompt with buttons for the enabled sources (Google /
-   Facebook / Yelp / Trustpilot), based on admin-configured availability.
+4. **Leave a Review** — friendly, conversion-focused prompt with buttons for the sources in
+   `enabledReviewSources` (Google / Facebook / Yelp / Trustpilot); falls back to connected
+   sources when the list is empty.
 5. **Location Info** — address, map preview, directions button, phone, website, hours,
-   services/categories.
+   services/categories (services honor `showServices`).
 6. **Footer** — business name, Verified by WeHearYou, optional powered-by (`showPoweredBy`).
 
 ### Behavior
@@ -201,6 +221,8 @@ gracefully when its data is empty:
 - Unpublished (`miniSitePublished` false) + not preview → simple "page unavailable" view.
 - `?preview=1` (admin iframe) renders unpublished/full content and disables analytics.
 - Only approved/visible reviews appear; hidden reviews never appear publicly; featured first.
+- No public reviews → clean empty state (not a broken/empty section).
+- Sections with missing optional content hide gracefully.
 - Accent color applied via a CSS custom property on the page root, defaulting to teal.
 - Responsive and polished on mobile.
 - Admin preview shares rendering by pointing the iframe at the real route — single source of
