@@ -9,6 +9,13 @@ test("Active when published with a connected source", () => {
   );
 });
 
+test("Active wins over Needs setup when published with a source despite incomplete profile", () => {
+  assert.equal(
+    deriveLocationStatus({ miniSitePublished: true, miniSitePublishedAt: new Date(), hasConnectedSource: true, profileComplete: false }),
+    "Active",
+  );
+});
+
 test("Needs setup when no connected source", () => {
   assert.equal(
     deriveLocationStatus({ miniSitePublished: false, miniSitePublishedAt: null, hasConnectedSource: false, profileComplete: true }),
