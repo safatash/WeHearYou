@@ -48,6 +48,8 @@ The displayed status badge is **derived**, not stored (see Derived status below)
 ### `LocationPublicProfile`
 - `accentColor String?` — brand accent; falls back to teal `#37AEB7`.
 - `services String[] @default([])` — services/categories chips.
+- `websiteUrl String?` — public "Website URL" (distinct from `bookingUrl`).
+- `timezone String?` — location time zone (operational + shown in Location Info).
 - `ctaType String? @default("REVIEW")` — primary CTA, one of `CALL | WEBSITE | DIRECTIONS | BOOK | REVIEW`.
 - `secondaryCtaType String?` — secondary CTA, same value set (or null = none).
 - `secondaryCtaLabel String?` — secondary CTA button text.
