@@ -1,5 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { sortFeaturedFirst } from "@/lib/review-filtering";
 
 const publicLocationInclude = {
   publicProfile: true,
@@ -34,7 +35,13 @@ export function getVisiblePublicReviews(location: PublicLocationProfile) {
     return [];
   }
 
-  return location.reviews.filter((review) => !review.isTestimonial && (review.source === "GOOGLE" || review.source === "FACEBOOK" || review.source === "INTERNAL"));
+  const visible = location.reviews.filter(
+    (review) =>
+      !review.isTestimonial &&
+      !review.isHiddenFromMiniSite &&
+      (review.source === "GOOGLE" || review.source === "FACEBOOK" || review.source === "INTERNAL"),
+  );
+  return sortFeaturedFirst(visible);
 }
 
 export function getVisibleTestimonials(location: PublicLocationProfile) {
@@ -43,7 +50,7 @@ export function getVisibleTestimonials(location: PublicLocationProfile) {
     return [];
   }
 
-  return location.reviews.filter((review) => review.isTestimonial && review.isWidgetVisible);
+  return location.reviews.filter((review) => review.isTestimonial && review.isWidgetVisible && !review.isHiddenFromMiniSite);
 }
 
 export function getPublicProfileStats(location: PublicLocationProfile) {
