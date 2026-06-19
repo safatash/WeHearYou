@@ -58,7 +58,7 @@ export function MiniSiteSettings({
         Customise the public mini-site content, design, and feature visibility for this location.
       </p>
 
-      <form action={saveLocationSettings} id="minisite-settings" className="mt-6 space-y-8">
+      <form action={saveLocationSettings} className="mt-6 space-y-8">
         <input type="hidden" name="locationId" value={location.id} />
 
         {/* Identity */}
