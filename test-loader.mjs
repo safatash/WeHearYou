@@ -4,9 +4,13 @@
  * - Stubs out @prisma/client and @/lib/prisma so pure-logic tests
  *   can run without a live database connection.
  */
+import { register } from "node:module";
 import { pathToFileURL, fileURLToPath } from "node:url";
 import path from "node:path";
 import fs from "node:fs";
+
+// Register this loader so it applies to all subsequent imports
+register(import.meta.url, { parentURL: pathToFileURL(process.cwd() + "/") });
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)));
 

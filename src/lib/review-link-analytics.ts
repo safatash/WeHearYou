@@ -115,3 +115,70 @@ export async function getLocationAnalytics(locationId: string, days: number) {
     bySource,
   };
 }
+
+export type MiniSiteEventType =
+  | "MINISITE_VIEWED"
+  | "MINISITE_CLICK_REVIEW"
+  | "MINISITE_CLICK_CALL"
+  | "MINISITE_CLICK_WEBSITE"
+  | "MINISITE_CLICK_DIRECTIONS"
+  | "MINISITE_CLICK_CTA";
+
+export const MINISITE_EVENT_TYPES: readonly MiniSiteEventType[] = [
+  "MINISITE_VIEWED",
+  "MINISITE_CLICK_REVIEW",
+  "MINISITE_CLICK_CALL",
+  "MINISITE_CLICK_WEBSITE",
+  "MINISITE_CLICK_DIRECTIONS",
+  "MINISITE_CLICK_CTA",
+];
+
+export function isMiniSiteEventType(v: string): v is MiniSiteEventType {
+  return (MINISITE_EVENT_TYPES as readonly string[]).includes(v);
+}
+
+export type MiniSiteAnalytics = {
+  pageViews: number;
+  reviewClicks: number;
+  callClicks: number;
+  websiteClicks: number;
+  directionsClicks: number;
+  ctaClicks: number;
+  hasData: boolean;
+};
+
+export function summarizeMiniSiteEvents(
+  rows: Array<{ eventType: string; count: number }>,
+): MiniSiteAnalytics {
+  const get = (type: MiniSiteEventType) =>
+    rows.find((r) => r.eventType === type)?.count ?? 0;
+  const summary = {
+    pageViews: get("MINISITE_VIEWED"),
+    reviewClicks: get("MINISITE_CLICK_REVIEW"),
+    callClicks: get("MINISITE_CLICK_CALL"),
+    websiteClicks: get("MINISITE_CLICK_WEBSITE"),
+    directionsClicks: get("MINISITE_CLICK_DIRECTIONS"),
+    ctaClicks: get("MINISITE_CLICK_CTA"),
+  };
+  const hasData = Object.values(summary).some((n) => n > 0);
+  return { ...summary, hasData };
+}
+
+export async function getMiniSiteAnalytics(
+  locationId: string,
+  days: number,
+): Promise<MiniSiteAnalytics> {
+  const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+  const grouped = await prisma.reviewLinkEvent.groupBy({
+    by: ["eventType"],
+    where: {
+      locationId,
+      createdAt: { gte: since },
+      eventType: { in: MINISITE_EVENT_TYPES as unknown as ReviewLinkEventType[] },
+    },
+    _count: { eventType: true },
+  });
+  return summarizeMiniSiteEvents(
+    grouped.map((row) => ({ eventType: row.eventType as string, count: row._count.eventType })),
+  );
+}
