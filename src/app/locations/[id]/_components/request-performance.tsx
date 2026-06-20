@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Fragment } from "react";
 import { formatDateTime } from "@/lib/campaigns";
 import type { RequestPerformance as RequestPerformanceData } from "@/lib/request-performance";
 
@@ -31,14 +32,14 @@ export function RequestPerformance({
 
       <dl className="mt-5 grid grid-cols-[1fr_auto] gap-x-6 gap-y-3">
         {rows.map(({ label, value }) => (
-          <>
-            <dt key={`dt-${label}`} className="text-sm text-slate-500">
+          <Fragment key={label}>
+            <dt className="text-sm text-slate-500">
               {label}
             </dt>
-            <dd key={`dd-${label}`} className="text-right text-sm font-semibold text-slate-900">
+            <dd className="text-right text-sm font-semibold text-slate-900">
               {value}
             </dd>
-          </>
+          </Fragment>
         ))}
       </dl>
 
