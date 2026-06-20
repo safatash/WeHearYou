@@ -7,7 +7,7 @@ import { FormSubmitButton } from "@/components/form-submit-button";
 import { deleteLocation, regenerateAiReviewSummaryAction, saveAutomationSettings, toggleAiReviewSummaryAction } from "@/app/locations/actions";
 import { formatDateTime } from "@/lib/campaigns";
 import { buildGoogleSyncSummary, buildLocationSyncErrorMessage } from "@/lib/google-sync-summary";
-import { buildGoogleWriteReviewLink, formatRelativeSyncTime, getLocationById, getLocationMappingOptions } from "@/lib/locations";
+import { formatRelativeSyncTime, getLocationById, getLocationMappingOptions } from "@/lib/locations";
 import { requireLocationAccessPage } from "@/lib/page-guards";
 import { deriveLocationStatus, isMiniSiteProfileComplete } from "@/lib/location-status";
 import { computeMiniSiteSetupChecklist } from "@/lib/minisite-setup";
@@ -40,7 +40,6 @@ export default async function LocationDetailPage({
   }
 
   const mappingOptions = await getLocationMappingOptions(location.id);
-  const derivedReviewLink = location.reviewLink ?? buildGoogleWriteReviewLink(location.googlePlaceId);
   const lastSyncedLabel = formatRelativeSyncTime(location.lastSyncAt ?? location.googleConnection?.lastSyncedAt);
   const syncState = typeof query.sync === "string" ? query.sync : undefined;
   const syncMessage = typeof query.message === "string" ? query.message : undefined;
