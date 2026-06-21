@@ -1508,8 +1508,11 @@ export async function regenerateAiReviewSummaryAction(formData: FormData) {
   }
 
   let summary = "";
+  let highlights: string[] = [];
   try {
-    summary = await generateAiReviewSummary(nonEmpty.map((r) => ({ ...r, rating: r.rating ?? 0 })));
+    const result = await generateAiReviewSummary(nonEmpty.map((r) => ({ ...r, rating: r.rating ?? 0 })));
+    summary = result.summary;
+    highlights = result.highlights;
   } catch (err) {
     if (isRedirectError(err)) throw err;
     const msg = err instanceof Error ? err.message : "AI generation failed";
@@ -1522,12 +1525,14 @@ export async function regenerateAiReviewSummaryAction(formData: FormData) {
       aiReviewSummary: summary,
       aiReviewSummaryAt: new Date(),
       aiReviewSummaryReviewCount: nonEmpty.length,
+      reviewHighlights: highlights,
     },
     create: {
       locationId,
       aiReviewSummary: summary,
       aiReviewSummaryAt: new Date(),
       aiReviewSummaryReviewCount: nonEmpty.length,
+      reviewHighlights: highlights,
     },
   });
 
