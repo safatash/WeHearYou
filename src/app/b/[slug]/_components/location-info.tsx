@@ -27,8 +27,8 @@ export function LocationInfo({
   services = [],
   showServices = true,
 }: LocationInfoProps) {
-  const hasContent = address || phone || websiteUrl || email || mapUrl;
-  if (!hasContent && hours.length === 0) return null;
+  const hasContent = address || phone || websiteUrl || email || mapUrl || services.length > 0 || hours.length > 0;
+  if (!hasContent) return null;
 
   return (
     <div className="space-y-5">
