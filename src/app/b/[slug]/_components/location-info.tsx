@@ -14,6 +14,8 @@ export interface LocationInfoProps {
   hours?: HoursRow[];
   services?: string[];
   showServices?: boolean;
+  showMap?: boolean;
+  showHours?: boolean;
 }
 
 export function LocationInfo({
@@ -26,8 +28,10 @@ export function LocationInfo({
   hours = [],
   services = [],
   showServices = true,
+  showMap = true,
+  showHours = true,
 }: LocationInfoProps) {
-  const hasContent = address || phone || websiteUrl || email || mapUrl || services.length > 0 || hours.length > 0;
+  const hasContent = address || phone || websiteUrl || email || (showMap && mapUrl) || services.length > 0 || (showHours && hours.length > 0);
   if (!hasContent) return null;
 
   return (
@@ -118,7 +122,7 @@ export function LocationInfo({
       )}
 
       {/* Hours card */}
-      {hours.length > 0 && (
+      {showHours && hours.length > 0 && (
         <div
           className="rounded-3xl border p-5 shadow-sm"
           style={{ borderColor: "var(--ink-200)", background: "var(--white)" }}
@@ -152,7 +156,7 @@ export function LocationInfo({
       )}
 
       {/* Map card */}
-      {mapUrl && (
+      {showMap && mapUrl && (
         <div
           className="rounded-3xl border p-5 shadow-sm"
           style={{ borderColor: "var(--ink-200)", background: "var(--white)" }}

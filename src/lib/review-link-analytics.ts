@@ -75,6 +75,20 @@ export async function isRateLimited(locationId: string, clientIp: string | null)
   return count >= 5;
 }
 
+export async function isMiniSiteRateLimited(locationId: string, clientIp: string | null): Promise<boolean> {
+  if (!clientIp) return false;
+  const oneMinuteAgo = new Date(Date.now() - 60 * 1000);
+  const count = await prisma.reviewLinkEvent.count({
+    where: {
+      locationId,
+      clientIp,
+      eventType: { in: MINISITE_EVENT_TYPES as unknown as ReviewLinkEventType[] },
+      createdAt: { gte: oneMinuteAgo },
+    },
+  });
+  return count >= 60;
+}
+
 export async function getLocationAnalytics(locationId: string, days: number) {
   const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
 

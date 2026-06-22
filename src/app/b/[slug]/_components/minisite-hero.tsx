@@ -16,6 +16,7 @@ export interface MiniSiteHeroProps {
   phone?: string | null;
   sources?: ReviewSource[];
   showVerified?: boolean;
+  showSourceBadges?: boolean;
   primaryCta?: ResolvedCta | null;
   secondaryCta?: ResolvedCta | null;
 }
@@ -53,6 +54,7 @@ export function MiniSiteHero({
   phone,
   sources = [],
   showVerified = false,
+  showSourceBadges = true,
   primaryCta,
   secondaryCta,
 }: MiniSiteHeroProps) {
@@ -135,7 +137,7 @@ export function MiniSiteHero({
             </p>
           )}
 
-          {sources.length > 0 && (
+          {showSourceBadges && sources.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-1.5">
               {sources.map((src) => (
                 <SourceBadge key={src} source={src} />

@@ -1,5 +1,5 @@
 import { type LocationPublicProfile } from "@prisma/client";
-import { saveLocationSettings } from "@/app/locations/actions";
+import { saveMiniSiteSettings } from "@/app/locations/actions";
 import { FormSubmitButton } from "@/components/form-submit-button";
 
 type LocationForMiniSiteSettings = {
@@ -58,7 +58,7 @@ export function MiniSiteSettings({
         Customise the public mini-site content, design, and feature visibility for this location.
       </p>
 
-      <form action={saveLocationSettings} className="mt-6 space-y-8">
+      <form action={saveMiniSiteSettings} className="mt-6 space-y-8">
         <input type="hidden" name="locationId" value={location.id} />
 
         {/* Identity */}
@@ -174,15 +174,15 @@ export function MiniSiteSettings({
                 <input
                   type="color"
                   name="accentColor"
-                  defaultValue={profile?.accentColor ?? "#0ea5e9"}
+                  defaultValue={profile?.accentColor ?? "#37AEB7"}
                   className="h-10 w-12 cursor-pointer rounded-lg border border-[var(--ink-200)] bg-[var(--ink-50)] p-1"
                 />
                 <input
                   type="text"
                   name="accentColor"
-                  defaultValue={profile?.accentColor ?? "#0ea5e9"}
+                  defaultValue={profile?.accentColor ?? "#37AEB7"}
                   className={`flex-1 ${inputClass}`}
-                  placeholder="#0ea5e9"
+                  placeholder="#37AEB7"
                   aria-label="Accent colour hex value"
                 />
               </div>

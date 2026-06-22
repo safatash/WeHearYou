@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { getPublicLocationBySlug } from "@/lib/public-profile";
-import { isMiniSiteEventType, sanitizeAttribution, isRateLimited, recordEvents } from "@/lib/review-link-analytics";
+import { isMiniSiteEventType, sanitizeAttribution, isMiniSiteRateLimited, recordEvents } from "@/lib/review-link-analytics";
 import type { ReviewLinkEventType } from "@prisma/client";
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
@@ -13,7 +13,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   if (!location) return new Response("Not found", { status: 404 });
 
   const clientIp = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
-  if (await isRateLimited(location.id, clientIp)) return new Response(null, { status: 204 });
+  if (await isMiniSiteRateLimited(location.id, clientIp)) return new Response(null, { status: 204 });
 
   const attribution = sanitizeAttribution({
     sessionId: body.sessionId ?? null,

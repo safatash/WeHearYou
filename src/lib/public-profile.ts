@@ -13,7 +13,7 @@ const publicLocationInclude = {
         { isTestimonial: true, isWidgetVisible: true },
       ],
     },
-    orderBy: [{ reviewedAt: "desc" }, { createdAt: "desc" }],
+    orderBy: [{ isFeatured: "desc" }, { reviewedAt: "desc" }, { createdAt: "desc" }],
     take: 12,
   },
 } satisfies Prisma.LocationInclude;

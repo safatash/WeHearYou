@@ -195,6 +195,7 @@ export default async function BusinessMiniSitePage({
         phone={phone}
         sources={heroSources}
         showVerified={profile?.showVerifiedBadge !== false}
+        showSourceBadges={profile?.showSourceBadges !== false}
         primaryCta={primaryCta}
         secondaryCta={secondaryCta}
       />
@@ -223,6 +224,8 @@ export default async function BusinessMiniSitePage({
               hours={hours}
               services={profile?.services ?? []}
               showServices={profile?.showServices !== false}
+              showMap={profile?.showMap !== false}
+              showHours={profile?.showHours !== false}
             />
           </aside>
 
