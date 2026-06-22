@@ -4,9 +4,13 @@
  * - Stubs out @prisma/client and @/lib/prisma so pure-logic tests
  *   can run without a live database connection.
  */
+import { register } from "node:module";
 import { pathToFileURL, fileURLToPath } from "node:url";
 import path from "node:path";
 import fs from "node:fs";
+
+// Register this loader so it applies to all subsequent imports
+register(import.meta.url, { parentURL: pathToFileURL(process.cwd() + "/") });
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)));
 
@@ -19,6 +23,12 @@ const PRISMA_ENUMS = {
     GOOGLE_REDIRECT_CLICKED: "GOOGLE_REDIRECT_CLICKED",
     FEEDBACK_STARTED: "FEEDBACK_STARTED",
     FEEDBACK_SUBMITTED: "FEEDBACK_SUBMITTED",
+    MINISITE_VIEWED: "MINISITE_VIEWED",
+    MINISITE_CLICK_REVIEW: "MINISITE_CLICK_REVIEW",
+    MINISITE_CLICK_CALL: "MINISITE_CLICK_CALL",
+    MINISITE_CLICK_WEBSITE: "MINISITE_CLICK_WEBSITE",
+    MINISITE_CLICK_DIRECTIONS: "MINISITE_CLICK_DIRECTIONS",
+    MINISITE_CLICK_CTA: "MINISITE_CLICK_CTA",
   },
   ReviewStatus: {
     PUBLISHED: "PUBLISHED",
@@ -30,7 +40,7 @@ const PRISMA_ENUMS = {
 const PRISMA_STUB_URL = "data:text/javascript," + encodeURIComponent(
   Object.entries(PRISMA_ENUMS)
     .map(([key, val]) => `export const ${key} = ${JSON.stringify(val)};`)
-    .join("\n")
+    .join("\n") + "\nexport const Prisma = {};"
 );
 
 const PRISMA_DB_STUB_URL = "data:text/javascript," + encodeURIComponent(
