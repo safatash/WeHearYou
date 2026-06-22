@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 import { ReviewSource, ReviewStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireOrganizationAccess } from "@/lib/authz";
+import { resolveEmbedRenderKind, isKnownWidgetType, normalizeMarqueeSpeed, type EmbedRenderKind } from "@/lib/widget-embed";
 
 export type PublicWidgetReview = {
   id: string;
@@ -32,6 +33,8 @@ export type PublicWidgetPayload = {
   widget: {
     name: string;
     layout: string;
+    renderKind: EmbedRenderKind;
+    marqueeSpeed: string;
     theme: string;
     pageSize: number;
     contentType: string;
@@ -49,6 +52,7 @@ export type PublicWidgetPayload = {
     showWriteReview: boolean;
     showResponses: boolean;
     showSourceLogo: boolean;
+    showAiSummary: boolean;
     bodyMaxChars: number;
     // Appearance
     primaryColor: string;
@@ -231,10 +235,18 @@ export async function getPublicReviewWidgetPayload(publicToken: string, page = 1
     return null;
   }
 
+  // Surface genuinely unknown widget types instead of silently rendering the
+  // default review list for them.
+  if (!isKnownWidgetType(widget.widgetType)) {
+    console.warn(`[widget-embed] Unknown widgetType "${widget.widgetType}" for widget ${widget.id} — falling back to review list.`);
+  }
+
   // Shared widget sub-object builder
   const buildWidgetObj = (ps: number) => ({
     name: widget.name,
     layout: widget.layout,
+    renderKind: resolveEmbedRenderKind(widget.widgetType, widget.layout),
+    marqueeSpeed: normalizeMarqueeSpeed(widget.marqueeSpeed),
     theme: widget.theme,
     pageSize: ps,
     contentType: widget.contentType,
@@ -250,6 +262,7 @@ export async function getPublicReviewWidgetPayload(publicToken: string, page = 1
     showWriteReview: widget.showWriteReview,
     showResponses: widget.showResponses,
     showSourceLogo: widget.showSourceLogo,
+    showAiSummary: widget.showAiSummary,
     bodyMaxChars: widget.bodyMaxChars,
     primaryColor: widget.primaryColor,
     starColor: widget.starColor,

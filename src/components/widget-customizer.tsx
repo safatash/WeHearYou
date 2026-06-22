@@ -246,6 +246,19 @@ function SectionCard({ title, children }: { title: string; children: React.React
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
+// Selectable "max reviews shown" values for wall-of-love widgets. The embed
+// shows a "Load more" button when the location has more reviews than this.
+const PAGE_SIZE_OPTIONS = [2, 4, 6, 8, 10, 12, 16];
+
+function snapPageSize(value: number | null | undefined): number {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return 12;
+  return PAGE_SIZE_OPTIONS.reduce(
+    (best, opt) => (Math.abs(opt - n) < Math.abs(best - n) ? opt : best),
+    PAGE_SIZE_OPTIONS[0],
+  );
+}
+
 interface WidgetCustomizerProps {
   widget: NonNullable<Awaited<ReturnType<typeof getReviewWidgetById>>>;
   preview: PublicWidgetPayload | null;
@@ -275,6 +288,7 @@ export function WidgetCustomizer({
   const [darkTheme, setDarkTheme] = useState(widget.theme === "dark");
   const [title, setTitle] = useState(widget.name);
   const [isActive, setIsActive] = useState(widget.isActive);
+  const [pageSize, setPageSize] = useState<number>(snapPageSize(widget.pageSize));
   const [showNav, setShowNav] = useState(true);
   const [showPagination, setShowPagination] = useState(true);
   const [showBranding, setShowBranding] = useState(true);
@@ -421,6 +435,11 @@ export function WidgetCustomizer({
       }]
     : previewVideos.slice(0, 1);
 
+  // Cap the wall-of-love preview to the chosen "max reviews shown" so the live
+  // preview matches what the embed renders before its "Load more" button.
+  const wallPreviewReviews =
+    widgetType === "WALL_OF_LOVE" ? previewReviews.slice(0, pageSize) : previewReviews;
+
   const previewContentType =
     widgetType === "SINGLE_TESTIMONIAL" ? (singleType === "video" ? "VIDEO" : "TEXT") : contentMode;
   const previewLayout = widgetType === "BADGE" ? "badge" : layout;
@@ -434,6 +453,7 @@ export function WidgetCustomizer({
     formData.append("layout", layout);
     formData.append("contentType", previewContentType);
     formData.append("name", title);
+    formData.append("pageSize", String(pageSize));
     formData.append("theme", darkTheme ? "dark" : "light");
     formData.append("badgeStyle", badgeStyle);
     if (isActive) formData.append("isActive", "on");
@@ -659,6 +679,31 @@ export function WidgetCustomizer({
                       placeholder="e.g. Our Happy Customers"
                       className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm"
                     />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-slate-500 mb-1.5">Max reviews shown</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {PAGE_SIZE_OPTIONS.map((opt) => (
+                        <button
+                          key={opt}
+                          type="button"
+                          onClick={() => {
+                            setPageSize(opt);
+                            markUnsaved();
+                          }}
+                          className={`min-w-[40px] rounded-lg border px-2.5 py-1.5 text-sm font-semibold transition-all ${
+                            pageSize === opt
+                              ? "border-indigo-600 bg-indigo-50 text-indigo-700"
+                              : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
+                          }`}
+                        >
+                          {opt}
+                        </button>
+                      ))}
+                    </div>
+                    <p className="mt-1.5 text-[11px] text-slate-400">
+                      A “Load more” button appears when the location has more reviews than this.
+                    </p>
                   </div>
                   <div className="flex items-center justify-between">
                     <div>
@@ -1376,7 +1421,7 @@ export function WidgetCustomizer({
                 avgRating={preview?.location.avgRating ?? widget.location.avgRating ?? 4.8}
                 reviewCount={preview?.location.reviewCount ?? 5}
                 reviews={
-                  widgetType === "SINGLE_TESTIMONIAL" ? singlePreviewReviews : previewReviews
+                  widgetType === "SINGLE_TESTIMONIAL" ? singlePreviewReviews : wallPreviewReviews
                 }
                 layout={previewLayout}
                 widgetType={widgetType}

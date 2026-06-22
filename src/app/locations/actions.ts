@@ -22,7 +22,7 @@ import {
 import { hasGoogleReviewChanged } from "@/lib/google-review-sync";
 import { buildGoogleWriteReviewLink } from "@/lib/locations";
 import { prisma } from "@/lib/prisma";
-import { requireLocationAccess, requireOrganizationAccess, requireTeamManagement } from "@/lib/authz";
+import { requireLocationAccess, requireOrganizationAccess, requireReviewReplyAccess, requireTeamManagement } from "@/lib/authz";
 
 import { tryAutoSendGoogleReplyForReview } from "@/lib/auto-send-reply";
 function formatGoogleWeekdayDescriptions(weekdayDescriptions?: string[] | null) {
@@ -800,6 +800,21 @@ export async function saveLocationSettings(formData: FormData) {
             showMap: formData.get("showMap") === "on",
             showHours: formData.get("showHours") === "on",
             schemaEnabled: formData.get("schemaEnabled") === "on",
+            accentColor: (formData.get("accentColor") as string)?.trim() || null,
+            websiteUrl: (formData.get("websiteUrl") as string)?.trim() || null,
+            timezone: (formData.get("timezone") as string)?.trim() || null,
+            services: ((formData.get("services") as string) ?? "")
+              .split(",").map((s) => s.trim()).filter(Boolean),
+            ctaType: (formData.get("ctaType") as string) || "REVIEW",
+            secondaryCtaType: (formData.get("secondaryCtaType") as string)?.trim() || null,
+            secondaryCtaLabel: (formData.get("secondaryCtaLabel") as string)?.trim() || null,
+            enabledReviewSources: formData.getAll("enabledReviewSources").map(String),
+            showReviewSummary: formData.get("showReviewSummary") === "on" || formData.get("showReviewSummary") === "true",
+            showFeaturedReviews: formData.get("showFeaturedReviews") === "on" || formData.get("showFeaturedReviews") === "true",
+            showServices: formData.get("showServices") === "on" || formData.get("showServices") === "true",
+            showSourceBadges: formData.get("showSourceBadges") === "on" || formData.get("showSourceBadges") === "true",
+            showVerifiedBadge: formData.get("showVerifiedBadge") === "on" || formData.get("showVerifiedBadge") === "true",
+            showPoweredBy: formData.get("showPoweredBy") === "on" || formData.get("showPoweredBy") === "true",
           },
           create: {
             headline: String(formData.get("headline") ?? "").trim() || null,
@@ -828,6 +843,21 @@ export async function saveLocationSettings(formData: FormData) {
             showMap: formData.get("showMap") === "on",
             showHours: formData.get("showHours") === "on",
             schemaEnabled: formData.get("schemaEnabled") === "on",
+            accentColor: (formData.get("accentColor") as string)?.trim() || null,
+            websiteUrl: (formData.get("websiteUrl") as string)?.trim() || null,
+            timezone: (formData.get("timezone") as string)?.trim() || null,
+            services: ((formData.get("services") as string) ?? "")
+              .split(",").map((s) => s.trim()).filter(Boolean),
+            ctaType: (formData.get("ctaType") as string) || "REVIEW",
+            secondaryCtaType: (formData.get("secondaryCtaType") as string)?.trim() || null,
+            secondaryCtaLabel: (formData.get("secondaryCtaLabel") as string)?.trim() || null,
+            enabledReviewSources: formData.getAll("enabledReviewSources").map(String),
+            showReviewSummary: formData.get("showReviewSummary") === "on" || formData.get("showReviewSummary") === "true",
+            showFeaturedReviews: formData.get("showFeaturedReviews") === "on" || formData.get("showFeaturedReviews") === "true",
+            showServices: formData.get("showServices") === "on" || formData.get("showServices") === "true",
+            showSourceBadges: formData.get("showSourceBadges") === "on" || formData.get("showSourceBadges") === "true",
+            showVerifiedBadge: formData.get("showVerifiedBadge") === "on" || formData.get("showVerifiedBadge") === "true",
+            showPoweredBy: formData.get("showPoweredBy") === "on" || formData.get("showPoweredBy") === "true",
           },
         },
       },
@@ -1478,8 +1508,11 @@ export async function regenerateAiReviewSummaryAction(formData: FormData) {
   }
 
   let summary = "";
+  let highlights: string[] = [];
   try {
-    summary = await generateAiReviewSummary(nonEmpty.map((r) => ({ ...r, rating: r.rating ?? 0 })));
+    const result = await generateAiReviewSummary(nonEmpty.map((r) => ({ ...r, rating: r.rating ?? 0 })));
+    summary = result.summary;
+    highlights = result.highlights;
   } catch (err) {
     if (isRedirectError(err)) throw err;
     const msg = err instanceof Error ? err.message : "AI generation failed";
@@ -1492,12 +1525,14 @@ export async function regenerateAiReviewSummaryAction(formData: FormData) {
       aiReviewSummary: summary,
       aiReviewSummaryAt: new Date(),
       aiReviewSummaryReviewCount: nonEmpty.length,
+      reviewHighlights: highlights,
     },
     create: {
       locationId,
       aiReviewSummary: summary,
       aiReviewSummaryAt: new Date(),
       aiReviewSummaryReviewCount: nonEmpty.length,
+      reviewHighlights: highlights,
     },
   });
 
@@ -1561,4 +1596,141 @@ export async function saveAutomationSettings(formData: FormData) {
   revalidatePath(`/locations/${locationId}`);
 
   redirect(`/locations/${locationId}?flash=${encodeURIComponent("Automation settings saved")}&tone=success`);
+}
+
+export async function toggleMiniSitePublish(formData: FormData): Promise<void> {
+  const locationId = String(formData.get("locationId"));
+  const publish = formData.get("publish") === "true";
+  await requireLocationAccess(locationId);
+  await prisma.location.update({
+    where: { id: locationId },
+    data: {
+      miniSitePublished: publish,
+      ...(publish ? { miniSitePublishedAt: new Date() } : {}),
+    },
+  });
+  revalidatePath(`/locations/${locationId}`);
+  revalidatePath("/locations");
+}
+
+export async function saveMiniSiteSettings(formData: FormData): Promise<void> {
+  const locationId = String(formData.get("locationId") ?? "").trim();
+
+  if (!locationId) {
+    throw new Error("Location is required");
+  }
+
+  await requireLocationAccess(locationId);
+
+  const location = await prisma.location.findUnique({
+    where: { id: locationId },
+    select: { id: true, slug: true },
+  });
+
+  if (!location) {
+    throw new Error("Location not found");
+  }
+
+  let heroImageUrl = String(formData.get("existingHeroImageUrl") ?? "").trim() || null;
+  const uploadedHero = formData.get("heroImageFile");
+
+  try {
+    if (uploadedHero instanceof File && uploadedHero.size > 0) {
+      heroImageUrl = await saveUploadedLocationImage(uploadedHero, `${locationId}-hero`, "hero");
+    }
+  } catch (error) {
+    console.error("Hero image upload failed:", error);
+    const message = error instanceof Error ? error.message : "Image upload failed. Please try again.";
+    redirectToLocationSettingsError(locationId, message);
+  }
+
+  const secondaryCtaTypeRaw = String(formData.get("secondaryCtaType") ?? "").trim();
+
+  await prisma.locationPublicProfile.upsert({
+    where: { locationId },
+    update: {
+      headline: String(formData.get("headline") ?? "").trim() || null,
+      subheadline: String(formData.get("subheadline") ?? "").trim() || null,
+      phone: String(formData.get("phone") ?? "").trim() || null,
+      websiteUrl: String(formData.get("websiteUrl") ?? "").trim() || null,
+      timezone: String(formData.get("timezone") ?? "").trim() || null,
+      accentColor: String(formData.get("accentColor") ?? "").trim() || null,
+      services: String(formData.get("services") ?? "").split(",").map((s) => s.trim()).filter(Boolean),
+      googleHours: String(formData.get("googleHours") ?? "").trim() || null,
+      addressLine1: String(formData.get("addressLine1") ?? "").trim() || null,
+      ctaType: String(formData.get("ctaType") ?? "").trim() || "REVIEW",
+      ctaLabel: String(formData.get("ctaLabel") ?? "").trim() || null,
+      secondaryCtaType: secondaryCtaTypeRaw || null,
+      secondaryCtaLabel: String(formData.get("secondaryCtaLabel") ?? "").trim() || null,
+      enabledReviewSources: formData.getAll("enabledReviewSources").map(String),
+      heroImageUrl,
+      showReviewSummary: formData.get("showReviewSummary") === "on" || formData.get("showReviewSummary") === "true",
+      showFeaturedReviews: formData.get("showFeaturedReviews") === "on" || formData.get("showFeaturedReviews") === "true",
+      showServices: formData.get("showServices") === "on" || formData.get("showServices") === "true",
+      showSourceBadges: formData.get("showSourceBadges") === "on" || formData.get("showSourceBadges") === "true",
+      showMap: formData.get("showMap") === "on" || formData.get("showMap") === "true",
+      showHours: formData.get("showHours") === "on" || formData.get("showHours") === "true",
+      showTestimonials: formData.get("showTestimonials") === "on" || formData.get("showTestimonials") === "true",
+      showAiReviewSummary: formData.get("showAiReviewSummary") === "on" || formData.get("showAiReviewSummary") === "true",
+      showVerifiedBadge: formData.get("showVerifiedBadge") === "on" || formData.get("showVerifiedBadge") === "true",
+      showPoweredBy: formData.get("showPoweredBy") === "on" || formData.get("showPoweredBy") === "true",
+    },
+    create: {
+      locationId,
+      headline: String(formData.get("headline") ?? "").trim() || null,
+      subheadline: String(formData.get("subheadline") ?? "").trim() || null,
+      phone: String(formData.get("phone") ?? "").trim() || null,
+      websiteUrl: String(formData.get("websiteUrl") ?? "").trim() || null,
+      timezone: String(formData.get("timezone") ?? "").trim() || null,
+      accentColor: String(formData.get("accentColor") ?? "").trim() || null,
+      services: String(formData.get("services") ?? "").split(",").map((s) => s.trim()).filter(Boolean),
+      googleHours: String(formData.get("googleHours") ?? "").trim() || null,
+      addressLine1: String(formData.get("addressLine1") ?? "").trim() || null,
+      ctaType: String(formData.get("ctaType") ?? "").trim() || "REVIEW",
+      ctaLabel: String(formData.get("ctaLabel") ?? "").trim() || null,
+      secondaryCtaType: secondaryCtaTypeRaw || null,
+      secondaryCtaLabel: String(formData.get("secondaryCtaLabel") ?? "").trim() || null,
+      enabledReviewSources: formData.getAll("enabledReviewSources").map(String),
+      heroImageUrl,
+      showReviewSummary: formData.get("showReviewSummary") === "on" || formData.get("showReviewSummary") === "true",
+      showFeaturedReviews: formData.get("showFeaturedReviews") === "on" || formData.get("showFeaturedReviews") === "true",
+      showServices: formData.get("showServices") === "on" || formData.get("showServices") === "true",
+      showSourceBadges: formData.get("showSourceBadges") === "on" || formData.get("showSourceBadges") === "true",
+      showMap: formData.get("showMap") === "on" || formData.get("showMap") === "true",
+      showHours: formData.get("showHours") === "on" || formData.get("showHours") === "true",
+      showTestimonials: formData.get("showTestimonials") === "on" || formData.get("showTestimonials") === "true",
+      showAiReviewSummary: formData.get("showAiReviewSummary") === "on" || formData.get("showAiReviewSummary") === "true",
+      showVerifiedBadge: formData.get("showVerifiedBadge") === "on" || formData.get("showVerifiedBadge") === "true",
+      showPoweredBy: formData.get("showPoweredBy") === "on" || formData.get("showPoweredBy") === "true",
+    },
+  });
+
+  revalidatePath(`/locations/${locationId}`);
+
+  if (location.slug) {
+    revalidatePath(`/b/${location.slug}`);
+  }
+
+  redirect(`/locations/${locationId}?flash=Mini+site+settings+saved&tone=success`);
+}
+
+async function setReviewFlag(reviewId: string, data: Record<string, boolean>): Promise<string> {
+  const review = await prisma.review.findUnique({ where: { id: reviewId }, select: { locationId: true } });
+  if (!review) throw new Error("Review not found");
+  await requireReviewReplyAccess(review.locationId);
+  await prisma.review.update({ where: { id: reviewId }, data });
+  revalidatePath(`/locations/${review.locationId}`);
+  return review.locationId;
+}
+
+export async function setReviewFeatured(formData: FormData): Promise<void> {
+  await setReviewFlag(String(formData.get("reviewId")), { isFeatured: formData.get("featured") === "true" });
+}
+
+export async function setReviewHiddenFromMiniSite(formData: FormData): Promise<void> {
+  await setReviewFlag(String(formData.get("reviewId")), { isHiddenFromMiniSite: formData.get("hidden") === "true" });
+}
+
+export async function setReviewWidgetVisible(formData: FormData): Promise<void> {
+  await setReviewFlag(String(formData.get("reviewId")), { isWidgetVisible: formData.get("visible") === "true" });
 }

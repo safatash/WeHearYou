@@ -1,8 +1,11 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { RATING_MODES } from "@/lib/rating-styles";
+import React, { useEffect, useState, useTransition } from "react";
+import { Icon, type IconName } from "@/components/icon";
 import { saveCampaignWizard } from "@/app/campaign-wizard/actions";
+
+const st = (s: React.CSSProperties): React.CSSProperties => s;
+const inputStyle: React.CSSProperties = { width: "100%", borderRadius: "var(--r-sm)", border: "1px solid var(--ink-200)", background: "var(--ink-50)", padding: "10px 12px", fontSize: 13.5, color: "var(--ink-900)", outline: "none", fontFamily: "inherit" };
 
 type Location = {
   id: string;
@@ -25,644 +28,713 @@ type Location = {
   } | null;
 };
 
-const STEPS = [
-  { id: "location", label: "Location", icon: "📍" },
-  { id: "appearance", label: "Appearance", icon: "🎨" },
-  { id: "message", label: "Message", icon: "✉️" },
-  { id: "filter", label: "Review Routing", icon: "🔀" },
-  { id: "share", label: "Share", icon: "🔗" },
+const STEPS: Array<{ id: string; label: string; sub: string; icon: IconName }> = [
+  { id: "locations", label: "Locations", sub: "Where it runs", icon: "pin" },
+  { id: "appearance", label: "Appearance", sub: "Funnel page", icon: "eye" },
+  { id: "channels", label: "Channels", sub: "Where reviews go", icon: "star" },
+  { id: "funnel", label: "Funnel", sub: "Routing logic", icon: "sliders" },
+  { id: "message", label: "Message", sub: "The ask", icon: "chat" },
+  { id: "review", label: "Review", sub: "Launch", icon: "check" },
 ];
 
-const HIGH_DEST_SHORT: Record<string, string> = {
-  GOOGLE: "Google",
-  FACEBOOK: "Facebook",
-  WEHEARYOU: "WeHearYou",
-  CUSTOM: "Custom link",
+const RATING_STYLES = [
+  { id: "stars", label: "Stars", glyph: "★★★★★" },
+  { id: "faces", label: "Faces", glyph: "😞 😐 😊" },
+  { id: "thumbs", label: "Thumbs", glyph: "👎 👍" },
+];
+
+type RoutingDef = {
+  label: string;
+  options: Array<{ value: string; label: string }> | null;
+  hint: (t: number) => string;
+  above: (t: number) => string;
+  below: (t: number) => string;
+  summary: (t: number) => string;
+  rateSub: string;
+  defaultT: number;
+};
+const STYLE_ROUTING: Record<string, RoutingDef> = {
+  stars: {
+    label: "Public review threshold",
+    options: [{ value: "3", label: "3★ +" }, { value: "4", label: "4★ +" }, { value: "5", label: "5★ only" }],
+    hint: (t) => `${t}★ and up go public`,
+    above: (t) => `${t}★ and up`,
+    below: (t) => `Below ${t}★`,
+    summary: (t) => `${t}★+ public`,
+    rateSub: "Customer taps a star rating",
+    defaultT: 4,
+  },
+  faces: {
+    label: "Which faces go public?",
+    options: [{ value: "3", label: "😐 & 😊" }, { value: "5", label: "😊 only" }],
+    hint: (t) => (t >= 5 ? "Only 😊 happy goes public" : "😐 neutral & 😊 happy go public"),
+    above: (t) => (t >= 5 ? "😊 happy" : "😐 😊"),
+    below: (t) => (t >= 5 ? "😞 😐" : "😞 unhappy"),
+    summary: (t) => (t >= 5 ? "😊 public" : "😐 😊 public"),
+    rateSub: "Customer taps a face",
+    defaultT: 5,
+  },
+  thumbs: {
+    label: "Routing",
+    options: null,
+    hint: () => "👍 goes public · 👎 stays private",
+    above: () => "👍 thumbs up",
+    below: () => "👎 thumbs down",
+    summary: () => "👍 public",
+    rateSub: "Customer taps thumbs up or down",
+    defaultT: 5,
+  },
+};
+const routingFor = (style: string): RoutingDef => STYLE_ROUTING[style] ?? STYLE_ROUTING.stars;
+
+const CHANNELS: Array<{ id: string; label: string; letter: string; color: string; desc: string; first?: boolean; rec?: boolean }> = [
+  { id: "WEHEARYOU", label: "WeHearYou", letter: "W", color: "#4f46e5", desc: "Public reviews and private feedback on your WeHearYou profile", first: true },
+  { id: "GOOGLE", label: "Google", letter: "G", color: "var(--src-google)", desc: "Public reviews on your Google Business Profile", rec: true },
+  { id: "FACEBOOK", label: "Facebook", letter: "f", color: "var(--src-facebook)", desc: "Recommendations on your Facebook page" },
+  { id: "CUSTOM", label: "Custom link", letter: "↗", color: "#0e9488", desc: "Send happy customers to any review URL" },
+];
+const CHANNEL_BY_ID = Object.fromEntries(CHANNELS.map((c) => [c.id, c]));
+
+/* ── primitives ─────────────────────────────────────────────────────────── */
+const Field = ({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) => (
+  <div style={st({ display: "flex", flexDirection: "column", gap: 8 })}>
+    <div style={st({ display: "flex", alignItems: "baseline", justifyContent: "space-between" })}>
+      <span style={st({ fontSize: 12.5, fontWeight: 580, color: "var(--ink-700)" })}>{label}</span>
+      {hint && <span style={st({ fontSize: 11.5, color: "var(--ink-400)" })}>{hint}</span>}
+    </div>
+    {children}
+  </div>
+);
+
+const Segmented = ({ value, options, onChange }: { value: string; options: Array<{ value: string; label: string; icon?: IconName }>; onChange: (v: string) => void }) => (
+  <div style={st({ display: "flex", gap: 3, padding: 3, background: "var(--ink-100)", borderRadius: "var(--r-sm)" })}>
+    {options.map((o) => {
+      const active = value === o.value;
+      return (
+        <button key={o.value} type="button" onClick={() => onChange(o.value)}
+          style={st({ flex: 1, border: 0, cursor: "pointer", padding: "7px 8px", borderRadius: 5, fontSize: 12.5, fontWeight: 560, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, background: active ? "var(--white)" : "transparent", color: active ? "var(--ink-900)" : "var(--ink-500)", boxShadow: active ? "var(--shadow-xs)" : "none" })}>
+          {o.icon && <Icon name={o.icon} size={14} />}{o.label}
+        </button>
+      );
+    })}
+  </div>
+);
+
+const Toggle = ({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) => (
+  <button type="button" onClick={() => onChange(!checked)} style={st({ width: 36, height: 21, borderRadius: 999, flex: "none", border: 0, padding: 0, cursor: "pointer", background: checked ? "var(--accent)" : "var(--ink-300)", position: "relative" })}>
+    <span style={st({ position: "absolute", top: 2, left: checked ? 17 : 2, width: 17, height: 17, borderRadius: "50%", background: "#fff", boxShadow: "var(--shadow-sm)", transition: "left .16s" })} />
+  </button>
+);
+
+/* ── step rail ──────────────────────────────────────────────────────────── */
+const StepRail = ({ step, go, maxReached }: { step: number; go: (n: number) => void; maxReached: number }) => (
+  <div style={st({ display: "flex", flexDirection: "column", gap: 2 })}>
+    {STEPS.map((s, i) => {
+      const active = i === step;
+      const done = i < maxReached;
+      const reachable = i <= maxReached;
+      return (
+        <button key={s.id} type="button" disabled={!reachable} onClick={() => reachable && go(i)} className="tap"
+          style={st({ display: "flex", alignItems: "center", gap: 12, padding: "10px 12px", borderRadius: "var(--r-md)", border: 0, cursor: reachable ? "pointer" : "default", textAlign: "left", background: active ? "var(--accent-soft)" : "transparent", opacity: reachable ? 1 : 0.45 })}>
+          <span style={st({ width: 28, height: 28, borderRadius: "50%", flex: "none", display: "grid", placeItems: "center", fontSize: 12.5, fontWeight: 680, fontFamily: "var(--font-mono)", background: active ? "var(--accent)" : done ? "var(--success-soft)" : "var(--ink-100)", color: active ? "#fff" : done ? "var(--success)" : "var(--ink-500)", border: active ? "0" : done ? "1px solid color-mix(in srgb, var(--success) 25%, #fff)" : "1px solid var(--ink-200)" })}>
+            {done ? <Icon name="check" size={15} /> : i + 1}
+          </span>
+          <span style={st({ minWidth: 0 })}>
+            <span style={st({ display: "block", fontSize: 13.5, fontWeight: active ? 640 : 560, color: active ? "var(--accent-strong)" : "var(--ink-800)" })}>{s.label}</span>
+            <span style={st({ display: "block", fontSize: 11.5, color: "var(--ink-400)" })}>{s.sub}</span>
+          </span>
+        </button>
+      );
+    })}
+  </div>
+);
+
+/* ── flow diagram bits ──────────────────────────────────────────────────── */
+const FlowNode = ({ icon, title, sub, tone = "neutral", children, compact }: { icon: IconName; title: string; sub?: string; tone?: "neutral" | "accent" | "success" | "danger"; children?: React.ReactNode; compact?: boolean }) => {
+  const tones = {
+    neutral: { bg: "var(--white)", bd: "var(--ink-200)", ic: "var(--ink-100)", icFg: "var(--ink-600)" },
+    accent: { bg: "var(--accent-softer)", bd: "var(--accent-border)", ic: "var(--accent)", icFg: "#fff" },
+    success: { bg: "var(--success-soft)", bd: "color-mix(in srgb, var(--success) 25%, #fff)", ic: "var(--success)", icFg: "#fff" },
+    danger: { bg: "var(--danger-soft)", bd: "color-mix(in srgb, var(--danger) 25%, #fff)", ic: "var(--danger)", icFg: "#fff" },
+  }[tone];
+  return (
+    <div style={st({ background: tones.bg, border: `1.5px solid ${tones.bd}`, borderRadius: "var(--r-lg)", padding: compact ? "11px 13px" : 15, boxShadow: "var(--shadow-sm)", width: "100%" })}>
+      <div style={st({ display: "flex", alignItems: "center", gap: 11 })}>
+        <span style={st({ width: 32, height: 32, borderRadius: 9, flex: "none", display: "grid", placeItems: "center", background: tones.ic, color: tones.icFg })}><Icon name={icon} size={17} /></span>
+        <div style={st({ minWidth: 0, flex: 1 })}>
+          <div style={st({ fontSize: 13.5, fontWeight: 640 })}>{title}</div>
+          {sub && <div style={st({ fontSize: 11.5, color: "var(--ink-400)", marginTop: 1 })}>{sub}</div>}
+        </div>
+      </div>
+      {children && <div style={st({ marginTop: 11 })}>{children}</div>}
+    </div>
+  );
+};
+const Connector = ({ h = 26 }: { h?: number }) => <div style={st({ width: 2, height: h, background: "var(--ink-200)", margin: "0 auto" })} />;
+const ChannelChip = ({ id }: { id: string }) => {
+  const c = CHANNEL_BY_ID[id];
+  if (!c) return null;
+  return (
+    <span style={st({ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 540, padding: "2px 7px", borderRadius: 999, background: "var(--white)", border: "1px solid var(--ink-200)" })}>
+      <span style={st({ width: 12, height: 12, borderRadius: 3, background: c.color, color: "#fff", display: "grid", placeItems: "center", fontSize: 8, fontWeight: 800, fontFamily: "var(--font-mono)" })}>{c.letter}</span>{c.label}
+    </span>
+  );
 };
 
-function PhonePreview({
-  title,
-  body,
-  ratingStyle,
-  lowRatingDestination,
-  highDests,
-  locationName,
-}: {
-  title: string;
-  body: string;
-  ratingStyle: string;
-  lowRatingDestination: string;
-  highDests: string[];
-  locationName: string;
-}) {
+/* ── interactive phone preview ──────────────────────────────────────────── */
+function PhonePreview({ cfg, stepId }: { cfg: Cfg; stepId: string }) {
+  const [rating, setRating] = useState(0);
+  const [screen, setScreen] = useState<"rate" | "positive" | "negative">("rate");
+  useEffect(() => { setRating(0); setScreen("rate"); }, [stepId, cfg.gateEnabled, cfg.gateThreshold, cfg.ratingStyle]);
+  const onChannels = cfg.channels;
+  const showMessage = stepId === "message";
+
+  const pick = (n: number) => {
+    setRating(n);
+    setTimeout(() => setScreen(!cfg.gateEnabled || n >= cfg.gateThreshold ? "positive" : "negative"), 320);
+  };
+  const sample = (txt: string) => txt.replace(/\{name\}/g, "Marcus").replace(/\{location\}/g, cfg.locationName).replace(/\{link\}/g, cfg.channel === "sms" ? cfg.funnelUrlShort : "");
 
   return (
-    <div className="mx-auto w-[240px] rounded-[32px] border-4 border-slate-800 bg-slate-800 shadow-2xl">
-      {/* Notch */}
-      <div className="mx-auto h-5 w-20 rounded-b-xl bg-slate-800" />
-      {/* Screen */}
-      <div className="min-h-[440px] rounded-[24px] bg-white p-4">
-        <div className="text-center">
-          <p className="text-[9px] font-bold uppercase tracking-widest text-indigo-600">WeHearYou</p>
-          <p className="mt-2 text-xs font-semibold leading-snug text-slate-900 line-clamp-2">
-            {title || `How was your experience with ${locationName}?`}
-          </p>
-          <p className="mt-1.5 text-[9px] leading-relaxed text-slate-500 line-clamp-3">
-            {body || "Share a quick rating below."}
-          </p>
-        </div>
-
-        {/* Rating options */}
-        <div className="mt-4 flex justify-center gap-1.5">
-          {ratingStyle === "stars" && (
-            <div className="flex gap-1.5">
-              {RATING_MODES.stars.map((opt) => (
-                <div key={opt.value} className="text-slate-400">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-                  </svg>
-                </div>
-              ))}
-            </div>
-          )}
-          {ratingStyle === "faces" && (
-            <div className="flex gap-1">
-              {RATING_MODES.faces.map((opt) => (
-                <div key={opt.value} className="text-base">
-                  {opt.icon}
-                </div>
-              ))}
-            </div>
-          )}
-          {ratingStyle === "thumbs" && (
-            <div className="flex gap-1">
-              {RATING_MODES.thumbs.map((opt) => (
-                <div key={opt.value} className="text-lg">
-                  {opt.icon}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Routing legend */}
-        {(
-          <div className="mt-3 space-y-1">
-            <div className="flex items-center gap-1.5 rounded-lg bg-indigo-50 px-2 py-1">
-              <div className="h-1.5 w-1.5 rounded-full bg-indigo-500" />
-              <p className="text-[8px] text-indigo-700">
-                High → {highDests.length === 0 ? "—" : highDests.length === 1 ? HIGH_DEST_SHORT[highDests[0]] ?? highDests[0] : `choice: ${highDests.map((d) => HIGH_DEST_SHORT[d] ?? d).join(", ")}`}
-              </p>
-            </div>
-            <div className="flex items-center gap-1.5 rounded-lg bg-orange-50 px-2 py-1">
-              <div className="h-1.5 w-1.5 rounded-full bg-orange-500" />
-              <p className="text-[8px] text-orange-700">
-                Low → {lowRatingDestination === "CUSTOM" ? "Custom recovery URL" : "Private feedback (saved in WHY)"}
-              </p>
-            </div>
-          </div>
-        )}
+    <div style={st({ position: "sticky", top: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: 14 })}>
+      <div style={st({ display: "flex", alignItems: "center", gap: 8 })}>
+        <span className="badge badge-success"><span style={st({ width: 6, height: 6, borderRadius: "50%", background: "var(--success)" })} />Live preview</span>
+        <span style={st({ fontSize: 12, color: "var(--ink-400)" })}>{showMessage ? "Outreach message" : "Funnel experience"}</span>
       </div>
-      {/* Home bar */}
-      <div className="mx-auto mb-2 mt-1 h-1 w-16 rounded-full bg-slate-600" />
+      <div style={st({ width: 280, height: 560, borderRadius: 38, background: "#0d0d12", padding: 9, boxShadow: "var(--shadow-pop)", flex: "none" })}>
+        <div style={st({ width: "100%", height: "100%", borderRadius: 30, background: "var(--page)", overflow: "hidden", position: "relative", display: "flex", flexDirection: "column" })}>
+          <div style={st({ position: "absolute", top: 0, left: "50%", transform: "translateX(-50%)", width: 120, height: 24, background: "#0d0d12", borderRadius: "0 0 16px 16px", zIndex: 5 })} />
+          {showMessage ? (
+            <div style={st({ flex: 1, display: "flex", flexDirection: "column", paddingTop: 32, background: "var(--ink-100)" })}>
+              <div style={st({ padding: "8px 16px 12px", display: "flex", alignItems: "center", gap: 9, background: "var(--white)", borderBottom: "1px solid var(--ink-200)" })}>
+                <span style={st({ width: 32, height: 32, borderRadius: "50%", background: "var(--accent)", display: "grid", placeItems: "center", color: "#fff", fontWeight: 700, fontSize: 13 })}>{cfg.locationName.slice(0, 1)}</span>
+                <div><div style={st({ fontSize: 13, fontWeight: 640 })}>{cfg.locationName}</div><div style={st({ fontSize: 10.5, color: "var(--ink-400)" })}>{cfg.channel === "sms" ? "SMS · now" : "Email · now"}</div></div>
+              </div>
+              <div style={st({ padding: 16, flex: 1 })}>
+                {cfg.channel === "email" && <div style={st({ fontSize: 13, fontWeight: 680, marginBottom: 10 })}>{cfg.subject}</div>}
+                <div style={st({ background: cfg.channel === "sms" ? "var(--white)" : "transparent", border: cfg.channel === "sms" ? "1px solid var(--ink-200)" : "0", borderRadius: cfg.channel === "sms" ? "4px 16px 16px 16px" : 0, padding: cfg.channel === "sms" ? "11px 13px" : 0, fontSize: 13, lineHeight: 1.55, color: "var(--ink-700)", boxShadow: cfg.channel === "sms" ? "var(--shadow-xs)" : "none" })}>
+                  {sample(cfg.message)}
+                  {cfg.channel === "email" && <button className="btn btn-primary btn-sm" style={st({ marginTop: 14 })}>Share your experience<Icon name="arrowRight" size={13} /></button>}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div style={st({ flex: 1, paddingTop: 36, display: "flex", flexDirection: "column" })}>
+              <div style={st({ display: "flex", alignItems: "center", gap: 8, padding: "0 18px 14px", justifyContent: "center" })}>
+                <span style={st({ width: 26, height: 26, borderRadius: 7, background: "var(--accent)", display: "grid", placeItems: "center", color: "#fff", fontWeight: 700, fontSize: 13 })}>{cfg.locationName.slice(0, 1)}</span>
+                <span style={st({ fontWeight: 700, fontSize: 14 })}>{cfg.locationName}</span>
+              </div>
+              {screen === "rate" && (
+                <div style={st({ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "0 22px", textAlign: "center", gap: 18 })}>
+                  <div>
+                    <div style={st({ fontSize: 18, fontWeight: 700, letterSpacing: "-.02em" })}>{cfg.headline}</div>
+                    <div style={st({ fontSize: 12.5, color: "var(--ink-500)", marginTop: 7, lineHeight: 1.5 })}>{cfg.subheading}</div>
+                  </div>
+                  {cfg.ratingStyle === "faces" ? (
+                    <div style={st({ display: "flex", gap: 14 })}>
+                      {[{ e: "😞", v: 2 }, { e: "😐", v: 3 }, { e: "😊", v: 5 }].map((f) => (
+                        <button key={f.e} type="button" onClick={() => pick(f.v)} style={st({ border: 0, background: "transparent", cursor: "pointer", fontSize: 38, lineHeight: 1, padding: 2 })}>{f.e}</button>
+                      ))}
+                    </div>
+                  ) : cfg.ratingStyle === "thumbs" ? (
+                    <div style={st({ display: "flex", gap: 20 })}>
+                      {[{ e: "👎", v: 1 }, { e: "👍", v: 5 }].map((f) => (
+                        <button key={f.e} type="button" onClick={() => pick(f.v)} style={st({ border: "1px solid var(--ink-200)", background: "var(--white)", cursor: "pointer", fontSize: 30, lineHeight: 1, padding: "12px 18px", borderRadius: 14, boxShadow: "var(--shadow-xs)" })}>{f.e}</button>
+                      ))}
+                    </div>
+                  ) : (
+                    <div style={st({ display: "flex", gap: 4 })}>
+                      {[1, 2, 3, 4, 5].map((n) => (
+                        <button key={n} type="button" onMouseEnter={() => setRating(n)} onMouseLeave={() => setRating(0)} onClick={() => pick(n)} style={st({ border: 0, background: "transparent", cursor: "pointer", padding: 2 })}>
+                          <svg width="33" height="33" viewBox="0 0 24 24"><path d="M12 3.6l2.6 5.3 5.8.85-4.2 4.1 1 5.78L12 17.9l-5.2 2.73 1-5.78-4.2-4.1 5.8-.85z" fill={n <= rating ? "var(--star)" : "var(--ink-200)"} /></svg>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  <div style={st({ fontSize: 11.5, color: "var(--ink-300)" })}>Tap to preview the routing</div>
+                </div>
+              )}
+              {screen === "positive" && (
+                <div style={st({ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "0 22px", textAlign: "center", gap: 16 })}>
+                  <span style={st({ width: 52, height: 52, borderRadius: "50%", background: "var(--success-soft)", color: "var(--success)", display: "grid", placeItems: "center" })}><Icon name="check" size={26} /></span>
+                  <div>
+                    <div style={st({ fontSize: 18, fontWeight: 700 })}>Thank you! 🎉</div>
+                    <div style={st({ fontSize: 13, color: "var(--ink-500)", marginTop: 6 })}>Would you share it where others can see?</div>
+                  </div>
+                  <div style={st({ display: "flex", flexDirection: "column", gap: 9, width: "100%" })}>
+                    {onChannels.length ? onChannels.map((id) => {
+                      const c = CHANNEL_BY_ID[id];
+                      return (
+                        <button key={id} type="button" style={st({ display: "flex", alignItems: "center", justifyContent: "center", gap: 9, width: "100%", padding: 11, borderRadius: 10, border: "1px solid var(--ink-200)", background: "var(--white)", cursor: "pointer", fontSize: 13.5, fontWeight: 600, boxShadow: "var(--shadow-xs)" })}>
+                          <span style={st({ width: 18, height: 18, borderRadius: 4, background: c.color, color: "#fff", display: "grid", placeItems: "center", fontSize: 10, fontWeight: 800, fontFamily: "var(--font-mono)" })}>{c.letter}</span>
+                          Review on {c.label}
+                        </button>
+                      );
+                    }) : <span style={st({ fontSize: 12.5, color: "var(--ink-400)" })}>Select a channel in step 3</span>}
+                  </div>
+                  <button className="btn btn-ghost btn-sm" type="button" onClick={() => { setScreen("rate"); setRating(0); }}>Start over</button>
+                </div>
+              )}
+              {screen === "negative" && (
+                <div style={st({ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "0 22px", textAlign: "center", gap: 14 })}>
+                  <span style={st({ width: 52, height: 52, borderRadius: "50%", background: "var(--accent-soft)", color: "var(--accent-strong)", display: "grid", placeItems: "center" })}><Icon name="chat" size={24} /></span>
+                  <div>
+                    <div style={st({ fontSize: 17, fontWeight: 700 })}>We want to make it right</div>
+                    <div style={st({ fontSize: 13, color: "var(--ink-500)", marginTop: 6 })}>Tell us what happened — this goes straight to the manager, privately.</div>
+                  </div>
+                  <div style={st({ width: "100%", height: 70, borderRadius: 10, border: "1px solid var(--ink-200)", background: "var(--white)", padding: 10, fontSize: 12, color: "var(--ink-400)", textAlign: "left" })}>What could we have done better?</div>
+                  <button className="btn btn-primary btn-sm" type="button" style={st({ width: "100%" })} onClick={() => { setScreen("rate"); setRating(0); }}>Send privately</button>
+                  <div style={st({ fontSize: 10.5, color: "var(--ink-300)" })}>Saved to your WeHearYou inbox · not published publicly</div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+      {!showMessage && <div style={st({ fontSize: 11.5, color: "var(--ink-400)", textAlign: "center", maxWidth: 240 })}>This is exactly what your customer sees. Try tapping the rating.</div>}
     </div>
   );
 }
 
-function QRCodeDisplay({ url }: { url: string }) {
-  const encodedUrl = encodeURIComponent(url);
-  const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodedUrl}&bgcolor=ffffff&color=0f172a&margin=10`;
-
-  function downloadQR() {
-    const link = document.createElement("a");
-    link.download = "review-qr-code.png";
-    link.href = qrSrc;
-    link.click();
-  }
-
+function QRCode({ url }: { url: string }) {
+  const qr = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(url)}&bgcolor=ffffff&color=0f172a&margin=10`;
   return (
-    <div className="flex flex-col items-center gap-3">
-      <img src={qrSrc} alt="QR Code" className="rounded-2xl border border-slate-200" width={200} height={200} />
-      <button
-        type="button"
-        onClick={downloadQR}
-        className="rounded-xl bg-slate-950 px-4 py-2 text-sm font-semibold text-white"
-        style={{ color: "white" }}
-      >
-        Download PNG
+    <div style={st({ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 })}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={qr} alt="Funnel QR code" width={160} height={160} style={st({ borderRadius: 14, border: "1px solid var(--ink-200)" })} />
+      <a className="btn btn-secondary btn-sm" href={qr} download="review-qr-code.png"><Icon name="upload" size={14} />Download PNG</a>
+    </div>
+  );
+}
+
+function CopyRow({ value }: { value: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <div style={st({ display: "flex", alignItems: "center", gap: 8, borderRadius: "var(--r-sm)", border: "1px solid var(--ink-200)", background: "var(--ink-50)", padding: "9px 12px" })}>
+      <span style={st({ flex: 1, minWidth: 0, fontSize: 13, color: "var(--ink-700)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" })}>{value}</span>
+      <button type="button" className={`btn btn-sm ${copied ? "btn-soft" : "btn-secondary"}`} onClick={() => { navigator.clipboard?.writeText(value).catch(() => {}); setCopied(true); setTimeout(() => setCopied(false), 1600); }}>
+        <Icon name={copied ? "check" : "copy"} size={13} />{copied ? "Copied" : "Copy"}
       </button>
     </div>
   );
 }
 
-function CopyField({ label, value }: { label: string; value: string }) {
-  const [copied, setCopied] = useState(false);
-  function copy() {
-    navigator.clipboard.writeText(value);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  }
-  return (
-    <div className="space-y-2">
-      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">{label}</p>
-      <div className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-        <p className="flex-1 truncate text-sm text-slate-700">{value}</p>
-        <button
-          type="button"
-          onClick={copy}
-          className="shrink-0 rounded-lg bg-slate-200 px-3 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-300 transition"
-        >
-          {copied ? "Copied!" : "Copy"}
-        </button>
-      </div>
-    </div>
-  );
-}
+type Cfg = {
+  name: string;
+  locationIds: string[];
+  locationName: string;
+  funnelUrl: string;
+  funnelUrlShort: string;
+  ratingStyle: string;
+  headline: string;
+  subheading: string;
+  channels: string[];
+  primaryChannel: string;
+  facebookReviewUrl: string;
+  customReviewUrl: string;
+  gateEnabled: boolean;
+  gateThreshold: number;
+  lowDestination: string;
+  lowCustomUrl: string;
+  channel: string;
+  delay: number;
+  subject: string;
+  message: string;
+};
 
-export function CampaignWizard({
-  locations,
-  appUrl,
-}: {
-  locations: Location[];
-  appUrl: string;
-}) {
+const DEFAULT_MSG = {
+  sms: "Hi {name}, thanks for visiting {location}! We'd love your quick feedback — it takes 30 seconds: {link}",
+  email: "We hope your visit went well! Your feedback helps us improve and helps others find great care. Tap below to share your experience — it only takes a moment.",
+};
+
+export function CampaignWizard({ locations, appUrl }: { locations: Location[]; appUrl: string }) {
   const [step, setStep] = useState(0);
+  const [maxReached, setMaxReached] = useState(0);
   const [saved, setSaved] = useState(false);
   const [isPending, startTransition] = useTransition();
 
-  const [selectedLocationId, setSelectedLocationId] = useState(locations[0]?.id ?? "");
-  const selectedLocation = locations.find((l) => l.id === selectedLocationId) ?? locations[0];
-  const profile = selectedLocation?.publicProfile;
+  const first = locations[0];
+  const p = first?.publicProfile;
 
-  const [ratingStyle, setRatingStyle] = useState(profile?.funnelRatingStyle ?? "stars");
-  const [promptTitle, setPromptTitle] = useState(
-    profile?.funnelPromptTitle ?? `How was your experience with ${selectedLocation?.name}?`
-  );
-  const [promptBody, setPromptBody] = useState(
-    profile?.funnelPromptBody ?? "Share a quick rating below."
-  );
-  const [emailSubject, setEmailSubject] = useState(`How was your experience at ${selectedLocation?.name}?`);
-  const [messageBody, setMessageBody] = useState(
-    `Hi {name}, thanks for visiting ${selectedLocation?.name}. We'd love to hear your feedback!`
-  );
-  const [threshold, setThreshold] = useState(profile?.negativeFilterThreshold ?? 4);
-  const [lowRatingDestination, setLowRatingDestination] = useState(profile?.lowRatingDestination ?? "PRIVATE");
-  const [lowRatingCustomUrl, setLowRatingCustomUrl] = useState(profile?.lowRatingCustomUrl ?? "");
-  const [highDests, setHighDests] = useState<string[]>(
-    profile?.highRatingDestinations && profile.highRatingDestinations.length > 0 ? profile.highRatingDestinations : ["GOOGLE"],
-  );
-  const [highPrimary, setHighPrimary] = useState(profile?.highRatingPrimaryDestination ?? "");
-  const [facebookReviewUrl, setFacebookReviewUrl] = useState(profile?.facebookReviewUrl ?? "");
-  const [customReviewUrl, setCustomReviewUrl] = useState(profile?.customReviewUrl ?? "");
-  const toggleHighDest = (d: string) =>
-    setHighDests((prev) => (prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d]));
+  const [name, setName] = useState("Post-visit review request");
+  const [locationIds, setLocationIds] = useState<string[]>(first ? [first.id] : []);
+  const [ratingStyle, setRatingStyle] = useState(p?.funnelRatingStyle ?? "stars");
+  const [headline, setHeadline] = useState(p?.funnelPromptTitle ?? `How was your experience with ${first?.name ?? "us"}?`);
+  const [subheading, setSubheading] = useState(p?.funnelPromptBody ?? "Happy customers can continue to a public review, while lower ratings stay private so our team can follow up directly.");
+  const [channels, setChannels] = useState<string[]>(p?.highRatingDestinations?.length ? p.highRatingDestinations : ["WEHEARYOU", "GOOGLE"]);
+  const [primaryChannel, setPrimaryChannel] = useState(p?.highRatingPrimaryDestination ?? "");
+  const [facebookReviewUrl, setFacebookReviewUrl] = useState(p?.facebookReviewUrl ?? "");
+  const [customReviewUrl, setCustomReviewUrl] = useState(p?.customReviewUrl ?? "");
+  const [gateEnabled, setGateEnabled] = useState(true);
+  const [gateThreshold, setGateThreshold] = useState(p?.negativeFilterThreshold ?? 4);
+  const [lowDestination, setLowDestination] = useState(p?.lowRatingDestination ?? "PRIVATE");
+  const [lowCustomUrl, setLowCustomUrl] = useState(p?.lowRatingCustomUrl ?? "");
+  const [channel, setChannel] = useState("sms");
+  const [delay, setDelay] = useState(2);
+  const [subject, setSubject] = useState(`How was your visit to ${first?.name ?? "us"}?`);
+  const [message, setMessage] = useState(DEFAULT_MSG.sms);
 
-  const funnelUrl = `${appUrl}/f/${selectedLocation?.slug}`;
+  // keep the threshold valid for the chosen rating style
+  useEffect(() => {
+    setGateThreshold((t) => {
+      if (ratingStyle === "thumbs") return 5;
+      if (ratingStyle === "faces") return t >= 4 ? 5 : 3;
+      return [3, 4, 5].includes(t) ? t : 4;
+    });
+  }, [ratingStyle]);
+
+  // swap default message when channel flips
+  useEffect(() => {
+    setMessage((m) => ((channel === "sms" && m === DEFAULT_MSG.email) || (channel === "email" && m === DEFAULT_MSG.sms) ? DEFAULT_MSG[channel] : m));
+  }, [channel]);
+
+  const selectedLocations = locations.filter((l) => locationIds.includes(l.id));
+  const previewLocation = selectedLocations[0] ?? first;
+  const funnelUrl = previewLocation ? `${appUrl}/f/${previewLocation.slug}` : "";
+
+  const cfg: Cfg = {
+    name, locationIds, locationName: previewLocation?.name ?? "Your business", funnelUrl,
+    funnelUrlShort: previewLocation ? `wehr.yt/f/${previewLocation.slug.slice(0, 6)}` : "",
+    ratingStyle, headline, subheading, channels, primaryChannel, facebookReviewUrl, customReviewUrl,
+    gateEnabled, gateThreshold, lowDestination, lowCustomUrl, channel, delay, subject, message,
+  };
+
+  const toggleLocation = (id: string) => setLocationIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  const toggleChannel = (id: string) => setChannels((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+
+  const stepId = STEPS[step].id;
+  const isLast = stepId === "review";
+  const canNext = stepId === "locations" ? locationIds.length > 0 : stepId === "channels" ? channels.length > 0 : true;
+  const go = (n: number) => { const c = Math.max(0, Math.min(STEPS.length - 1, n)); setStep(c); setMaxReached((m) => Math.max(m, c)); };
 
   function handleSave() {
     startTransition(async () => {
-      const fd = new FormData();
-      fd.append("locationId", selectedLocationId);
-      fd.append("funnelRatingStyle", ratingStyle);
-      fd.append("funnelPromptTitle", promptTitle);
-      fd.append("funnelPromptBody", promptBody);
-      fd.append("negativeFilterEnabled", "true");
-      fd.append("negativeFilterThreshold", String(threshold));
-      fd.append("lowRatingDestination", lowRatingDestination);
-      fd.append("lowRatingCustomUrl", lowRatingCustomUrl);
-      const dests = highDests.length > 0 ? highDests : ["GOOGLE"];
-      dests.forEach((d) => fd.append("highRatingDestinations", d));
-      fd.append("highRatingMode", dests.length > 1 ? "MULTIPLE" : "SINGLE");
-      fd.append(
-        "highRatingPrimaryDestination",
-        dests.length > 1 ? (dests.includes(highPrimary) ? highPrimary : dests[0]) : "",
-      );
-      fd.append("facebookReviewUrl", facebookReviewUrl);
-      fd.append("customReviewUrl", customReviewUrl);
-      await saveCampaignWizard(fd);
+      const dests = channels.length > 0 ? channels : ["WEHEARYOU"];
+      for (const locId of locationIds.length ? locationIds : [first?.id].filter(Boolean) as string[]) {
+        const fd = new FormData();
+        fd.append("locationId", locId);
+        fd.append("funnelRatingStyle", ratingStyle);
+        fd.append("funnelPromptTitle", headline);
+        fd.append("funnelPromptBody", subheading);
+        fd.append("negativeFilterEnabled", gateEnabled ? "true" : "false");
+        fd.append("negativeFilterThreshold", String(gateThreshold));
+        fd.append("lowRatingDestination", lowDestination);
+        fd.append("lowRatingCustomUrl", lowCustomUrl);
+        dests.forEach((d) => fd.append("highRatingDestinations", d));
+        fd.append("highRatingMode", dests.length > 1 ? "MULTIPLE" : "SINGLE");
+        fd.append("highRatingPrimaryDestination", dests.length > 1 ? (dests.includes(primaryChannel) ? primaryChannel : dests[0]) : "");
+        fd.append("facebookReviewUrl", facebookReviewUrl);
+        fd.append("customReviewUrl", customReviewUrl);
+        await saveCampaignWizard(fd);
+      }
       setSaved(true);
+      setTimeout(() => setSaved(false), 2400);
     });
   }
 
-  const inputClass =
-    "w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100";
+  const rt = routingFor(ratingStyle);
 
   return (
-    <div className="grid gap-8 xl:grid-cols-[1fr_280px]">
-      {/* Left: Wizard */}
-      <div className="space-y-6">
-        {/* Step indicators */}
-        <div className="flex items-center gap-0">
-          {STEPS.map((s, i) => (
-            <div key={s.id} className="flex items-center">
-              <button
-                type="button"
-                onClick={() => i < step || saved ? setStep(i) : undefined}
-                className={`flex items-center gap-2 rounded-2xl px-3 py-2 text-sm font-semibold transition ${
-                  i === step
-                    ? "bg-indigo-600 text-white"
-                    : i < step
-                    ? "bg-slate-100 text-slate-700 hover:bg-slate-200 cursor-pointer"
-                    : "text-slate-400 cursor-default"
-                }`}
-                style={i === step ? { color: "white" } : {}}
-              >
-                <span>{s.icon}</span>
-                <span className="hidden sm:inline">{s.label}</span>
-              </button>
-              {i < STEPS.length - 1 && (
-                <div className={`h-px w-4 ${i < step ? "bg-indigo-300" : "bg-slate-200"}`} />
-              )}
-            </div>
-          ))}
+    <div className="card" style={st({ overflow: "hidden", display: "flex", flexDirection: "column", minHeight: 680 })}>
+      {/* header */}
+      <header style={st({ flex: "none", borderBottom: "1px solid var(--ink-200)", background: "var(--white)", display: "flex", alignItems: "center", gap: 16, padding: "0 22px", height: 60 })}>
+        <div style={st({ fontSize: 14, fontWeight: 700 })}>New campaign</div>
+        <div style={st({ marginLeft: "auto", display: "flex", alignItems: "center", gap: 8 })}>
+          <span style={st({ fontSize: 12.5, color: "var(--ink-400)" })}>Step {step + 1} of {STEPS.length}</span>
+          <div style={st({ width: 140, height: 5, borderRadius: 999, background: "var(--ink-150)", overflow: "hidden" })}>
+            <div style={st({ height: "100%", borderRadius: 999, background: "var(--accent)", width: `${((step + 1) / STEPS.length) * 100}%`, transition: "width .3s" })} />
+          </div>
+        </div>
+      </header>
+
+      {/* body */}
+      <div className="cw-body" style={st({ flex: 1, minHeight: 0, display: "grid", gridTemplateColumns: "220px minmax(0,1fr) 340px" })}>
+        {/* rail */}
+        <div style={st({ borderRight: "1px solid var(--ink-200)", padding: 18, background: "var(--white)" })}>
+          <StepRail step={step} go={go} maxReached={maxReached} />
+          <div style={st({ marginTop: 20, padding: 13, borderRadius: "var(--r-md)", background: "var(--ink-50)", border: "1px solid var(--ink-200)" })}>
+            <div style={st({ display: "flex", alignItems: "center", gap: 7, marginBottom: 5 })}><Icon name="sparkles" size={14} style={{ color: "var(--ink-400)" }} /><span style={st({ fontSize: 12, fontWeight: 600 })}>{STEPS[step].label}</span></div>
+            <p style={st({ fontSize: 11.5, color: "var(--ink-500)", lineHeight: 1.5, margin: 0 })}>{[
+              "Choose which locations this campaign configures.",
+              "Pick the rating style and copy customers see on the funnel page.",
+              "Pick the public review sites happy customers are sent to.",
+              "Smart routing sends your happiest customers to public reviews and routes unhappy ones to private feedback first.",
+              "Write the SMS or email that invites customers into the funnel.",
+              "Double-check everything, then launch.",
+            ][step]}</p>
+          </div>
         </div>
 
-        {/* Step content */}
-        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        {/* panel */}
+        <div style={st({ overflowY: "auto", padding: "28px 32px" })}>
+          <div style={st({ maxWidth: 560, margin: "0 auto" })}>
+            <h1 style={st({ fontSize: 23, fontWeight: 700, letterSpacing: "-.025em", color: "var(--ink-900)" })}>{STEPS[step].label}</h1>
+            <p style={st({ fontSize: 13.5, color: "var(--ink-500)", margin: "5px 0 26px" })}>{[
+              "Name your campaign and pick where it runs.",
+              "Customize what customers see on the funnel page. Preview updates live.",
+              "Where should happy customers leave their review?",
+              "Configure how customers are routed based on their rating.",
+              "Craft the message that drives customers to your funnel.",
+              "You're all set — review and launch.",
+            ][step]}</p>
 
-          {/* Step 1: Location */}
-          {step === 0 && (
-            <div className="space-y-5">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-indigo-600">Step 1 of 5</p>
-                <h3 className="mt-2 text-2xl font-semibold text-slate-950">Select a location</h3>
-                <p className="mt-2 text-sm text-slate-500">Choose which business location this campaign is for.</p>
-              </div>
-              <div className="space-y-3">
-                {locations.map((loc) => (
-                  <button
-                    key={loc.id}
-                    type="button"
-                    onClick={() => {
-                      setSelectedLocationId(loc.id);
-                      const p = loc.publicProfile;
-                      setRatingStyle(p?.funnelRatingStyle ?? "stars");
-                      setPromptTitle(p?.funnelPromptTitle ?? `How was your experience with ${loc.name}?`);
-                      setPromptBody(p?.funnelPromptBody ?? "Share a quick rating below.");
-                      setThreshold(p?.negativeFilterThreshold ?? 4);
-                      setLowRatingDestination(p?.lowRatingDestination ?? "PRIVATE");
-                      setLowRatingCustomUrl(p?.lowRatingCustomUrl ?? "");
-                      setHighDests(p?.highRatingDestinations && p.highRatingDestinations.length > 0 ? p.highRatingDestinations : ["GOOGLE"]);
-                      setHighPrimary(p?.highRatingPrimaryDestination ?? "");
-                      setFacebookReviewUrl(p?.facebookReviewUrl ?? "");
-                      setCustomReviewUrl(p?.customReviewUrl ?? "");
-                    }}
-                    className={`w-full rounded-2xl border p-4 text-left transition ${
-                      loc.id === selectedLocationId
-                        ? "border-indigo-300 bg-indigo-50"
-                        : "border-slate-200 bg-slate-50 hover:border-slate-300 hover:bg-white"
-                    }`}
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="font-semibold text-slate-900">{loc.name}</p>
-                        <p className="mt-1 text-sm text-slate-500">{loc.city}, {loc.state}</p>
-                        <p className="mt-1 text-xs text-slate-400">/f/{loc.slug}</p>
-                      </div>
-                      {loc.id === selectedLocationId && (
-                        <span className="rounded-full bg-indigo-600 px-2 py-1 text-[10px] font-semibold text-white" style={{ color: "white" }}>Selected</span>
-                      )}
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Step 2: Appearance */}
-          {step === 1 && (
-            <div className="space-y-5">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-indigo-600">Step 2 of 5</p>
-                <h3 className="mt-2 text-2xl font-semibold text-slate-950">Appearance</h3>
-                <p className="mt-2 text-sm text-slate-500">Customize what customers see on the funnel page. Preview updates live.</p>
-              </div>
-              <div className="space-y-4">
+            {/* STEP: Locations */}
+            {stepId === "locations" && (
+              <div style={st({ display: "flex", flexDirection: "column", gap: 24 })}>
+                <Field label="Campaign name">
+                  <input style={inputStyle} value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Post-visit review request" />
+                </Field>
                 <div>
-                  <label className="mb-2 block text-sm font-semibold text-slate-700">Rating style</label>
-                  <div className="grid grid-cols-3 gap-3">
-                    {[
-                      { value: "stars", label: "Stars", preview: "★★★★★" },
-                      { value: "faces", label: "Faces", preview: "😞 😐 😊" },
-                      { value: "thumbs", label: "Thumbs", preview: "👎 👍" },
-                    ].map((opt) => (
-                      <button
-                        key={opt.value}
-                        type="button"
-                        onClick={() => {
-                          setRatingStyle(opt.value);
-                          if (opt.value === "thumbs") setThreshold(5);
-                          else if (opt.value === "faces" && ![3, 5].includes(threshold)) setThreshold(5);
-                        }}
-                        className={`rounded-2xl border p-3 text-center transition ${
-                          ratingStyle === opt.value
-                            ? "border-indigo-300 bg-indigo-50"
-                            : "border-slate-200 bg-slate-50 hover:border-slate-300"
-                        }`}
-                      >
-                        <div className="text-xl">{opt.preview}</div>
-                        <div className="mt-1 text-xs font-semibold text-slate-700">{opt.label}</div>
-                      </button>
-                    ))}
+                  <div style={st({ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 })}>
+                    <span style={st({ fontSize: 12.5, fontWeight: 580, color: "var(--ink-700)" })}>Locations</span>
+                    <button type="button" className="btn btn-ghost btn-sm" onClick={() => setLocationIds(locationIds.length === locations.length ? [] : locations.map((l) => l.id))}>{locationIds.length === locations.length ? "Clear all" : "Select all"}</button>
                   </div>
-                </div>
-                <div>
-                  <label className="mb-2 block text-sm font-semibold text-slate-700">Headline</label>
-                  <input
-                    type="text"
-                    value={promptTitle}
-                    onChange={(e) => setPromptTitle(e.target.value)}
-                    className={inputClass}
-                    placeholder={`How was your experience with ${selectedLocation?.name}?`}
-                  />
-                </div>
-                <div>
-                  <label className="mb-2 block text-sm font-semibold text-slate-700">Subheading</label>
-                  <textarea
-                    rows={3}
-                    value={promptBody}
-                    onChange={(e) => setPromptBody(e.target.value)}
-                    className={inputClass}
-                    placeholder="Share a quick rating below."
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Step 3: Message */}
-          {step === 2 && (
-            <div className="space-y-5">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-indigo-600">Step 3 of 5</p>
-                <h3 className="mt-2 text-2xl font-semibold text-slate-950">Request message</h3>
-                <p className="mt-2 text-sm text-slate-500">Used when sending review requests via Email or SMS through automations. Use <code className="rounded bg-slate-100 px-1">{"{name}"}</code> for the customer&apos;s name.</p>
-              </div>
-              <div className="space-y-4">
-                <div>
-                  <label className="mb-2 block text-sm font-semibold text-slate-700">Email subject</label>
-                  <input
-                    type="text"
-                    value={emailSubject}
-                    onChange={(e) => setEmailSubject(e.target.value)}
-                    className={inputClass}
-                    placeholder="How was your experience?"
-                  />
-                </div>
-                <div>
-                  <label className="mb-2 block text-sm font-semibold text-slate-700">Message body</label>
-                  <textarea
-                    rows={5}
-                    value={messageBody}
-                    onChange={(e) => setMessageBody(e.target.value)}
-                    className={inputClass}
-                  />
-                </div>
-                <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Email preview</p>
-                  <div className="mt-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-                    <p className="text-xs text-slate-400">Subject: <span className="font-semibold text-slate-700">{emailSubject}</span></p>
-                    <div className="mt-3 border-t border-slate-100 pt-3">
-                      <p className="whitespace-pre-wrap text-sm leading-7 text-slate-700">{messageBody}</p>
-                      <div className="mt-4 inline-block rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white" style={{ color: "white" }}>
-                        Leave a review →
-                      </div>
-                    </div>
+                  <div style={st({ display: "flex", flexDirection: "column", gap: 10 })}>
+                    {locations.map((l) => {
+                      const on = locationIds.includes(l.id);
+                      return (
+                        <button key={l.id} type="button" onClick={() => toggleLocation(l.id)} className="tap focus-ring"
+                          style={st({ display: "flex", alignItems: "center", gap: 13, padding: 14, borderRadius: "var(--r-md)", cursor: "pointer", textAlign: "left", border: on ? "1.5px solid var(--accent)" : "1px solid var(--ink-200)", background: on ? "var(--accent-softer)" : "var(--white)", boxShadow: on ? "0 0 0 3px var(--accent-ring)" : "var(--shadow-xs)" })}>
+                          <span style={st({ width: 38, height: 38, borderRadius: 10, flex: "none", display: "grid", placeItems: "center", background: on ? "var(--accent)" : "var(--ink-100)", color: on ? "#fff" : "var(--ink-500)" })}><Icon name="pin" size={18} /></span>
+                          <span style={st({ flex: 1, minWidth: 0 })}>
+                            <span style={st({ display: "block", fontSize: 14, fontWeight: 620 })}>{l.name}</span>
+                            <span style={st({ display: "block", fontSize: 12, color: "var(--ink-400)" })}>{[l.city, l.state].filter(Boolean).join(", ") || "No address"}</span>
+                          </span>
+                          {!l.reviewLink && <span className="badge badge-warning">No review link</span>}
+                          <span style={st({ width: 22, height: 22, borderRadius: "50%", flex: "none", display: "grid", placeItems: "center", border: on ? "0" : "1.5px solid var(--ink-300)", background: on ? "var(--accent)" : "transparent", color: "#fff" })}>{on && <Icon name="check" size={14} />}</span>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Step 4: Review Routing */}
-          {step === 3 && (
-            <div className="space-y-6">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-indigo-600">Step 4 of 5</p>
-                <h3 className="mt-2 text-2xl font-semibold text-slate-950">Review routing</h3>
-                <p className="mt-2 text-sm text-slate-500">Decide where customers go after rating. This applies to your live funnel page and campaign links.</p>
-              </div>
-
-              {/* Threshold — where the low/high boundary sits */}
-              {ratingStyle === "stars" && (
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                  <label className="mb-3 block text-sm font-semibold text-slate-700">
-                    High ratings start at <span className="text-indigo-600">{threshold} stars</span>
-                  </label>
-                  <input
-                    type="range"
-                    min={2}
-                    max={5}
-                    value={threshold}
-                    onChange={(e) => setThreshold(Number(e.target.value))}
-                    className="w-full accent-indigo-600"
-                  />
-                  <div className="mt-2 flex justify-between text-xs text-slate-500">
-                    <span>2★</span><span>3★</span><span>4★ (default)</span><span>5★</span>
+            {/* STEP: Appearance */}
+            {stepId === "appearance" && (
+              <div style={st({ display: "flex", flexDirection: "column", gap: 24 })}>
+                <Field label="Rating style">
+                  <div style={st({ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 })}>
+                    {RATING_STYLES.map((o) => {
+                      const on = ratingStyle === o.id;
+                      return (
+                        <button key={o.id} type="button" onClick={() => setRatingStyle(o.id)} className="tap focus-ring"
+                          style={st({ cursor: "pointer", padding: "22px 10px 14px", borderRadius: "var(--r-lg)", textAlign: "center", border: on ? "1.5px solid var(--accent)" : "1px solid var(--ink-200)", background: on ? "var(--accent-softer)" : "var(--white)", boxShadow: on ? "0 0 0 3px var(--accent-ring)" : "var(--shadow-xs)" })}>
+                          <div style={st({ height: 30, display: "grid", placeItems: "center", marginBottom: 12, fontSize: 22, letterSpacing: 2, color: o.id === "stars" ? "var(--star)" : undefined })}>{o.glyph}</div>
+                          <div style={st({ fontSize: 13, fontWeight: 600, color: on ? "var(--accent-strong)" : "var(--ink-700)" })}>{o.label}</div>
+                        </button>
+                      );
+                    })}
                   </div>
-                  <p className="mt-2 text-xs text-slate-500">Below {threshold}★ = low (recovery). {threshold}★ and above = high (public review).</p>
-                </div>
-              )}
-              {ratingStyle === "faces" && (
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                  <p className="mb-3 text-sm font-semibold text-slate-700">Which faces count as high ratings?</p>
-                  <div className="grid grid-cols-2 gap-3">
-                    <button type="button" onClick={() => setThreshold(5)} className={`rounded-2xl border p-3 text-center transition ${threshold >= 5 ? "border-indigo-300 bg-white" : "border-slate-200 bg-white/60 hover:border-slate-300"}`}>
-                      <div className="text-2xl">😊</div><div className="mt-1 text-xs font-semibold text-slate-700">Only happy</div><div className="mt-0.5 text-xs text-slate-400">😞 😐 → low</div>
-                    </button>
-                    <button type="button" onClick={() => setThreshold(3)} className={`rounded-2xl border p-3 text-center transition ${threshold < 5 ? "border-indigo-300 bg-white" : "border-slate-200 bg-white/60 hover:border-slate-300"}`}>
-                      <div className="text-2xl">😐 😊</div><div className="mt-1 text-xs font-semibold text-slate-700">Neutral + happy</div><div className="mt-0.5 text-xs text-slate-400">😞 → low</div>
-                    </button>
-                  </div>
-                </div>
-              )}
-              {ratingStyle === "thumbs" && (
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
-                  👎 = low (recovery) · 👍 = high (public review).
-                </div>
-              )}
-
-              {/* Low rating destination */}
-              <div className="border-t border-slate-100 pt-5">
-                <p className="text-sm font-semibold text-slate-900">Low ratings</p>
-                <p className="mt-1 text-sm text-slate-500">Keep unhappy customers in a private recovery flow.</p>
-                <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                  <button type="button" onClick={() => setLowRatingDestination("PRIVATE")} className={`rounded-2xl border p-4 text-left transition ${lowRatingDestination !== "CUSTOM" ? "border-indigo-300 bg-indigo-50" : "border-slate-200 bg-slate-50 hover:border-slate-300"}`}>
-                    <p className="font-semibold text-slate-900">🔒 Private feedback in WeHearYou</p>
-                    <p className="mt-1 text-sm text-slate-500">Default. Saved privately for the team to follow up.</p>
-                  </button>
-                  <button type="button" onClick={() => setLowRatingDestination("CUSTOM")} className={`rounded-2xl border p-4 text-left transition ${lowRatingDestination === "CUSTOM" ? "border-indigo-300 bg-indigo-50" : "border-slate-200 bg-slate-50 hover:border-slate-300"}`}>
-                    <p className="font-semibold text-slate-900">🔗 Custom recovery URL</p>
-                    <p className="mt-1 text-sm text-slate-500">Send to a support form, complaint page, or helpdesk.</p>
-                  </button>
-                </div>
-                {lowRatingDestination === "CUSTOM" && (
-                  <input
-                    type="url"
-                    value={lowRatingCustomUrl}
-                    onChange={(e) => setLowRatingCustomUrl(e.target.value)}
-                    placeholder="https://support.example.com/contact"
-                    className={`mt-3 ${inputClass}`}
-                  />
-                )}
+                </Field>
+                <Field label="Headline"><input style={inputStyle} value={headline} onChange={(e) => setHeadline(e.target.value)} placeholder="How was your experience?" /></Field>
+                <Field label="Subheading"><textarea style={{ ...inputStyle, resize: "vertical", lineHeight: 1.55 }} rows={3} value={subheading} onChange={(e) => setSubheading(e.target.value)} /></Field>
               </div>
+            )}
 
-              {/* High rating destinations */}
-              <div className="border-t border-slate-100 pt-5">
-                <p className="text-sm font-semibold text-slate-900">High ratings</p>
-                <p className="mt-1 text-sm text-slate-500">Pick one or more places happy customers can leave a public review. Choose several and they&apos;ll see a choice page.</p>
-                <div className="mt-3 space-y-2">
-                  {[
-                    { key: "GOOGLE", label: "Google", hint: "Uses your Google review link" },
-                    { key: "FACEBOOK", label: "Facebook", hint: "Uses the Facebook review URL below" },
-                    { key: "WEHEARYOU", label: "WeHearYou", hint: "First-party review captured here" },
-                    { key: "CUSTOM", label: "Custom link", hint: "Uses the custom review URL below" },
-                  ].map((d) => {
-                    const checked = highDests.includes(d.key);
+            {/* STEP: Channels */}
+            {stepId === "channels" && (
+              <div style={st({ display: "flex", flexDirection: "column", gap: 18 })}>
+                <p style={st({ fontSize: 13.5, color: "var(--ink-500)", lineHeight: 1.55, margin: 0 })}>Pick where happy customers leave a public review. <b style={st({ color: "var(--ink-700)" })}>WeHearYou</b> always captures private feedback from unhappy customers.</p>
+                <div style={st({ display: "flex", flexDirection: "column", gap: 10 })}>
+                  {CHANNELS.map((c) => {
+                    const on = channels.includes(c.id);
+                    const isPrimary = primaryChannel === c.id;
                     return (
-                      <label key={d.key} className={`flex items-start gap-3 rounded-2xl border px-4 py-3 cursor-pointer transition ${checked ? "border-indigo-300 bg-indigo-50" : "border-slate-200 bg-slate-50 hover:border-slate-300"}`}>
-                        <input type="checkbox" checked={checked} onChange={() => toggleHighDest(d.key)} className="mt-1 h-4 w-4 accent-indigo-600" />
-                        <div>
-                          <p className="text-sm font-semibold text-slate-900">{d.label}</p>
-                          <p className="text-xs text-slate-500">{d.hint}</p>
+                      <div key={c.id} style={st({ display: "flex", alignItems: "center", gap: 13, padding: 14, borderRadius: "var(--r-md)", border: on ? "1.5px solid var(--accent-border)" : "1px solid var(--ink-200)", background: on ? "var(--accent-softer)" : "var(--white)" })}>
+                        <span style={st({ width: 36, height: 36, borderRadius: 9, flex: "none", display: "grid", placeItems: "center", color: "#fff", background: c.color, fontFamily: "var(--font-mono)", fontWeight: 800, fontSize: 16 })}>{c.letter}</span>
+                        <div style={st({ flex: 1, minWidth: 0 })}>
+                          <div style={st({ display: "flex", alignItems: "center", gap: 7 })}>
+                            <span style={st({ fontSize: 14, fontWeight: 620 })}>{c.label}</span>
+                            {c.first && <span className="badge badge-accent">First-party</span>}
+                            {c.rec && <span className="badge badge-neutral">Recommended</span>}
+                            {on && isPrimary && <span className="badge badge-success">Primary</span>}
+                          </div>
+                          <div style={st({ fontSize: 12, color: "var(--ink-400)", marginTop: 2 })}>{c.desc}</div>
                         </div>
-                      </label>
+                        {on && !isPrimary && <button type="button" className="btn btn-ghost btn-sm" onClick={() => setPrimaryChannel(c.id)}>Make primary</button>}
+                        <Toggle checked={on} onChange={(v) => { toggleChannel(c.id); if (v && !primaryChannel) setPrimaryChannel(c.id); }} />
+                      </div>
                     );
                   })}
                 </div>
+                {channels.includes("FACEBOOK") && <Field label="Facebook review URL"><input style={inputStyle} value={facebookReviewUrl} onChange={(e) => setFacebookReviewUrl(e.target.value)} placeholder="https://facebook.com/yourpage/reviews" /></Field>}
+                {channels.includes("CUSTOM") && <Field label="Custom review URL"><input style={inputStyle} value={customReviewUrl} onChange={(e) => setCustomReviewUrl(e.target.value)} placeholder="https://…" /></Field>}
+              </div>
+            )}
 
-                {highDests.includes("FACEBOOK") && (
-                  <input type="url" value={facebookReviewUrl} onChange={(e) => setFacebookReviewUrl(e.target.value)} placeholder="https://www.facebook.com/yourpage/reviews" className={`mt-3 ${inputClass}`} />
-                )}
-                {highDests.includes("CUSTOM") && (
-                  <input type="url" value={customReviewUrl} onChange={(e) => setCustomReviewUrl(e.target.value)} placeholder="https://example.com/leave-a-review" className={`mt-3 ${inputClass}`} />
-                )}
+            {/* STEP: Funnel */}
+            {stepId === "funnel" && (
+              <div style={st({ display: "flex", flexDirection: "column", gap: 22 })}>
+                <div className="card" style={st({ padding: 16, background: "var(--ink-50)" })}>
+                  <div style={st({ display: "flex", alignItems: "center", gap: 11, marginBottom: gateEnabled ? 14 : 0 })}>
+                    <span style={st({ width: 34, height: 34, borderRadius: 9, display: "grid", placeItems: "center", background: "var(--accent-soft)", color: "var(--accent-strong)" })}><Icon name="sliders" size={17} /></span>
+                    <div style={st({ flex: 1 })}>
+                      <div style={st({ fontSize: 13.5, fontWeight: 640 })}>Smart routing</div>
+                      <div style={st({ fontSize: 12, color: "var(--ink-400)" })}>Send happy customers public, route unhappy ones to private feedback first</div>
+                    </div>
+                    <Toggle checked={gateEnabled} onChange={setGateEnabled} />
+                  </div>
+                  {gateEnabled && (
+                    <div style={st({ display: "flex", flexDirection: "column", gap: 14, borderTop: "1px solid var(--ink-200)", paddingTop: 14 })}>
+                      {rt.options ? (
+                        <Field label={rt.label} hint={rt.hint(gateThreshold)}>
+                          <Segmented value={String(gateThreshold)} onChange={(v) => setGateThreshold(Number(v))} options={rt.options} />
+                        </Field>
+                      ) : (
+                        <Field label={rt.label}>
+                          <div style={st({ display: "flex", alignItems: "center", gap: 10, padding: "11px 13px", borderRadius: "var(--r-sm)", background: "var(--white)", border: "1px solid var(--ink-200)" })}>
+                            <span style={st({ fontSize: 18 })}>👍</span><span style={st({ fontSize: 12.5, color: "var(--ink-600)" })}>Thumbs up → public · 👎 down → private feedback</span>
+                          </div>
+                        </Field>
+                      )}
+                      <Field label="When rating is below threshold">
+                        <Segmented value={lowDestination} onChange={setLowDestination} options={[{ value: "PRIVATE", label: "Private feedback" }, { value: "CUSTOM", label: "Custom recovery URL" }]} />
+                      </Field>
+                      {lowDestination === "CUSTOM" && <Field label="Recovery URL"><input style={inputStyle} value={lowCustomUrl} onChange={(e) => setLowCustomUrl(e.target.value)} placeholder="https://…" /></Field>}
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <div className="eyebrow" style={st({ marginBottom: 14 })}>Funnel preview</div>
+                  <div style={st({ maxWidth: 460, margin: "0 auto" })}>
+                    <FlowNode icon="send" title={`Send ${channel === "sms" ? "SMS" : "email"} request`} sub={`${delay}h after visit`} tone="accent" />
+                    <Connector />
+                    <FlowNode icon="star" title="Rate your experience" sub={rt.rateSub} />
+                    {gateEnabled ? (
+                      <>
+                        <svg viewBox="0 0 460 46" width="100%" height="46" style={{ display: "block" }}>
+                          <path d="M230 0 V14 Q230 23 200 23 H118 Q88 23 88 32 V46" fill="none" stroke="var(--ink-200)" strokeWidth="2" />
+                          <path d="M230 0 V14 Q230 23 260 23 H342 Q372 23 372 32 V46" fill="none" stroke="var(--ink-200)" strokeWidth="2" />
+                        </svg>
+                        <div style={st({ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 })}>
+                          <div>
+                            <div style={st({ textAlign: "center", marginBottom: 8 })}><span className="badge badge-danger">{rt.below(gateThreshold)}</span></div>
+                            <FlowNode icon="inbox" title="Private feedback" tone="danger" compact sub={lowDestination === "CUSTOM" ? "Custom recovery URL" : "Saved to WeHearYou inbox"} />
+                          </div>
+                          <div>
+                            <div style={st({ textAlign: "center", marginBottom: 8 })}><span className="badge badge-success">{rt.above(gateThreshold)}</span></div>
+                            <FlowNode icon="star" title="Public review" tone="success" compact sub={`${channels.length} channel${channels.length === 1 ? "" : "s"}`}>
+                              <div style={st({ display: "flex", flexWrap: "wrap", gap: 5 })}>
+                                {channels.length ? channels.map((id) => <ChannelChip key={id} id={id} />) : <span style={st({ fontSize: 11.5, color: "var(--danger)" })}>No channels selected</span>}
+                              </div>
+                            </FlowNode>
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <Connector />
+                        <FlowNode icon="star" title="Public review" tone="success" sub="All ratings sent to public channels">
+                          <div style={st({ display: "flex", flexWrap: "wrap", gap: 5 })}>{channels.map((id) => <ChannelChip key={id} id={id} />)}</div>
+                        </FlowNode>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
 
-                {highDests.length > 1 ? (
-                  <div className="mt-4 rounded-2xl border border-indigo-100 bg-indigo-50 p-4">
-                    <p className="text-sm font-semibold text-slate-700">Choice page — primary (highlighted) destination</p>
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {highDests.map((d) => {
-                        const active = (highPrimary || highDests[0]) === d;
-                        return (
-                          <button key={d} type="button" onClick={() => setHighPrimary(d)} className={`rounded-xl border px-3 py-2 text-sm font-semibold transition ${active ? "border-indigo-400 bg-white text-indigo-700" : "border-slate-200 bg-white/60 text-slate-600 hover:border-slate-300"}`}>
-                            {d === "WEHEARYOU" ? "WeHearYou" : d === "CUSTOM" ? "Custom" : d.charAt(0) + d.slice(1).toLowerCase()}
-                          </button>
-                        );
-                      })}
+            {/* STEP: Message */}
+            {stepId === "message" && (
+              <div style={st({ display: "flex", flexDirection: "column", gap: 22 })}>
+                <Field label="Delivery channel">
+                  <Segmented value={channel} onChange={setChannel} options={[{ value: "sms", label: "SMS", icon: "chat" }, { value: "email", label: "Email", icon: "send" }]} />
+                </Field>
+                <Field label="Send delay" hint={`${delay} hour${delay === 1 ? "" : "s"} after visit`}>
+                  <input type="range" min={0} max={48} step={1} value={delay} onChange={(e) => setDelay(Number(e.target.value))} style={st({ width: "100%", accentColor: "var(--accent)" })} />
+                  <div style={st({ display: "flex", justifyContent: "space-between", fontSize: 11, color: "var(--ink-400)" })}><span>Immediately</span><span>48h</span></div>
+                </Field>
+                {channel === "email" && <Field label="Subject line"><input style={inputStyle} value={subject} onChange={(e) => setSubject(e.target.value)} /></Field>}
+                <Field label="Message" hint={channel === "sms" ? `${message.length}/160` : "Body"}>
+                  <textarea style={{ ...inputStyle, resize: "vertical", lineHeight: 1.55 }} rows={channel === "sms" ? 4 : 6} value={message} onChange={(e) => setMessage(e.target.value)} />
+                </Field>
+                <div style={st({ display: "flex", flexWrap: "wrap", gap: 7, alignItems: "center" })}>
+                  <span style={st({ fontSize: 12, color: "var(--ink-400)" })}>Insert:</span>
+                  {["{name}", "{location}", "{link}"].map((tok) => (
+                    <button key={tok} type="button" onClick={() => setMessage(message + " " + tok)} style={st({ fontSize: 11.5, fontFamily: "var(--font-mono)", padding: "4px 9px", borderRadius: 6, border: "1px solid var(--ink-200)", background: "var(--ink-50)", color: "var(--accent-strong)", cursor: "pointer" })}>{tok}</button>
+                  ))}
+                </div>
+                <p style={st({ fontSize: 11.5, color: "var(--ink-400)", margin: 0 })}>The funnel settings save to each location. Outreach delivery is handled in Campaigns.</p>
+              </div>
+            )}
+
+            {/* STEP: Review */}
+            {stepId === "review" && (
+              <div style={st({ display: "flex", flexDirection: "column", gap: 18 })}>
+                <div className="card" style={st({ padding: "4px 18px 8px" })}>
+                  <SummaryRow label="Campaign" onEdit={() => go(0)}><span style={st({ fontWeight: 640 })}>{name || "Untitled campaign"}</span></SummaryRow>
+                  <SummaryRow label="Locations" onEdit={() => go(0)}>{selectedLocations.length ? selectedLocations.map((l) => <span key={l.id} className="badge badge-neutral"><Icon name="pin" size={11} />{l.name}</span>) : <span style={st({ color: "var(--danger)" })}>None selected</span>}</SummaryRow>
+                  <SummaryRow label="Rating style" onEdit={() => go(1)}><span className="badge badge-neutral" style={st({ textTransform: "capitalize" })}>{ratingStyle}</span><span style={st({ color: "var(--ink-400)", fontSize: 12.5 })}>{headline}</span></SummaryRow>
+                  <SummaryRow label="Channels" onEdit={() => go(2)}>{channels.map((id) => <ChannelChip key={id} id={id} />)}</SummaryRow>
+                  <SummaryRow label="Routing" onEdit={() => go(3)}>{gateEnabled ? <><span className="badge badge-success">{rt.summary(gateThreshold)}</span><span className="badge badge-danger">below → {lowDestination === "CUSTOM" ? "recovery URL" : "private feedback"}</span></> : <span className="badge badge-neutral">All ratings public (gate off)</span>}</SummaryRow>
+                  <SummaryRow label="Delivery" onEdit={() => go(4)}><span className="badge badge-accent">{channel === "sms" ? "SMS" : "Email"}</span><span style={st({ color: "var(--ink-500)" })}>{delay}h after visit</span></SummaryRow>
+                </div>
+                {previewLocation && (
+                  <div className="card" style={st({ padding: 18 })}>
+                    <div className="eyebrow" style={st({ marginBottom: 12 })}>Shareable funnel{selectedLocations.length > 1 ? ` · ${previewLocation.name}` : ""}</div>
+                    <div style={st({ display: "flex", gap: 18, flexWrap: "wrap", alignItems: "center" })}>
+                      <div style={st({ flex: 1, minWidth: 220, display: "flex", flexDirection: "column", gap: 10 })}>
+                        <CopyRow value={funnelUrl} />
+                        {selectedLocations.length > 1 && <p style={st({ fontSize: 11.5, color: "var(--ink-400)", margin: 0 })}>Each selected location gets its own funnel link.</p>}
+                      </div>
+                      <QRCode url={funnelUrl} />
                     </div>
                   </div>
-                ) : highDests.length === 1 ? (
-                  <p className="mt-3 text-xs text-slate-500">Customers go straight to {highDests[0] === "WEHEARYOU" ? "the WeHearYou review form" : highDests[0].charAt(0) + highDests[0].slice(1).toLowerCase()}.</p>
-                ) : (
-                  <p className="mt-3 text-xs text-rose-600">Select at least one high-rating destination.</p>
                 )}
               </div>
-            </div>
-          )}
-
-          {/* Step 5: Share */}
-          {step === 4 && (
-            <div className="space-y-5">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-indigo-600">Step 5 of 5</p>
-                <h3 className="mt-2 text-2xl font-semibold text-slate-950">Share your funnel</h3>
-                <p className="mt-2 text-sm text-slate-500">Everything is ready. Share your funnel link, download the QR code, or copy the NFC URL.</p>
-              </div>
-
-              {saved ? (
-                <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
-                  <p className="text-sm font-semibold text-emerald-700">✓ Campaign saved successfully</p>
-                  <p className="mt-1 text-xs text-emerald-600">Your funnel page is live and updated.</p>
-                </div>
-              ) : (
-                <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
-                  <p className="text-sm font-semibold text-amber-700">Save your campaign first</p>
-                  <p className="mt-1 text-xs text-amber-600">Click save below to apply all your settings to the live funnel.</p>
-                </div>
-              )}
-
-              <div className="space-y-4">
-                <CopyField label="Funnel URL" value={funnelUrl} />
-                <CopyField label="NFC / Short link" value={funnelUrl} />
-
-                <div>
-                  <p className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">QR Code</p>
-                  <QRCodeDisplay url={funnelUrl} />
-                </div>
-
-                <div className="flex gap-3 pt-2">
-                  <a
-                    href={funnelUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 transition"
-                  >
-                    Open live funnel ↗
-                  </a>
-                  <a
-                    href={`/funnel-preview?location=${selectedLocationId}`}
-                    className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 transition"
-                  >
-                    Open preview
-                  </a>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Navigation */}
-        <div className="flex items-center justify-between">
-          <button
-            type="button"
-            onClick={() => setStep((s) => Math.max(0, s - 1))}
-            disabled={step === 0}
-            className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm disabled:opacity-40 hover:bg-slate-50 transition"
-          >
-            ← Back
-          </button>
-
-          <div className="flex gap-3">
-            {step < 4 ? (
-              <button
-                type="button"
-                onClick={() => setStep((s) => Math.min(4, s + 1))}
-                className="rounded-2xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 transition"
-                style={{ color: "white" }}
-              >
-                Next →
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={handleSave}
-                disabled={isPending}
-                className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-slate-800 transition disabled:opacity-60"
-                style={{ color: "white" }}
-              >
-                {isPending ? "Saving..." : saved ? "Saved ✓" : "Save campaign"}
-              </button>
             )}
           </div>
         </div>
-      </div>
 
-      {/* Right: Live phone preview */}
-      <div className="hidden xl:block">
-        <div className="sticky top-6 space-y-4">
-          <p className="text-center text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">Live preview</p>
-          <PhonePreview
-            title={promptTitle}
-            body={promptBody}
-            ratingStyle={ratingStyle}
-            lowRatingDestination={lowRatingDestination}
-            highDests={highDests}
-            locationName={selectedLocation?.name ?? ""}
-          />
-          <p className="text-center text-xs text-slate-400">{selectedLocation?.name}</p>
+        {/* preview */}
+        <div className="cw-preview" style={st({ borderLeft: "1px solid var(--ink-200)", padding: "24px 18px", overflowY: "auto", background: "linear-gradient(180deg, var(--ink-50), var(--page))" })}>
+          {isLast ? (
+            <div style={st({ position: "sticky", top: 0, display: "flex", flexDirection: "column", gap: 16 })}>
+              <div className="card" style={st({ padding: 20, textAlign: "center", background: "linear-gradient(170deg, var(--accent-softer), var(--white))" })}>
+                <span style={st({ width: 54, height: 54, borderRadius: 16, margin: "0 auto 14px", display: "grid", placeItems: "center", background: "var(--accent)", color: "#fff", boxShadow: "var(--shadow-md)" })}><Icon name="megaphone" size={26} /></span>
+                <h3 style={st({ fontSize: 17, fontWeight: 700 })}>Ready to launch</h3>
+                <p style={st({ fontSize: 12.5, color: "var(--ink-500)", margin: "6px 0 0", lineHeight: 1.5 })}>{name} will apply across {selectedLocations.length} location{selectedLocations.length === 1 ? "" : "s"}.</p>
+              </div>
+              <div className="card" style={st({ padding: 16 })}>
+                <div className="eyebrow" style={st({ marginBottom: 12 })}>Before you launch</div>
+                {([["Channels selected", "At least one public review site", channels.length > 0], ["Funnel routing", gateEnabled ? "Smart gate protects your rating" : "Gate is off — all ratings public", true], ["Message length", channel === "sms" ? "Within SMS limits" : "Email body", channel === "email" || message.length <= 160]] as Array<[string, string, boolean]>).map(([t, s, ok]) => (
+                  <div key={t} style={st({ display: "flex", gap: 10, padding: "9px 0", borderTop: "1px solid var(--ink-150)" })}>
+                    <span style={st({ width: 20, height: 20, borderRadius: "50%", flex: "none", display: "grid", placeItems: "center", background: ok ? "var(--success-soft)" : "var(--warning-soft)", color: ok ? "var(--success)" : "var(--warning)" })}><Icon name={ok ? "check" : "dots"} size={12} /></span>
+                    <div><div style={st({ fontSize: 12.5, fontWeight: 580 })}>{t}</div><div style={st({ fontSize: 11, color: "var(--ink-400)" })}>{s}</div></div>
+                  </div>
+                ))}
+              </div>
+              <button type="button" className={`btn ${saved ? "btn-soft" : "btn-primary"}`} style={st({ width: "100%", height: 44 })} onClick={handleSave} disabled={isPending}>
+                <Icon name="check" size={17} />{isPending ? "Launching…" : saved ? "Launched" : "Launch campaign"}
+              </button>
+            </div>
+          ) : (
+            <PhonePreview cfg={cfg} stepId={stepId} />
+          )}
         </div>
       </div>
+
+      {/* footer */}
+      <footer style={st({ flex: "none", borderTop: "1px solid var(--ink-200)", background: "var(--white)", display: "flex", alignItems: "center", padding: "0 28px", gap: 12, height: 68 })}>
+        <button type="button" className="btn btn-secondary" onClick={() => go(step - 1)} disabled={step === 0}><Icon name="arrowRight" size={16} style={{ transform: "rotate(180deg)" }} />Back</button>
+        <div style={st({ marginLeft: "auto", display: "flex", alignItems: "center", gap: 12 })}>
+          <button type="button" className="btn btn-ghost" onClick={handleSave} disabled={isPending}>{saved ? "Saved" : "Save draft"}</button>
+          {isLast ? (
+            <button type="button" className={`btn ${saved ? "btn-soft" : "btn-primary"}`} onClick={handleSave} disabled={isPending}><Icon name="check" size={16} />{isPending ? "Launching…" : saved ? "Launched" : "Launch campaign"}</button>
+          ) : (
+            <button type="button" className="btn btn-primary" onClick={() => canNext && go(step + 1)} aria-disabled={!canNext} style={st({ opacity: canNext ? 1 : 0.5, pointerEvents: canNext ? "auto" : "none" })}>Continue<Icon name="arrowRight" size={16} /></button>
+          )}
+        </div>
+      </footer>
     </div>
   );
 }
+
+const SummaryRow = ({ label, children, onEdit }: { label: string; children: React.ReactNode; onEdit: () => void }) => (
+  <div style={st({ display: "flex", alignItems: "flex-start", gap: 12, padding: "13px 0", borderTop: "1px solid var(--ink-150)" })}>
+    <span style={st({ width: 90, flex: "none", fontSize: 12.5, color: "var(--ink-400)", paddingTop: 1 })}>{label}</span>
+    <div style={st({ flex: 1, fontSize: 13.5, fontWeight: 540, display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" })}>{children}</div>
+    <button type="button" className="btn btn-ghost btn-sm" onClick={onEdit}>Edit</button>
+  </div>
+);

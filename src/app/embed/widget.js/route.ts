@@ -106,7 +106,17 @@ const script = `
       ".why-video-duration{position:absolute;bottom:6px;right:8px;font-size:11px;color:rgba(255,255,255,.8);background:rgba(0,0,0,.5);padding:1px 5px;border-radius:4px}" +
       ".why-video-info{padding:10px 12px}" +
       ".why-video-name{font-size:13px;font-weight:600}" +
-      ".why-widget-masonry{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));align-items:start}";
+      ".why-widget-masonry{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));align-items:start}" +
+      ".why-marq{overflow:hidden;width:100%}" +
+      ".why-marq+.why-marq{margin-top:14px}" +
+      ".why-marq:hover .why-marq-track{animation-play-state:paused}" +
+      ".why-marq-track{display:flex;gap:14px;width:max-content;will-change:transform;animation:why-marq-l linear infinite}" +
+      ".why-marq-track--r{animation-name:why-marq-r}" +
+      ".why-marq-item{flex:none;width:300px}" +
+      "@keyframes why-marq-l{from{transform:translateX(0)}to{transform:translateX(-50%)}}" +
+      "@keyframes why-marq-r{from{transform:translateX(-50%)}to{transform:translateX(0)}}" +
+      "@media(max-width:639px){.why-marq-item{width:250px}}" +
+      "@media(prefers-reduced-motion:reduce){.why-marq-track{animation:none}}";
     document.head.appendChild(style);
   }
 
@@ -453,6 +463,9 @@ const script = `
   }
 
   function renderAiSummary(data) {
+    // Render whenever the location has a summary (location-level showAiReviewSummary
+    // is already applied server-side). Matches the dashboard preview; renders
+    // nothing — no empty placeholder — when there is no summary.
     if (!data.location.aiReviewSummary) return "";
     var countHtml = data.location.aiReviewSummaryReviewCount
       ? '<p style="margin:0;font-size:10px;color:#a5b4fc">Based on ' + escapeHtml(String(data.location.aiReviewSummaryReviewCount)) + ' reviews</p>'
@@ -505,6 +518,72 @@ const script = `
       '<span class="why-widget-badge-stars" style="color:' + escapeHtml(data.widget.starColor) + '">' + escapeHtml(roundedStars) + '</span>' +
       '<span class="why-widget-badge-text"><strong>' + escapeHtml(data.location.name) + '</strong>' + countSuffix + '</span>' +
     '</' + tag + '>';
+  }
+
+  function renderSingleTestimonial(data) {
+    var w = data.widget;
+    var wrapOpen = '<div class="why-widget" style="font-family:' + fontStack(w.fontFamily) + ';background:' + escapeHtml(w.backgroundColor) + ';color:' + escapeHtml(w.textColor) + ';border-radius:18px;padding:24px;border:1px solid rgba(0,0,0,.06);max-width:560px;margin:0 auto">';
+    var vids = data.videoTestimonials || [];
+    if (w.contentType === "VIDEO" && vids.length) {
+      return wrapOpen + renderVideoCard(vids[0]) + '</div>';
+    }
+    var reviews = data.reviews || [];
+    if (!reviews.length) {
+      return wrapOpen + '<div style="font-size:14px;color:#64748b">This testimonial is currently unavailable.</div></div>';
+    }
+    var r = reviews[0];
+    var reviewerHtml = '';
+    if (w.showReviewerName !== false) {
+      var avatarHtml = r.reviewerPhotoUrl
+        ? '<img class="why-widget-avatar" src="' + escapeHtml(r.reviewerPhotoUrl) + '" alt="' + escapeHtml(r.reviewerName || '') + '" />'
+        : '<div class="why-widget-avatar-fallback">' + escapeHtml((r.reviewerName || '?').slice(0, 1).toUpperCase()) + '</div>';
+      reviewerHtml = '<div style="display:flex;align-items:center;gap:11px">' + avatarHtml +
+        '<div><div style="font-weight:700;font-size:14px">' + escapeHtml(r.reviewerName || 'Anonymous') + '</div>' +
+        (w.showDate !== false && r.reviewedAt ? '<div style="font-size:12px;color:#64748b">' + escapeHtml(formatDate(r.reviewedAt)) + (r.source ? ' · ' + escapeHtml(String(r.source)) : '') + '</div>' : '') +
+        '</div></div>';
+    }
+    return wrapOpen +
+      (w.showRating !== false ? '<div style="color:' + escapeHtml(w.starColor) + ';font-size:18px;margin-bottom:12px">' + escapeHtml(stars(r.rating)) + '</div>' : '') +
+      '<p style="font-size:18px;line-height:1.55;font-weight:500;margin:0 0 18px">' + escapeHtml(r.body || '') + '</p>' +
+      reviewerHtml +
+    '</div>';
+  }
+
+  function buildMarqueeRows(pool) {
+    if (!pool.length) return [[], []];
+    var filled = [];
+    while (filled.length < Math.max(6, pool.length)) filled = filled.concat(pool);
+    var half = Math.ceil(filled.length / 2);
+    var rowB = filled.slice(half).concat(filled.slice(0, Math.max(0, half - (filled.length - half))));
+    return [filled.slice(0, half), rowB.length ? rowB : filled.slice(0, half)];
+  }
+
+  function renderMarquee(data, items) {
+    var w = data.widget;
+    var rows = buildMarqueeRows(items);
+    var dur = w.marqueeSpeed === "slow" ? 60 : w.marqueeSpeed === "fast" ? 26 : 40;
+    function rowHtml(row, dir, d) {
+      if (!row.length) return "";
+      var cards = row.concat(row).map(function (it) {
+        var card = it.type === "video" ? renderVideoCard(it.data) : renderCard(it.data, w);
+        return '<div class="why-marq-item">' + card + '</div>';
+      }).join("");
+      return '<div class="why-marq"><div class="why-marq-track' + (dir === "r" ? " why-marq-track--r" : "") + '" style="animation-duration:' + d + 's">' + cards + '</div></div>';
+    }
+    var footerHtml = '';
+    if (w.showWriteReview && data.location.reviewLink && w.contentType !== "VIDEO") {
+      footerHtml += '<a class="why-widget-link" href="' + escapeHtml(data.location.reviewLink) + '" target="_blank" rel="noopener noreferrer" style="color:' + escapeHtml(w.primaryColor) + '">Write a review</a>';
+    }
+    if (w.showBranding !== false) {
+      footerHtml += '<div class="why-widget-branding">Powered by <a href="https://www.wehearyou.io" target="_blank" rel="noopener noreferrer">WeHearYou</a></div>';
+    }
+    return '<div class="why-widget" style="font-family:' + fontStack(w.fontFamily) + ';background:' + escapeHtml(w.backgroundColor) + ';color:' + escapeHtml(w.textColor) + ';border-radius:18px;padding:20px;border:1px solid rgba(0,0,0,.06)">' +
+      renderHeader(data) +
+      renderAiSummary(data) +
+      rowHtml(rows[0], "l", dur) +
+      rowHtml(rows[1], "r", Math.round(dur * 1.22)) +
+      '<div class="why-widget-footer">' + footerHtml + '</div>' +
+    '</div>';
   }
 
   function formatDuration(seconds) {
@@ -742,8 +821,12 @@ const script = `
         if (overrides.showDate !== null) data.widget.showDate = overrides.showDate !== "false";
         if (overrides.showWriteReview !== null) data.widget.showWriteReview = overrides.showWriteReview !== "false";
 
+        // Render kind is resolved server-side (collecting | floating | single |
+        // badge | list) so the embed never guesses from raw type/layout strings.
+        var renderKind = data.widget.renderKind || "list";
+
         // Collecting Widget: render floating button, skip review rendering entirely
-        if (nextPage === 1 && data.widget.widgetType === "COLLECTING") {
+        if (nextPage === 1 && renderKind === "collecting") {
           renderCollectingWidget(data, token, baseUrl.origin);
           done = true;
           setLoadingState(false);
@@ -751,8 +834,16 @@ const script = `
         }
 
         // Floating Widget: render fixed-position card with rotation, skip review grid
-        if (nextPage === 1 && data.widget.widgetType === "FLOATING") {
+        if (nextPage === 1 && renderKind === "floating") {
           renderFloatingWidget(data, token, baseUrl.origin);
+          done = true;
+          setLoadingState(false);
+          return;
+        }
+
+        // Single Testimonial: render exactly one pinned review or video.
+        if (nextPage === 1 && renderKind === "single") {
+          mount.innerHTML = renderSingleTestimonial(data);
           done = true;
           setLoadingState(false);
           return;
@@ -771,9 +862,17 @@ const script = `
         }
 
         if (nextPage === 1) {
-          // Badge layout: render once and bail — no pagination needed.
-          if (data.widget.layout === "badge") {
+          // Badge: render once and bail — no pagination needed.
+          if (renderKind === "badge") {
             mount.innerHTML = '<div class="why-widget" style="font-family:' + fontStack(data.widget.fontFamily) + ';color:' + escapeHtml(data.widget.textColor) + '">' + renderBadge(data) + '</div>';
+            done = true;
+            setLoadingState(false);
+            return;
+          }
+
+          // Review marquee: the carousel layout renders as auto-scrolling rows.
+          if (data.widget.layout === "carousel") {
+            mount.innerHTML = renderMarquee(data, items);
             done = true;
             setLoadingState(false);
             return;
@@ -804,9 +903,9 @@ const script = `
             listWrapper = '<div class="' + layoutClass + '"></div>';
           }
 
-          var titleHtml = data.widget.name ? '<h2 style="font-size:18px;font-weight:700;margin:0 0 12px 0;color:' + escapeHtml(data.widget.textColor) + '">' + escapeHtml(data.widget.name) + '</h2>' : '';
+          // The widget "name" is an internal admin label — never render it on the
+          // public/embed site. Customer-facing heading comes from renderHeader.
           mount.innerHTML = '<div class="why-widget" style="font-family:' + fontStack(data.widget.fontFamily) + ';background:' + escapeHtml(data.widget.backgroundColor) + ';color:' + escapeHtml(data.widget.textColor) + ';border-radius:18px;padding:20px;border:1px solid rgba(0,0,0,.06)">' +
-            titleHtml +
             renderHeader(data) +
             renderAiSummary(data) +
             listWrapper +

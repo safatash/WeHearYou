@@ -2,14 +2,47 @@ export const dynamic = "force-dynamic";
 
 import { AppShell } from "@/components/app-shell";
 import { requireActiveMembershipPage } from "@/lib/page-guards";
-import { WidgetStudio } from "@/app/widgets/widget-studio";
+import { getOrganizationReviewWidgets } from "@/lib/review-widgets";
+import { WidgetsIndex, type IndexWidget } from "@/app/widgets/widgets-index";
 
-export default async function WidgetsPage() {
-  await requireActiveMembershipPage();
+export default async function WidgetsPage({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const membership = await requireActiveMembershipPage();
+  const query = (await searchParams) ?? {};
+  const flashMessage = typeof query.flash === "string" ? query.flash : null;
+  const flashTone =
+    typeof query.tone === "string" && ["success", "error", "info"].includes(query.tone)
+      ? (query.tone as "success" | "error" | "info")
+      : "success";
+
+  const widgets = await getOrganizationReviewWidgets(membership.organization.id);
+
+  const indexWidgets: IndexWidget[] = widgets.map((w) => ({
+    id: w.id,
+    name: w.name,
+    layout: w.layout,
+    theme: w.theme,
+    widgetType: w.widgetType ?? null,
+    contentType: w.contentType,
+    primaryColor: w.primaryColor ?? null,
+    minRating: w.minRating,
+    pageSize: w.pageSize,
+    showHeader: w.showHeader,
+    showDate: w.showDate,
+    showReviewerName: w.showReviewerName,
+    showSourceLogo: w.showSourceLogo,
+    isActive: w.isActive,
+    reviewCount: w.health.reviewCount,
+    updatedAt: w.updatedAt.toISOString(),
+    locationName: w.location.name,
+  }));
 
   return (
-    <AppShell activeScreen="widgets">
-      <WidgetStudio />
+    <AppShell activeScreen="widgets" flash={flashMessage ? { message: flashMessage, tone: flashTone } : null}>
+      <WidgetsIndex widgets={indexWidgets} />
     </AppShell>
   );
 }

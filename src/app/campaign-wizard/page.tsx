@@ -31,14 +31,9 @@ export default async function CampaignWizardPage() {
 
   return (
     <AppShell activeScreen="funnel-builder">
-      <div className="space-y-6">
-        <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.22em] text-indigo-600">Campaign Wizard</p>
-          <h2 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">Set up your review campaign</h2>
-          <p className="mt-3 max-w-2xl text-slate-600">
-            Configure your funnel, customize your message, set the review filter, and get your shareable link and QR code — all in one place.
-          </p>
-        </div>
+      <div>
+        <p className="eyebrow" style={{ marginBottom: 6 }}>Campaign Wizard</p>
+        <h2 className="mb-5 text-2xl font-bold tracking-tight text-slate-950">Set up your review campaign</h2>
 
         <CampaignWizard
           locations={locations.map((l) => ({

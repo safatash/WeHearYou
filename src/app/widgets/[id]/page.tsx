@@ -5,8 +5,18 @@ import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { FormSubmitButton } from "@/components/form-submit-button";
 import { WidgetCustomizer } from "@/components/widget-customizer";
-import { getPublicReviewWidgetPayload, getReviewWidgetById, getWidgetPickerData } from "@/lib/review-widgets";
+import { WidgetStudioEditor, type StudioWidget } from "@/app/widgets/widget-studio-editor";
+import { getPublicReviewWidgetPayload, getReviewWidgetById, getWidgetPickerData, getWidgetEligibleLocations } from "@/lib/review-widgets";
 import { deleteReviewWidget } from "@/app/widgets/actions";
+
+// Simple text widgets get the mock-style Studio; floating/collecting/video
+// widgets keep the detailed customizer so their advanced config isn't lost.
+function isSimpleWidget(w: { widgetType: string | null; contentType: string; layout: string }): boolean {
+  // Advanced video/mixed layouts that only the detailed customizer can configure.
+  const advancedLayouts = new Set(["featured-video", "video-wall", "tabbed", "featured-video-reviews"]);
+  if (advancedLayouts.has(w.layout)) return false;
+  return true;
+}
 
 export default async function WidgetDetailPage({
   params,
@@ -38,6 +48,71 @@ export default async function WidgetDetailPage({
     (host ? `${proto}://${host}` : "");
   const embedScriptUrl = `${appUrl}/embed/widget.js`;
   const localTestUrl = `/widgets/${widget.id}/test`;
+
+  // Simple text widgets → mock-style Studio editor.
+  if (isSimpleWidget(widget)) {
+    const eligibleLocations = await getWidgetEligibleLocations(widget.organizationId);
+    const locationOptions = eligibleLocations.map((l) => ({ id: l.id, name: l.name }));
+    if (!locationOptions.some((l) => l.id === widget.locationId)) {
+      locationOptions.unshift({ id: widget.locationId, name: widget.location.name });
+    }
+    const studioWidget: StudioWidget = {
+      id: widget.id,
+      publicToken: widget.publicToken,
+      name: widget.name,
+      locationId: widget.locationId,
+      layout: widget.layout,
+      contentType: widget.contentType,
+      widgetType: widget.widgetType ?? null,
+      theme: widget.theme,
+      minRating: widget.minRating,
+      pageSize: widget.pageSize,
+      isActive: widget.isActive,
+      showHeader: widget.showHeader,
+      showRating: widget.showRating,
+      showReviewerName: widget.showReviewerName,
+      showDate: widget.showDate,
+      showWriteReview: widget.showWriteReview,
+      showSourceLogo: widget.showSourceLogo,
+      primaryColor: widget.primaryColor,
+      starColor: widget.starColor,
+      showAiSummary: widget.showAiSummary,
+      marqueeSpeed: widget.marqueeSpeed,
+      badgeStyle: widget.badgeStyle ?? null,
+      collectButtonPosition: widget.collectButtonPosition ?? null,
+      collectButtonTheme: widget.collectButtonTheme ?? null,
+      collectButtonColor: widget.collectButtonColor ?? null,
+      collectMobileBehavior: widget.collectMobileBehavior ?? null,
+      floatingCardStyle: widget.floatingCardStyle ?? null,
+      floatingVariation: widget.floatingVariation ?? null,
+      floatingPosition: widget.floatingPosition ?? null,
+      floatingRotationEnabled: widget.floatingRotationEnabled ?? null,
+      floatingRotationIntervalSec: widget.floatingRotationIntervalSec ?? null,
+      floatingAccentColorMode: widget.floatingAccentColorMode ?? null,
+      floatingAccentColor: widget.floatingAccentColor ?? null,
+      floatingMobileBehavior: widget.floatingMobileBehavior ?? null,
+      floatingApprovedOnly: widget.floatingApprovedOnly ?? null,
+      floatingMinRating: widget.floatingMinRating ?? null,
+      sort: widget.sort,
+      headerAlign: widget.headerAlign,
+      bodyMaxChars: widget.bodyMaxChars,
+      backgroundColor: widget.backgroundColor,
+      textColor: widget.textColor,
+      fontFamily: widget.fontFamily,
+      showAvgRating: widget.showAvgRating,
+      showReviewCount: widget.showReviewCount,
+      showResponses: widget.showResponses,
+    };
+    const profile = widget.location.publicProfile;
+    const aiSummaryText = profile?.showAiReviewSummary ? (profile.aiReviewSummary ?? null) : null;
+    const aiSummaryCount = profile?.showAiReviewSummary ? (profile.aiReviewSummaryReviewCount ?? null) : null;
+    return (
+      <AppShell activeScreen="widgets" flash={flash ? { message: flash, tone } : null}>
+        <WidgetStudioEditor widget={studioWidget} embedScriptUrl={embedScriptUrl} locations={locationOptions} aiSummaryText={aiSummaryText} aiSummaryCount={aiSummaryCount} />
+      </AppShell>
+    );
+  }
+
   const [preview, pickerData] = await Promise.all([
     getPublicReviewWidgetPayload(widget.publicToken, 1),
     getWidgetPickerData(widget.locationId),

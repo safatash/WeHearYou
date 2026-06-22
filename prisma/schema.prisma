@@ -110,6 +110,12 @@ enum ReviewLinkEventType {
   GOOGLE_REDIRECT_CLICKED
   FEEDBACK_STARTED
   FEEDBACK_SUBMITTED
+  MINISITE_VIEWED
+  MINISITE_CLICK_REVIEW
+  MINISITE_CLICK_CALL
+  MINISITE_CLICK_WEBSITE
+  MINISITE_CLICK_DIRECTIONS
+  MINISITE_CLICK_CTA
 }
 
 model Organization {
@@ -256,6 +262,8 @@ model Location {
   lastSyncSkippedCount  Int?
   lastSyncFetchedCount  Int?
   lastSyncAt            DateTime?
+  miniSitePublished     Boolean       @default(false)
+  miniSitePublishedAt   DateTime?
   createdAt             DateTime      @default(now())
   updatedAt             DateTime      @updatedAt
 
@@ -404,6 +412,7 @@ model Review {
   isTestimonial         Boolean       @default(false)
   isFeatured            Boolean       @default(false)
   isWidgetVisible       Boolean       @default(false)
+  isHiddenFromMiniSite  Boolean       @default(false)
   publishedExternally   Boolean       @default(false)
   legacySourceId        String?
   reviewedAt            DateTime?
@@ -610,14 +619,26 @@ model ReviewWidget {
   showDate         Boolean      @default(true)
   showWriteReview  Boolean      @default(true)
   showResponses    Boolean      @default(false)
+  showAiSummary    Boolean      @default(true)
+  marqueeSpeed     String       @default("normal")
   bodyMaxChars     Int          @default(280)
 
   // Appearance panel
   primaryColor     String       @default("#4338ca")
   starColor        String       @default("#f59e0b")
+  starColorMode    String       @default("gold")    // "gold" | "accent" | "ink"
   backgroundColor  String       @default("#ffffff")
   textColor        String       @default("#0f172a")
-  fontFamily       String       @default("system")
+  fontFamily       String       @default("system")  // system | sans | serif | round | mono
+  cornerRadius     Int          @default(12)         // 0..22 px
+  cardStyle        String       @default("border")  // "border" | "shadow" | "soft"
+  density          String       @default("cozy")    // "cozy" | "compact"
+  gridColumns      String       @default("auto")    // "auto" | "2" | "3"
+  wallStyle        String       @default("varied")  // "varied" | "uniform"
+  enabledSources   String       @default("")         // CSV of GOOGLE,FACEBOOK,YELP,TRUSTPILOT; "" = all
+  showBranding     Boolean      @default(true)
+  collectTitle     String?
+  collectSubtitle  String?
 
   // Widget type & single testimonial
   widgetType                 String?
@@ -716,6 +737,21 @@ model LocationPublicProfile {
   aiReviewSummary            String?
   aiReviewSummaryAt          DateTime?
   aiReviewSummaryReviewCount Int?
+  accentColor          String?
+  websiteUrl           String?
+  timezone             String?
+  services             String[]    @default([])
+  ctaType              String?     @default("REVIEW")
+  secondaryCtaType     String?
+  secondaryCtaLabel    String?
+  enabledReviewSources String[]    @default([])
+  reviewHighlights     String[]    @default([])
+  showReviewSummary    Boolean     @default(true)
+  showFeaturedReviews  Boolean     @default(true)
+  showServices         Boolean     @default(true)
+  showSourceBadges     Boolean     @default(true)
+  showVerifiedBadge    Boolean     @default(true)
+  showPoweredBy        Boolean     @default(true)
   createdAt            DateTime    @default(now())
   updatedAt            DateTime    @updatedAt
 
