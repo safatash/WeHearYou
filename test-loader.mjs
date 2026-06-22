@@ -40,7 +40,7 @@ const PRISMA_ENUMS = {
 const PRISMA_STUB_URL = "data:text/javascript," + encodeURIComponent(
   Object.entries(PRISMA_ENUMS)
     .map(([key, val]) => `export const ${key} = ${JSON.stringify(val)};`)
-    .join("\n")
+    .join("\n") + "\nexport const Prisma = {};"
 );
 
 const PRISMA_DB_STUB_URL = "data:text/javascript," + encodeURIComponent(
