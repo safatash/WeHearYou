@@ -10,7 +10,7 @@ const STATUS_STYLES: Record<LocationStatus, string> = {
 };
 
 export function LocationHeader({
-  location, publicUrl, status, connectedSources, avgRating, totalReviews,
+  location, publicUrl, status, connectedSources, avgRating, totalReviews, published,
 }: {
   location: { id: string; name: string; slug: string; city: string; state: string };
   publicUrl: string;
@@ -18,15 +18,24 @@ export function LocationHeader({
   connectedSources: string[];
   avgRating: number | null;
   totalReviews: number;
+  published: boolean;
 }) {
   return (
     <header className="rounded-2xl border border-[var(--ink-200)] bg-white p-6 shadow-[var(--shadow-sm)]">
       <Link href="/locations" className="text-sm font-semibold text-[var(--accent)]">← All locations</Link>
       <div className="mt-3 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2">
             <h1 className="text-2xl font-semibold tracking-tight text-[var(--ink-900)]">{location.name}</h1>
             <span className={`rounded-full px-3 py-1 text-xs font-semibold ${STATUS_STYLES[status]}`}>{status}</span>
+            <span
+              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${
+                published ? "bg-[var(--success-soft)] text-[#047857]" : "bg-[var(--ink-100)] text-[var(--ink-600)]"
+              }`}
+            >
+              <span className={`h-1.5 w-1.5 rounded-full ${published ? "bg-[#047857]" : "bg-[var(--ink-400)]"}`} />
+              {published ? "Published" : "Not published"}
+            </span>
           </div>
           <p className="mt-1 text-sm text-[var(--ink-500)]">{location.city}, {location.state}</p>
           <div className="mt-2 flex items-center gap-2 text-sm">
@@ -49,10 +58,10 @@ export function LocationHeader({
         <div className="flex flex-wrap gap-2">
           <CopyLinkButton url={publicUrl} />
           <a href={publicUrl} target="_blank" rel="noreferrer" className="rounded-xl border border-[var(--ink-200)] bg-white px-3 py-2 text-sm font-semibold text-[var(--ink-700)] hover:bg-[var(--ink-50)]">Open public page</a>
-          <a href="#minisite-settings" className="rounded-xl border border-[var(--ink-200)] bg-white px-3 py-2 text-sm font-semibold text-[var(--ink-700)] hover:bg-[var(--ink-50)]">Customize mini site</a>
-          <a href="#location-settings" className="rounded-xl border border-[var(--ink-200)] bg-white px-3 py-2 text-sm font-semibold text-[var(--ink-700)] hover:bg-[var(--ink-50)]">Edit location</a>
+          <Link href="?tab=settings" scroll={false} className="rounded-xl border border-[var(--ink-200)] bg-white px-3 py-2 text-sm font-semibold text-[var(--ink-700)] hover:bg-[var(--ink-50)]">Customize mini site</Link>
+          <Link href="?tab=details" scroll={false} className="rounded-xl border border-[var(--ink-200)] bg-white px-3 py-2 text-sm font-semibold text-[var(--ink-700)] hover:bg-[var(--ink-50)]">Edit location</Link>
           <Link href={`/campaigns/new?locationId=${location.id}`} className="rounded-xl bg-[var(--accent)] px-3 py-2 text-sm font-semibold !text-white hover:bg-[var(--accent-strong)]">Send review request</Link>
-          <a href="#connected-sources" className="rounded-xl border border-[var(--ink-200)] bg-white px-3 py-2 text-sm font-semibold text-[var(--ink-700)] hover:bg-[var(--ink-50)]">Manage sources</a>
+          <Link href="?tab=sources" scroll={false} className="rounded-xl border border-[var(--ink-200)] bg-white px-3 py-2 text-sm font-semibold text-[var(--ink-700)] hover:bg-[var(--ink-50)]">Manage sources</Link>
         </div>
       </div>
     </header>
