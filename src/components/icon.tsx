@@ -39,6 +39,7 @@ import {
   ChevronRight,
   ArrowRight,
   ArrowUp,
+  ExternalLink,
   LucideIcon,
 } from 'lucide-react';
 
@@ -47,7 +48,7 @@ export type IconName =
   | 'eye' | 'mail' | 'megaphone' | 'trash' | 'upload' | 'grid' | 'layers' | 'film'
   | 'star' | 'chat' | 'send' | 'sliders' | 'code' | 'copy' | 'sun' | 'moon'
   | 'monitor' | 'phone' | 'chevLeft' | 'close' | 'sparkles' | 'inbox' | 'plug' | 'package' | 'map'
-  | 'reply' | 'tag' | 'archive' | 'dots' | 'chevRight' | 'arrowRight' | 'arrowUp';
+  | 'reply' | 'tag' | 'archive' | 'dots' | 'chevRight' | 'arrowRight' | 'arrowUp' | 'external';
 
 const iconMap: Record<IconName, LucideIcon> = {
   search: Search,
@@ -90,6 +91,7 @@ const iconMap: Record<IconName, LucideIcon> = {
   chevRight: ChevronRight,
   arrowRight: ArrowRight,
   arrowUp: ArrowUp,
+  external: ExternalLink,
 };
 
 interface IconProps {

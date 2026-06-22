@@ -39,6 +39,29 @@ export function RatingDisplay({
 }
 
 /**
+ * Compact, read-only star row for displaying an average rating inline
+ * (e.g. on location cards). Renders five stars filled up to `value`.
+ */
+export function InlineStars({ value, size = 14, className = "" }: { value: number; size?: number; className?: string }) {
+  return (
+    <div className={`flex items-center gap-0.5 ${className}`} aria-label={`${value} out of 5 stars`}>
+      {[1, 2, 3, 4, 5].map((n) => (
+        <svg
+          key={n}
+          width={size}
+          height={size}
+          viewBox="0 0 24 24"
+          fill="currentColor"
+          className={n <= Math.round(value) ? "text-amber-400" : "text-slate-200"}
+        >
+          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+        </svg>
+      ))}
+    </div>
+  );
+}
+
+/**
  * Star rating component (SVG stars) for selecting a rating.
  * Shows stars filled based on hover or selected state.
  */

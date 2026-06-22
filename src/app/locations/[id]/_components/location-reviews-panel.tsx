@@ -34,7 +34,7 @@ export function LocationReviewsPanel({
         {REVIEW_FILTERS.map((f) => (
           <Link
             key={f.value}
-            href={`?reviewFilter=${f.value}#reviews`}
+            href={`?tab=reviews&reviewFilter=${f.value}`}
             scroll={false}
             className={`rounded-full px-3 py-1 text-xs font-semibold ${
               activeFilter === f.value

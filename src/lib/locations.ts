@@ -153,15 +153,25 @@ export function getLocationPortfolioStats(locations: LocationWithRelations[]) {
   const totalContacts = locations.reduce((sum, location) => sum + location.contacts.length, 0);
 
   const ratedLocations = locations.filter((location) => typeof location.avgRating === "number");
-  const portfolioRating = ratedLocations.length
-    ? (ratedLocations.reduce((sum, location) => sum + (location.avgRating ?? 0), 0) / ratedLocations.length).toFixed(1)
-    : "0.0";
+  const portfolioRatingValue = ratedLocations.length
+    ? ratedLocations.reduce((sum, location) => sum + (location.avgRating ?? 0), 0) / ratedLocations.length
+    : 0;
+  const portfolioRating = portfolioRatingValue.toFixed(1);
+
+  const totalReviews = locations.reduce((sum, location) => sum + location.reviews.length, 0);
+  const totalPending = locations.reduce(
+    (sum, location) => sum + location.reviews.filter((review) => !review.replyPublishedAt && !review.replySentAt).length,
+    0,
+  );
 
   return {
     totalLocations,
     activeLocations,
     launchingLocations: totalLocations - activeLocations,
     totalContacts,
+    totalReviews,
+    totalPending,
+    portfolioRatingValue,
     portfolioRating: `${portfolioRating} ★`,
   };
 }
