@@ -14,10 +14,9 @@ ALTER TABLE "ReviewWidget"
   ADD COLUMN IF NOT EXISTS "starColorMode" TEXT NOT NULL DEFAULT 'gold',
   ADD COLUMN IF NOT EXISTS "wallStyle" TEXT NOT NULL DEFAULT 'varied';
 
--- enabledSources: backfill NULLs, then enforce the schema's NOT NULL + default.
+-- enabledSources: backfill any NULLs and set the default so Prisma never reads
+-- a NULL into the non-nullable String field. (We intentionally do NOT add a
+-- NOT NULL constraint or DROP a column here — those are non-idempotent and can
+-- fail mid-migration; they are unnecessary to fix the runtime error.)
 UPDATE "ReviewWidget" SET "enabledSources" = '' WHERE "enabledSources" IS NULL;
 ALTER TABLE "ReviewWidget" ALTER COLUMN "enabledSources" SET DEFAULT '';
-ALTER TABLE "ReviewWidget" ALTER COLUMN "enabledSources" SET NOT NULL;
-
--- Drop the obsolete column removed from the schema during the redesign.
-ALTER TABLE "ReviewWidget" DROP COLUMN IF EXISTS "showAvatar";
