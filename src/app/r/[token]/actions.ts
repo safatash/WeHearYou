@@ -28,6 +28,7 @@ export async function submitReviewRating(formData: FormData) {
           location: {
             include: {
               publicProfile: true,
+              resolutionSettings: true,
             },
           },
         },
@@ -46,6 +47,7 @@ export async function submitReviewRating(formData: FormData) {
   }
 
   const profile = recipient.campaign.location.publicProfile;
+  const resolutionSettings = recipient.campaign.location.resolutionSettings;
   const threshold = profile?.negativeFilterThreshold ?? 4;
   const isThumbsDown = ratingMode === "thumbs" && ratingValue === 1;
   const isHigh = !isThumbsDown && ratingValue >= threshold;
@@ -53,6 +55,15 @@ export async function submitReviewRating(formData: FormData) {
 
   // ── LOW: recovery only (private feedback or custom recovery URL) ─────────
   if (!isHigh) {
+    // Customer Resolution Assistant takes over the low-rating recovery flow.
+    if (resolutionSettings?.enabled) {
+      await prisma.campaignRecipient.update({
+        where: { id: recipient.id },
+        data: { status: CampaignStatus.CLICKED, outcome: "Low rating — resolution assistant", openedAt },
+      });
+      redirect(`/r/${token}/resolve?rating=${ratingValue}`);
+    }
+
     const lowDest = normalizeLowRatingDestination(profile?.lowRatingDestination);
     const recoveryUrl = trimOrNull(profile?.lowRatingCustomUrl);
 

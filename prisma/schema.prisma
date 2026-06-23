@@ -126,6 +126,40 @@ enum ReviewLinkEventType {
   AI_ASSIST_DEST_FACEBOOK
   AI_ASSIST_DEST_TRUSTPILOT
   AI_ASSIST_WEHEARYOU_SUBMITTED
+  RESOLUTION_VIEWED
+  RESOLUTION_ISSUE_SELECTED
+  RESOLUTION_FEEDBACK_STARTED
+  RESOLUTION_AI_REWRITE_GENERATED
+  RESOLUTION_AI_REWRITE_ACCEPTED
+  RESOLUTION_FEEDBACK_SUBMITTED
+  RESOLUTION_CONTACT_REQUESTED
+  RESOLUTION_CASE_CREATED
+  RESOLUTION_RESPONSE_DRAFTED
+  RESOLUTION_CASE_RESOLVED
+  RESOLUTION_FOLLOWUP_SENT
+  RESOLUTION_FOLLOWUP_COMPLETED
+}
+
+enum ResolutionStatus {
+  NEW
+  NEEDS_RESPONSE
+  CONTACTED
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+enum ResolutionPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum ResolutionContactPreference {
+  PHONE
+  EMAIL
+  NONE
 }
 
 model Organization {
@@ -146,6 +180,7 @@ model Organization {
   reviewWidgets     ReviewWidget[]
   reviewLinkEvents  ReviewLinkEvent[]
   reviewAssistantSessions ReviewAssistantSession[]
+  resolutionCases   ResolutionCase[]
 }
 
 model User {
@@ -221,6 +256,8 @@ model UserMembership {
   ownedReviews    Review[]
   sentReplies     Review[]                 @relation("ReviewReplySender")
   locationAccess  MembershipLocationAccess[]
+  assignedResolutionCases ResolutionCase[]
+  resolutionCaseNotes     ResolutionCaseNote[]
 
   @@unique([organizationId, userId])
   @@index([organizationId])
@@ -294,6 +331,8 @@ model Location {
   gbpSyncLogs           GbpSyncLog[]
   reviewLinkEvents      ReviewLinkEvent[]
   reviewAssistantSessions ReviewAssistantSession[]
+  resolutionCases       ResolutionCase[]
+  resolutionSettings    ResolutionAssistantSettings?
 
   @@index([organizationId])
   @@index([googleConnectionId])
@@ -320,6 +359,7 @@ model Contact {
   tags             ContactTag[]
   campaigns        CampaignRecipient[]
   reviews          Review[]
+  resolutionCases  ResolutionCase[]
   automationRuns   AutomationRun[]
 
   @@index([locationId])
@@ -437,6 +477,7 @@ model Review {
   contact               Contact?      @relation(fields: [contactId], references: [id], onDelete: SetNull)
   ownerMembership       UserMembership? @relation(fields: [ownerMembershipId], references: [id], onDelete: SetNull)
   replySentByMembership UserMembership? @relation("ReviewReplySender", fields: [replySentByMembershipId], references: [id], onDelete: SetNull)
+  resolutionCase        ResolutionCase?
 
   @@index([locationId])
   @@index([contactId])
@@ -938,4 +979,93 @@ model ReviewAssistantSession {
 
   @@index([locationId, createdAt])
   @@index([organizationId, createdAt])
+}
+
+model ResolutionAssistantSettings {
+  id                          String   @id @default(cuid())
+  locationId                  String   @unique
+  enabled                     Boolean  @default(false)
+  allowAiRewrite              Boolean  @default(true)
+  allowAiSummary              Boolean  @default(true)
+  allowPriorityClassification Boolean  @default(true)
+  allowAiResponseDrafts       Boolean  @default(true)
+  followUpEnabled             Boolean  @default(true)
+  notifyOnNewFeedback         Boolean  @default(true)
+  notifyOnlyHighCritical      Boolean  @default(false)
+  notifyEmails                String[] @default([])
+  notifySmsRecipients         String[] @default([])
+  createdAt                   DateTime @default(now())
+  updatedAt                   DateTime @updatedAt
+
+  location                    Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+}
+
+model ResolutionCase {
+  id                  String                      @id @default(cuid())
+  organizationId      String
+  locationId          String
+  campaignRecipientId String?
+  reviewId            String?                     @unique
+  contactId           String?
+  rating              Int
+  issueCategories     String[]                    @default([])
+  originalFeedback    String
+  aiClearFeedback     String?
+  finalFeedback       String
+  contactPreference   ResolutionContactPreference @default(NONE)
+  customerName        String?
+  customerEmail       String?
+  customerPhone       String?
+  requestedOutcome    String?
+  aiSummary           String?
+  priority            ResolutionPriority          @default(MEDIUM)
+  status              ResolutionStatus            @default(NEW)
+  assignedToMembershipId String?
+  createdAt           DateTime                    @default(now())
+  updatedAt           DateTime                    @updatedAt
+  resolvedAt          DateTime?
+  closedAt            DateTime?
+
+  organization        Organization                @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  location            Location                    @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  review              Review?                     @relation(fields: [reviewId], references: [id], onDelete: SetNull)
+  contact             Contact?                    @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  assignedTo          UserMembership?             @relation(fields: [assignedToMembershipId], references: [id], onDelete: SetNull)
+  notes               ResolutionCaseNote[]
+  followUps           ResolutionFollowUp[]
+
+  @@index([locationId, status, createdAt])
+  @@index([organizationId, createdAt])
+  @@index([priority])
+}
+
+model ResolutionCaseNote {
+  id           String          @id @default(cuid())
+  caseId       String
+  membershipId String?
+  kind         String          @default("NOTE")
+  body         String
+  metadata     Json?
+  createdAt    DateTime        @default(now())
+
+  case         ResolutionCase  @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  membership   UserMembership? @relation(fields: [membershipId], references: [id], onDelete: SetNull)
+
+  @@index([caseId, createdAt])
+}
+
+model ResolutionFollowUp {
+  id            String         @id @default(cuid())
+  caseId        String
+  token         String         @unique
+  channel       String?
+  sentAt        DateTime?
+  response      String?
+  responseDetail String?
+  respondedAt   DateTime?
+  createdAt     DateTime       @default(now())
+
+  case          ResolutionCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  @@index([caseId])
 }

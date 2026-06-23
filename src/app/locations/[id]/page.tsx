@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { prisma } from "@/lib/prisma";
 import { AppShell } from "@/components/app-shell";
 import { FormSubmitButton } from "@/components/form-submit-button";
 import { deleteLocation, regenerateAiReviewSummaryAction, saveAutomationSettings, toggleAiReviewSummaryAction } from "@/app/locations/actions";
@@ -19,6 +20,7 @@ import { SummaryCards, type SummaryCardsData } from "./_components/summary-cards
 import { MiniSitePreview } from "./_components/minisite-preview";
 import { MiniSiteSettings } from "./_components/minisite-settings";
 import { ReviewAssistantSettings } from "./_components/review-assistant-settings";
+import { ResolutionSettings } from "./_components/resolution-settings";
 import { LocationReviewsPanel } from "./_components/location-reviews-panel";
 import { RequestPerformance } from "./_components/request-performance";
 import { ConnectedSources, type SourceRow } from "./_components/connected-sources";
@@ -151,7 +153,8 @@ export default async function LocationDetailPage({
     websiteClicks: analytics.hasData ? analytics.websiteClicks : null,
   };
 
-  const VALID_TABS: LocationTab[] = ["public", "settings", "assistant", "reviews", "requests", "sources", "details"];
+  const VALID_TABS: LocationTab[] = ["public", "settings", "assistant", "resolution", "reviews", "requests", "sources", "details"];
+  const resolutionSettings = await prisma.resolutionAssistantSettings.findUnique({ where: { locationId: location.id } });
   const tab: LocationTab = typeof query.tab === "string" && (VALID_TABS as string[]).includes(query.tab) ? (query.tab as LocationTab) : "public";
   const incompleteSteps = checklist.filter((item) => !item.done);
 
@@ -283,6 +286,10 @@ export default async function LocationDetailPage({
 
         {tab === "assistant" ? (
           <ReviewAssistantSettings location={location} profile={profile ?? null} />
+        ) : null}
+
+        {tab === "resolution" ? (
+          <ResolutionSettings locationId={location.id} profile={profile ?? null} settings={resolutionSettings} />
         ) : null}
 
         {tab === "reviews" ? (

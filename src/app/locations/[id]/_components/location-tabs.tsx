@@ -1,12 +1,13 @@
 import Link from "next/link";
 import { Icon, type IconName } from "@/components/icon";
 
-export type LocationTab = "public" | "settings" | "assistant" | "reviews" | "requests" | "sources" | "details";
+export type LocationTab = "public" | "settings" | "assistant" | "resolution" | "reviews" | "requests" | "sources" | "details";
 
 const TABS: { id: LocationTab; label: string; icon: IconName }[] = [
   { id: "public", label: "Public Page", icon: "monitor" },
   { id: "settings", label: "Mini Site Settings", icon: "sliders" },
   { id: "assistant", label: "AI Assistant", icon: "sparkles" },
+  { id: "resolution", label: "Resolution", icon: "shield" },
   { id: "reviews", label: "Reviews", icon: "star" },
   { id: "requests", label: "Request Performance", icon: "send" },
   { id: "sources", label: "Connected Sources", icon: "plug" },

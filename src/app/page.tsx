@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { getDashboardData, type DashboardMetric } from "@/lib/dashboard";
 import { getReviewAssistantAnalytics, type AssistantAnalytics } from "@/lib/review-assistant-analytics";
+import { getResolutionStats, type ResolutionStats } from "@/lib/resolution-analytics";
 import { getCurrentAccessibleLocationIds } from "@/lib/current-scope";
 import { getCurrentMembership } from "@/lib/authz";
 import { prisma } from "@/lib/prisma";
@@ -53,6 +54,7 @@ export default async function DashboardPage() {
   const locationIds = await getCurrentAccessibleLocationIds();
   const dashboard = await getDashboardData(locationIds);
   const assistant = await getReviewAssistantAnalytics(locationIds, 30);
+  const resolution = await getResolutionStats(locationIds, 30);
   const userName = membership.user.name?.split(" ")[0] || "there";
   const greeting = getGreeting(userName);
   const dateLabel = new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
@@ -117,6 +119,8 @@ export default async function DashboardPage() {
         {assistant.reviewsStarted > 0 || assistant.requestsSent > 0 ? (
           <AssistantWidgets a={assistant} />
         ) : null}
+
+        {resolution.total > 0 ? <ResolutionWidgets r={resolution} /> : null}
 
         {/* Main grid */}
         <div
@@ -237,6 +241,34 @@ function AssistantWidgets({ a }: { a: AssistantAnalytics }) {
         <span style={{ fontSize: 12, color: "var(--ink-400)" }}>last 30 days</span>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "var(--gutter)" }} className="metrics-grid">
+        {tiles.map((t) => (
+          <div key={t.label} className="card" style={{ padding: "14px 16px" }}>
+            <div className="tnum" style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-.02em", color: "var(--ink-900)" }}>{t.value}</div>
+            <div style={{ fontSize: 11.5, color: "var(--ink-500)", marginTop: 4 }}>{t.label}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ResolutionWidgets({ r }: { r: ResolutionStats }) {
+  const tiles: { label: string; value: string }[] = [
+    { label: "New cases", value: r.newCases.toLocaleString() },
+    { label: "High priority", value: r.highPriority.toLocaleString() },
+    { label: "Resolved", value: r.resolved.toLocaleString() },
+    { label: "Resolution rate", value: `${Math.round(r.resolutionRate * 100)}%` },
+    { label: "Avg rating", value: r.averageRating.toFixed(1) },
+    { label: "Contact requested", value: r.contactRequested.toLocaleString() },
+  ];
+  return (
+    <div style={{ marginBottom: "var(--gutter)" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+        <Icon name="shield" size={16} />
+        <h2 style={{ fontSize: 14, fontWeight: 680, letterSpacing: "-.01em", color: "var(--ink-900)" }}>Customer Resolution</h2>
+        <span style={{ fontSize: 12, color: "var(--ink-400)" }}>last 30 days</span>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: "var(--gutter)" }} className="metrics-grid">
         {tiles.map((t) => (
           <div key={t.label} className="card" style={{ padding: "14px 16px" }}>
             <div className="tnum" style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-.02em", color: "var(--ink-900)" }}>{t.value}</div>
