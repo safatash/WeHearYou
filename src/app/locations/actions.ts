@@ -1645,6 +1645,7 @@ export async function saveMiniSiteSettings(formData: FormData): Promise<void> {
   }
 
   const secondaryCtaTypeRaw = String(formData.get("secondaryCtaType") ?? "").trim();
+  const miniSiteReviewsPerPage = Math.min(100, Math.max(1, Number(formData.get("miniSiteReviewsPerPage")) || 12));
 
   await prisma.locationPublicProfile.upsert({
     where: { locationId },
@@ -1664,6 +1665,7 @@ export async function saveMiniSiteSettings(formData: FormData): Promise<void> {
       secondaryCtaLabel: String(formData.get("secondaryCtaLabel") ?? "").trim() || null,
       enabledReviewSources: formData.getAll("enabledReviewSources").map(String),
       heroImageUrl,
+      miniSiteReviewsPerPage,
       showReviewSummary: formData.get("showReviewSummary") === "on" || formData.get("showReviewSummary") === "true",
       showFeaturedReviews: formData.get("showFeaturedReviews") === "on" || formData.get("showFeaturedReviews") === "true",
       showServices: formData.get("showServices") === "on" || formData.get("showServices") === "true",
@@ -1692,6 +1694,7 @@ export async function saveMiniSiteSettings(formData: FormData): Promise<void> {
       secondaryCtaLabel: String(formData.get("secondaryCtaLabel") ?? "").trim() || null,
       enabledReviewSources: formData.getAll("enabledReviewSources").map(String),
       heroImageUrl,
+      miniSiteReviewsPerPage,
       showReviewSummary: formData.get("showReviewSummary") === "on" || formData.get("showReviewSummary") === "true",
       showFeaturedReviews: formData.get("showFeaturedReviews") === "on" || formData.get("showFeaturedReviews") === "true",
       showServices: formData.get("showServices") === "on" || formData.get("showServices") === "true",
@@ -1712,6 +1715,68 @@ export async function saveMiniSiteSettings(formData: FormData): Promise<void> {
   }
 
   redirect(`/locations/${locationId}?flash=Mini+site+settings+saved&tone=success`);
+}
+
+export async function saveReviewAssistantSettings(formData: FormData): Promise<void> {
+  const locationId = String(formData.get("locationId") ?? "").trim();
+  if (!locationId) {
+    throw new Error("Location is required");
+  }
+
+  await requireLocationAccess(locationId);
+
+  const location = await prisma.location.findUnique({ where: { id: locationId }, select: { id: true, slug: true } });
+  if (!location) {
+    throw new Error("Location not found");
+  }
+
+  const on = (name: string) => formData.get(name) === "on" || formData.get(name) === "true";
+  const text = (name: string) => String(formData.get(name) ?? "").trim() || null;
+  const threshold = Number(formData.get("negativeFilterThreshold")) === 5 ? 5 : 4;
+  const customChips = String(formData.get("aiAssistantCustomChips") ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  // Destination URLs that live on the Location record.
+  await prisma.location.update({
+    where: { id: locationId },
+    data: {
+      reviewLink: text("reviewLink"),
+      yelpBusinessUrl: text("yelpBusinessUrl"),
+    },
+  });
+
+  const profileData = {
+    negativeFilterThreshold: threshold,
+    aiAssistantEnabled: on("aiAssistantEnabled"),
+    aiAssistantAllowGeneration: on("aiAssistantAllowGeneration"),
+    aiAssistantAllowTone: on("aiAssistantAllowTone"),
+    aiAssistantAllowLength: on("aiAssistantAllowLength"),
+    aiAssistantAllowRegenerate: on("aiAssistantAllowRegenerate"),
+    aiAssistantAllowNotes: on("aiAssistantAllowNotes"),
+    aiAssistantIncludeBusiness: on("aiAssistantIncludeBusiness"),
+    aiAssistantIncludeCity: on("aiAssistantIncludeCity"),
+    aiAssistantIncludeService: on("aiAssistantIncludeService"),
+    aiAssistantUseReviewThemes: on("aiAssistantUseReviewThemes"),
+    aiAssistantCustomChips: customChips,
+    facebookReviewUrl: text("facebookReviewUrl"),
+    trustpilotReviewUrl: text("trustpilotReviewUrl"),
+    wehearyouReviewsEnabled: on("wehearyouReviewsEnabled"),
+  };
+
+  await prisma.locationPublicProfile.upsert({
+    where: { locationId },
+    update: profileData,
+    create: { locationId, ...profileData },
+  });
+
+  revalidatePath(`/locations/${locationId}`);
+  if (location.slug) {
+    revalidatePath(`/r`);
+  }
+
+  redirect(`/locations/${locationId}?tab=assistant&flash=AI+Assistant+settings+saved&tone=success`);
 }
 
 async function setReviewFlag(reviewId: string, data: Record<string, boolean>): Promise<string> {

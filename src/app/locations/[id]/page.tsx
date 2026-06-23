@@ -18,6 +18,7 @@ import { LocationHeader } from "./_components/location-header";
 import { SummaryCards, type SummaryCardsData } from "./_components/summary-cards";
 import { MiniSitePreview } from "./_components/minisite-preview";
 import { MiniSiteSettings } from "./_components/minisite-settings";
+import { ReviewAssistantSettings } from "./_components/review-assistant-settings";
 import { LocationReviewsPanel } from "./_components/location-reviews-panel";
 import { RequestPerformance } from "./_components/request-performance";
 import { ConnectedSources, type SourceRow } from "./_components/connected-sources";
@@ -150,7 +151,7 @@ export default async function LocationDetailPage({
     websiteClicks: analytics.hasData ? analytics.websiteClicks : null,
   };
 
-  const VALID_TABS: LocationTab[] = ["public", "settings", "reviews", "requests", "sources", "details"];
+  const VALID_TABS: LocationTab[] = ["public", "settings", "assistant", "reviews", "requests", "sources", "details"];
   const tab: LocationTab = typeof query.tab === "string" && (VALID_TABS as string[]).includes(query.tab) ? (query.tab as LocationTab) : "public";
   const incompleteSteps = checklist.filter((item) => !item.done);
 
@@ -278,6 +279,10 @@ export default async function LocationDetailPage({
               </div>
             </section>
           </div>
+        ) : null}
+
+        {tab === "assistant" ? (
+          <ReviewAssistantSettings location={location} profile={profile ?? null} />
         ) : null}
 
         {tab === "reviews" ? (

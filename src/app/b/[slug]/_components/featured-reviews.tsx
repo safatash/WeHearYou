@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import type { ReviewSource } from "./source-badge";
 import { SourceBadge } from "./source-badge";
 
@@ -19,6 +22,8 @@ export interface ReviewCardProps {
 export interface FeaturedReviewsProps {
   reviews: ReviewCardProps[];
   showSourceFilter?: boolean;
+  /** How many reviews to show before the "Show more" button. */
+  perPage?: number;
 }
 
 function StarRating({ rating }: { rating: number }) {
@@ -76,13 +81,19 @@ function ReviewerAvatar({
   );
 }
 
-export function FeaturedReviews({ reviews, showSourceFilter = false }: FeaturedReviewsProps) {
+export function FeaturedReviews({ reviews, showSourceFilter = false, perPage = 12 }: FeaturedReviewsProps) {
+  const step = Math.max(1, perPage);
+  const [visibleCount, setVisibleCount] = useState(step);
+
   if (reviews.length === 0) return null;
 
   // Collect unique sources for the optional filter chips
   const uniqueSources = showSourceFilter
     ? Array.from(new Set(reviews.map((r) => r.source).filter(Boolean) as string[]))
     : [];
+
+  const visibleReviews = reviews.slice(0, visibleCount);
+  const hasMore = visibleCount < reviews.length;
 
   return (
     <section className="space-y-5">
@@ -103,7 +114,7 @@ export function FeaturedReviews({ reviews, showSourceFilter = false }: FeaturedR
       )}
 
       <div className="space-y-4">
-        {reviews.map((review) => (
+        {visibleReviews.map((review) => (
           <article
             key={review.id}
             className="rounded-3xl border p-5 shadow-sm"
@@ -194,6 +205,22 @@ export function FeaturedReviews({ reviews, showSourceFilter = false }: FeaturedR
           </article>
         ))}
       </div>
+
+      {hasMore && (
+        <div className="flex flex-col items-center gap-2 pt-1">
+          <button
+            type="button"
+            onClick={() => setVisibleCount((v) => v + step)}
+            className="w-full rounded-2xl border px-5 py-3 text-sm font-semibold transition-colors sm:w-auto"
+            style={{ borderColor: "var(--accent)", color: "var(--accent-strong)", background: "var(--accent-soft)" }}
+          >
+            Show more reviews
+          </button>
+          <p className="text-xs" style={{ color: "var(--ink-400)" }}>
+            Showing {visibleReviews.length} of {reviews.length}
+          </p>
+        </div>
+      )}
     </section>
   );
 }

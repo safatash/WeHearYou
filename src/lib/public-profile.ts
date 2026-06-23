@@ -2,6 +2,14 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { sortFeaturedFirst } from "@/lib/review-filtering";
 
+/**
+ * Upper bound on reviews loaded for a public mini-site. The admin-configured
+ * `miniSiteReviewsPerPage` controls how many show before "Show more"; this
+ * caps the total set available for client-side reveal so the query/DOM stay
+ * bounded for locations with very large review counts.
+ */
+export const MINISITE_MAX_REVIEWS = 100;
+
 const publicLocationInclude = {
   publicProfile: true,
   reviews: {
@@ -14,7 +22,7 @@ const publicLocationInclude = {
       ],
     },
     orderBy: [{ isFeatured: "desc" }, { reviewedAt: "desc" }, { createdAt: "desc" }],
-    take: 12,
+    take: MINISITE_MAX_REVIEWS,
   },
 } satisfies Prisma.LocationInclude;
 
