@@ -18,6 +18,7 @@ export type ScreenKey =
   | "gbp-qa"
   | "funnel-preview"
   | "review-links"
+  | "customer-resolution"
   | "settings";
 
 import { IconName } from "@/components/icon";
@@ -39,6 +40,7 @@ export const navItems: NavItem[] = [
   { key: "campaigns", label: "Review Requests", icon: "bell", href: "/campaigns", group: "REQUESTS & FEEDBACK" },
   { key: "review-links", label: "Review Links", icon: "mail", href: "/review-links", group: "REQUESTS & FEEDBACK" },
   { key: "reviews", label: "Reviews Inbox", icon: "inbox", href: "/reviews", group: "REQUESTS & FEEDBACK" },
+  { key: "customer-resolution", label: "Resolution Cases", icon: "shield", href: "/customer-resolution", group: "REQUESTS & FEEDBACK" },
 
   // Funnel Setup
   { key: "campaign-wizard", label: "Campaign Wizard", icon: "sparkles", href: "/campaign-wizard", group: "FUNNEL SETUP" },

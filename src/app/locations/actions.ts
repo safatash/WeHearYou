@@ -1779,6 +1779,52 @@ export async function saveReviewAssistantSettings(formData: FormData): Promise<v
   redirect(`/locations/${locationId}?tab=assistant&flash=AI+Assistant+settings+saved&tone=success`);
 }
 
+export async function saveResolutionSettings(formData: FormData): Promise<void> {
+  const locationId = String(formData.get("locationId") ?? "").trim();
+  if (!locationId) {
+    throw new Error("Location is required");
+  }
+
+  await requireLocationAccess(locationId);
+
+  const on = (name: string) => formData.get(name) === "on" || formData.get(name) === "true";
+  const list = (name: string) =>
+    String(formData.get(name) ?? "")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+  const threshold = Number(formData.get("negativeFilterThreshold")) === 5 ? 5 : 4;
+
+  const data = {
+    enabled: on("enabled"),
+    allowAiRewrite: on("allowAiRewrite"),
+    allowAiSummary: on("allowAiSummary"),
+    allowPriorityClassification: on("allowPriorityClassification"),
+    allowAiResponseDrafts: on("allowAiResponseDrafts"),
+    followUpEnabled: on("followUpEnabled"),
+    notifyOnNewFeedback: on("notifyOnNewFeedback"),
+    notifyOnlyHighCritical: on("notifyOnlyHighCritical"),
+    notifyEmails: list("notifyEmails"),
+    notifySmsRecipients: list("notifySmsRecipients"),
+  };
+
+  await prisma.resolutionAssistantSettings.upsert({
+    where: { locationId },
+    update: data,
+    create: { locationId, ...data },
+  });
+
+  // The positive/low split is shared with the mini-site profile.
+  await prisma.locationPublicProfile.upsert({
+    where: { locationId },
+    update: { negativeFilterThreshold: threshold },
+    create: { locationId, negativeFilterThreshold: threshold },
+  });
+
+  revalidatePath(`/locations/${locationId}`);
+  redirect(`/locations/${locationId}?tab=resolution&flash=Resolution+settings+saved&tone=success`);
+}
+
 async function setReviewFlag(reviewId: string, data: Record<string, boolean>): Promise<string> {
   const review = await prisma.review.findUnique({ where: { id: reviewId }, select: { locationId: true } });
   if (!review) throw new Error("Review not found");
