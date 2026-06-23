@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { recordEvents } from "@/lib/review-link-analytics";
 import { isAssistantRateLimited } from "@/lib/review-assistant-analytics";
 import { generateAssistedReview, normalizeTone, normalizeLength, type AssistantContext } from "@/lib/review-assistant";
+import { extractReviewThemes } from "@/lib/review-assistant-chips";
 
 function clientIpFrom(req: NextRequest): string | null {
   return req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
@@ -58,6 +59,18 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "AI is not configured" }, { status: 500 });
   }
 
+  // Themes pulled from the location's real positive reviews steer the draft.
+  let topReviewThemes = profile.aiAssistantUseReviewThemes ? [...profile.reviewHighlights] : [];
+  if (profile.aiAssistantUseReviewThemes) {
+    const recentReviews = await prisma.review.findMany({
+      where: { locationId, status: "PUBLISHED", body: { not: "" } },
+      select: { body: true, rating: true },
+      orderBy: { reviewedAt: "desc" },
+      take: 50,
+    });
+    topReviewThemes = [...extractReviewThemes(recentReviews), ...topReviewThemes];
+  }
+
   const tone = normalizeTone(asString(body.tone));
   const length = normalizeLength(asString(body.length));
   const selectedPhrases = asStringArray(body.selectedPhrases);
@@ -77,7 +90,7 @@ export async function POST(req: NextRequest) {
     staffMember,
     selectedPhrases,
     customerNotes: notes,
-    topReviewThemes: profile.aiAssistantUseReviewThemes ? profile.reviewHighlights : [],
+    topReviewThemes,
     tone,
     length,
     includeBusiness: profile.aiAssistantIncludeBusiness,

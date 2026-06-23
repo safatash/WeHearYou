@@ -7,7 +7,7 @@ import {
   LENGTH_WORDS,
   type AssistantContext,
 } from "./review-assistant.ts";
-import { buildSuggestedChips, resolveChipCategory, CATEGORY_CHIPS } from "./review-assistant-chips.ts";
+import { buildSuggestedChips, resolveChipCategory, CATEGORY_CHIPS, extractReviewThemes } from "./review-assistant-chips.ts";
 import { summarizeAssistantEvents } from "./review-assistant-analytics.ts";
 
 const baseCtx = (over: Partial<AssistantContext> = {}): AssistantContext => ({
@@ -90,9 +90,54 @@ test("buildSuggestedChips prioritizes themes, dedupes case-insensitively", () =>
 });
 
 test("buildSuggestedChips can skip review themes", () => {
-  const chips = buildSuggestedChips({ businessType: "restaurant", reviewHighlights: ["X"], useReviewThemes: false });
+  const chips = buildSuggestedChips({ businessType: "restaurant", reviewThemes: ["X"], reviewHighlights: ["Y"], useReviewThemes: false });
   assert.ok(!chips.includes("X"));
+  assert.ok(!chips.includes("Y"));
   assert.deepEqual(chips.slice(0, 2), CATEGORY_CHIPS.restaurant.slice(0, 2));
+});
+
+test("buildSuggestedChips puts review themes ahead of highlights and category", () => {
+  const chips = buildSuggestedChips({
+    businessType: "dental",
+    reviewThemes: ["Real Results"],
+    reviewHighlights: ["Gentle Care"],
+    useReviewThemes: true,
+  });
+  assert.equal(chips[0], "Real Results");
+  assert.equal(chips[1], "Gentle Care");
+});
+
+// ── review-theme extraction (the agency fix) ────────────────────────────────
+test("extractReviewThemes derives themes from real review text, most-mentioned first", () => {
+  const reviews = [
+    { rating: 5, body: "They improved our SEO and our Google rankings shot up. More traffic and leads!" },
+    { rating: 5, body: "Our search rankings improved a lot — great SEO work and very professional." },
+    { rating: 4, body: "Beautiful website redesign and the team was professional throughout." },
+  ];
+  const themes = extractReviewThemes(reviews, { limit: 5 });
+  assert.ok(themes.includes("Improved SEO & Rankings"));
+  assert.ok(themes.includes("Professional Team"));
+  assert.ok(themes.includes("Great Website Design"));
+  // "Improved SEO & Rankings" appears in 2 reviews → ranks before single-mention themes
+  assert.ok(themes.indexOf("Improved SEO & Rankings") < themes.indexOf("Great Website Design"));
+});
+
+test("extractReviewThemes ignores low-rated and empty reviews", () => {
+  const themes = extractReviewThemes(
+    [
+      { rating: 2, body: "Terrible communication and unprofessional." },
+      { rating: 5, body: "" },
+      { rating: null, body: "Very professional team." },
+    ],
+    { minRating: 4 },
+  );
+  // the 2-star "communication"/"unprofessional" review is excluded
+  assert.ok(!themes.includes("Great Communication"));
+  assert.deepEqual(themes, ["Professional Team"]);
+});
+
+test("extractReviewThemes returns empty when nothing matches", () => {
+  assert.deepEqual(extractReviewThemes([{ rating: 5, body: "asdf qwer zxcv" }]), []);
 });
 
 // ── analytics ───────────────────────────────────────────────────────────────
