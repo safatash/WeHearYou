@@ -116,6 +116,16 @@ enum ReviewLinkEventType {
   MINISITE_CLICK_WEBSITE
   MINISITE_CLICK_DIRECTIONS
   MINISITE_CLICK_CTA
+  AI_ASSIST_VIEWED
+  AI_ASSIST_GENERATED
+  AI_ASSIST_REGENERATED
+  AI_ASSIST_EDITED
+  AI_ASSIST_COPIED
+  AI_ASSIST_DEST_GOOGLE
+  AI_ASSIST_DEST_YELP
+  AI_ASSIST_DEST_FACEBOOK
+  AI_ASSIST_DEST_TRUSTPILOT
+  AI_ASSIST_WEHEARYOU_SUBMITTED
 }
 
 model Organization {
@@ -135,6 +145,7 @@ model Organization {
   googleConnections GoogleAccountConnection[]
   reviewWidgets     ReviewWidget[]
   reviewLinkEvents  ReviewLinkEvent[]
+  reviewAssistantSessions ReviewAssistantSession[]
 }
 
 model User {
@@ -282,6 +293,7 @@ model Location {
   gbpQuestions          GbpQuestion[]
   gbpSyncLogs           GbpSyncLog[]
   reviewLinkEvents      ReviewLinkEvent[]
+  reviewAssistantSessions ReviewAssistantSession[]
 
   @@index([organizationId])
   @@index([googleConnectionId])
@@ -729,6 +741,7 @@ model LocationPublicProfile {
   businessType         String?
   customDomain         String?
   showReviews          Boolean     @default(true)
+  miniSiteReviewsPerPage Int       @default(12)
   showTestimonials     Boolean     @default(true)
   showMap              Boolean     @default(true)
   showHours            Boolean     @default(false)
@@ -737,6 +750,20 @@ model LocationPublicProfile {
   aiReviewSummary            String?
   aiReviewSummaryAt          DateTime?
   aiReviewSummaryReviewCount Int?
+  // ── AI Review Assistant ─────────────────────────────────────────────────
+  aiAssistantEnabled         Boolean   @default(false)
+  aiAssistantAllowGeneration Boolean   @default(true)
+  aiAssistantAllowTone       Boolean   @default(true)
+  aiAssistantAllowLength     Boolean   @default(true)
+  aiAssistantAllowRegenerate Boolean   @default(true)
+  aiAssistantAllowNotes      Boolean   @default(true)
+  aiAssistantIncludeBusiness Boolean   @default(true)
+  aiAssistantIncludeCity     Boolean   @default(true)
+  aiAssistantIncludeService  Boolean   @default(true)
+  aiAssistantUseReviewThemes Boolean   @default(true)
+  aiAssistantCustomChips     String[]  @default([])
+  trustpilotReviewUrl        String?
+  wehearyouReviewsEnabled    Boolean   @default(true)
   accentColor          String?
   websiteUrl           String?
   timezone             String?
@@ -885,4 +912,30 @@ model ReviewLinkEvent {
   @@index([locationId, source, createdAt])
   @@index([locationId, sessionId, createdAt])
   @@index([locationId, clientIp, createdAt])
+}
+
+model ReviewAssistantSession {
+  id                  String   @id @default(cuid())
+  organizationId      String
+  locationId          String
+  campaignRecipientId String?
+  rating              Int
+  selectedPhrases     String[] @default([])
+  service             String?
+  staffMember         String?
+  notes               String?
+  generatedReview     String?
+  tone                String?
+  length              String?
+  destination         String?
+  reviewCopied        Boolean  @default(false)
+  destinationClicked  Boolean  @default(false)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  organization        Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  location            Location     @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  @@index([locationId, createdAt])
+  @@index([organizationId, createdAt])
 }

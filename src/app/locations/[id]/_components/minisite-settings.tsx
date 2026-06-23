@@ -334,6 +334,32 @@ export function MiniSiteSettings({
           </div>
         </div>
 
+        {/* Reviews display */}
+        <div className="space-y-4 border-t border-[var(--ink-200)] pt-6">
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--ink-500)]">
+              Reviews display
+            </p>
+            <p className="mt-1 text-sm text-[var(--ink-600)]">
+              How many reviews appear before visitors tap “Show more”.
+            </p>
+          </div>
+          <label className={`${labelClass} max-w-xs`}>
+            Reviews shown before “Show more”
+            <input
+              type="number"
+              name="miniSiteReviewsPerPage"
+              min={1}
+              max={100}
+              defaultValue={profile?.miniSiteReviewsPerPage ?? 12}
+              className={inputClass}
+            />
+            <span className="text-xs font-normal text-[var(--ink-500)]">
+              Up to {100} reviews load on the page; the rest reveal in batches of this size.
+            </span>
+          </label>
+        </div>
+
         <div className="border-t border-[var(--ink-200)] pt-6">
           <FormSubmitButton
             idleLabel="Save mini site settings"

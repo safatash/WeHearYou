@@ -8,6 +8,7 @@ export default auth((req) => {
     req.nextUrl.pathname.startsWith("/accept-invite") ||
     req.nextUrl.pathname.startsWith("/api/auth") ||
     req.nextUrl.pathname.startsWith("/api/public/widgets/") ||
+    req.nextUrl.pathname.startsWith("/api/review-assistant/") ||
     req.nextUrl.pathname.startsWith("/embed/") ||
     req.nextUrl.pathname.startsWith("/f/") ||
     req.nextUrl.pathname.startsWith("/r/") ||

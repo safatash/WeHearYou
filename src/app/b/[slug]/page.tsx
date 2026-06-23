@@ -235,6 +235,7 @@ export default async function BusinessMiniSitePage({
               <FeaturedReviews
                 reviews={reviewCards}
                 showSourceFilter={false}
+                perPage={profile?.miniSiteReviewsPerPage ?? 12}
               />
             )}
 

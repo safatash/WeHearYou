@@ -71,6 +71,15 @@ export async function submitReviewRating(formData: FormData) {
     redirect(`/r/${token}/feedback?rating=${ratingValue}`);
   }
 
+  // ── HIGH: AI Review Assistant (when enabled) takes over destination choice ─
+  if (profile?.aiAssistantEnabled) {
+    await prisma.campaignRecipient.update({
+      where: { id: recipient.id },
+      data: { status: CampaignStatus.CLICKED, outcome: "Positive rating — AI review assistant", openedAt },
+    });
+    redirect(`/r/${token}/assist?rating=${ratingValue}`);
+  }
+
   // ── HIGH: one or more public destinations ────────────────────────────────
   const resolution = resolveHighRating(
     profile?.highRatingMode,
@@ -146,7 +155,7 @@ export async function submitCampaignPositiveReview(formData: FormData) {
 
   // TODO: Handle image upload - currently stored as placeholder
   // In production, upload to S3/cloud storage and store the URL
-  let reviewImageUrl: string | null = null;
+  const reviewImageUrl: string | null = null;
   const imageFile = formData.get("reviewImage");
   if (imageFile instanceof File && imageFile.size > 0) {
     internalNoteParts.push(`Image attached: ${imageFile.name}`);
