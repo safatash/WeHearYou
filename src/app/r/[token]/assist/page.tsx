@@ -2,8 +2,9 @@ export const dynamic = "force-dynamic";
 
 import { notFound, redirect } from "next/navigation";
 import { getRecipientByToken } from "@/lib/funnel";
+import { prisma } from "@/lib/prisma";
 import { buildGoogleWriteReviewLink } from "@/lib/locations";
-import { buildSuggestedChips } from "@/lib/review-assistant-chips";
+import { buildSuggestedChips, extractReviewThemes } from "@/lib/review-assistant-chips";
 import { ReviewAssistantClient, type AssistDestination } from "./review-assistant-client";
 
 export default async function ReviewAssistPage({
@@ -28,9 +29,21 @@ export default async function ReviewAssistPage({
 
   const rating = Number(query.rating) || 5;
 
+  // Derive themes directly from this location's real positive reviews.
+  const recentReviews = profile.aiAssistantUseReviewThemes
+    ? await prisma.review.findMany({
+        where: { locationId: location.id, status: "PUBLISHED", body: { not: "" } },
+        select: { body: true, rating: true },
+        orderBy: { reviewedAt: "desc" },
+        take: 50,
+      })
+    : [];
+  const reviewThemes = extractReviewThemes(recentReviews);
+
   const chips = buildSuggestedChips({
     businessType: profile.businessType,
     services: profile.services,
+    reviewThemes,
     reviewHighlights: profile.reviewHighlights,
     customChips: profile.aiAssistantCustomChips,
     useReviewThemes: profile.aiAssistantUseReviewThemes,
