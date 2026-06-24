@@ -42,6 +42,17 @@ import {
   ExternalLink,
   Shield,
   LucideIcon,
+  Zap,
+  Heart,
+  Lock,
+  Clock,
+  FileText,
+  Pencil,
+  Info,
+  Lightbulb,
+  RefreshCw,
+  Award,
+  ArrowDown,
 } from 'lucide-react';
 
 export type IconName =
@@ -49,7 +60,8 @@ export type IconName =
   | 'eye' | 'mail' | 'megaphone' | 'trash' | 'upload' | 'grid' | 'layers' | 'film'
   | 'star' | 'chat' | 'send' | 'sliders' | 'code' | 'copy' | 'sun' | 'moon'
   | 'monitor' | 'phone' | 'chevLeft' | 'close' | 'sparkles' | 'inbox' | 'plug' | 'package' | 'map'
-  | 'reply' | 'tag' | 'archive' | 'dots' | 'chevRight' | 'arrowRight' | 'arrowUp' | 'external' | 'shield';
+  | 'reply' | 'tag' | 'archive' | 'dots' | 'chevRight' | 'arrowRight' | 'arrowUp' | 'external' | 'shield'
+  | 'bolt' | 'heart' | 'lock' | 'clock' | 'fileText' | 'edit' | 'info' | 'lightbulb' | 'refresh' | 'award' | 'arrowDown';
 
 const iconMap: Record<IconName, LucideIcon> = {
   search: Search,
@@ -94,6 +106,17 @@ const iconMap: Record<IconName, LucideIcon> = {
   arrowUp: ArrowUp,
   external: ExternalLink,
   shield: Shield,
+  bolt: Zap,
+  heart: Heart,
+  lock: Lock,
+  clock: Clock,
+  fileText: FileText,
+  edit: Pencil,
+  info: Info,
+  lightbulb: Lightbulb,
+  refresh: RefreshCw,
+  award: Award,
+  arrowDown: ArrowDown,
 };
 
 interface IconProps {
