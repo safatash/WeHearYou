@@ -757,6 +757,7 @@ model LocationPublicProfile {
   googleHours          String?
   theme                String?
   funnelRatingStyle    String?
+  funnelStyle          String      @default("SIMPLE")   // SIMPLE | AI_GUIDED
   funnelPromptTitle    String?
   funnelPromptBody     String?
   funnelPrivateTitle   String?
