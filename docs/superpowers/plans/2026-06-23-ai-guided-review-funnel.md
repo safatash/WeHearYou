@@ -20,6 +20,7 @@
 
 - **Runner:** Node's built-in `node:test` + `node:assert/strict`. There is NO Vitest/Jest/@testing-library/jsdom. Do NOT add any.
 - **Run a test file:** `node --import ./test-loader.mjs --test src/path/to/file.test.ts` (Node 23, native TS stripping; the loader maps `@/` aliases and stubs `@/lib/prisma` + `@prisma/client`).
+- **GOTCHA — bracket route dirs:** `--test` glob-expands its argument, and `[slug]` is a glob character class, so `--test "src/app/f/[slug]/…"` matches NOTHING (reports `tests 0`). For any test file under a bracketed dir, run the file **directly without `--test`**: `node --import ./test-loader.mjs "src/app/f/[slug]/ai-funnel/foo.test.ts"` — `node:test` auto-runs the registered tests. (Files under non-bracket dirs like `src/lib/` and `src/app/campaign-wizard/` use the normal `--test` form.)
 - **Test file shape** (copy this style):
   ```ts
   import test from "node:test";
@@ -208,7 +209,7 @@ test("clarifyFeedback handles empty text using issues", () => {
 
 - [ ] **Step 2: Run test, verify it fails**
 
-Run: `node --import ./test-loader.mjs --test "src/app/f/[slug]/ai-funnel/fallback-text.test.ts"`
+Run: `node --import ./test-loader.mjs "src/app/f/[slug]/ai-funnel/fallback-text.test.ts"`
 Expected: FAIL (module not found).
 
 - [ ] **Step 3: Implement by porting from `funnel-kit.jsx`**
@@ -217,7 +218,7 @@ Fetch `funnel-kit.jsx`. Copy `joinNice`, `capitalize`, `buildReview`, `clarifyFe
 
 - [ ] **Step 4: Run test, verify it passes**
 
-Run: `node --import ./test-loader.mjs --test "src/app/f/[slug]/ai-funnel/fallback-text.test.ts"`
+Run: `node --import ./test-loader.mjs "src/app/f/[slug]/ai-funnel/fallback-text.test.ts"`
 Expected: PASS.
 
 - [ ] **Step 5: Commit**
@@ -306,14 +307,14 @@ test("turns AI off when generation disabled", () => {
 
 - [ ] **Step 2: Run test, verify it fails**
 
-Run: `node --import ./test-loader.mjs --test "src/app/f/[slug]/ai-funnel/build-props.test.ts"`
+Run: `node --import ./test-loader.mjs "src/app/f/[slug]/ai-funnel/build-props.test.ts"`
 Expected: FAIL (module not found).
 
 - [ ] **Step 3: Implement `build-props.ts`** per Interfaces + mapping rules.
 
 - [ ] **Step 4: Run test, verify it passes**
 
-Run: `node --import ./test-loader.mjs --test "src/app/f/[slug]/ai-funnel/build-props.test.ts"`
+Run: `node --import ./test-loader.mjs "src/app/f/[slug]/ai-funnel/build-props.test.ts"`
 Expected: PASS.
 
 - [ ] **Step 5: Commit**
@@ -394,14 +395,14 @@ test("clarifyFeedbackRemote flags fallback on network error", async () => {
 
 - [ ] **Step 2: Run test, verify it fails**
 
-Run: `node --import ./test-loader.mjs --test "src/app/f/[slug]/ai-funnel/ai-client.test.ts"`
+Run: `node --import ./test-loader.mjs "src/app/f/[slug]/ai-funnel/ai-client.test.ts"`
 Expected: FAIL (module not found).
 
 - [ ] **Step 3: Implement `ai-client.ts`** per Interfaces + Behavior.
 
 - [ ] **Step 4: Run test, verify it passes**
 
-Run: `node --import ./test-loader.mjs --test "src/app/f/[slug]/ai-funnel/ai-client.test.ts"`
+Run: `node --import ./test-loader.mjs "src/app/f/[slug]/ai-funnel/ai-client.test.ts"`
 Expected: PASS.
 
 - [ ] **Step 5: Commit**
@@ -459,14 +460,14 @@ test("contactSummary formats email", () => assert.equal(contactSummary({ ...INIT
 
 - [ ] **Step 2: Run test, verify it fails**
 
-Run: `node --import ./test-loader.mjs --test "src/app/f/[slug]/ai-funnel/state.test.ts"`
+Run: `node --import ./test-loader.mjs "src/app/f/[slug]/ai-funnel/state.test.ts"`
 Expected: FAIL (module not found).
 
 - [ ] **Step 3: Implement `state.ts`**, then create `funnel.css` and `kit.tsx` per porting notes.
 
 - [ ] **Step 4: Run test + typecheck + build**
 
-Run: `node --import ./test-loader.mjs --test "src/app/f/[slug]/ai-funnel/state.test.ts"`
+Run: `node --import ./test-loader.mjs "src/app/f/[slug]/ai-funnel/state.test.ts"`
 Then: `npm run typecheck`
 Expected: test PASS; no NEW type errors. (Build is exercised in Task 11 once the route renders the kit.)
 
@@ -625,7 +626,7 @@ test("null maps to simple", () => assert.equal(chooseFunnelRenderer(null), "simp
 
 - [ ] **Step 2: Run test, verify it fails**
 
-Run: `node --import ./test-loader.mjs --test "src/app/f/[slug]/funnel-style-choice.test.ts"`
+Run: `node --import ./test-loader.mjs "src/app/f/[slug]/funnel-style-choice.test.ts"`
 Expected: FAIL (module not found).
 
 - [ ] **Step 3: Create `funnel-style-choice.ts`**
@@ -640,7 +641,7 @@ export function chooseFunnelRenderer(raw: unknown): "ai" | "simple" {
 
 - [ ] **Step 4: Run test, verify it passes**
 
-Run: `node --import ./test-loader.mjs --test "src/app/f/[slug]/funnel-style-choice.test.ts"`
+Run: `node --import ./test-loader.mjs "src/app/f/[slug]/funnel-style-choice.test.ts"`
 Expected: PASS.
 
 - [ ] **Step 5: Branch in `page.tsx`**
@@ -666,7 +667,7 @@ Leave the existing `SIMPLE` return untouched below.
 
 - [ ] **Step 6: Run test + typecheck + build**
 
-Run: `node --import ./test-loader.mjs --test "src/app/f/[slug]/funnel-style-choice.test.ts" && npm run typecheck && npm run build`
+Run: `node --import ./test-loader.mjs "src/app/f/[slug]/funnel-style-choice.test.ts" && npm run typecheck && npm run build`
 Expected: test PASS; no NEW type errors; build compiles (this is the first build that exercises the funnel `.tsx` tree — fix any compile errors surfaced here).
 
 - [ ] **Step 7: Commit**
@@ -752,7 +753,11 @@ git commit -m "feat(funnel): campaign-wizard AI-guided toggle"
 
 Run:
 ```bash
-node --import ./test-loader.mjs --test "src/**/*.test.ts"
+# bracket-dir funnel tests must run directly (node --test can't glob a [slug] path)
+find "src/app/f/[slug]" -name "*.test.ts" -print0 | while IFS= read -r -d '' f; do
+  echo "== $f =="; node --import ./test-loader.mjs "$f" || exit 1; done
+# everything else via the normal --test glob
+node --import ./test-loader.mjs --test "src/lib/**/*.test.ts" "src/app/campaign-wizard/**/*.test.ts"
 npm run typecheck
 npm run lint
 npm run build
