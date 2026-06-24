@@ -220,6 +220,68 @@ export async function submitPublicPrivateFeedback(formData: FormData) {
   redirect(`/f/${slug}/thanks?rating=${ratingValue}&mode=private${embedSuffix}`);
 }
 
+export async function recordPositiveReview(input: {
+  slug: string; rating: number; body: string; embed: boolean;
+}): Promise<{ ok: boolean }> {
+  const rating = Math.round(Number(input.rating));
+  const body = (input.body ?? "").trim();
+  if (!input.slug || !Number.isInteger(rating) || rating < 1 || rating > 5 || !body) {
+    return { ok: false };
+  }
+  const location = await getLocationBySlug(input.slug);
+  if (!location) return { ok: false };
+
+  await prisma.review.create({
+    data: {
+      locationId: location.id,
+      source: ReviewSource.INTERNAL,
+      status: ReviewStatus.PUBLISHED,
+      sentiment: "positive",
+      rating,
+      reviewerName: "Anonymous customer",
+      body,
+      reviewedAt: new Date(),
+      publishedExternally: false,
+    },
+  });
+  return { ok: true };
+}
+
+export async function recordPrivateFeedback(input: {
+  slug: string; rating: number; feedback: string; contact: string; embed: boolean;
+}): Promise<{ ok: boolean }> {
+  const rating = Math.round(Number(input.rating));
+  const feedback = (input.feedback ?? "").trim();
+  if (!input.slug || !Number.isInteger(rating) || rating < 1 || rating > 5 || !feedback) {
+    return { ok: false };
+  }
+  const location = await getLocationBySlug(input.slug);
+  if (!location) return { ok: false };
+
+  // contact arrives as "" | "no" | "email:<value>" | "phone:<value>"
+  const internalNoteParts: string[] = [];
+  const [kind, ...rest] = (input.contact ?? "").split(":");
+  const contactValue = rest.join(":").trim();
+  if (kind === "email" || kind === "phone") {
+    internalNoteParts.push(`Customer asked to be contacted by ${kind}${contactValue ? `: ${contactValue}` : ""}.`);
+  }
+
+  await prisma.review.create({
+    data: {
+      locationId: location.id,
+      source: "INTERNAL",
+      reviewerName: contactValue || "Anonymous customer",
+      rating,
+      status: "PRIVATE_FEEDBACK",
+      sentiment: rating <= 2 ? "negative" : "neutral",
+      body: feedback,
+      internalNotes: internalNoteParts.length ? internalNoteParts.join(" ") : null,
+      reviewedAt: new Date(),
+    },
+  });
+  return { ok: true };
+}
+
 export async function getPublicFunnelThanksData(slug: string) {
   const location = await getLocationBySlug(slug);
 
