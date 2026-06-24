@@ -6,6 +6,9 @@ import { buildGoogleWriteReviewLink } from "@/lib/locations";
 import { getRatingOptions, normalizeRatingMode } from "@/lib/rating-styles";
 import { submitPublicFunnelRating } from "./actions";
 import { FunnelRatingForm } from "./funnel-rating-form";
+import { chooseFunnelRenderer } from "./funnel-style-choice";
+import { buildAiFunnelProps } from "./ai-funnel/build-props";
+import { AiFunnelFlow } from "./ai-funnel/ai-funnel-flow";
 
 export default async function PublicFunnelPage({
   params,
@@ -29,6 +32,16 @@ export default async function PublicFunnelPage({
   }
 
   const profile = location.publicProfile;
+
+  if (chooseFunnelRenderer(profile?.funnelStyle) === "ai") {
+    const aiProps = buildAiFunnelProps(location, { slug, embed: isEmbed });
+    return (
+      <main className={isEmbed ? "" : "min-h-screen"}>
+        <AiFunnelFlow {...aiProps} />
+      </main>
+    );
+  }
+
   const ratingMode = normalizeRatingMode(profile?.funnelRatingStyle);
   const ratingOptions = getRatingOptions(ratingMode);
 
