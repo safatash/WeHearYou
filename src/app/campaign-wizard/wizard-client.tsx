@@ -15,6 +15,7 @@ type Location = {
   state: string;
   reviewLink: string | null;
   publicProfile: {
+    funnelStyle: string | null;
     funnelRatingStyle: string | null;
     funnelPromptTitle: string | null;
     funnelPromptBody: string | null;
@@ -358,6 +359,7 @@ export function CampaignWizard({ locations, appUrl }: { locations: Location[]; a
 
   const [name, setName] = useState("Post-visit review request");
   const [locationIds, setLocationIds] = useState<string[]>(first ? [first.id] : []);
+  const [funnelStyle, setFunnelStyle] = useState(p?.funnelStyle ?? "SIMPLE");
   const [ratingStyle, setRatingStyle] = useState(p?.funnelRatingStyle ?? "stars");
   const [headline, setHeadline] = useState(p?.funnelPromptTitle ?? `How was your experience with ${first?.name ?? "us"}?`);
   const [subheading, setSubheading] = useState(p?.funnelPromptBody ?? "Happy customers can continue to a public review, while lower ratings stay private so our team can follow up directly.");
@@ -413,6 +415,7 @@ export function CampaignWizard({ locations, appUrl }: { locations: Location[]; a
       for (const locId of locationIds.length ? locationIds : [first?.id].filter(Boolean) as string[]) {
         const fd = new FormData();
         fd.append("locationId", locId);
+        fd.append("funnelStyle", funnelStyle);
         fd.append("funnelRatingStyle", ratingStyle);
         fd.append("funnelPromptTitle", headline);
         fd.append("funnelPromptBody", subheading);
@@ -566,6 +569,24 @@ export function CampaignWizard({ locations, appUrl }: { locations: Location[]; a
             {/* STEP: Funnel */}
             {stepId === "funnel" && (
               <div style={st({ display: "flex", flexDirection: "column", gap: 22 })}>
+                <Field label="Funnel experience">
+                  <div style={st({ display: "flex", gap: 3, padding: 3, background: "var(--ink-100)", borderRadius: "var(--r-sm)" })}>
+                    {([
+                      { value: "SIMPLE", label: "Simple funnel", hint: "Straightforward rating → review flow" },
+                      { value: "AI_GUIDED", label: "AI-guided funnel", hint: "AI tailors the ask to each customer" },
+                    ] as Array<{ value: string; label: string; hint: string }>).map((o) => {
+                      const active = funnelStyle === o.value;
+                      return (
+                        <button key={o.value} type="button" onClick={() => setFunnelStyle(o.value)}
+                          style={st({ flex: 1, border: 0, cursor: "pointer", padding: "9px 10px", borderRadius: 5, textAlign: "left", background: active ? "var(--white)" : "transparent", color: active ? "var(--ink-900)" : "var(--ink-500)", boxShadow: active ? "var(--shadow-xs)" : "none" })}>
+                          <div style={st({ fontSize: 12.5, fontWeight: 580 })}>{o.label}</div>
+                          <div style={st({ fontSize: 11.5, marginTop: 2, color: active ? "var(--ink-500)" : "var(--ink-400)" })}>{o.hint}</div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <input type="hidden" name="funnelStyle" value={funnelStyle} />
+                </Field>
                 <div className="card" style={st({ padding: 16, background: "var(--ink-50)" })}>
                   <div style={st({ display: "flex", alignItems: "center", gap: 11, marginBottom: gateEnabled ? 14 : 0 })}>
                     <span style={st({ width: 34, height: 34, borderRadius: 9, display: "grid", placeItems: "center", background: "var(--accent-soft)", color: "var(--accent-strong)" })}><Icon name="sliders" size={17} /></span>

@@ -8,6 +8,7 @@ import {
   normalizeHighRatingMode,
   isHighRatingDestination,
 } from "@/lib/review-routing";
+import { readFunnelStyleField } from "./funnel-style-field";
 
 function trimOrNull(value: FormDataEntryValue | null) {
   const v = (typeof value === "string" ? value : "").trim();
@@ -20,6 +21,7 @@ export async function saveCampaignWizard(formData: FormData) {
 
   await requireLocationAccess(locationId);
 
+  const funnelStyle = readFunnelStyleField(formData);
   const funnelRatingStyle = String(formData.get("funnelRatingStyle") ?? "stars").trim() || "stars";
   const funnelPromptTitle = trimOrNull(formData.get("funnelPromptTitle"));
   const funnelPromptBody = trimOrNull(formData.get("funnelPromptBody"));
@@ -42,6 +44,7 @@ export async function saveCampaignWizard(formData: FormData) {
   const customReviewUrl = trimOrNull(formData.get("customReviewUrl"));
 
   const data = {
+    funnelStyle,
     funnelRatingStyle,
     funnelPromptTitle,
     funnelPromptBody,

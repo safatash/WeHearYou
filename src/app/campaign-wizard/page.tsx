@@ -45,6 +45,7 @@ export default async function CampaignWizardPage() {
             reviewLink: l.reviewLink,
             publicProfile: l.publicProfile
               ? {
+                  funnelStyle: l.publicProfile.funnelStyle ?? "SIMPLE",
                   funnelRatingStyle: l.publicProfile.funnelRatingStyle,
                   funnelPromptTitle: l.publicProfile.funnelPromptTitle,
                   funnelPromptBody: l.publicProfile.funnelPromptBody,
