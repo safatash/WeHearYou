@@ -16,12 +16,14 @@ const FLOW: Record<"positive" | "negative", [ScreenId, string][]> = {
 export function AiFunnelFlow(props: AiFunnelProps & {
   onRecordPositive?: (i: { slug: string; rating: number; body: string; embed: boolean }) => Promise<unknown>;
   onRecordNegative?: (i: { slug: string; rating: number; feedback: string; contact: string; embed: boolean }) => Promise<unknown>;
+  initialScreen?: ScreenId;
+  initialRating?: number;
 }) {
   const onRecordPositive = props.onRecordPositive ?? recordPositiveReview;
   const onRecordNegative = props.onRecordNegative ?? recordPrivateFeedback;
 
-  const [screen, setScreen] = useState<ScreenId>("rating");
-  const [state, setState] = useState<FunnelState>(INITIAL_STATE);
+  const [screen, setScreen] = useState<ScreenId>(props.initialScreen ?? "rating");
+  const [state, setState] = useState<FunnelState>({ ...INITIAL_STATE, rating: props.initialRating ?? 0 });
   const [, startTransition] = useTransition();
   const set = (patch: Partial<FunnelState>) => setState(prev => ({ ...prev, ...patch }));
 

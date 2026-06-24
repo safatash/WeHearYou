@@ -192,6 +192,34 @@ export async function submitCampaignPositiveReview(formData: FormData) {
   redirect(`/r/${token}/thanks?rating=${ratingValue}&mode=why-public`);
 }
 
+export async function recordCampaignPositiveReview(input: {
+  token: string; rating: number; body: string;
+}): Promise<{ ok: boolean }> {
+  const token = (input.token ?? "").trim();
+  const rating = Math.round(Number(input.rating));
+  const body = (input.body ?? "").trim();
+  if (!token || !Number.isInteger(rating) || rating < 1 || rating > 5 || !body) return { ok: false };
+  const recipient = await prisma.campaignRecipient.findUnique({
+    where: { token },
+    include: { campaign: { include: { location: true } } },
+  });
+  if (!recipient) return { ok: false };
+  await prisma.review.create({
+    data: {
+      locationId: recipient.campaign.location.id,
+      source: ReviewSource.INTERNAL,
+      status: ReviewStatus.PUBLISHED,
+      sentiment: "positive",
+      rating,
+      reviewerName: "Anonymous customer",
+      body,
+      reviewedAt: new Date(),
+      publishedExternally: false,
+    },
+  });
+  return { ok: true };
+}
+
 export async function submitPrivateFeedback(formData: FormData) {
   const token = String(formData.get("token") ?? "").trim();
   const ratingValue = Number(formData.get("rating"));

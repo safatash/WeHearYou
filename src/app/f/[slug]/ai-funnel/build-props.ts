@@ -60,6 +60,7 @@ export interface AiFunnelProps {
   locationId: string;
   embed: boolean;
   threshold: number;
+  internalReviewBase: string;
   business: {
     name: string;
     location: string;
@@ -146,6 +147,7 @@ export function buildAiFunnelProps(
     locationId: location.id,
     embed: opts.embed,
     threshold: profile.negativeFilterThreshold,
+    internalReviewBase: `/f/${opts.slug}`,
     business: {
       name: location.name,
       location: businessLocation,

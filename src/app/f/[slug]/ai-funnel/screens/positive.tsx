@@ -652,7 +652,7 @@ export const PosCelebrate = ({ props, state, go }: ScreenCtx) => {
 
   function destHref(d: (typeof props.destinations)[number]): string {
     if (d.isInternal) {
-      return `/f/${props.slug}/review?rating=${state.rating}${props.embed ? "&embed=1" : ""}`;
+      return `${props.internalReviewBase}/review?rating=${state.rating}${props.embed ? "&embed=1" : ""}`;
     }
     return d.url ?? "#";
   }

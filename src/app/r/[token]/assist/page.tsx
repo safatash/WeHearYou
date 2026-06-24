@@ -3,9 +3,11 @@ export const dynamic = "force-dynamic";
 import { notFound, redirect } from "next/navigation";
 import { getRecipientByToken } from "@/lib/funnel";
 import { prisma } from "@/lib/prisma";
-import { buildGoogleWriteReviewLink } from "@/lib/locations";
 import { buildSuggestedChips, extractReviewThemes } from "@/lib/review-assistant-chips";
-import { ReviewAssistantClient, type AssistDestination } from "./review-assistant-client";
+import type { AiFunnelProps, FunnelDestination } from "@/app/f/[slug]/ai-funnel/build-props";
+import { CampaignAiFunnel } from "./campaign-ai-funnel";
+
+export type AssistDestination = { key: string; label: string; url: string };
 
 export default async function ReviewAssistPage({
   params,
@@ -49,36 +51,67 @@ export default async function ReviewAssistPage({
     useReviewThemes: profile.aiAssistantUseReviewThemes,
   });
 
-  const googleUrl = location.reviewLink || buildGoogleWriteReviewLink(location.googlePlaceId);
-  const destinations: AssistDestination[] = [
-    { key: "GOOGLE", label: "Google", url: googleUrl },
+  const DEST_GLYPH: Record<string, string> = {
+    GOOGLE: "G",
+    YELP: "Y",
+    FACEBOOK: "f",
+    TRUSTPILOT: "★",
+  };
+  const DEST_COLOR: Record<string, string> = {
+    GOOGLE: "var(--src-google)",
+    YELP: "var(--src-yelp)",
+    FACEBOOK: "var(--src-facebook)",
+    TRUSTPILOT: "var(--src-trustpilot)",
+  };
+
+  const rawDestinations = [
+    { key: "GOOGLE", label: "Google", url: location.reviewLink ?? null },
     { key: "YELP", label: "Yelp", url: location.yelpBusinessUrl ?? null },
     { key: "FACEBOOK", label: "Facebook", url: profile.facebookReviewUrl ?? null },
     { key: "TRUSTPILOT", label: "Trustpilot", url: profile.trustpilotReviewUrl ?? null },
-  ].filter((d) => Boolean(d.url)) as AssistDestination[];
+  ].filter((d): d is { key: string; label: string; url: string } => Boolean(d.url));
+
+  const destinations: FunnelDestination[] = rawDestinations.map((d, index) => ({
+    id: d.key.toLowerCase(),
+    label: d.label,
+    url: d.url,
+    glyph: DEST_GLYPH[d.key] ?? d.key[0],
+    color: DEST_COLOR[d.key] ?? "var(--accent)",
+    preferred: index === 0,
+    isInternal: false,
+  }));
+
+  const aiProps: AiFunnelProps = {
+    slug: "",
+    locationId: location.id,
+    embed: false,
+    threshold: profile.negativeFilterThreshold ?? 4,
+    internalReviewBase: `/r/${token}`,
+    business: {
+      name: location.name,
+      location: [location.city, location.state].filter(Boolean).join(", "),
+      logoUrl: profile.logoUrl ?? null,
+      initial: (location.name[0] ?? "?").toUpperCase(),
+      hue: 187,
+    },
+    destinations,
+    stoodOut: chips,
+    services: profile.services ?? [],
+    issues: [],
+    ai: {
+      reviewEnabled: !!(profile.aiAssistantEnabled && profile.aiAssistantAllowGeneration),
+      allowNotes: profile.aiAssistantAllowNotes !== false,
+      allowTone: profile.aiAssistantAllowTone !== false,
+      allowLength: profile.aiAssistantAllowLength !== false,
+      allowRegenerate: profile.aiAssistantAllowRegenerate !== false,
+      includeService: profile.aiAssistantIncludeService !== false,
+      clarifyEnabled: true,
+    },
+  };
 
   return (
-    <main className="min-h-screen bg-slate-50 px-4 py-10 text-slate-900 sm:px-6">
-      <div className="mx-auto max-w-3xl rounded-[32px] border border-slate-200 bg-white p-6 shadow-[0_16px_50px_rgba(15,23,42,0.08)] sm:p-10">
-        {profile.logoUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={profile.logoUrl} alt={`${location.name} logo`} className="mb-6 h-12 w-auto rounded-xl object-contain" />
-        ) : null}
-        <ReviewAssistantClient
-          token={token}
-          locationId={location.id}
-          rating={rating}
-          businessName={location.name}
-          chips={chips}
-          services={profile.services ?? []}
-          destinations={destinations}
-          wehearyouEnabled={profile.wehearyouReviewsEnabled !== false}
-          allowTone={profile.aiAssistantAllowTone !== false}
-          allowLength={profile.aiAssistantAllowLength !== false}
-          allowRegenerate={profile.aiAssistantAllowRegenerate !== false}
-          allowNotes={profile.aiAssistantAllowNotes !== false}
-        />
-      </div>
+    <main>
+      <CampaignAiFunnel props={aiProps} token={token} rating={rating} />
     </main>
   );
 }
