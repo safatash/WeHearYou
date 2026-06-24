@@ -46,6 +46,9 @@ export async function generateReview(
     });
     if (res.ok) {
       const data = await res.json();
+      if (!data.review) {
+        return { review: "", sessionId: p.sessionId, usedFallback: true };
+      }
       return {
         review: data.review,
         sessionId: data.sessionId ?? p.sessionId,
@@ -71,6 +74,9 @@ export async function clarifyFeedbackRemote(
     });
     if (res.ok) {
       const data = await res.json();
+      if (!data.rewritten) {
+        return { rewritten: "", usedFallback: true };
+      }
       return { rewritten: data.rewritten, usedFallback: false };
     }
     return { rewritten: "", usedFallback: true };

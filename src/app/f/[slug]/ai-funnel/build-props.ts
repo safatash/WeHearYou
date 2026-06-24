@@ -85,6 +85,7 @@ export interface AiFunnelProps {
 // ── Main export ───────────────────────────────────────────────────────────────
 
 export function buildAiFunnelProps(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   location: any /* LocationWithProfile */,
   opts: { slug: string; embed: boolean },
 ): AiFunnelProps {

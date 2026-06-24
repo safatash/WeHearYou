@@ -546,7 +546,7 @@ export const PosReview = ({ props, state, set, go }: ScreenCtx) => {
                 style={{ transform: "rotate(180deg)" }}
               />
             </BigBtn>
-            <BigBtn onClick={() => go("pos-confirm")} icon="arrowRight">
+            <BigBtn onClick={() => { if (tab === "short") set({ reviewLong: state.reviewShort }); go("pos-confirm"); }} icon="arrowRight">
               Looks good
             </BigBtn>
           </div>
@@ -623,6 +623,7 @@ export const PosCelebrate = ({ props, state, go }: ScreenCtx) => {
   const [fired, setFired] = useState(false);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setFired(true);
     if (state.reviewLong) {
       const safeCopy = async () => {

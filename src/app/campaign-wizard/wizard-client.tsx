@@ -585,7 +585,6 @@ export function CampaignWizard({ locations, appUrl }: { locations: Location[]; a
                       );
                     })}
                   </div>
-                  <input type="hidden" name="funnelStyle" value={funnelStyle} />
                 </Field>
                 <div className="card" style={st({ padding: 16, background: "var(--ink-50)" })}>
                   <div style={st({ display: "flex", alignItems: "center", gap: 11, marginBottom: gateEnabled ? 14 : 0 })}>
