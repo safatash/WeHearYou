@@ -1,5 +1,5 @@
-const { chromium } = require('playwright');
-const fs = require('fs');
+import { chromium } from 'playwright';
+import fs from 'fs';
 
 const BASE_URL = 'http://localhost:3000';
 const USER_EMAIL = 'safa@wehearyou.app';

@@ -262,24 +262,25 @@ function cornerStyle(pos: string): React.CSSProperties {
   }
 }
 
+function Header({ s, tk, avg, total }: { s: PreviewSettings; tk: ReturnType<typeof wTokens>; avg: number; total: string }) {
+  return s.showHeader ? (
+    <div style={st({ display: "flex", alignItems: "center", gap: 14, marginBottom: 18, flexWrap: "wrap" })}>
+      <div style={st({ display: "flex", alignItems: "baseline", gap: 8 })}>
+        <span style={st({ fontSize: 34, fontWeight: 720, letterSpacing: "-.03em", color: tk.text, fontFamily: "var(--font-mono)" })}>{avg}</span>
+        <Stars value={avg} size={18} />
+      </div>
+      <div style={st({ height: 30, width: 1, background: tk.line })} />
+      <div style={st({ fontSize: 13, color: tk.sub })}>Based on <b style={st({ color: tk.text })}>{total}</b> verified reviews</div>
+      <div style={st({ marginLeft: "auto" })}><VerifiedTag s={s} tk={tk} /></div>
+    </div>
+  ) : null;
+}
+
 export function WidgetMockPreview({ settings }: { settings: Partial<PreviewSettings> }) {
   const s: PreviewSettings = { ...PREVIEW_DEFAULTS, ...settings };
   const tk = wTokens(s);
   const avg = 4.6;
   const total = "1,284";
-
-  const Header = () =>
-    s.showHeader ? (
-      <div style={st({ display: "flex", alignItems: "center", gap: 14, marginBottom: 18, flexWrap: "wrap" })}>
-        <div style={st({ display: "flex", alignItems: "baseline", gap: 8 })}>
-          <span style={st({ fontSize: 34, fontWeight: 720, letterSpacing: "-.03em", color: tk.text, fontFamily: "var(--font-mono)" })}>{avg}</span>
-          <Stars value={avg} size={18} />
-        </div>
-        <div style={st({ height: 30, width: 1, background: tk.line })} />
-        <div style={st({ fontSize: 13, color: tk.sub })}>Based on <b style={st({ color: tk.text })}>{total}</b> verified reviews</div>
-        <div style={st({ marginLeft: "auto" })}><VerifiedTag s={s} tk={tk} /></div>
-      </div>
-    ) : null;
 
   if (s.type === "floating") {
     const r = REVIEWS.find((x) => x.rating >= s.floatingMinRating) || REVIEWS[0];
@@ -461,7 +462,7 @@ export function WidgetMockPreview({ settings }: { settings: Partial<PreviewSetti
 
   return (
     <div>
-      <Header />
+      <Header s={s} tk={tk} avg={avg} total={total} />
       {showSummary && <AISummaryBox s={s} tk={tk} />}
       {s.type === "grid" ? (
         <div style={st({ columns: s.device === "mobile" ? "1" : "240px", columnGap: 14 })}>

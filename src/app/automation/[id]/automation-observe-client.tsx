@@ -299,6 +299,51 @@ export function RunsTab({ runs }: { runs: ObserveRun[] }) {
   );
 }
 
+// ── JobTable ──────────────────────────────────────────────────────────────────
+
+function JobTable({ rows, label }: { rows: ObserveJob[]; label: string }) {
+  if (rows.length === 0) return null;
+  return (
+    <div className="rounded-3xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+      <div className="px-6 py-4 border-b border-slate-100">
+        <p className="text-sm font-semibold text-slate-950">{label} <span className="text-slate-400 font-normal">({rows.length})</span></p>
+      </div>
+      <div className="divide-y divide-slate-100">
+        {rows.map((job) => (
+          <div key={job.id} className="px-6 py-4">
+            <div className="flex flex-wrap items-center gap-3">
+              {statusPill(job.status)}
+              {stepTypePill(job.stepType)}
+              {job.attemptCount > 0 && (
+                <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
+                  job.status === "failed" ? "bg-rose-50 text-rose-700" : "bg-orange-50 text-orange-700"
+                }`}>
+                  Attempt {job.attemptCount}/{job.maxAttempts}
+                </span>
+              )}
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-slate-900 truncate">{job.stepTitle}</p>
+                <p className="text-xs text-slate-500 truncate">
+                  {job.contactName} · {job.locationName} · {job.runTrigger.replace(/_/g, " ")}
+                </p>
+              </div>
+              <div className="text-xs text-slate-500 text-right space-y-0.5">
+                <p>Execute at: <span className="font-medium text-slate-700">{fmt(job.executeAt)}</span></p>
+                {job.executedAt && <p>Executed: <span className="font-medium text-slate-700">{fmt(job.executedAt)}</span></p>}
+              </div>
+            </div>
+            {job.errorMessage && (
+              <div className="mt-2 rounded-lg bg-rose-50 border border-rose-100 px-3 py-2 text-xs text-rose-700">
+                {job.errorMessage}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ── QueueTab ──────────────────────────────────────────────────────────────────
 
 export function QueueTab({ jobs }: { jobs: ObserveJob[] }) {
@@ -310,49 +355,6 @@ export function QueueTab({ jobs }: { jobs: ObserveJob[] }) {
       <div className="rounded-3xl border border-slate-200 bg-white p-10 text-center shadow-sm">
         <p className="text-sm font-medium text-slate-500">Queue is empty</p>
         <p className="mt-1 text-xs text-slate-400">Delayed SEND_REQUEST steps appear here until the cron runner executes them.</p>
-      </div>
-    );
-  }
-
-  function JobTable({ rows, label }: { rows: ObserveJob[]; label: string }) {
-    if (rows.length === 0) return null;
-    return (
-      <div className="rounded-3xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-        <div className="px-6 py-4 border-b border-slate-100">
-          <p className="text-sm font-semibold text-slate-950">{label} <span className="text-slate-400 font-normal">({rows.length})</span></p>
-        </div>
-        <div className="divide-y divide-slate-100">
-          {rows.map((job) => (
-            <div key={job.id} className="px-6 py-4">
-              <div className="flex flex-wrap items-center gap-3">
-                {statusPill(job.status)}
-                {stepTypePill(job.stepType)}
-                {job.attemptCount > 0 && (
-                  <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
-                    job.status === "failed" ? "bg-rose-50 text-rose-700" : "bg-orange-50 text-orange-700"
-                  }`}>
-                    Attempt {job.attemptCount}/{job.maxAttempts}
-                  </span>
-                )}
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-slate-900 truncate">{job.stepTitle}</p>
-                  <p className="text-xs text-slate-500 truncate">
-                    {job.contactName} · {job.locationName} · {job.runTrigger.replace(/_/g, " ")}
-                  </p>
-                </div>
-                <div className="text-xs text-slate-500 text-right space-y-0.5">
-                  <p>Execute at: <span className="font-medium text-slate-700">{fmt(job.executeAt)}</span></p>
-                  {job.executedAt && <p>Executed: <span className="font-medium text-slate-700">{fmt(job.executedAt)}</span></p>}
-                </div>
-              </div>
-              {job.errorMessage && (
-                <div className="mt-2 rounded-lg bg-rose-50 border border-rose-100 px-3 py-2 text-xs text-rose-700">
-                  {job.errorMessage}
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
       </div>
     );
   }
