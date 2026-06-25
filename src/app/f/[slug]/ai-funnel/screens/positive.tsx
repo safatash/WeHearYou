@@ -507,7 +507,12 @@ export const PosReview = ({ props, state, set, go }: ScreenCtx) => {
                 Regenerate
               </ActionPill>
             )}
-            {/* Manual mode: Improve Writing first */}
+            {/* Manual mode: Generate with AI or improve writing */}
+            {isManual && props.ai.reviewEnabled && (
+              <ActionPill icon="sparkles" filled onClick={() => doTransform("regen")} active={busy === "regen"}>
+                Write my review
+              </ActionPill>
+            )}
             {isManual && (
               <ActionPill icon="sparkles" onClick={() => doTransform("improve")} active={busy === "improve"}>
                 Improve Writing
