@@ -613,63 +613,56 @@ export const PosReview = ({ props, state, set, go }: ScreenCtx) => {
 
 /* ── PosConfirm ──────────────────────────────────────────────────────────── */
 
-export const PosConfirm = ({ props: _props, state, set: _set, go }: ScreenCtx) => (
-  <ScreenCard>
-    <StepLabel step={3} total={4} label="Review your review" />
-    <h1 className="fk-h1">Does this look good?</h1>
-    <p className="fk-sub">
-      Read it over and make any last edits. This is exactly what will be posted.
-    </p>
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 10,
-        margin: "16px 0 10px",
-      }}
-    >
-      <Avatar name="You" size={34} />
-      <div>
-        <Stars value={state.rating} size={14} />
-        <div style={{ fontSize: 12, color: "var(--ink-400)", marginTop: 1 }}>
-          {RATING_LABELS[state.rating]}
-        </div>
+export const PosConfirm = ({ props, state, set, go }: ScreenCtx) => {
+  const editedRef = useRef(false);
+
+  return (
+    <ScreenCard>
+      <StepLabel step={3} total={4} label="Review & Edit" />
+      <h1 className="fk-h1">Does this reflect your experience?</h1>
+      <p className="fk-sub">
+        Make any final edits — you own every word.
+      </p>
+      <textarea
+        className="fk-textarea"
+        rows={7}
+        value={state.reviewLong}
+        placeholder="Tell others about your experience..."
+        onChange={(e) => {
+          set({ reviewLong: e.target.value });
+          if (!editedRef.current) {
+            editedRef.current = true;
+            fireAssistantEvent(props.locationId, "AI_ASSIST_EDITED", state.sessionId);
+          }
+        }}
+        style={{ marginBottom: 18 }}
+      />
+      <div className="fk-actions fk-actions-row">
+        <BigBtn
+          variant="secondary"
+          full={false}
+          onClick={() => go("pos-review")}
+          style={{ flex: "none", minWidth: 52, padding: 0, width: 52 }}
+        >
+          <Icon
+            name="arrowRight"
+            size={18}
+            style={{ transform: "rotate(180deg)" }}
+          />
+        </BigBtn>
+        <BigBtn
+          onClick={() => {
+            fireAssistantEvent(props.locationId, "MANUAL_REVIEW_COMPLETED", state.sessionId);
+            go("pos-celebrate");
+          }}
+          icon="arrowRight"
+        >
+          Copy Review
+        </BigBtn>
       </div>
-    </div>
-    <div
-      className="fk-review-card"
-      style={{
-        background: "var(--ink-50)",
-        borderRadius: 12,
-        padding: "14px 16px",
-        fontSize: 14.5,
-        lineHeight: 1.65,
-        color: "var(--ink-800)",
-        marginBottom: 18,
-        whiteSpace: "pre-wrap",
-      }}
-    >
-      {state.reviewLong}
-    </div>
-    <div className="fk-actions fk-actions-row">
-      <BigBtn
-        variant="secondary"
-        full={false}
-        onClick={() => go("pos-review")}
-        style={{ flex: "none", minWidth: 52, padding: 0, width: 52 }}
-      >
-        <Icon
-          name="arrowRight"
-          size={18}
-          style={{ transform: "rotate(180deg)" }}
-        />
-      </BigBtn>
-      <BigBtn onClick={() => go("pos-celebrate")} icon="arrowRight">
-        Post my review
-      </BigBtn>
-    </div>
-  </ScreenCard>
-);
+    </ScreenCard>
+  );
+};
 
 /* ── PosCelebrate ────────────────────────────────────────────────────────── */
 
