@@ -4,11 +4,18 @@ import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { OutcomeCard, StatCard } from "@/components/ui";
 import { getAnalyticsData } from "@/lib/analytics";
+import { getReviewAssistantAnalytics, type AssistantAnalytics } from "@/lib/review-assistant-analytics";
+import { getResolutionStats, type ResolutionStats } from "@/lib/resolution-analytics";
 import { requireActiveMembershipPage } from "@/lib/page-guards";
+import { getCurrentAccessibleLocationIds } from "@/lib/current-scope";
+import { Icon } from "@/components/icon";
 
 export default async function AnalyticsPage() {
   const membership = await requireActiveMembershipPage();
   const analytics = await getAnalyticsData(membership.organizationId);
+  const locationIds = await getCurrentAccessibleLocationIds();
+  const assistant = await getReviewAssistantAnalytics(locationIds, 30);
+  const resolution = await getResolutionStats(locationIds, 30);
 
   return (
     <AppShell activeScreen="analytics">
@@ -125,7 +132,78 @@ export default async function AnalyticsPage() {
             </div>
           </section>
         </div>
+
+        {/* AI Review Assistant */}
+        {assistant.reviewsStarted > 0 || assistant.requestsSent > 0 ? (
+          <AssistantSection a={assistant} />
+        ) : null}
+
+        {/* Customer Resolution */}
+        {resolution.total > 0 ? <ResolutionSection r={resolution} /> : null}
       </div>
     </AppShell>
+  );
+}
+
+function AssistantSection({ a }: { a: AssistantAnalytics }) {
+  const pct = (n: number) => `${Math.round(n * 100)}%`;
+  const tiles: { label: string; value: string }[] = [
+    { label: "Review requests sent", value: a.requestsSent.toLocaleString() },
+    { label: "Reviews started", value: a.reviewsStarted.toLocaleString() },
+    { label: "AI reviews generated", value: a.aiGenerated.toLocaleString() },
+    { label: "Reviews copied", value: a.reviewsCopied.toLocaleString() },
+    { label: "Google click rate", value: pct(a.googleClickRate) },
+    { label: "Destination click rate", value: pct(a.destinationClickRate) },
+    { label: "Completion rate", value: pct(a.completionRate) },
+    { label: "Private feedback", value: a.privateFeedback.toLocaleString() },
+  ];
+  return (
+    <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="mb-6 flex items-center gap-3">
+        <Icon name="sparkles" size={18} />
+        <div>
+          <h3 className="text-lg font-semibold text-slate-950">AI Review Assistant</h3>
+          <p className="text-sm text-slate-500">Performance metrics for the last 30 days</p>
+        </div>
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {tiles.map((t) => (
+          <div key={t.label} className="rounded-2xl border border-slate-200 p-4">
+            <div className="font-semibold tracking-tighter text-slate-900" style={{ fontSize: 20 }}>{t.value}</div>
+            <div className="mt-2 text-xs text-slate-500">{t.label}</div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function ResolutionSection({ r }: { r: ResolutionStats }) {
+  const tiles: { label: string; value: string }[] = [
+    { label: "New cases", value: r.newCases.toLocaleString() },
+    { label: "High priority", value: r.highPriority.toLocaleString() },
+    { label: "Resolved", value: r.resolved.toLocaleString() },
+    { label: "Resolution rate", value: `${Math.round(r.resolutionRate * 100)}%` },
+    { label: "Avg rating", value: r.averageRating.toFixed(1) },
+    { label: "Contact requested", value: r.contactRequested.toLocaleString() },
+  ];
+  return (
+    <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="mb-6 flex items-center gap-3">
+        <Icon name="shield" size={18} />
+        <div>
+          <h3 className="text-lg font-semibold text-slate-950">Customer Resolution</h3>
+          <p className="text-sm text-slate-500">Performance metrics for the last 30 days</p>
+        </div>
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {tiles.map((t) => (
+          <div key={t.label} className="rounded-2xl border border-slate-200 p-4">
+            <div className="font-semibold tracking-tighter text-slate-900" style={{ fontSize: 20 }}>{t.value}</div>
+            <div className="mt-2 text-xs text-slate-500">{t.label}</div>
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }
