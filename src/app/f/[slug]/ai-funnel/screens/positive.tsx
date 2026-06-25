@@ -517,16 +517,13 @@ export const PosReview = ({ props, state, set, go }: ScreenCtx) => {
                 More Professional
               </ActionPill>
             )}
+            {/* Rule 9: Start From Scratch — same pill as the AI actions, teal-filled (AI mode only) */}
+            {!isManual && (
+              <ActionPill icon="edit" filled onClick={() => setConfirmOpen(true)}>
+                Start From Scratch
+              </ActionPill>
+            )}
           </div>
-
-          {/* Rule 9: Start From Scratch (AI mode only) */}
-          {!isManual && (
-            <div style={{ marginBottom: 14 }}>
-              <BigBtn variant="primary" onClick={() => setConfirmOpen(true)}>
-                ✍️ Start From Scratch
-              </BigBtn>
-            </div>
-          )}
 
           {/* Rule 10: Continue button */}
           <div className="fk-actions fk-actions-row">

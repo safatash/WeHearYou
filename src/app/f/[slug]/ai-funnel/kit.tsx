@@ -189,9 +189,11 @@ interface ActionPillProps {
   onClick?: () => void;
   active?: boolean;
   icon?: IconName;
+  /** Teal-filled treatment (accent background, white text) — same pill shape as the others. */
+  filled?: boolean;
 }
 
-export const ActionPill = ({ children, onClick, active, icon }: ActionPillProps) => (
+export const ActionPill = ({ children, onClick, active, icon, filled }: ActionPillProps) => (
   <button onClick={onClick} className="tap" data-active={active} style={{
     display: "inline-flex",
     alignItems: "center",
@@ -204,9 +206,9 @@ export const ActionPill = ({ children, onClick, active, icon }: ActionPillProps)
     fontWeight: 560,
     fontFamily: "inherit",
     transition: "background .14s, border-color .14s, color .14s",
-    border: active ? "1.5px solid var(--accent)" : "1px solid var(--ink-200)",
-    background: active ? "var(--accent-soft)" : "var(--white)",
-    color: active ? "var(--accent-strong)" : "var(--ink-600)",
+    border: filled || active ? "1.5px solid var(--accent)" : "1px solid var(--ink-200)",
+    background: filled ? "var(--accent)" : active ? "var(--accent-soft)" : "var(--white)",
+    color: filled ? "var(--accent-fg)" : active ? "var(--accent-strong)" : "var(--ink-600)",
   }}>
     {icon && <Icon name={icon} size={14} />}{children}
   </button>
