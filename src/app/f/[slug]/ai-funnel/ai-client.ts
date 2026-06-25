@@ -1,6 +1,7 @@
 export type ToneAction = "regen" | "shorter" | "longer" | "casual" | "professional";
 export type AssistantTone = "friendly" | "professional" | "casual" | "enthusiastic";
 export type AssistantLength = "short" | "medium" | "detailed";
+export type EditMode = "improve" | "shorter" | "longer" | "casual" | "professional";
 
 export interface GenerateParams {
   locationId: string;
@@ -13,6 +14,21 @@ export interface GenerateParams {
   length: AssistantLength;
   sessionId: string | null;
   isRegenerate: boolean;
+  editMode?: EditMode;
+  existingDraft?: string;
+}
+
+export function editModeForAction(action: EditMode): EditMode { return action; }
+
+export function fireAssistantEvent(locationId: string, event: string, sessionId?: string | null): void {
+  try {
+    const payload = JSON.stringify({ locationId, event, sessionId: sessionId ?? null });
+    if (typeof navigator !== "undefined" && navigator.sendBeacon) {
+      navigator.sendBeacon("/api/review-assistant/event", new Blob([payload], { type: "application/json" }));
+    } else {
+      void fetch("/api/review-assistant/event", { method: "POST", body: payload, headers: { "Content-Type": "application/json" }, keepalive: true });
+    }
+  } catch { /* best-effort */ }
 }
 
 export function mapToneAction(

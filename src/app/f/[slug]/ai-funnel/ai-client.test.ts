@@ -1,7 +1,7 @@
 // src/app/f/[slug]/ai-funnel/ai-client.test.ts
 import test from "node:test";
 import assert from "node:assert/strict";
-import { mapToneAction, generateReview, clarifyFeedbackRemote } from "./ai-client.ts";
+import { mapToneAction, generateReview, clarifyFeedbackRemote, editModeForAction } from "./ai-client.ts";
 
 const cur = { tone: "friendly" as const, length: "medium" as const };
 const base = { locationId:"l", rating:5, selectedPhrases:[], service:"", staffMember:"", notes:"", tone:"friendly" as const, length:"medium" as const, sessionId:null, isRegenerate:false };
@@ -32,4 +32,20 @@ test("clarifyFeedbackRemote flags fallback on network error", async () => {
   globalThis.fetch = (async () => { throw new Error("net"); }) as unknown as typeof fetch;
   try { assert.equal((await clarifyFeedbackRemote("l","text",[])).usedFallback, true); }
   finally { globalThis.fetch = orig; }
+});
+
+test("editModeForAction returns the matching edit mode", () => {
+  assert.equal(editModeForAction("shorter"), "shorter");
+  assert.equal(editModeForAction("professional"), "professional");
+});
+test("generateReview forwards editMode + existingDraft in the request body", async () => {
+  const orig = globalThis.fetch;
+  let sentBody: any = null;
+  globalThis.fetch = (async (_url: string, init: any) => { sentBody = JSON.parse(init.body); return { ok: true, json: async () => ({ review: "Shorter.", sessionId: "s1" }) }; }) as any;
+  try {
+    const r = await generateReview({ locationId: "l", rating: 5, selectedPhrases: [], service: "", staffMember: "", notes: "", tone: "friendly", length: "detailed", sessionId: "s1", isRegenerate: false, editMode: "shorter", existingDraft: "long text here" });
+    assert.equal(sentBody.editMode, "shorter");
+    assert.equal(sentBody.existingDraft, "long text here");
+    assert.equal(r.review, "Shorter.");
+  } finally { globalThis.fetch = orig; }
 });
