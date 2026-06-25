@@ -9,6 +9,7 @@ import {
   StepLabel,
   StarPicker,
   ActionPill,
+  ReviewShimmer,
   AiThinking,
   Avatar,
   Stars,
@@ -28,6 +29,19 @@ import {
 import { buildReview } from "../fallback-text";
 
 /* ── Shared context type ─────────────────────────────────────────────────── */
+
+/** Friendly label for the AI shimmer overlay, per in-flight pill action. */
+function transformLabel(action: string): string {
+  switch (action) {
+    case "regen": return "Writing a new draft…";
+    case "shorter": return "Making it shorter…";
+    case "longer": return "Adding more detail…";
+    case "casual": return "Making it more casual…";
+    case "professional": return "Polishing it up…";
+    case "improve": return "Improving your review…";
+    default: return "AI is writing…";
+  }
+}
 
 interface ScreenCtx {
   props: AiFunnelProps;
@@ -458,22 +472,25 @@ export const PosReview = ({ props, state, set, go }: ScreenCtx) => {
             </div>
           )}
 
-          {/* Rule 3: editable textarea */}
-          <textarea
-            ref={textareaRef}
-            className="fk-textarea"
-            rows={6}
-            value={activeText}
-            placeholder={isManual ? "Tell others about your experience..." : undefined}
-            onChange={(e) => {
-              setActiveText(e.target.value);
-              if (!editedRef.current) {
-                editedRef.current = true;
-                fireAssistantEvent(props.locationId, "AI_ASSIST_EDITED", state.sessionId);
-              }
-            }}
-            style={{ marginBottom: 10 }}
-          />
+          {/* Rule 3: editable textarea (AI shimmer overlays it while a tool runs) */}
+          <div style={{ position: "relative", marginBottom: 10 }}>
+            <textarea
+              ref={textareaRef}
+              className="fk-textarea"
+              rows={6}
+              value={activeText}
+              placeholder={isManual ? "Tell others about your experience..." : undefined}
+              onChange={(e) => {
+                setActiveText(e.target.value);
+                if (!editedRef.current) {
+                  editedRef.current = true;
+                  fireAssistantEvent(props.locationId, "AI_ASSIST_EDITED", state.sessionId);
+                }
+              }}
+              style={{ display: "block", marginBottom: 0 }}
+            />
+            {busy && <ReviewShimmer label={transformLabel(busy)} />}
+          </div>
 
           {missingService && (
             <p className="fk-notice" style={{ marginBottom: 10 }}>

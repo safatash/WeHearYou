@@ -214,6 +214,18 @@ export const ActionPill = ({ children, onClick, active, icon, filled }: ActionPi
   </button>
 );
 
+/* ── ReviewShimmer (AI transform loader, overlays the editor while a tool runs) ── */
+
+export const ReviewShimmer = ({ label = "AI is writing…" }: { label?: string }) => (
+  <div className="fk-shimmer-overlay" role="status" aria-live="polite">
+    <span className="fk-shimmer-chip"><Icon name="sparkles" size={13} />{label}</span>
+    <span className="fk-shimmer-line" style={{ width: "100%" }} />
+    <span className="fk-shimmer-line" style={{ width: "94%" }} />
+    <span className="fk-shimmer-line" style={{ width: "82%" }} />
+    <span className="fk-shimmer-line" style={{ width: "66%" }} />
+  </div>
+);
+
 /* ── StarPicker ─────────────────────────────────────────────────────────── */
 
 interface StarPickerProps {

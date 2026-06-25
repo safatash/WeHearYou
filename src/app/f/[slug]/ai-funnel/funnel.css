@@ -177,3 +177,11 @@
 @keyframes fkspin { to { transform: rotate(360deg); } }
 @keyframes fkpop { from { opacity:0; transform: scale(.8); } to { opacity:1; transform: none; } }
 @keyframes fkdraw { to { stroke-dashoffset: 0; } }
+
+/* AI transform shimmer overlay (Create Review — shown while a pill action runs) */
+@keyframes fk-shimmer-sweep { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+@keyframes fk-pulse { 0%,100% { opacity: .5; transform: scale(.9); } 50% { opacity: 1; transform: scale(1.08); } }
+.fk-shimmer-overlay { position: absolute; inset: 0; z-index: 2; display: flex; flex-direction: column; gap: 11px; padding: 15px; border-radius: 12px; border: 1.5px solid var(--accent-border); background: var(--white); }
+.fk-shimmer-chip { display: inline-flex; align-items: center; gap: 6px; align-self: flex-start; margin-bottom: 3px; font-size: 12px; font-weight: 640; color: var(--accent-strong); }
+.fk-shimmer-chip svg { animation: fk-pulse 1.2s ease-in-out infinite; }
+.fk-shimmer-line { height: 12px; border-radius: 6px; background: linear-gradient(90deg, var(--ink-100) 20%, var(--accent-soft) 50%, var(--ink-100) 80%); background-size: 200% 100%; animation: fk-shimmer-sweep 1.4s linear infinite; }
