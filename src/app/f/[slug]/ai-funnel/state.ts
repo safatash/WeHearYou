@@ -28,6 +28,11 @@ export interface FunnelState {
   contactValue: string;
   feedbackClarified: string;
   feedbackFinal: string;
+  selectedVersion: "short" | "detailed";
+  tone: "friendly" | "professional" | "casual" | "enthusiastic";
+  length: "short" | "medium" | "detailed";
+  writingMode: "ai" | "manual";
+  draftGenerated: boolean;
 }
 
 export const INITIAL_STATE: FunnelState = {
@@ -46,7 +51,16 @@ export const INITIAL_STATE: FunnelState = {
   contactValue: "",
   feedbackClarified: "",
   feedbackFinal: "",
+  selectedVersion: "detailed",
+  tone: "friendly",
+  length: "detailed",
+  writingMode: "ai",
+  draftGenerated: false,
 };
+
+export function shouldAutoGenerate(state: Pick<FunnelState, "draftGenerated" | "writingMode">): boolean {
+  return !state.draftGenerated && state.writingMode === "ai";
+}
 
 /** rating >= threshold → "pos-intro", else → "neg-intro" */
 export function nextFromRating(rating: number, threshold: number): ScreenId {
