@@ -536,7 +536,7 @@ export const PosReview = ({ props, state, set, go }: ScreenCtx) => {
             )}
             {/* Rule 9: Start From Scratch — same pill as the AI actions, teal-filled (AI mode only) */}
             {!isManual && (
-              <ActionPill icon="edit" filled onClick={() => setConfirmOpen(true)}>
+              <ActionPill icon="sparkles" filled onClick={() => setConfirmOpen(true)}>
                 Start From Scratch
               </ActionPill>
             )}
