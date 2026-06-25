@@ -246,11 +246,15 @@ export const PosReview = ({ props, state, set, go }: ScreenCtx) => {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const editedRef = useRef(false);
+  const viewedRef = useRef(false);
 
   // Rule 2: mount effect — generate ONLY when shouldAutoGenerate, else show existing state
   useEffect(() => {
+    if (!viewedRef.current) {
+      viewedRef.current = true;
+      fireAssistantEvent(props.locationId, "AI_ASSIST_VIEWED", state.sessionId);
+    }
     if (!shouldAutoGenerate(state)) {
-      setLoading(false);
       return;
     }
 
@@ -327,6 +331,8 @@ export const PosReview = ({ props, state, set, go }: ScreenCtx) => {
 
   // Rule 6 & 7: transform button handler
   async function doTransform(action: EditMode | "regen") {
+    if (busy) return;
+    if (action !== "regen" && !activeText.trim()) return;
     if (action === "regen") {
       // Rule 7: Regenerate — from-scratch, no editMode
       setBusy("regen");
@@ -416,9 +422,15 @@ export const PosReview = ({ props, state, set, go }: ScreenCtx) => {
           </div>
 
           {/* Rule 4: message above editor */}
-          <p className="fk-sub" style={{ marginBottom: 12 }}>
-            We&apos;ve created a review based on what you shared. Use it as-is, edit it, or start from scratch if you&apos;d rather write your own.
-          </p>
+          {!isManual ? (
+            <p className="fk-sub" style={{ marginBottom: 12 }}>
+              We&apos;ve created a review based on what you shared. Use it as-is, edit it, or start from scratch if you&apos;d rather write your own.
+            </p>
+          ) : (
+            <p className="fk-sub" style={{ marginBottom: 12 }}>
+              Write your review in your own words — use the tools below to polish it.
+            </p>
+          )}
 
           {/* Rule 5: Tabs — AI mode only */}
           {!isManual && (
@@ -678,6 +690,7 @@ export const PosCelebrate = ({ props, state, go }: ScreenCtx) => {
         try {
           await navigator.clipboard.writeText(state.reviewLong);
           setCopied(true);
+          fireAssistantEvent(props.locationId, "AI_ASSIST_COPIED", state.sessionId);
         } catch {
           // clipboard access not available
         }
@@ -690,6 +703,7 @@ export const PosCelebrate = ({ props, state, go }: ScreenCtx) => {
     try {
       await navigator.clipboard.writeText(state.reviewLong);
       setCopied(true);
+      fireAssistantEvent(props.locationId, "AI_ASSIST_COPIED", state.sessionId);
     } catch {
       // ignore
     }

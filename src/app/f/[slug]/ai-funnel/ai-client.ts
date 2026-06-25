@@ -1,4 +1,3 @@
-export type ToneAction = "regen" | "shorter" | "longer" | "casual" | "professional";
 export type AssistantTone = "friendly" | "professional" | "casual" | "enthusiastic";
 export type AssistantLength = "short" | "medium" | "detailed";
 export type EditMode = "improve" | "shorter" | "longer" | "casual" | "professional";
@@ -29,26 +28,6 @@ export function fireAssistantEvent(locationId: string, event: string, sessionId?
       void fetch("/api/review-assistant/event", { method: "POST", body: payload, headers: { "Content-Type": "application/json" }, keepalive: true });
     }
   } catch { /* best-effort */ }
-}
-
-export function mapToneAction(
-  action: ToneAction,
-  cur: { tone: AssistantTone; length: AssistantLength }
-): { tone: AssistantTone; length: AssistantLength; isRegenerate: boolean } {
-  if (action === "regen") {
-    return { tone: cur.tone, length: cur.length, isRegenerate: true };
-  }
-  if (action === "shorter") {
-    return { tone: cur.tone, length: "short", isRegenerate: false };
-  }
-  if (action === "longer") {
-    return { tone: cur.tone, length: "detailed", isRegenerate: false };
-  }
-  if (action === "casual") {
-    return { tone: "casual", length: cur.length, isRegenerate: false };
-  }
-  // professional
-  return { tone: "professional", length: cur.length, isRegenerate: false };
 }
 
 export async function generateReview(
