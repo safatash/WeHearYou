@@ -9,7 +9,7 @@ import { NegIntro, NegIssues, NegFeedback, NegClarify, NegConfirm, NegSubmitted 
 import { recordPositiveReview, recordPrivateFeedback } from "../actions";
 
 const FLOW: Record<"positive" | "negative", [ScreenId, string][]> = {
-  positive: [["pos-intro","Intro & chips"],["pos-details","Details"],["pos-review","AI review"],["pos-confirm","Confirm"],["pos-celebrate","Done 🎉"]],
+  positive: [["pos-intro","Highlights"],["pos-details","Details"],["pos-review","Create Review"],["pos-confirm","Review & Edit"],["pos-celebrate","Copy & Post"]],
   negative: [["neg-intro","Intro"],["neg-issues","Issues"],["neg-feedback","Feedback"],["neg-clarify","AI clarify"],["neg-confirm","Confirm"],["neg-submitted","Submitted"]],
 };
 

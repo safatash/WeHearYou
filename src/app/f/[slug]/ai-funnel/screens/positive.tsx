@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Icon } from "@/components/icon";
 import {
   ScreenCard,
@@ -17,13 +17,13 @@ import {
   Confetti,
   SuccessCheck,
 } from "../kit";
-import { nextFromRating, type FunnelState, type ScreenId } from "../state";
+import { nextFromRating, shouldAutoGenerate, type FunnelState, type ScreenId } from "../state";
 import type { AiFunnelProps } from "../build-props";
 import {
   generateReview,
-  mapToneAction,
-  type AssistantTone,
-  type AssistantLength,
+  editModeForAction,
+  fireAssistantEvent,
+  type EditMode,
 } from "../ai-client";
 import { buildReview } from "../fallback-text";
 
@@ -234,47 +234,37 @@ export const PosDetails = ({ props, state, set, go }: ScreenCtx) => {
 
 /* ── PosReview ───────────────────────────────────────────────────────────── */
 
-const TONE_ACTIONS: {
-  key: string;
-  label: string;
-  icon: "refresh" | "arrowUp" | "arrowDown" | "chat" | "award";
-}[] = [
-  { key: "regen", label: "Regenerate", icon: "refresh" },
-  { key: "shorter", label: "Make Shorter", icon: "arrowUp" },
-  { key: "longer", label: "Make Longer", icon: "arrowDown" },
-  { key: "casual", label: "More Casual", icon: "chat" },
-  { key: "professional", label: "More Professional", icon: "award" },
-];
-
 export const PosReview = ({ props, state, set, go }: ScreenCtx) => {
-  const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<"short" | "detailed">("detailed");
-  const [tone, setTone] = useState<AssistantTone>("friendly");
-  const [length, setLength] = useState<AssistantLength>("detailed");
-  const [busy, setBusy] = useState<string | null>(null);
+  // Rule 1: tab/tone/length from state, not local useState
+  const tab = state.selectedVersion;
+  const tone = state.tone;
+  const length = state.length;
 
+  // Rule 1: local loading init from shouldAutoGenerate, local busy for in-flight transforms
+  const [loading, setLoading] = useState(() => shouldAutoGenerate(state));
+  const [busy, setBusy] = useState<string | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const editedRef = useRef(false);
+
+  // Rule 2: mount effect — generate ONLY when shouldAutoGenerate, else show existing state
   useEffect(() => {
+    if (!shouldAutoGenerate(state)) {
+      setLoading(false);
+      return;
+    }
+
     let cancelled = false;
 
     async function init() {
       const buildFallback = () => {
         const long = buildReview(
-          {
-            chips: state.chips,
-            service: state.service,
-            helper: state.helper,
-            extra: state.extra,
-          },
+          { chips: state.chips, service: state.service, helper: state.helper, extra: state.extra },
           props.business,
           "detailed"
         );
         const short = buildReview(
-          {
-            chips: state.chips,
-            service: state.service,
-            helper: state.helper,
-            extra: state.extra,
-          },
+          { chips: state.chips, service: state.service, helper: state.helper, extra: state.extra },
           props.business,
           "short"
         );
@@ -297,61 +287,49 @@ export const PosReview = ({ props, state, set, go }: ScreenCtx) => {
         if (cancelled) return;
         if (result.usedFallback) {
           const fb = buildFallback();
-          set({ reviewLong: fb.long, reviewShort: fb.short });
+          set({ reviewLong: fb.long, reviewShort: fb.short, draftGenerated: true });
         } else {
           const shortFb = buildReview(
-            {
-              chips: state.chips,
-              service: state.service,
-              helper: state.helper,
-              extra: state.extra,
-            },
+            { chips: state.chips, service: state.service, helper: state.helper, extra: state.extra },
             props.business,
             "short"
           );
-          set({
-            reviewLong: result.review,
-            reviewShort: shortFb,
-            sessionId: result.sessionId,
-          });
+          set({ reviewLong: result.review, reviewShort: shortFb, sessionId: result.sessionId, draftGenerated: true });
+          fireAssistantEvent(props.locationId, "AI_DRAFT_ACCEPTED", result.sessionId);
         }
       } else {
+        if (cancelled) return;
         const fb = buildFallback();
-        set({ reviewLong: fb.long, reviewShort: fb.short });
+        set({ reviewLong: fb.long, reviewShort: fb.short, draftGenerated: true });
       }
 
       if (!cancelled) setLoading(false);
     }
 
     init();
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  async function doAction(key: string) {
-    const mapped = mapToneAction(
-      key as Parameters<typeof mapToneAction>[0],
-      { tone, length }
-    );
-    const newTone = mapped.tone;
-    const newLength = mapped.length;
-    setTone(newTone);
-    setLength(newLength);
+  // Rule 3: active text derives from writingMode + selectedVersion
+  const isManual = state.writingMode === "manual";
+  const activeText = isManual
+    ? state.reviewLong
+    : (tab === "short" ? state.reviewShort : state.reviewLong);
 
-    // shorter/longer → just switch tab, no new AI call
-    if (key === "shorter") {
-      setTab("short");
-      return;
+  function setActiveText(val: string) {
+    if (isManual || tab === "detailed") {
+      set({ reviewLong: val });
+    } else {
+      set({ reviewShort: val });
     }
-    if (key === "longer") {
-      setTab("detailed");
-      return;
-    }
+  }
 
-    setBusy(key);
-    if (props.ai.reviewEnabled) {
+  // Rule 6 & 7: transform button handler
+  async function doTransform(action: EditMode | "regen") {
+    if (action === "regen") {
+      // Rule 7: Regenerate — from-scratch, no editMode
+      setBusy("regen");
       const result = await generateReview({
         locationId: props.locationId,
         rating: state.rating,
@@ -359,38 +337,40 @@ export const PosReview = ({ props, state, set, go }: ScreenCtx) => {
         service: props.ai.includeService ? state.service : "",
         staffMember: state.helper,
         notes: props.ai.allowNotes ? state.extra : "",
-        tone: newTone,
-        length: newLength,
+        tone,
+        length,
         sessionId: state.sessionId,
-        isRegenerate: mapped.isRegenerate,
+        isRegenerate: true,
       });
-      if (result.usedFallback) {
-        const fb = buildReview(
-          {
-            chips: state.chips,
-            service: state.service,
-            helper: state.helper,
-            extra: state.extra,
-          },
-          props.business,
-          "detailed"
-        );
-        set({ reviewLong: fb, sessionId: result.sessionId });
-      } else {
+      if (!result.usedFallback) {
         set({ reviewLong: result.review, sessionId: result.sessionId });
       }
-    } else {
-      const fb = buildReview(
-        {
-          chips: state.chips,
-          service: state.service,
-          helper: state.helper,
-          extra: state.extra,
-        },
-        props.business,
-        "detailed"
-      );
-      set({ reviewLong: fb });
+      setBusy(null);
+      return;
+    }
+
+    // Rule 6: transform buttons — operate on current active text
+    setBusy(action);
+    const result = await generateReview({
+      locationId: props.locationId,
+      rating: state.rating,
+      selectedPhrases: state.chips,
+      service: props.ai.includeService ? state.service : "",
+      staffMember: state.helper,
+      notes: props.ai.allowNotes ? state.extra : "",
+      tone,
+      length,
+      sessionId: state.sessionId,
+      isRegenerate: false,
+      editMode: editModeForAction(action),
+      existingDraft: activeText,
+    });
+    // On success replace ONLY the active text; leave unchanged on usedFallback
+    if (!result.usedFallback) {
+      setActiveText(result.review);
+      if (result.sessionId !== state.sessionId) {
+        set({ sessionId: result.sessionId });
+      }
     }
     setBusy(null);
   }
@@ -398,107 +378,86 @@ export const PosReview = ({ props, state, set, go }: ScreenCtx) => {
   const missingService =
     props.services.length > 0 && !state.service && props.ai.includeService;
 
-  const isPillVisible = (key: string): boolean => {
-    if (key === "regen") return props.ai.allowRegenerate;
-    if (key === "casual" || key === "professional") return props.ai.allowTone;
-    if (key === "shorter" || key === "longer") return props.ai.allowLength;
-    return true;
-  };
-
-  const currentText =
-    tab === "detailed" ? state.reviewLong : state.reviewShort;
-
   return (
     <ScreenCard>
-      <StepLabel step={2} total={4} label="Your AI-assisted review" />
+      <StepLabel step={2} total={4} label="Create Review" />
       {loading ? (
         <AiThinking />
       ) : (
         <>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 10,
-              marginBottom: 12,
-            }}
-          >
+          {/* Header row */}
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
             <Avatar name="You" size={34} />
             <div>
               <Stars value={state.rating} size={14} />
-              <div
-                style={{
-                  fontSize: 12,
-                  color: "var(--ink-400)",
-                  marginTop: 1,
-                }}
-              >
+              <div style={{ fontSize: 12, color: "var(--ink-400)", marginTop: 1 }}>
                 {RATING_LABELS[state.rating]}
               </div>
             </div>
-            <span
-              style={{
-                marginLeft: "auto",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 5,
-                fontSize: 11.5,
-                fontWeight: 600,
-                color: "var(--accent-strong)",
-                background: "var(--accent-soft)",
-                borderRadius: 999,
-                padding: "3px 10px",
-              }}
-            >
-              <Icon name="sparkles" size={12} />
-              AI draft
-            </span>
-          </div>
-
-          {/* Tabs */}
-          <div
-            style={{
-              display: "flex",
-              gap: 6,
-              marginBottom: 10,
-            }}
-          >
-            {(["detailed", "short"] as const).map((t) => (
-              <button
-                key={t}
-                onClick={() => setTab(t)}
-                className="tap"
+            {!isManual && (
+              <span
                 style={{
-                  padding: "5px 14px",
+                  marginLeft: "auto",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 5,
+                  fontSize: 11.5,
+                  fontWeight: 600,
+                  color: "var(--accent-strong)",
+                  background: "var(--accent-soft)",
                   borderRadius: 999,
-                  fontSize: 13,
-                  fontWeight: 560,
-                  fontFamily: "inherit",
-                  cursor: "pointer",
-                  border:
-                    tab === t
-                      ? "1.5px solid var(--accent)"
-                      : "1px solid var(--ink-200)",
-                  background:
-                    tab === t ? "var(--accent-soft)" : "var(--white)",
-                  color:
-                    tab === t ? "var(--accent-strong)" : "var(--ink-600)",
+                  padding: "3px 10px",
                 }}
               >
-                {t === "detailed" ? "Detailed" : "Short"}
-              </button>
-            ))}
+                <Icon name="sparkles" size={12} />
+                AI draft
+              </span>
+            )}
           </div>
 
+          {/* Rule 4: message above editor */}
+          <p className="fk-sub" style={{ marginBottom: 12 }}>
+            We&apos;ve created a review based on what you shared. Use it as-is, edit it, or start from scratch if you&apos;d rather write your own.
+          </p>
+
+          {/* Rule 5: Tabs — AI mode only */}
+          {!isManual && (
+            <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
+              {(["detailed", "short"] as const).map((t) => (
+                <button
+                  key={t}
+                  onClick={() => set({ selectedVersion: t })}
+                  className="tap"
+                  style={{
+                    padding: "5px 14px",
+                    borderRadius: 999,
+                    fontSize: 13,
+                    fontWeight: 560,
+                    fontFamily: "inherit",
+                    cursor: "pointer",
+                    border: tab === t ? "1.5px solid var(--accent)" : "1px solid var(--ink-200)",
+                    background: tab === t ? "var(--accent-soft)" : "var(--white)",
+                    color: tab === t ? "var(--accent-strong)" : "var(--ink-600)",
+                  }}
+                >
+                  {t === "detailed" ? "Detailed" : "Short"}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Rule 3: editable textarea */}
           <textarea
+            ref={textareaRef}
             className="fk-textarea"
             rows={6}
-            value={currentText}
+            value={activeText}
+            placeholder={isManual ? "Tell others about your experience..." : undefined}
             onChange={(e) => {
-              if (tab === "detailed") {
-                set({ reviewLong: e.target.value });
-              } else {
-                set({ reviewShort: e.target.value });
+              setActiveText(e.target.value);
+              if (!editedRef.current) {
+                editedRef.current = true;
+                fireAssistantEvent(props.locationId, "AI_ASSIST_EDITED", state.sessionId);
               }
             }}
             style={{ marginBottom: 10 }}
@@ -507,32 +466,57 @@ export const PosReview = ({ props, state, set, go }: ScreenCtx) => {
           {missingService && (
             <p className="fk-notice" style={{ marginBottom: 10 }}>
               <Icon name="info" size={14} />
-              Add the service you received in the previous step to personalise
-              your review further.
+              Add the service you received in the previous step to personalise your review further.
             </p>
           )}
 
-          {/* Action pills */}
-          <div
-            style={{
-              display: "flex",
-              flexWrap: "wrap",
-              gap: 7,
-              marginBottom: 14,
-            }}
-          >
-            {TONE_ACTIONS.filter((a) => isPillVisible(a.key)).map((a) => (
-              <ActionPill
-                key={a.key}
-                icon={a.icon}
-                onClick={() => doAction(a.key)}
-                active={busy === a.key}
-              >
-                {a.label}
+          {/* Rule 8: Toolbars per mode */}
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginBottom: 14 }}>
+            {/* AI mode: Regenerate first (if allowed), then transforms */}
+            {!isManual && props.ai.allowRegenerate && (
+              <ActionPill icon="refresh" onClick={() => doTransform("regen")} active={busy === "regen"}>
+                Regenerate
               </ActionPill>
-            ))}
+            )}
+            {/* Manual mode: Improve Writing first */}
+            {isManual && (
+              <ActionPill icon="sparkles" onClick={() => doTransform("improve")} active={busy === "improve"}>
+                Improve Writing
+              </ActionPill>
+            )}
+            {/* Shared transforms */}
+            {props.ai.allowLength && (
+              <ActionPill icon="arrowUp" onClick={() => doTransform("shorter")} active={busy === "shorter"}>
+                Make Shorter
+              </ActionPill>
+            )}
+            {props.ai.allowLength && (
+              <ActionPill icon="arrowDown" onClick={() => doTransform("longer")} active={busy === "longer"}>
+                Make Longer
+              </ActionPill>
+            )}
+            {props.ai.allowTone && (
+              <ActionPill icon="chat" onClick={() => doTransform("casual")} active={busy === "casual"}>
+                More Casual
+              </ActionPill>
+            )}
+            {props.ai.allowTone && (
+              <ActionPill icon="award" onClick={() => doTransform("professional")} active={busy === "professional"}>
+                More Professional
+              </ActionPill>
+            )}
           </div>
 
+          {/* Rule 9: Start From Scratch (AI mode only) */}
+          {!isManual && (
+            <div style={{ marginBottom: 14 }}>
+              <BigBtn variant="primary" onClick={() => setConfirmOpen(true)}>
+                ✍️ Start From Scratch
+              </BigBtn>
+            </div>
+          )}
+
+          {/* Rule 10: Continue button */}
           <div className="fk-actions fk-actions-row">
             <BigBtn
               variant="secondary"
@@ -540,16 +524,87 @@ export const PosReview = ({ props, state, set, go }: ScreenCtx) => {
               onClick={() => go("pos-details")}
               style={{ flex: "none", minWidth: 52, padding: 0, width: 52 }}
             >
-              <Icon
-                name="arrowRight"
-                size={18}
-                style={{ transform: "rotate(180deg)" }}
-              />
+              <Icon name="arrowRight" size={18} style={{ transform: "rotate(180deg)" }} />
             </BigBtn>
-            <BigBtn onClick={() => { if (tab === "short") set({ reviewLong: state.reviewShort }); go("pos-confirm"); }} icon="arrowRight">
+            <BigBtn
+              onClick={() => {
+                // Ensure reviewLong holds the active text when in AI short tab
+                if (!isManual && tab === "short") {
+                  set({ reviewLong: state.reviewShort });
+                }
+                go("pos-confirm");
+              }}
+              icon="arrowRight"
+            >
               Looks good
             </BigBtn>
           </div>
+
+          {/* Rule 9: Start From Scratch confirm dialog */}
+          {confirmOpen && (
+            <div
+              style={{
+                position: "fixed",
+                inset: 0,
+                zIndex: 100,
+                background: "rgba(0,0,0,0.45)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                padding: "0 16px",
+              }}
+            >
+              <div
+                style={{
+                  background: "var(--white)",
+                  borderRadius: 18,
+                  padding: "28px 24px 24px",
+                  maxWidth: 360,
+                  width: "100%",
+                  boxShadow: "var(--shadow-pop)",
+                }}
+              >
+                <h2
+                  style={{
+                    fontSize: 18,
+                    fontWeight: 680,
+                    color: "var(--ink-900)",
+                    margin: "0 0 10px",
+                  }}
+                >
+                  Start with a blank review?
+                </h2>
+                <p
+                  style={{
+                    fontSize: 14,
+                    color: "var(--ink-600)",
+                    lineHeight: 1.6,
+                    margin: "0 0 22px",
+                  }}
+                >
+                  Your current AI draft will be cleared. You can always generate another draft later if you&apos;d like.
+                </p>
+                <div style={{ display: "flex", gap: 10 }}>
+                  <BigBtn
+                    variant="primary"
+                    onClick={() => {
+                      set({ reviewLong: "", reviewShort: "", writingMode: "manual", selectedVersion: "detailed" });
+                      setConfirmOpen(false);
+                      // Focus the textarea after state update
+                      setTimeout(() => textareaRef.current?.focus(), 50);
+                      fireAssistantEvent(props.locationId, "START_FROM_SCRATCH_SELECTED", state.sessionId);
+                      fireAssistantEvent(props.locationId, "MANUAL_WRITING_STARTED", state.sessionId);
+                    }}
+                  >
+                    Start Blank
+                  </BigBtn>
+                  <BigBtn variant="secondary" onClick={() => setConfirmOpen(false)}>
+                    Cancel
+                  </BigBtn>
+                </div>
+              </div>
+            </div>
+          )}
         </>
       )}
     </ScreenCard>
