@@ -78,6 +78,9 @@ export async function POST(req: NextRequest) {
   const staffMember = asString(body.staffMember);
   const notes = profile.aiAssistantAllowNotes ? asString(body.notes) : null;
   const isRegenerate = body.isRegenerate === true;
+  const EDIT_MODES = ["improve", "shorter", "longer", "casual", "professional"] as const;
+  const editMode = EDIT_MODES.includes(body.editMode as never) ? (body.editMode as (typeof EDIT_MODES)[number]) : undefined;
+  const existingDraft = asString(body.existingDraft) ?? undefined;
   const sessionId = asString(body.sessionId);
 
   const ctx: AssistantContext = {
@@ -96,6 +99,8 @@ export async function POST(req: NextRequest) {
     includeBusiness: profile.aiAssistantIncludeBusiness,
     includeCity: profile.aiAssistantIncludeCity,
     includeService: profile.aiAssistantIncludeService,
+    editMode,
+    existingDraft,
   };
 
   let review: string;
@@ -140,7 +145,7 @@ export async function POST(req: NextRequest) {
   await recordEvents({
     locationId,
     organizationId: location.organizationId,
-    eventTypes: [isRegenerate ? ReviewLinkEventType.AI_ASSIST_REGENERATED : ReviewLinkEventType.AI_ASSIST_GENERATED],
+    eventTypes: [editMode ? ReviewLinkEventType.AI_ASSIST_TOOL_USED : isRegenerate ? ReviewLinkEventType.AI_ASSIST_REGENERATED : ReviewLinkEventType.AI_ASSIST_GENERATED],
     attribution: { source: null, medium: null, placement: null, sessionId: null, referrer: null },
     clientIp,
   }).catch(() => {});
