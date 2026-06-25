@@ -172,3 +172,24 @@ test("summarizeAssistantEvents avoids divide-by-zero", () => {
   assert.equal(a.googleClickRate, 0);
   assert.equal(a.completionRate, 0);
 });
+
+// ── editMode / transform ─────────────────────────────────────────────────────
+const editBaseCtx = {
+  businessName: "NOVA Advertising", selectedPhrases: ["Great Communication"],
+  tone: "friendly" as const, length: "detailed" as const,
+};
+
+test("transform prompt uses the existing draft, not from-scratch", () => {
+  const p = buildReviewAssistantPrompt({ ...editBaseCtx, editMode: "shorter", existingDraft: "They were fantastic and thorough and kind." });
+  assert.ok(p.includes("They were fantastic and thorough and kind."));
+  assert.match(p.toLowerCase(), /shorter/);
+  assert.match(p.toLowerCase(), /preserv|keep|meaning|voice/);
+});
+test("no editMode keeps from-scratch prompt (no draft echoed)", () => {
+  const p = buildReviewAssistantPrompt(editBaseCtx);
+  assert.ok(!p.includes("existing review"));
+});
+test("editMode without a draft falls back to from-scratch", () => {
+  const p = buildReviewAssistantPrompt({ ...editBaseCtx, editMode: "shorter", existingDraft: "" });
+  assert.ok(!p.includes("current review draft"));
+});

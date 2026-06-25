@@ -7,6 +7,7 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { classifyReviewSafety } from "@/lib/review-safety";
 
+export type AssistantEditMode = "improve" | "shorter" | "longer" | "casual" | "professional";
 export type AssistantTone = "friendly" | "professional" | "casual" | "enthusiastic";
 export type AssistantLength = "short" | "medium" | "detailed";
 
@@ -44,10 +45,34 @@ export interface AssistantContext {
   includeBusiness?: boolean;
   includeCity?: boolean;
   includeService?: boolean;
+  editMode?: AssistantEditMode;
+  existingDraft?: string;
 }
 
 /** Compose the Gemini prompt. Pure + unit-tested. */
 export function buildReviewAssistantPrompt(ctx: AssistantContext): string {
+  const draft = (ctx.existingDraft ?? "").trim();
+  if (draft && ctx.editMode) {
+    const instructionMap: Record<AssistantEditMode, string> = {
+      improve: "Improve the writing — clearer, more natural and well-structured",
+      shorter: "Make it shorter and more concise",
+      longer: "Make it a little longer and more detailed",
+      casual: "Make it sound more casual and conversational",
+      professional: "Make it sound more professional and polished",
+    };
+    const instruction = instructionMap[ctx.editMode];
+    return [
+      "You are helping a real customer refine their own online review. Here is the customer's current review draft:",
+      `"""${draft}"""`,
+      "",
+      `Rewrite it to: ${instruction}.`,
+      "Rules:",
+      "- Preserve the customer's meaning, facts, and personal voice. Do not invent details or change what happened.",
+      "- Do NOT make medical, legal, or financial guarantees or claims.",
+      "- Return ONLY the revised review text — no preamble, quotes, labels, or options.",
+    ].join("\n");
+  }
+
   const [minWords, maxWords] = LENGTH_WORDS[ctx.length];
   const phrases = ctx.selectedPhrases.filter(Boolean);
   const themes = (ctx.topReviewThemes ?? []).filter(Boolean);
