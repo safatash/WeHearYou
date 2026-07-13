@@ -467,15 +467,18 @@ const script = `
     // is already applied server-side). Matches the dashboard preview; renders
     // nothing — no empty placeholder — when there is no summary.
     if (!data.location.aiReviewSummary) return "";
+    var primaryColor = data.widget.primaryColor || "#4338ca";
+    var softBg = primaryColor + "0d"; // Add 5% opacity
+    var softBorder = primaryColor + "26"; // Add 15% opacity
     var countHtml = data.location.aiReviewSummaryReviewCount
-      ? '<p style="margin:0;font-size:10px;color:#a5b4fc">Based on ' + escapeHtml(String(data.location.aiReviewSummaryReviewCount)) + ' reviews</p>'
+      ? '<p style="margin:0;font-size:10px;color:' + escapeHtml(primaryColor) + '80">Based on ' + escapeHtml(String(data.location.aiReviewSummaryReviewCount)) + ' reviews</p>'
       : '';
-    return '<div style="background:#eef2ff;border:1px solid #c7d2fe;border-radius:10px;padding:10px 12px;margin-top:10px;text-align:left">' +
+    return '<div style="background:' + escapeHtml(softBg) + ';border:1px solid ' + escapeHtml(softBorder) + ';border-radius:10px;padding:10px 12px;margin-top:10px;text-align:left">' +
       '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">' +
-        '<p style="margin:0;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#4f46e5">✶ AI Summary</p>' +
+        '<p style="margin:0;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:' + escapeHtml(primaryColor) + '">✶ AI Summary</p>' +
         countHtml +
       '</div>' +
-      '<p style="margin:0;color:#3730a3;font-size:12px;line-height:1.6">' + escapeHtml(data.location.aiReviewSummary) + '</p>' +
+      '<p style="margin:0;color:' + escapeHtml(data.widget.textColor) + ';font-size:12px;line-height:1.6;opacity:.85">' + escapeHtml(data.location.aiReviewSummary) + '</p>' +
     '</div>';
   }
 
@@ -509,15 +512,72 @@ const script = `
   function renderBadge(data) {
     var rating = typeof data.location.avgRating === "number" ? Number(data.location.avgRating).toFixed(1) : "—";
     var roundedStars = data.location.avgRating ? stars(Math.round(data.location.avgRating)) : stars(0);
+    var badgeStyle = data.widget.badgeStyle || "rating";
+    var countSuffix = data.location.reviewCount ? ' ' + escapeHtml(String(data.location.reviewCount)) + ' review' + (data.location.reviewCount === 1 ? '' : 's') : '';
+
+    // rating: Score + stars + review count in horizontal badge
+    if (badgeStyle === "rating") {
+      var tag = data.location.reviewLink ? "a" : "div";
+      var hrefAttr = data.location.reviewLink ? ' href="' + escapeHtml(data.location.reviewLink) + '" target="_blank" rel="noopener noreferrer"' : '';
+      return '<' + tag + ' class="why-widget-badge"' + hrefAttr + ' style="color:' + escapeHtml(data.widget.textColor) + ';border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:10px 16px;display:inline-flex;align-items:center;gap:10px;box-shadow:0 1px 2px rgba(0,0,0,.04)">' +
+        '<span style="font-size:18px;font-weight:700;color:' + escapeHtml(data.widget.primaryColor) + '">' + escapeHtml(rating) + '</span>' +
+        '<span style="font-size:16px;color:' + escapeHtml(data.widget.starColor) + '">' + escapeHtml(roundedStars) + '</span>' +
+        '<span style="font-size:12px;opacity:.75">' + countSuffix + '</span>' +
+      '</' + tag + '>';
+    }
+
+    // compact: Minimal inline badge
+    if (badgeStyle === "compact") {
+      var tag = data.location.reviewLink ? "a" : "div";
+      var hrefAttr = data.location.reviewLink ? ' href="' + escapeHtml(data.location.reviewLink) + '" target="_blank" rel="noopener noreferrer"' : '';
+      return '<' + tag + '' + hrefAttr + ' style="display:inline-flex;align-items:center;gap:6px;font-size:13px;text-decoration:none;color:inherit">' +
+        '<span style="font-weight:700;color:' + escapeHtml(data.widget.primaryColor) + '">' + escapeHtml(rating) + '</span>' +
+        '<span style="color:' + escapeHtml(data.widget.starColor) + '">' + escapeHtml(roundedStars) + '</span>' +
+      '</' + tag + '>';
+    }
+
+    // review_cta: Rating + Write a Review button
+    if (badgeStyle === "review_cta") {
+      return '<div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">' +
+        '<div style="display:flex;align-items:center;gap:8px">' +
+          '<span style="font-size:20px;font-weight:700;color:' + escapeHtml(data.widget.primaryColor) + '">' + escapeHtml(rating) + '</span>' +
+          '<span style="font-size:16px;color:' + escapeHtml(data.widget.starColor) + '">' + escapeHtml(roundedStars) + '</span>' +
+          '<span style="font-size:12px;opacity:.7">' + countSuffix + '</span>' +
+        '</div>' +
+        (data.location.reviewLink ? '<a href="' + escapeHtml(data.location.reviewLink) + '" target="_blank" rel="noopener noreferrer" style="display:inline-block;padding:8px 16px;background:' + escapeHtml(data.widget.primaryColor) + ';color:#fff;border-radius:8px;text-decoration:none;font-weight:600;font-size:13px">Write a Review</a>' : '') +
+      '</div>';
+    }
+
+    // trust: Horizontal trust signal strip
+    if (badgeStyle === "trust") {
+      return '<div style="display:flex;align-items:center;gap:16px;padding:12px 16px;border:1px solid rgba(0,0,0,.08);border-radius:12px;background:rgba(' + parseColor(data.widget.primaryColor) + ', .03)">' +
+        '<div style="flex:1">' +
+          '<div style="font-size:14px;font-weight:700;color:' + escapeHtml(data.widget.textColor) + '">' + escapeHtml(data.location.name) + '</div>' +
+          '<div style="font-size:12px;color:#64748b;margin-top:2px">' + countSuffix + ' rated us ' + escapeHtml(rating) + '/5</div>' +
+        '</div>' +
+        '<div style="text-align:right">' +
+          '<div style="font-size:18px;font-weight:700;color:' + escapeHtml(data.widget.primaryColor) + '">' + escapeHtml(rating) + '</div>' +
+          '<div style="font-size:12px;color:' + escapeHtml(data.widget.starColor) + '">' + escapeHtml(roundedStars) + '</div>' +
+        '</div>' +
+      '</div>';
+    }
+
+    // Default to rating style
     var tag = data.location.reviewLink ? "a" : "div";
     var hrefAttr = data.location.reviewLink ? ' href="' + escapeHtml(data.location.reviewLink) + '" target="_blank" rel="noopener noreferrer"' : '';
-    var countSuffix = data.location.reviewCount ? ' · ' + escapeHtml(String(data.location.reviewCount)) + ' review' + (data.location.reviewCount === 1 ? '' : 's') : '';
-
-    return '<' + tag + ' class="why-widget-badge"' + hrefAttr + ' style="color:' + escapeHtml(data.widget.textColor) + '">' +
-      '<span class="why-widget-badge-rating">' + escapeHtml(rating) + '</span>' +
-      '<span class="why-widget-badge-stars" style="color:' + escapeHtml(data.widget.starColor) + '">' + escapeHtml(roundedStars) + '</span>' +
-      '<span class="why-widget-badge-text"><strong>' + escapeHtml(data.location.name) + '</strong>' + countSuffix + '</span>' +
+    return '<' + tag + ' class="why-widget-badge"' + hrefAttr + ' style="color:' + escapeHtml(data.widget.textColor) + ';border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:10px 16px;display:inline-flex;align-items:center;gap:10px;box-shadow:0 1px 2px rgba(0,0,0,.04)">' +
+      '<span style="font-size:18px;font-weight:700;color:' + escapeHtml(data.widget.primaryColor) + '">' + escapeHtml(rating) + '</span>' +
+      '<span style="font-size:16px;color:' + escapeHtml(data.widget.starColor) + '">' + escapeHtml(roundedStars) + '</span>' +
+      '<span style="font-size:12px;opacity:.75">' + countSuffix + '</span>' +
     '</' + tag + '>';
+  }
+
+  function parseColor(hex) {
+    hex = hex.replace(/^#/, '');
+    var r = parseInt(hex.slice(0, 2), 16);
+    var g = parseInt(hex.slice(2, 4), 16);
+    var b = parseInt(hex.slice(4, 6), 16);
+    return r + ',' + g + ',' + b;
   }
 
   function renderSingleTestimonial(data) {
@@ -882,11 +942,15 @@ const script = `
             ? "why-widget-list"
             : data.widget.layout === "slider"
               ? "why-widget-slider-track"
-              : data.widget.layout === "video" || data.widget.layout === "carousel"
+              : data.widget.layout === "video" || data.widget.layout === "carousel" || data.widget.layout === "video-carousel"
                 ? "why-widget-carousel"
-                : data.widget.layout === "masonry"
+                : data.widget.layout === "masonry" || data.widget.layout === "mixed-masonry"
                   ? "why-widget-masonry"
-                  : "why-widget-grid";
+                  : data.widget.layout === "video-grid" || data.widget.layout === "featured-video" || data.widget.layout === "video-wall"
+                    ? "why-widget-grid"
+                    : data.widget.layout === "featured-video-reviews" || data.widget.layout === "mixed-carousel" || data.widget.layout === "tabbed"
+                      ? "why-widget-carousel"
+                      : "why-widget-grid";
 
           var listWrapper = '';
           if (data.widget.layout === "slider") {

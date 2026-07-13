@@ -491,6 +491,16 @@ export function WidgetCustomizer({
     if (floatingApprovedOnly) formData.append("floatingApprovedOnly", "on");
     formData.append("floatingMinRating", String(floatingMinRating));
     formData.append("floatingDisplayFrequency", floatingDisplayFrequency);
+
+    // Appearance colors and styling
+    formData.append("primaryColor", widget.primaryColor ?? "#4338ca");
+    formData.append("starColor", widget.starColor ?? "#f59e0b");
+    formData.append("backgroundColor", darkTheme ? "#1e293b" : (widget.backgroundColor ?? "#ffffff"));
+    formData.append("textColor", darkTheme ? "#f1f5f9" : (widget.textColor ?? "#0f172a"));
+    formData.append("fontFamily", widget.fontFamily ?? "system");
+    formData.append("minRating", String(widget.minRating ?? 1));
+    formData.append("bodyMaxChars", String(widget.bodyMaxChars ?? 280));
+
     try {
       await updateReviewWidget(formData);
       setSaveState("saved");
@@ -519,8 +529,10 @@ export function WidgetCustomizer({
   // Add token as a query param so each widget gets a distinct script URL.
   // This prevents browsers and caching plugins from deduplicating the script
   // when multiple widgets share the same src on one page.
-  const scriptSrc = `${embedScriptUrl}?t=${widget.publicToken}`;
-  const embedCode = `<div id="${mountId}"></div>\n<script src="${scriptSrc}" data-token="${widget.publicToken}" data-mount="#${mountId}"></script>`;
+  // Sanitize embedScriptUrl to remove any newlines that might have been introduced
+  const cleanScriptUrl = embedScriptUrl.replace(/\n/g, '');
+  const scriptSrc = `${cleanScriptUrl}?t=${widget.publicToken}`;
+  const embedCode = `<div id="${mountId}"></div><script src="${scriptSrc}" data-token="${widget.publicToken}" data-mount="#${mountId}"><\/script>`;
 
   const saveBtnLabel =
     saveState === "saving"
