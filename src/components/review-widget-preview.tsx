@@ -71,6 +71,12 @@ type ReviewWidgetPreviewProps = {
   floatingVariation?: string | null;
   floatingPosition?: string | null;
   floatingAccentColor?: string | null;
+  // Typography customization
+  fontSizeBase?: number;
+  fontSizeNames?: number;
+  fontSizeHeader?: number;
+  fontSizeLabel?: number;
+  fontSizeSummary?: number;
 };
 
 const FONT_STACKS: Record<string, string> = {
