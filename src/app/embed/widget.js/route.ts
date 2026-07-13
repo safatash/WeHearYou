@@ -53,7 +53,8 @@ const script = `
       ".why-widget-title{font-size:20px;font-weight:700;margin:0}" +
       ".why-widget-meta{font-size:14px;margin:0;display:flex;flex-wrap:wrap;gap:8px;align-items:center}" +
       ".why-widget-meta-stars{display:inline-flex;align-items:center;gap:6px}" +
-      ".why-widget-meta-rating{font-weight:700}" +
+      ".why-widget-meta-rating{font-size:2em;font-weight:900;line-height:1}" +
+      ".why-widget-header-google-row{display:flex;align-items:center;gap:6px;margin-bottom:8px;font-size:13px;font-weight:700}" +
       ".why-widget-grid{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}" +
       ".why-widget-list{display:flex;flex-direction:column;gap:12px}" +
       ".why-widget-slider{position:relative}" +
@@ -442,21 +443,20 @@ const script = `
     var rating = typeof data.location.avgRating === "number" ? Number(data.location.avgRating).toFixed(1) : null;
     var roundedStars = data.location.avgRating ? stars(Math.round(data.location.avgRating)) : "";
     var alignClass = data.widget.headerAlign === "center" ? " why-widget-header--center" : "";
-    var textColor = data.widget.textColor || "#0f172a";
 
     // Header layout matching admin preview: Google Reviews label, large rating, stars, review count
     var headerHtml = '<div class="why-widget-header' + alignClass + '" style="text-align:' + (alignClass ? 'center' : 'left') + '">';
 
-    // Google Reviews label with styled "G" icon
-    headerHtml += '<div style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(0,0,0,.5);margin-bottom:8px;display:flex;align-items:center;gap:6px">' +
-      '<span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;background:#4285f4;color:#fff;border-radius:2px;font-size:10px;font-weight:700">G</span>' +
+    // Google Reviews label with styled "G" icon (new class for styling)
+    headerHtml += '<div class="why-widget-header-google-row">' +
+      '<span style="display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;background:#4285f4;color:#fff;border-radius:1px;font-size:9px;font-weight:700">G</span>' +
       'Google Reviews' +
     '</div>';
 
-    // Large rating number
+    // Large rating number, stars, and review count
     if (data.widget.showAvgRating && rating) {
       headerHtml += '<div style="display:flex;align-items:baseline;gap:12px">' +
-        '<span style="font-size:48px;font-weight:700;color:' + escapeHtml(data.widget.primaryColor) + '">' + escapeHtml(rating) + '</span>' +
+        '<span class="why-widget-meta-rating" style="color:' + escapeHtml(data.widget.primaryColor) + '">' + escapeHtml(rating) + '</span>' +
         '<div style="display:flex;flex-direction:column;gap:2px">' +
           '<span style="font-size:18px;color:' + escapeHtml(data.widget.starColor) + '">' + escapeHtml(roundedStars) + '</span>' +
           (data.widget.showReviewCount && data.location.reviewCount ? '<span style="font-size:12px;color:rgba(0,0,0,.5)">Based on ' + escapeHtml(String(data.location.reviewCount)) + ' review' + (data.location.reviewCount === 1 ? '' : 's') + '</span>' : '') +
@@ -479,7 +479,7 @@ const script = `
     var countHtml = data.location.aiReviewSummaryReviewCount
       ? '<p style="margin:0;font-size:10px;color:' + escapeHtml(primaryColor) + '80">Based on ' + escapeHtml(String(data.location.aiReviewSummaryReviewCount)) + ' reviews</p>'
       : '';
-    return '<div style="background:' + escapeHtml(softBg) + ';border:1px solid ' + escapeHtml(softBorder) + ';border-radius:10px;padding:10px 12px;margin-top:10px;text-align:left">' +
+    return '<div style="background:' + escapeHtml(softBg) + ';border:1px solid ' + escapeHtml(softBorder) + ';border-radius:10px;padding:10px 12px;margin-top:10px;margin-bottom:16px;text-align:left">' +
       '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">' +
         '<p style="margin:0;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:' + escapeHtml(primaryColor) + '">✶ AI Summary</p>' +
         countHtml +
@@ -523,19 +523,19 @@ const script = `
       html += '<div class="why-widget-owner-reply"><strong>Owner reply:</strong> ' + escapeHtml(review.sourceReplyText) + '</div>';
     }
 
-    // Reviewer info (avatar + name + date below body)
+    // Reviewer info at bottom: avatar + name on left, date and source mark on right
     if (widget.showReviewerName) {
       var avatarHtml = review.reviewerPhotoUrl
         ? '<img class="why-widget-avatar" src="' + escapeHtml(review.reviewerPhotoUrl) + '" alt="' + escapeHtml(review.reviewerName) + '" />'
         : '<div class="why-widget-avatar-fallback">' + escapeHtml((review.reviewerName || '?').slice(0, 1).toUpperCase()) + '</div>';
 
-      html += '<div style="display:flex;gap:10px;align-items:flex-start;margin-top:12px">' +
+      html += '<div style="display:flex;gap:10px;align-items:center;margin-top:12px">' +
         avatarHtml +
-        '<div style="flex:1;min-width:0">' +
-          '<div class="why-widget-name" style="font-weight:600;font-size:14px;margin-bottom:2px">' + escapeHtml(review.reviewerName || 'Anonymous') + '</div>' +
-          '<div style="display:flex;align-items:center;gap:4px;font-size:12px;color:rgba(0,0,0,.5)">' +
-            (widget.showDate && review.reviewedAt ? '<span>' + escapeHtml(formatDate(review.reviewedAt)) + '</span>' : '') +
-            (widget.showSourceLogo && review.source ? getSourceIcon(review.source) : '') +
+        '<div style="flex:1">' +
+          '<div class="why-widget-name" style="font-weight:600;font-size:14px;margin-bottom:4px">' + escapeHtml(review.reviewerName || 'Anonymous') + '</div>' +
+          '<div style="display:flex;flex-direction:column;gap:2px;font-size:12px">' +
+            (widget.showDate && review.reviewedAt ? '<span style="color:rgba(0,0,0,.5)">' + escapeHtml(formatDate(review.reviewedAt)) + '</span>' : '') +
+            (widget.showSourceLogo && review.source ? '<span style="font-size:11px;color:rgba(0,0,0,.4)">' + getSourceIcon(review.source) + '</span>' : '') +
           '</div>' +
         '</div>' +
       '</div>';
@@ -1056,27 +1056,37 @@ const script = `
           attachVideoCardHandlers(container);
         }
 
+        // Build footer structure in correct order: Load more → Write a review → Powered by WeHearYou
         if (nextPage === 1 && footerActions) {
-          var footerHtml = '';
-          if (data.widget.showWriteReview && data.location.reviewLink && data.widget.contentType !== "VIDEO") {
-            footerHtml += '<a class="why-widget-link" href="' + escapeHtml(data.location.reviewLink) + '" target="_blank" rel="noopener noreferrer" style="color:' + escapeHtml(data.widget.primaryColor) + '">Write a review</a>';
-          }
-          if (data.widget.showBranding !== false) {
-            footerHtml += (footerHtml ? '<div class="why-widget-branding">Powered by <a href="https://www.wehearyou.io" target="_blank" rel="noopener noreferrer">WeHearYou</a></div>' : '<div class="why-widget-branding">Powered by <a href="https://www.wehearyou.io" target="_blank" rel="noopener noreferrer">WeHearYou</a></div>');
-          }
-          footerActions.innerHTML = footerHtml;
-        }
+          footerActions.innerHTML = '';
 
-        // Add the Load more button (skip for slider, carousel, VIDEO, and MIXED)
-        if (footerActions && !loadMoreButton && data.widget.layout !== "slider" && data.widget.layout !== "carousel" && data.widget.layout !== "video" && data.widget.contentType !== "VIDEO" && data.widget.contentType !== "MIXED") {
-          loadMoreButton = document.createElement("button");
-          loadMoreButton.type = "button";
-          loadMoreButton.className = "why-widget-button";
-          loadMoreButton.textContent = "Load more";
-          loadMoreButton.addEventListener("click", function () {
-            void loadPage(page + 1);
-          });
-          footerActions.appendChild(loadMoreButton);
+          // Add the Load more button (skip for slider, carousel, VIDEO, and MIXED)
+          if (!loadMoreButton && data.widget.layout !== "slider" && data.widget.layout !== "carousel" && data.widget.layout !== "video" && data.widget.contentType !== "VIDEO" && data.widget.contentType !== "MIXED") {
+            loadMoreButton = document.createElement("button");
+            loadMoreButton.type = "button";
+            loadMoreButton.className = "why-widget-button";
+            loadMoreButton.textContent = "Load more";
+            loadMoreButton.addEventListener("click", function () {
+              void loadPage(page + 1);
+            });
+            footerActions.appendChild(loadMoreButton);
+          }
+
+          // Add Write a review link (if applicable)
+          if (data.widget.showWriteReview && data.location.reviewLink && data.widget.contentType !== "VIDEO") {
+            var reviewLinkDiv = document.createElement("div");
+            reviewLinkDiv.style.cssText = "margin-top:20px";
+            reviewLinkDiv.innerHTML = '<a class="why-widget-link" href="' + escapeHtml(data.location.reviewLink) + '" target="_blank" rel="noopener noreferrer" style="color:' + escapeHtml(data.widget.primaryColor) + ';font-weight:600;font-size:14px;text-decoration:none">Write a review</a>';
+            footerActions.appendChild(reviewLinkDiv);
+          }
+
+          // Add Powered by WeHearYou branding (separate div with top border)
+          if (data.widget.showBranding !== false) {
+            var brandingDiv = document.createElement("div");
+            brandingDiv.style.cssText = "margin-top:16px;padding-top:16px;border-top:1px solid rgba(0,0,0,.08);font-size:12px;font-weight:600";
+            brandingDiv.innerHTML = 'Powered by <a href="https://wehearyou.app" target="_blank" rel="noopener noreferrer" style="color:' + escapeHtml(data.widget.textColor) + ';opacity:.6;text-decoration:none">WeHearYou</a>';
+            footerActions.appendChild(brandingDiv);
+          }
         }
 
         if (data.widget.layout === "slider" && nextPage === 1) {
