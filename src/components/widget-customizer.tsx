@@ -66,56 +66,89 @@ const BADGE_STYLES = [
   { id: "trust", name: "Trust Badge", desc: "Horizontal trust signal strip" },
 ];
 
-const PLATFORM_STEPS: Record<string, { title: string; steps: string[] }> = {
-  wordpress: {
-    title: "WordPress",
-    steps: [
-      "In your WordPress editor, add a <strong>Custom HTML</strong> block where you want the widget.",
-      "Paste the embed code into the HTML block.",
-      "Click <strong>Update</strong> or <strong>Publish</strong> to save. The widget appears within seconds.",
-    ],
-  },
-  shopify: {
-    title: "Shopify",
-    steps: [
-      "Go to <strong>Online Store → Themes → Edit code</strong>.",
-      "Open the template file for the page (e.g. <code>index.liquid</code>).",
-      "Paste the embed code and save the file.",
-    ],
-  },
-  webflow: {
-    title: "Webflow",
-    steps: [
-      "In your Webflow project, add an <strong>Embed</strong> element to the canvas.",
-      "Paste the embed code into the embed block.",
-      "Publish your site.",
-    ],
-  },
-  squarespace: {
-    title: "Squarespace",
-    steps: [
-      "Edit your page and add a <strong>Code Block</strong>.",
-      "Paste the embed code into the code block.",
-      "Save and publish your changes.",
-    ],
-  },
-  wix: {
-    title: "Wix",
-    steps: [
-      "In the Wix Editor, add an <strong>HTML iframe</strong> element.",
-      "Click <strong>Enter Code</strong> and paste the embed code.",
-      "Save and publish your site.",
-    ],
-  },
-  html: {
-    title: "Custom HTML",
-    steps: [
-      "Copy the embed code above.",
-      "Paste it into your HTML where you want the widget to appear.",
-      "Deploy or save your file.",
-    ],
-  },
+const getPlatformSteps = (widgetType: WidgetTypeKey): Record<string, { title: string; steps: string[] }> => {
+  const isHeadWidget = widgetType === "COLLECTING" || widgetType === "FLOATING";
+  const headInstruction = isHeadWidget
+    ? "Paste this code in the <code>&lt;head&gt;</code> of your site (or your global layout) so it appears on every page."
+    : "Paste the embed code where you want the widget to appear on your page.";
+
+  return {
+    wordpress: {
+      title: "WordPress",
+      steps: isHeadWidget ? [
+        "In your WordPress admin, go to <strong>Appearance → Theme Code Editor</strong> (or use a child theme).",
+        "Open the <code>header.php</code> file and paste the embed code before the closing <code>&lt;/head&gt;</code> tag.",
+        "Save the file. The widget appears on all pages within seconds.",
+      ] : [
+        "In your WordPress editor, add a <strong>Custom HTML</strong> block where you want the widget.",
+        "Paste the embed code into the HTML block.",
+        "Click <strong>Update</strong> or <strong>Publish</strong> to save. The widget appears within seconds.",
+      ],
+    },
+    shopify: {
+      title: "Shopify",
+      steps: isHeadWidget ? [
+        "Go to <strong>Online Store → Themes → Edit code</strong>.",
+        "Open <code>theme.liquid</code> and find the <code>&lt;/head&gt;</code> tag.",
+        "Paste the embed code before that closing tag and save.",
+      ] : [
+        "Go to <strong>Online Store → Themes → Edit code</strong>.",
+        "Open the template file for the page (e.g. <code>index.liquid</code>).",
+        "Paste the embed code and save the file.",
+      ],
+    },
+    webflow: {
+      title: "Webflow",
+      steps: isHeadWidget ? [
+        "Go to <strong>Project Settings → Custom Code</strong>.",
+        "Paste the embed code in the <strong>Head Code</strong> section.",
+        "Publish your site.",
+      ] : [
+        "In your Webflow project, add an <strong>Embed</strong> element to the canvas.",
+        "Paste the embed code into the embed block.",
+        "Publish your site.",
+      ],
+    },
+    squarespace: {
+      title: "Squarespace",
+      steps: isHeadWidget ? [
+        "Go to <strong>Settings → Advanced → Code Injection</strong>.",
+        "Paste the embed code in the <strong>Header</strong> section.",
+        "Save and publish your changes.",
+      ] : [
+        "Edit your page and add a <strong>Code Block</strong>.",
+        "Paste the embed code into the code block.",
+        "Save and publish your changes.",
+      ],
+    },
+    wix: {
+      title: "Wix",
+      steps: isHeadWidget ? [
+        "Go to <strong>Settings → SEO Basics → Custom Code (Head)</strong>.",
+        "Paste the embed code in the <strong>Head</strong> field.",
+        "Save and your site will update.",
+      ] : [
+        "In the Wix Editor, add an <strong>HTML iframe</strong> element.",
+        "Click <strong>Enter Code</strong> and paste the embed code.",
+        "Save and publish your site.",
+      ],
+    },
+    html: {
+      title: "Custom HTML",
+      steps: isHeadWidget ? [
+        "Copy the embed code above.",
+        "Paste it in the <code>&lt;head&gt;</code> section of your HTML file (before <code>&lt;/head&gt;</code>).",
+        "Deploy or save your file.",
+      ] : [
+        "Copy the embed code above.",
+        "Paste it into your HTML where you want the widget to appear.",
+        "Deploy or save your file.",
+      ],
+    },
+  };
 };
+
+// PLATFORM_STEPS will be generated dynamically based on widget type
 
 // ─── Backward-compat helpers ──────────────────────────────────────────────────
 
@@ -499,6 +532,7 @@ export function WidgetCustomizer({
     formData.append("textColor", darkTheme ? "#f1f5f9" : (widget.textColor ?? "#0f172a"));
     formData.append("fontFamily", widget.fontFamily ?? "system");
     formData.append("minRating", String(widget.minRating ?? 1));
+    formData.append("pageSize", String(pageSize));
     formData.append("bodyMaxChars", String(widget.bodyMaxChars ?? 280));
 
     try {
@@ -532,7 +566,11 @@ export function WidgetCustomizer({
   // Sanitize embedScriptUrl to remove any newlines that might have been introduced
   const cleanScriptUrl = embedScriptUrl.replace(/\n/g, '');
   const scriptSrc = `${cleanScriptUrl}?t=${widget.publicToken}`;
-  const embedCode = `<div id="${mountId}"></div><script src="${scriptSrc}" data-token="${widget.publicToken}" data-mount="#${mountId}"><\/script>`;
+  // For COLLECTING and FLOATING widgets, only output the script tag (no mount div)
+  // because the script injects these elements directly into the body
+  const embedCode = widgetType === "COLLECTING" || widgetType === "FLOATING"
+    ? `<script src="${scriptSrc}" data-token="${widget.publicToken}"><\/script>`
+    : `<div id="${mountId}"></div><script src="${scriptSrc}" data-token="${widget.publicToken}" data-mount="#${mountId}"><\/script>`;
 
   const saveBtnLabel =
     saveState === "saving"
@@ -1562,22 +1600,29 @@ export function WidgetCustomizer({
 
               {/* Install steps */}
               <div>
-                <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">
-                  {PLATFORM_STEPS[selectedPlatform]?.title} installation
-                </p>
-                <ol className="space-y-2">
-                  {PLATFORM_STEPS[selectedPlatform]?.steps.map((step, i) => (
-                    <li key={i} className="flex gap-3">
-                      <span className="w-5 h-5 rounded-full bg-indigo-600 text-white text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">
-                        {i + 1}
-                      </span>
-                      <span
-                        className="text-sm text-slate-600"
-                        dangerouslySetInnerHTML={{ __html: step }}
-                      />
-                    </li>
-                  ))}
-                </ol>
+                {(() => {
+                  const currentPlatformSteps = getPlatformSteps(widgetType);
+                  return (
+                    <>
+                      <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">
+                        {currentPlatformSteps[selectedPlatform]?.title} installation
+                      </p>
+                      <ol className="space-y-2">
+                        {currentPlatformSteps[selectedPlatform]?.steps.map((step, i) => (
+                          <li key={i} className="flex gap-3">
+                            <span className="w-5 h-5 rounded-full bg-indigo-600 text-white text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">
+                              {i + 1}
+                            </span>
+                            <span
+                              className="text-sm text-slate-600"
+                              dangerouslySetInnerHTML={{ __html: step }}
+                            />
+                          </li>
+                        ))}
+                      </ol>
+                    </>
+                  );
+                })()}
                 <div className="mt-4 rounded-lg bg-emerald-50 border border-emerald-200 p-3 text-xs text-emerald-800">
                   💡 <strong>Tip:</strong> Changes you make in the customizer apply automatically — you
                   won&apos;t need to re-paste the code unless you regenerate your widget token.

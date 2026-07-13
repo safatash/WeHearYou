@@ -442,24 +442,27 @@ const script = `
     var rating = typeof data.location.avgRating === "number" ? Number(data.location.avgRating).toFixed(1) : null;
     var roundedStars = data.location.avgRating ? stars(Math.round(data.location.avgRating)) : "";
     var alignClass = data.widget.headerAlign === "center" ? " why-widget-header--center" : "";
+    var textColor = data.widget.textColor || "#0f172a";
 
-    var metaBits = [];
+    // Header layout matching admin preview: Google Reviews label, large rating, stars, review count
+    var headerHtml = '<div class="why-widget-header' + alignClass + '" style="text-align:' + (alignClass ? 'center' : 'left') + '">';
+
+    // Google Reviews label
+    headerHtml += '<div style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(0,0,0,.5);margin-bottom:8px">🔍 Google Reviews</div>';
+
+    // Large rating number
     if (data.widget.showAvgRating && rating) {
-      metaBits.push(
-        '<span class="why-widget-meta-stars">' +
-          '<span style="color:' + escapeHtml(data.widget.starColor) + '">' + escapeHtml(roundedStars) + '</span>' +
-          '<span class="why-widget-meta-rating">' + escapeHtml(rating) + '</span>' +
-        '</span>'
-      );
-    }
-    if (data.widget.showReviewCount && data.location.reviewCount) {
-      metaBits.push('<span>Based on ' + escapeHtml(String(data.location.reviewCount)) + ' review' + (data.location.reviewCount === 1 ? '' : 's') + '</span>');
+      headerHtml += '<div style="display:flex;align-items:baseline;gap:12px">' +
+        '<span style="font-size:48px;font-weight:700;color:' + escapeHtml(data.widget.primaryColor) + '">' + escapeHtml(rating) + '</span>' +
+        '<div style="display:flex;flex-direction:column;gap:2px">' +
+          '<span style="font-size:18px;color:' + escapeHtml(data.widget.starColor) + '">' + escapeHtml(roundedStars) + '</span>' +
+          (data.widget.showReviewCount && data.location.reviewCount ? '<span style="font-size:12px;color:rgba(0,0,0,.5)">Based on ' + escapeHtml(String(data.location.reviewCount)) + ' review' + (data.location.reviewCount === 1 ? '' : 's') + '</span>' : '') +
+        '</div>' +
+      '</div>';
     }
 
-    return '<div class="why-widget-header' + alignClass + '">' +
-      '<p class="why-widget-title">' + escapeHtml(data.location.name) + '</p>' +
-      (metaBits.length ? '<p class="why-widget-meta" style="color:rgba(0,0,0,.6)">' + metaBits.join('') + '</p>' : '') +
-    '</div>';
+    headerHtml += '</div>';
+    return headerHtml;
   }
 
   function renderAiSummary(data) {
@@ -482,31 +485,67 @@ const script = `
     '</div>';
   }
 
+  function getSourceIcon(source) {
+    if (source === "GOOGLE") return "🔍";
+    if (source === "FACEBOOK") return "f";
+    if (source === "YELP") return "Y";
+    return "✓";
+  }
+
   function renderCard(review, widget) {
-    var reviewerHtml = '';
+    var body = truncate(review.body || '', widget.bodyMaxChars || 280);
+    var textColor = widget.textColor || "#0f172a";
+    var backgroundColor = widget.backgroundColor || "#ffffff";
+    var starColor = widget.starColor || "#f59e0b";
+    var primaryColor = widget.primaryColor || "#4338ca";
+
+    var html = '<article class="why-widget-card" style="background:' + escapeHtml(backgroundColor) + ';color:' + escapeHtml(textColor) + '">';
+
+    // Stars at top
+    if (widget.showRating) {
+      html += '<div class="why-widget-stars" style="color:' + escapeHtml(starColor) + ';margin-bottom:12px">' + escapeHtml(stars(review.rating)) + '</div>';
+    }
+
+    // Body text
+    html += '<div class="why-widget-body" style="margin-bottom:12px">' + escapeHtml(body) + '</div>';
+
+    // Owner reply
+    if (widget.showResponses && review.sourceReplyText) {
+      html += '<div class="why-widget-owner-reply"><strong>Owner reply:</strong> ' + escapeHtml(review.sourceReplyText) + '</div>';
+    }
+
+    // Reviewer info (avatar + name + date below body)
     if (widget.showReviewerName) {
       var avatarHtml = review.reviewerPhotoUrl
         ? '<img class="why-widget-avatar" src="' + escapeHtml(review.reviewerPhotoUrl) + '" alt="' + escapeHtml(review.reviewerName) + '" />'
         : '<div class="why-widget-avatar-fallback">' + escapeHtml((review.reviewerName || '?').slice(0, 1).toUpperCase()) + '</div>';
-      reviewerHtml = '<div class="why-widget-reviewer">' + avatarHtml + '<div class="why-widget-name">' + escapeHtml(review.reviewerName) + '</div></div>';
+
+      html += '<div style="display:flex;gap:10px;align-items:flex-start;margin-top:12px">' +
+        avatarHtml +
+        '<div style="flex:1;min-width:0">' +
+          '<div class="why-widget-name" style="font-weight:600;font-size:14px;margin-bottom:2px">' + escapeHtml(review.reviewerName || 'Anonymous') + '</div>' +
+          '<div style="display:flex;align-items:center;gap:4px;font-size:12px;color:rgba(0,0,0,.5)">' +
+            (widget.showDate && review.reviewedAt ? '<span>' + escapeHtml(formatDate(review.reviewedAt)) + '</span>' : '') +
+            (widget.showSourceLogo && review.source ? '<span> · ' + escapeHtml(getSourceIcon(review.source)) + '</span>' : '') +
+          '</div>' +
+        '</div>' +
+      '</div>';
+    } else {
+      // Just date and source if no reviewer name
+      var metaItems = [];
+      if (widget.showDate && review.reviewedAt) {
+        metaItems.push(escapeHtml(formatDate(review.reviewedAt)));
+      }
+      if (widget.showSourceLogo && review.source) {
+        metaItems.push(escapeHtml(getSourceIcon(review.source)));
+      }
+      if (metaItems.length) {
+        html += '<div style="margin-top:12px;font-size:12px;color:rgba(0,0,0,.5)">' + metaItems.join(' · ') + '</div>';
+      }
     }
 
-    var body = truncate(review.body || '', widget.bodyMaxChars || 280);
-
-    return '<article class="why-widget-card">' +
-      (widget.showRating ? '<div class="why-widget-stars" style="color:' + escapeHtml(widget.starColor) + '">' + escapeHtml(stars(review.rating)) + '</div>' : '') +
-      reviewerHtml +
-      '<div class="why-widget-body" style="color:rgba(0,0,0,.7)">' + escapeHtml(body) + '</div>' +
-      (widget.showResponses && review.sourceReplyText
-        ? '<div class="why-widget-owner-reply"><strong>Owner reply:</strong> ' + escapeHtml(review.sourceReplyText) + '</div>'
-        : '') +
-      '<div class="why-widget-meta-row">' +
-        (widget.showDate && review.reviewedAt ? '<div class="why-widget-date">' + escapeHtml(formatDate(review.reviewedAt)) + '</div>' : '<div></div>') +
-        (review.sourceReviewUrl
-          ? '<a class="why-widget-review-link" href="' + escapeHtml(review.sourceReviewUrl) + '" target="_blank" rel="noopener noreferrer" style="color:' + escapeHtml(widget.primaryColor) + '">View on Google</a>'
-          : '') +
-      '</div>' +
-    '</article>';
+    html += '</article>';
+    return html;
   }
 
   function renderBadge(data) {
