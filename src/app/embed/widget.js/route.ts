@@ -76,7 +76,7 @@ const script = `
       ".why-widget-avatar{width:32px;height:32px;border-radius:999px;object-fit:cover;background:#e2e8f0}" +
       ".why-widget-avatar-fallback{width:32px;height:32px;border-radius:999px;background:#e2e8f0;color:#475569;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700}" +
       ".why-widget-name{font-weight:600;font-size:13px}" +
-      ".why-widget-body{font-size:14px;line-height:1.5}" +
+      ".why-widget-body{font-size:14px;line-height:1.5;display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;overflow:hidden}" +
       ".why-widget-owner-reply{margin-top:4px;padding:12px;border-radius:14px;background:rgba(0,0,0,.04);font-size:12px;line-height:1.5}" +
       ".why-widget-meta-row{margin-top:auto;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding-top:6px}" +
       ".why-widget-date{font-size:12px;opacity:.7}" +
@@ -1036,7 +1036,7 @@ const script = `
 
           // The widget "name" is an internal admin label — never render it on the
           // public/embed site. Customer-facing heading comes from renderHeader.
-          mount.innerHTML = '<div class="why-widget" style="font-family:' + fontStack(data.widget.fontFamily) + ';background:' + escapeHtml(data.widget.backgroundColor) + ';color:' + escapeHtml(data.widget.textColor) + ';border-radius:18px;padding:20px;border:1px solid rgba(0,0,0,.06)">' +
+          mount.innerHTML = '<div class="why-widget" style="font-family:' + fontStack(data.widget.fontFamily) + ';background:' + escapeHtml(data.widget.backgroundColor) + ';color:' + escapeHtml(data.widget.textColor) + ';border-radius:18px;padding:24px 28px;border:1px solid rgba(0,0,0,.06)">' +
             renderHeader(data) +
             renderAiSummary(data) +
             listWrapper +

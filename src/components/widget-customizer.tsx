@@ -1680,6 +1680,11 @@ export function WidgetCustomizer({
                 <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
                   Embed code
                 </p>
+                <p className="text-xs text-slate-500 mb-3">
+                  {widgetType === "COLLECTING" || widgetType === "FLOATING"
+                    ? "Paste in your site's <head> for sitewide display"
+                    : "Paste where you want the widget to appear"}
+                </p>
                 <div className="bg-slate-900 rounded-xl p-4 relative">
                   <pre className="text-xs font-mono text-sky-300 overflow-x-auto pr-16">
                     {embedCode}

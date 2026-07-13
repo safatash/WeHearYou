@@ -127,6 +127,7 @@ function ReviewHeader({
   starColor,
   textColor,
   mutedColor,
+  fontSizeHeader = 36,
 }: {
   businessName: string;
   avgRating?: number | null;
@@ -137,6 +138,7 @@ function ReviewHeader({
   starColor: string;
   textColor: string;
   mutedColor: string;
+  fontSizeHeader?: number;
 }) {
   if (!showAvgRating && !showReviewCount) return null;
   const align = headerAlign === "center" ? "center" : "flex-start";
@@ -151,7 +153,7 @@ function ReviewHeader({
             <p className="text-sm font-bold" style={{ color: textColor, margin: 0 }}>Google Reviews</p>
           </div>
           <p className="mb-3 mt-0 flex flex-row items-center gap-2" style={{ justifyContent: align }}>
-            <span style={{ fontSize: "1.5em", fontWeight: "bold" }}>{avgRating?.toFixed(1) || "0"}</span>
+            <span style={{ fontSize: `${fontSizeHeader}px`, fontWeight: "bold" }}>{avgRating?.toFixed(1) || "0"}</span>
             <span style={{ color: starColor }}>{"★".repeat(Math.round(avgRating || 0))}</span>
             {showReviewCount && <span style={{ color: mutedColor }}>({reviewCount})</span>}
           </p>
@@ -175,6 +177,9 @@ function ReviewCard({
   textColor,
   mutedColor,
   primaryColor,
+  fontSizeBase = 14,
+  fontSizeNames = 13,
+  fontSizeLabel = 12,
 }: {
   review: ReviewItem;
   showRating: boolean;
@@ -187,6 +192,9 @@ function ReviewCard({
   textColor: string;
   mutedColor: string;
   primaryColor: string;
+  fontSizeBase?: number;
+  fontSizeNames?: number;
+  fontSizeLabel?: number;
 }) {
   const truncatedBody =
     review.body.length > bodyMaxChars ? `${review.body.substring(0, bodyMaxChars)}...` : review.body;
@@ -203,19 +211,19 @@ function ReviewCard({
           ))}
         </p>
       )}
-      <p className="mb-2 mt-0 text-sm" style={{ color: textColor }}>
+      <p className="mb-2 mt-0 text-sm" style={{ color: textColor, fontSize: `${fontSizeBase}px` }}>
         {truncatedBody}
       </p>
       <div className="flex flex-col gap-1 text-xs" style={{ color: mutedColor }}>
         {showReviewerName && review.reviewerName && (
-          <p className="m-0 flex gap-2 items-center">
+          <p className="m-0 flex gap-2 items-center" style={{ fontSize: `${fontSizeNames}px` }}>
             {review.reviewerPhotoUrl && (
               <img src={review.reviewerPhotoUrl} className="h-6 w-6 rounded-full object-cover" alt="" />
             )}
             <span>{review.reviewerName}</span>
           </p>
         )}
-        {showDate && reviewDate && <p className="m-0">{reviewDate}</p>}
+        {showDate && reviewDate && <p className="m-0" style={{ fontSize: `${fontSizeLabel}px` }}>{reviewDate}</p>}
         <SourceMark source={review.source} showSourceLogo={showSourceLogo} mutedColor={mutedColor} />
       </div>
       {showResponses && review.sourceReplyText && (
@@ -1126,6 +1134,11 @@ export function ReviewWidgetPreview({
   backgroundColor = "#ffffff",
   textColor = "#0f172a",
   fontFamily = "system",
+  fontSizeBase = 14,
+  fontSizeNames = 13,
+  fontSizeHeader = 36,
+  fontSizeLabel = 12,
+  fontSizeSummary = 14,
   reviewLink,
   showNav = true,
   showPagination = true,
@@ -1187,6 +1200,9 @@ export function ReviewWidgetPreview({
     textColor,
     mutedColor,
     primaryColor,
+    fontSizeBase,
+    fontSizeNames,
+    fontSizeLabel,
   };
 
   const cards = reviews.map((review) => <ReviewCard key={review.id} review={review} {...cardProps} />);
@@ -1473,6 +1489,7 @@ export function ReviewWidgetPreview({
             starColor={starColor}
             textColor={textColor}
             mutedColor={mutedColor}
+            fontSizeHeader={fontSizeHeader}
           />
         )}
 
@@ -1497,7 +1514,7 @@ export function ReviewWidgetPreview({
                 </p>
               )}
             </div>
-            <p style={{ margin: 0, color: "#3730a3", fontSize: 12, lineHeight: 1.6 }}>{aiReviewSummary}</p>
+            <p style={{ margin: 0, color: "#3730a3", fontSize: fontSizeSummary, lineHeight: 1.6 }}>{aiReviewSummary}</p>
           </div>
         )}
 
