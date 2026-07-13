@@ -447,8 +447,11 @@ const script = `
     // Header layout matching admin preview: Google Reviews label, large rating, stars, review count
     var headerHtml = '<div class="why-widget-header' + alignClass + '" style="text-align:' + (alignClass ? 'center' : 'left') + '">';
 
-    // Google Reviews label
-    headerHtml += '<div style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(0,0,0,.5);margin-bottom:8px">🔍 Google Reviews</div>';
+    // Google Reviews label with styled "G" icon
+    headerHtml += '<div style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(0,0,0,.5);margin-bottom:8px;display:flex;align-items:center;gap:6px">' +
+      '<span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;background:#4285f4;color:#fff;border-radius:2px;font-size:10px;font-weight:700">G</span>' +
+      'Google Reviews' +
+    '</div>';
 
     // Large rating number
     if (data.widget.showAvgRating && rating) {
@@ -486,10 +489,16 @@ const script = `
   }
 
   function getSourceIcon(source) {
-    if (source === "GOOGLE") return "🔍";
-    if (source === "FACEBOOK") return "f";
-    if (source === "YELP") return "Y";
-    return "✓";
+    if (source === "GOOGLE") {
+      return '<span style="display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;background:#4285f4;color:#fff;border-radius:1px;font-size:9px;font-weight:700">G</span>';
+    }
+    if (source === "FACEBOOK") {
+      return '<span style="display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;background:#1877f2;color:#fff;border-radius:2px;font-size:9px;font-weight:700">f</span>';
+    }
+    if (source === "YELP") {
+      return '<span style="display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;background:#d32323;color:#fff;border-radius:2px;font-size:9px;font-weight:700">Y</span>';
+    }
+    return '<span style="font-size:11px;color:rgba(0,0,0,.4)">✓</span>';
   }
 
   function renderCard(review, widget) {
@@ -526,21 +535,21 @@ const script = `
           '<div class="why-widget-name" style="font-weight:600;font-size:14px;margin-bottom:2px">' + escapeHtml(review.reviewerName || 'Anonymous') + '</div>' +
           '<div style="display:flex;align-items:center;gap:4px;font-size:12px;color:rgba(0,0,0,.5)">' +
             (widget.showDate && review.reviewedAt ? '<span>' + escapeHtml(formatDate(review.reviewedAt)) + '</span>' : '') +
-            (widget.showSourceLogo && review.source ? '<span> · ' + escapeHtml(getSourceIcon(review.source)) + '</span>' : '') +
+            (widget.showSourceLogo && review.source ? getSourceIcon(review.source) : '') +
           '</div>' +
         '</div>' +
       '</div>';
     } else {
       // Just date and source if no reviewer name
-      var metaItems = [];
+      var metaHtml = '<div style="margin-top:12px;font-size:12px;color:rgba(0,0,0,.5);display:flex;align-items:center;gap:6px">';
       if (widget.showDate && review.reviewedAt) {
-        metaItems.push(escapeHtml(formatDate(review.reviewedAt)));
+        metaHtml += '<span>' + escapeHtml(formatDate(review.reviewedAt)) + '</span>';
       }
       if (widget.showSourceLogo && review.source) {
-        metaItems.push(escapeHtml(getSourceIcon(review.source)));
+        metaHtml += getSourceIcon(review.source);
       }
-      if (metaItems.length) {
-        html += '<div style="margin-top:12px;font-size:12px;color:rgba(0,0,0,.5)">' + metaItems.join(' · ') + '</div>';
+      if (widget.showDate && review.reviewedAt || (widget.showSourceLogo && review.source)) {
+        html += metaHtml + '</div>';
       }
     }
 
