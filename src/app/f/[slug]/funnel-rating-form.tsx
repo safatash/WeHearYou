@@ -35,11 +35,10 @@ export function FunnelRatingForm({
   const isStars = ratingMode === "stars";
 
   const handleRatingClick = (rating: number) => {
-    // High ratings submit immediately (server routes to the configured destination).
-    // Low ratings: PRIVATE shows the in-page recovery form; CUSTOM submits
-    // immediately so the server can redirect to the recovery URL.
+    // High ratings: show optional name/email form before submitting
+    // Low ratings: show recovery form for feedback
     if (rating >= filterThreshold || lowRatingDestination === "CUSTOM") {
-      handleSubmit(rating, "", "", "");
+      setSelectedRating(rating);
     } else {
       setSelectedRating(rating);
     }
@@ -63,8 +62,9 @@ export function FunnelRatingForm({
     }
   };
 
-  // Recovery form shown whenever a low rating is selected
-  if (selectedRating !== null && selectedRating < filterThreshold) {
+  // Form shown when any rating is selected (low ratings: recovery; high ratings: optional details)
+  if (selectedRating !== null) {
+    const isLowRating = selectedRating < filterThreshold;
     return (
       <div className="mt-8 rounded-3xl border border-slate-200 bg-white p-8 space-y-6">
         <div>
@@ -95,20 +95,29 @@ export function FunnelRatingForm({
           )}
         </div>
 
-        <div>
-          <p className="text-lg font-semibold text-slate-900 mb-4">Send a message directly to our team</p>
-          <div className="mb-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+        {isLowRating ? (
+          <div>
+            <p className="text-lg font-semibold text-slate-900 mb-4">Send a message directly to our team</p>
+            <div className="mb-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <p className="text-sm text-slate-600 leading-relaxed">
+                We&apos;re sorry you had a bad experience. You can use this form to contact our customer service team and give us an opportunity to resolve any problem or complaint you have before leaving a review.
+              </p>
+            </div>
+            <textarea
+              value={feedback}
+              onChange={(e) => setFeedback(e.target.value)}
+              placeholder="Your message..."
+              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-normal text-slate-700 placeholder-slate-400 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100 min-h-24"
+            />
+          </div>
+        ) : (
+          <div>
+            <p className="text-lg font-semibold text-slate-900 mb-3">Thanks for your great rating! 🎉</p>
             <p className="text-sm text-slate-600 leading-relaxed">
-              We&apos;re sorry you had a bad experience. You can use this form to contact our customer service team and give us an opportunity to resolve any problem or complaint you have before leaving a review.
+              Help us show your review with your name (optional — we can keep you anonymous).
             </p>
           </div>
-          <textarea
-            value={feedback}
-            onChange={(e) => setFeedback(e.target.value)}
-            placeholder="Your message..."
-            className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-normal text-slate-700 placeholder-slate-400 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100 min-h-24"
-          />
-        </div>
+        )}
 
         <div className="space-y-4">
           <div>
@@ -121,8 +130,16 @@ export function FunnelRatingForm({
           </div>
         </div>
 
-        <button onClick={handleFeedbackSubmit} disabled={isSubmitting} className="w-full rounded-2xl bg-emerald-500 hover:bg-emerald-600 px-5 py-4 text-base font-semibold text-white shadow-sm transition disabled:opacity-60">
-          {isSubmitting ? "Sending..." : "Send →"}
+        <button
+          onClick={() => {
+            if (selectedRating !== null) {
+              handleSubmit(selectedRating, isLowRating ? feedback : "", name, email);
+            }
+          }}
+          disabled={isSubmitting}
+          className="w-full rounded-2xl bg-emerald-500 hover:bg-emerald-600 px-5 py-4 text-base font-semibold text-white shadow-sm transition disabled:opacity-60"
+        >
+          {isSubmitting ? "Submitting..." : isLowRating ? "Send →" : "Continue →"}
         </button>
 
         {reviewLink && (
