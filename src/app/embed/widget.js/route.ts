@@ -51,7 +51,7 @@ const script = `
       ".why-widget-header{display:flex;flex-direction:column;gap:4px;margin-bottom:16px}" +
       ".why-widget-header--center{align-items:center;text-align:center}" +
       ".why-widget-title{font-size:20px;font-weight:700;margin:0}" +
-      ".why-widget-meta{font-size:14px;margin:0;display:flex;flex-wrap:wrap;gap:8px;align-items:center}" +
+      ".why-widget-meta{font-size:12px;margin:0;display:flex;flex-wrap:wrap;gap:8px;align-items:center}" +
       ".why-widget-meta-stars{display:inline-flex;align-items:center;gap:6px}" +
       ".why-widget-meta-rating{font-size:2.2em;font-weight:900;line-height:1;color:inherit}" +
       ".why-widget-meta-count{font-size:13px;opacity:.65}" +
@@ -75,7 +75,7 @@ const script = `
       ".why-widget-reviewer{display:flex;align-items:center;gap:10px}" +
       ".why-widget-avatar{width:32px;height:32px;border-radius:999px;object-fit:cover;background:#e2e8f0}" +
       ".why-widget-avatar-fallback{width:32px;height:32px;border-radius:999px;background:#e2e8f0;color:#475569;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700}" +
-      ".why-widget-name{font-weight:600}" +
+      ".why-widget-name{font-weight:600;font-size:13px}" +
       ".why-widget-body{font-size:14px;line-height:1.5}" +
       ".why-widget-owner-reply{margin-top:4px;padding:12px;border-radius:14px;background:rgba(0,0,0,.04);font-size:12px;line-height:1.5}" +
       ".why-widget-meta-row{margin-top:auto;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding-top:6px}" +
@@ -121,6 +121,21 @@ const script = `
       "@keyframes why-marq-r{from{transform:translateX(-50%)}to{transform:translateX(0)}}" +
       "@media(max-width:639px){.why-marq-item{width:250px}}" +
       "@media(prefers-reduced-motion:reduce){.why-marq-track{animation:none}}";
+    document.head.appendChild(style);
+  }
+
+  function injectDynamicTypographyStyles(fontSizeBase, fontSizeNames, fontSizeHeader, fontSizeLabel, fontSizeSummary) {
+    var dynamicStyleId = "why-widget-typography-dynamic";
+    if (document.getElementById(dynamicStyleId)) return;
+    var style = document.createElement("style");
+    style.id = dynamicStyleId;
+    style.textContent =
+      ".why-widget-title{font-size:" + fontSizeHeader + "px !important}" +
+      ".why-widget-body{font-size:" + fontSizeBase + "px !important}" +
+      ".why-widget-name{font-size:" + fontSizeNames + "px !important}" +
+      ".why-widget-date{font-size:" + fontSizeLabel + "px !important}" +
+      ".why-widget-meta{font-size:" + fontSizeLabel + "px !important}" +
+      ".why-widget-review-link{font-size:" + fontSizeLabel + "px !important}";
     document.head.appendChild(style);
   }
 
@@ -909,6 +924,17 @@ const script = `
         if (!response.ok) throw new Error("failed");
         var data = await response.json();
         widgetConfig = data.widget;
+
+        // Inject dynamic typography styles based on widget configuration
+        if (nextPage === 1) {
+          injectDynamicTypographyStyles(
+            data.widget.fontSizeBase || 14,
+            data.widget.fontSizeNames || 13,
+            data.widget.fontSizeHeader || 20,
+            data.widget.fontSizeLabel || 12,
+            data.widget.fontSizeSummary || 14
+          );
+        }
 
         // Apply data attribute overrides to widget configuration
         if (overrides.layout) data.widget.layout = overrides.layout;

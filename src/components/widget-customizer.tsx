@@ -319,6 +319,11 @@ export function WidgetCustomizer({
   const [contentMode, setContentMode] = useState<ContentMode>(initialContentMode);
   const [layout, setLayout] = useState(initialLayout);
   const [darkTheme, setDarkTheme] = useState(widget.theme === "dark");
+  const [fontSizeBase, setFontSizeBase] = useState<number>((widget as any).fontSizeBase ?? 14);
+  const [fontSizeNames, setFontSizeNames] = useState<number>((widget as any).fontSizeNames ?? 13);
+  const [fontSizeHeader, setFontSizeHeader] = useState<number>((widget as any).fontSizeHeader ?? 20);
+  const [fontSizeLabel, setFontSizeLabel] = useState<number>((widget as any).fontSizeLabel ?? 12);
+  const [fontSizeSummary, setFontSizeSummary] = useState<number>((widget as any).fontSizeSummary ?? 14);
   const [title, setTitle] = useState(widget.name);
   const [isActive, setIsActive] = useState(widget.isActive);
   const [pageSize, setPageSize] = useState<number>(snapPageSize(widget.pageSize));
@@ -531,6 +536,11 @@ export function WidgetCustomizer({
     formData.append("backgroundColor", darkTheme ? "#1e293b" : (widget.backgroundColor ?? "#ffffff"));
     formData.append("textColor", darkTheme ? "#f1f5f9" : (widget.textColor ?? "#0f172a"));
     formData.append("fontFamily", widget.fontFamily ?? "system");
+    formData.append("fontSizeBase", String(fontSizeBase));
+    formData.append("fontSizeNames", String(fontSizeNames));
+    formData.append("fontSizeHeader", String(fontSizeHeader));
+    formData.append("fontSizeLabel", String(fontSizeLabel));
+    formData.append("fontSizeSummary", String(fontSizeSummary));
     formData.append("minRating", String(widget.minRating ?? 1));
     formData.append("pageSize", String(pageSize));
     formData.append("bodyMaxChars", String(widget.bodyMaxChars ?? 280));
@@ -712,6 +722,98 @@ export function WidgetCustomizer({
                 <ToggleRow label="Write review link" on={showWriteReview} onChange={setAndMark(setShowWriteReview)} />
                 <ToggleRow label="Dark theme" on={darkTheme} onChange={setAndMark(setDarkTheme)} />
                 <ToggleRow label="WeHearYou branding" on={showBranding} onChange={setAndMark(setShowBranding)} />
+              </SectionCard>
+
+              {/* Typography */}
+              <SectionCard title="Typography">
+                <div className="p-4 space-y-4">
+
+                  {/* Body / Review text */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="text-xs font-bold text-slate-500">Review text</p>
+                      <span className="text-xs font-semibold text-slate-700">{fontSizeBase}px</span>
+                    </div>
+                    <input
+                      type="range" min={11} max={18} step={1}
+                      value={fontSizeBase}
+                      onChange={(e) => { setFontSizeBase(Number(e.target.value)); markUnsaved(); }}
+                      className="w-full accent-indigo-600"
+                    />
+                    <div className="flex justify-between text-[10px] text-slate-400 mt-0.5">
+                      <span>11px</span><span>18px</span>
+                    </div>
+                  </div>
+
+                  {/* Reviewer names */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="text-xs font-bold text-slate-500">Reviewer names</p>
+                      <span className="text-xs font-semibold text-slate-700">{fontSizeNames}px</span>
+                    </div>
+                    <input
+                      type="range" min={10} max={16} step={1}
+                      value={fontSizeNames}
+                      onChange={(e) => { setFontSizeNames(Number(e.target.value)); markUnsaved(); }}
+                      className="w-full accent-indigo-600"
+                    />
+                    <div className="flex justify-between text-[10px] text-slate-400 mt-0.5">
+                      <span>10px</span><span>16px</span>
+                    </div>
+                  </div>
+
+                  {/* Widget header / title */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="text-xs font-bold text-slate-500">Header title</p>
+                      <span className="text-xs font-semibold text-slate-700">{fontSizeHeader}px</span>
+                    </div>
+                    <input
+                      type="range" min={14} max={28} step={1}
+                      value={fontSizeHeader}
+                      onChange={(e) => { setFontSizeHeader(Number(e.target.value)); markUnsaved(); }}
+                      className="w-full accent-indigo-600"
+                    />
+                    <div className="flex justify-between text-[10px] text-slate-400 mt-0.5">
+                      <span>14px</span><span>28px</span>
+                    </div>
+                  </div>
+
+                  {/* Dates / labels */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="text-xs font-bold text-slate-500">Dates &amp; labels</p>
+                      <span className="text-xs font-semibold text-slate-700">{fontSizeLabel}px</span>
+                    </div>
+                    <input
+                      type="range" min={10} max={14} step={1}
+                      value={fontSizeLabel}
+                      onChange={(e) => { setFontSizeLabel(Number(e.target.value)); markUnsaved(); }}
+                      className="w-full accent-indigo-600"
+                    />
+                    <div className="flex justify-between text-[10px] text-slate-400 mt-0.5">
+                      <span>10px</span><span>14px</span>
+                    </div>
+                  </div>
+
+                  {/* AI Summary text */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="text-xs font-bold text-slate-500">AI Summary text</p>
+                      <span className="text-xs font-semibold text-slate-700">{fontSizeSummary}px</span>
+                    </div>
+                    <input
+                      type="range" min={11} max={16} step={1}
+                      value={fontSizeSummary}
+                      onChange={(e) => { setFontSizeSummary(Number(e.target.value)); markUnsaved(); }}
+                      className="w-full accent-indigo-600"
+                    />
+                    <div className="flex justify-between text-[10px] text-slate-400 mt-0.5">
+                      <span>11px</span><span>16px</span>
+                    </div>
+                  </div>
+
+                </div>
               </SectionCard>
 
               {/* Widget name + active */}

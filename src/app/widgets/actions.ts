@@ -232,6 +232,11 @@ export async function updateReviewWidget(formData: FormData) {
   const rawMinRating = Number(formData.get("minRating") ?? 1);
   const rawPageSize = Number(formData.get("pageSize") ?? 12);
   const rawBodyMaxChars = Number(formData.get("bodyMaxChars") ?? 280);
+  const fontSizeBase = parseInt(formData.get("fontSizeBase") as string) || 14;
+  const fontSizeNames = parseInt(formData.get("fontSizeNames") as string) || 13;
+  const fontSizeHeader = parseInt(formData.get("fontSizeHeader") as string) || 20;
+  const fontSizeLabel = parseInt(formData.get("fontSizeLabel") as string) || 12;
+  const fontSizeSummary = parseInt(formData.get("fontSizeSummary") as string) || 14;
 
   const hexColor = (raw: FormDataEntryValue | null, fallback: string) => {
     const value = String(raw ?? "").trim();
@@ -277,6 +282,11 @@ export async function updateReviewWidget(formData: FormData) {
       backgroundColor: hexColor(formData.get("backgroundColor"), "#ffffff"),
       textColor: hexColor(formData.get("textColor"), "#0f172a"),
       fontFamily: allowedFonts.has(rawFont) ? rawFont : "system",
+      fontSizeBase: Math.max(11, Math.min(18, fontSizeBase)),
+      fontSizeNames: Math.max(10, Math.min(16, fontSizeNames)),
+      fontSizeHeader: Math.max(14, Math.min(28, fontSizeHeader)),
+      fontSizeLabel: Math.max(10, Math.min(14, fontSizeLabel)),
+      fontSizeSummary: Math.max(11, Math.min(16, fontSizeSummary)),
 
       // Collecting Widget
       collectDisplayFreq: allowedDisplayFreqs.has(rawCollectDisplayFreq) ? rawCollectDisplayFreq : null,

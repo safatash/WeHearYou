@@ -688,6 +688,11 @@ model ReviewWidget {
   backgroundColor  String       @default("#ffffff")
   textColor        String       @default("#0f172a")
   fontFamily       String       @default("system")  // system | sans | serif | round | mono
+  fontSizeBase     Int          @default(14)        // body/review text (11-18px)
+  fontSizeNames    Int          @default(13)        // reviewer names (10-16px)
+  fontSizeHeader   Int          @default(20)        // widget header title (14-28px)
+  fontSizeLabel    Int          @default(12)        // dates, labels, secondary text (10-14px)
+  fontSizeSummary  Int          @default(14)        // AI summary body (11-16px)
   cornerRadius     Int          @default(12)         // 0..22 px
   cardStyle        String       @default("border")  // "border" | "shadow" | "soft"
   density          String       @default("cozy")    // "cozy" | "compact"
