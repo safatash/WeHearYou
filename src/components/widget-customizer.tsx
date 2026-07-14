@@ -598,7 +598,7 @@ export function WidgetCustomizer({
     <div className="space-y-4">
       {/* Eyebrow */}
       <div className="border-b border-slate-200 pb-4">
-        <p className="text-xs font-bold uppercase tracking-[.2em] text-indigo-600">Embed Widgets</p>
+        <p className="text-xs font-bold uppercase tracking-[.2em] text-indigo-600">Embed Widgets [UPDATED]</p>
         <p className="text-sm text-slate-500 mt-1">
           Add your reviews and video testimonials to your website with embeddable widgets.
         </p>
