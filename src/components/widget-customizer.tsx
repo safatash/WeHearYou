@@ -714,7 +714,7 @@ export function WidgetCustomizer({
                 </div>
               </SectionCard>
 
-              {/* Display toggles */}
+              {/* Display toggles - Widget visibility controls */}
               <SectionCard title="Display settings">
                 <ToggleRow label="Widget header" sub="Show Google rating bar" on={showHeader} onChange={setAndMark(setShowHeader)} />
                 <ToggleRow label="AI Summary" sub="Show AI-generated review summary" on={showAiSummary} onChange={setAndMark(setShowAiSummary)} />
