@@ -298,10 +298,10 @@ export async function getPublicReviewWidgetPayload(publicToken: string, page = 1
     avgRating: widget.location.avgRating ?? null,
     reviewCount,
     reviewLink: widget.location.reviewLink ?? null,
-    aiReviewSummary: widget.location.publicProfile?.showAiReviewSummary
+    aiReviewSummary: (widget.location.publicProfile?.showAiReviewSummary && widget.showAiSummary)
       ? (widget.location.publicProfile.aiReviewSummary ?? null)
       : null,
-    aiReviewSummaryReviewCount: widget.location.publicProfile?.showAiReviewSummary
+    aiReviewSummaryReviewCount: (widget.location.publicProfile?.showAiReviewSummary && widget.showAiSummary)
       ? (widget.location.publicProfile.aiReviewSummaryReviewCount ?? null)
       : null,
   });

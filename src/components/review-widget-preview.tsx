@@ -58,6 +58,7 @@ type ReviewWidgetPreviewProps = {
   widgetType?: string | null;
   aiReviewSummary?: string | null;
   aiReviewSummaryReviewCount?: number | null;
+  showAiSummary?: boolean;
   isMobile?: boolean;
   singleItemUnavailable?: boolean;
   badgeStyle?: string | null;
@@ -221,15 +222,21 @@ function ReviewCard({
         {truncatedBody}
       </p>
       <div className="flex flex-col gap-1 text-xs" style={{ color: mutedColor }}>
-        {showReviewerName && review.reviewerName && (
-          <p className="m-0 flex gap-2 items-center" style={{ fontSize: `${fontSizeNames}px` }}>
-            {review.reviewerPhotoUrl && (
-              <img src={review.reviewerPhotoUrl} className="h-6 w-6 rounded-full object-cover" alt="" />
+        {showReviewerName && (
+          <div className="flex items-center gap-2">
+            {review.reviewerPhotoUrl ? (
+              <img src={review.reviewerPhotoUrl} className="h-8 w-8 rounded-full object-cover" alt="" />
+            ) : (
+              <div className="h-8 w-8 rounded-full bg-slate-200 flex items-center justify-center text-xs font-bold text-slate-600">
+                {(review.reviewerName || '?').slice(0, 1).toUpperCase()}
+              </div>
             )}
-            <span>{review.reviewerName}</span>
-          </p>
+            <div className="flex flex-col gap-0.5">
+              <span className="font-semibold text-sm" style={{ fontSize: `${fontSizeNames}px` }}>{review.reviewerName}</span>
+              {showDate && reviewDate && <span style={{ fontSize: `${fontSizeLabel}px` }}>{reviewDate}</span>}
+            </div>
+          </div>
         )}
-        {showDate && reviewDate && <p className="m-0" style={{ fontSize: `${fontSizeLabel}px` }}>{reviewDate}</p>}
         <SourceMark source={review.source} showSourceLogo={showSourceLogo} mutedColor={mutedColor} />
       </div>
       {showResponses && review.sourceReplyText && (
@@ -1145,6 +1152,7 @@ export function ReviewWidgetPreview({
   fontSizeHeader = 36,
   fontSizeLabel = 12,
   fontSizeSummary = 14,
+  showAiSummary = true,
   reviewLink,
   showNav = true,
   showPagination = true,
@@ -1499,7 +1507,7 @@ export function ReviewWidgetPreview({
           />
         )}
 
-        {aiReviewSummary && (
+        {showAiSummary && aiReviewSummary && (
           <div
             style={{
               background: "#eef2ff",

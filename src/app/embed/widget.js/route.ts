@@ -488,6 +488,7 @@ const script = `
     // Render whenever the location has a summary (location-level showAiReviewSummary
     // is already applied server-side). Matches the dashboard preview; renders
     // nothing — no empty placeholder — when there is no summary.
+    if (!data.widget.showAiSummary) return "";
     if (!data.location.aiReviewSummary) return "";
     var primaryColor = data.widget.primaryColor || "#4338ca";
     var softBg = primaryColor + "0d"; // Add 5% opacity
@@ -947,6 +948,20 @@ const script = `
         if (overrides.showReviewerName !== null) data.widget.showReviewerName = overrides.showReviewerName !== "false";
         if (overrides.showDate !== null) data.widget.showDate = overrides.showDate !== "false";
         if (overrides.showWriteReview !== null) data.widget.showWriteReview = overrides.showWriteReview !== "false";
+
+        // Normalize boolean fields from JSON payload to actual JavaScript booleans
+        var boolFields = [
+          'showHeader', 'showAvgRating', 'showReviewCount',
+          'showRating', 'showReviewerName', 'showDate',
+          'showWriteReview', 'showResponses', 'showSourceLogo',
+          'showBranding', 'showNav', 'showPagination',
+          'showAiSummary'
+        ];
+        boolFields.forEach(function(key) {
+          if (typeof data.widget[key] === 'string') {
+            data.widget[key] = data.widget[key] !== 'false';
+          }
+        });
 
         // Render kind is resolved server-side (collecting | floating | single |
         // badge | list) so the embed never guesses from raw type/layout strings.

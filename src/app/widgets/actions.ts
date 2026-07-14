@@ -195,6 +195,7 @@ export async function updateReviewWidget(formData: FormData) {
   const badgeStyle = allowedBadgeStyles.has(rawBadgeStyle) ? rawBadgeStyle : null;
 
   const showSourceLogo = String(formData.get("showSourceLogo") ?? "") === "on";
+  const showAiSummary = String(formData.get("showAiSummary") ?? "") === "on";
 
   // Single testimonial IDs — enforce mutual exclusion
   const rawSingleReviewId = String(formData.get("singleTestimonialReviewId") ?? "").trim();
@@ -253,6 +254,7 @@ export async function updateReviewWidget(formData: FormData) {
       widgetType,
       badgeStyle,
       showSourceLogo,
+      showAiSummary,
       singleTestimonialReviewId,
       singleTestimonialVideoId,
       theme: String(formData.get("theme") ?? "light"),

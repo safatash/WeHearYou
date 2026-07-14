@@ -340,6 +340,7 @@ export function WidgetCustomizer({
   const [showSourceLogo, setShowSourceLogo] = useState(
     (widget as { showSourceLogo?: boolean }).showSourceLogo !== false,
   );
+  const [showAiSummary, setShowAiSummary] = useState((widget as any).showAiSummary !== false);
   const [badgeStyle, setBadgeStyle] = useState<string>(
     (widget as { badgeStyle?: string | null }).badgeStyle ?? "rating",
   );
@@ -506,6 +507,7 @@ export function WidgetCustomizer({
     if (showDate) formData.append("showDate", "on");
     if (showWriteReview) formData.append("showWriteReview", "on");
     if (showSourceLogo) formData.append("showSourceLogo", "on");
+    if (showAiSummary) formData.append("showAiSummary", "on");
     if (widgetType === "SINGLE_TESTIMONIAL") {
       if (singleType === "video" && singleTestimonialVideoId) {
         formData.append("singleTestimonialVideoId", singleTestimonialVideoId);
@@ -715,6 +717,7 @@ export function WidgetCustomizer({
               {/* Display toggles */}
               <SectionCard title="Display settings">
                 <ToggleRow label="Widget header" sub="Show Google rating bar" on={showHeader} onChange={setAndMark(setShowHeader)} />
+                <ToggleRow label="AI Summary" sub="Show AI-generated review summary" on={showAiSummary} onChange={setAndMark(setShowAiSummary)} />
                 <ToggleRow label="Star ratings" sub="On each review card" on={showRating} onChange={setAndMark(setShowRating)} />
                 <ToggleRow label="Reviewer names" sub="Name and avatar" on={showReviewerName} onChange={setAndMark(setShowReviewerName)} />
                 <ToggleRow label="Review dates" on={showDate} onChange={setAndMark(setShowDate)} />
@@ -1589,6 +1592,7 @@ export function WidgetCustomizer({
                 showWriteReview={showWriteReview}
                 showResponses={widget.showResponses ?? false}
                 showSourceLogo={showSourceLogo}
+                showAiSummary={showAiSummary}
                 bodyMaxChars={widget.bodyMaxChars ?? 280}
                 primaryColor={widget.primaryColor ?? "#4338ca"}
                 starColor={widget.starColor ?? "#f59e0b"}
