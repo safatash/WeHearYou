@@ -2,6 +2,7 @@ import path from "node:path";
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // v2.5.0 - Force cache invalidation
   experimental: {
     serverActions: {
       bodySizeLimit: "25mb",
