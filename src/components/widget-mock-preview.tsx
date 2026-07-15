@@ -262,13 +262,13 @@ const FeaturedReviewCardW = ({ r, s, tk }: { r: Review; s: PreviewSettings; tk: 
   );
 };
 
-const ReviewCardW = ({ r, s, tk, featured }: { r: Review; s: PreviewSettings; tk: Tokens; featured?: boolean }) => {
+const ReviewCardW = ({ r, s, tk, featured, accentFont }: { r: Review; s: PreviewSettings; tk: Tokens; featured?: boolean; accentFont?: boolean }) => {
   if (featured && s.wallStyle === "varied") return <FeaturedReviewCardW r={r} s={s} tk={tk} />;
   const cardStyles = resolveCardStyle(s, tk);
   const starColor = resolveStarColor(s);
   const fontStack = FONT_STACKS[s.fontFamily] || FONT_STACKS.system;
-  // In varied layout, all review body text uses Instrument Serif for the editorial look
-  const bodyFont = s.wallStyle === "varied" ? INSTRUMENT_SERIF : fontStack;
+  // In varied layout, only accent-font cards (roughly 1 in 3) use Instrument Serif
+  const bodyFont = (s.wallStyle === "varied" && accentFont) ? INSTRUMENT_SERIF : fontStack;
   const pad = s.density === "compact" ? 12 : 16;
   const truncLen = s.bodyMaxChars || 280;
   const bodyText = r.text.length > truncLen ? r.text.slice(0, truncLen) + "…" : r.text;
@@ -658,6 +658,9 @@ export function WidgetMockPreview({
           const gap = s.density === "compact" ? 10 : 14;
           // For varied layout, pick the highest-rated review as the featured card
           const featuredIdx = s.wallStyle === "varied" ? items.findIndex((it) => it.kind === "review") : -1;
+          // In varied layout, every 3rd non-featured review card gets Instrument Serif (accent font)
+          // Track non-featured review count to assign accent font to ~1 in 3
+          let nonFeaturedReviewCount = 0;
           // Determine column layout
           let gridStyle: React.CSSProperties;
           if (s.device === "mobile") {
@@ -677,11 +680,19 @@ export function WidgetMockPreview({
             : { breakInside: "avoid", marginBottom: gap };
           return (
             <div style={st(gridStyle)}>
-              {items.map((it, idx) => (
-                <div key={it.kind + it.data.id} style={st({ ...cardWrap, ...(uniformHeight && s.gridColumns !== "auto" ? { height: uniformHeight, overflow: "hidden" } : {}) })}>
-                  {it.kind === "video" ? <VideoCardW v={it.data} s={s} tk={tk} /> : <ReviewCardW r={it.data} s={s} tk={tk} featured={idx === featuredIdx} />}
-                </div>
-              ))}
+              {items.map((it, idx) => {
+                let accentFont = false;
+                if (it.kind === "review" && idx !== featuredIdx && s.wallStyle === "varied") {
+                  nonFeaturedReviewCount++;
+                  // Every 3rd non-featured review card gets Instrument Serif
+                  accentFont = nonFeaturedReviewCount % 3 === 0;
+                }
+                return (
+                  <div key={it.kind + it.data.id} style={st({ ...cardWrap, ...(uniformHeight && s.gridColumns !== "auto" ? { height: uniformHeight, overflow: "hidden" } : {}) })}>
+                    {it.kind === "video" ? <VideoCardW v={it.data} s={s} tk={tk} /> : <ReviewCardW r={it.data} s={s} tk={tk} featured={idx === featuredIdx} accentFont={accentFont} />}
+                  </div>
+                );
+              })}
             </div>
           );
         })()

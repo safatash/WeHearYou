@@ -1125,10 +1125,12 @@ const script = `
           var isVaried = data.widget.wallStyle === "varied" || !data.widget.wallStyle;
           var accentColor = data.widget.primaryColor || "#4338ca";
           var serif = "'Instrument Serif', Georgia, serif";
+          var nonFeaturedReviewCount = 0;
+          var featuredIdx = isVaried ? filteredItems.findIndex(function(it) { return it.type !== "video"; }) : -1;
           var cardsHtml = filteredItems.map(function (item, idx) {
             if (item.type === "video") return renderVideoCard(item.data);
-            // Varied layout: first card gets accent featured treatment
-            if (isVaried && idx === 0 && (data.widget.layout === "grid" || data.widget.layout === "masonry" || data.widget.layout === "mixed-masonry")) {
+            // Varied layout: first review card gets accent featured treatment
+            if (isVaried && idx === featuredIdx && (data.widget.layout === "grid" || data.widget.layout === "masonry" || data.widget.layout === "mixed-masonry")) {
               var w = data.widget;
               var radius = typeof w.cornerRadius === "number" ? w.cornerRadius : 12;
               var body = truncate(item.data.body || "", w.bodyMaxChars || 280);
@@ -1144,8 +1146,10 @@ const script = `
                 '</div>' : '') +
               '</article>';
             }
-            // Varied layout: other cards use Instrument Serif for body text
+            // Varied layout: non-featured cards — every 3rd one gets Instrument Serif
             if (isVaried && (data.widget.layout === "grid" || data.widget.layout === "masonry" || data.widget.layout === "mixed-masonry")) {
+              nonFeaturedReviewCount++;
+              var useSerif = (nonFeaturedReviewCount % 3 === 0);
               var w = data.widget;
               var radius = typeof w.cornerRadius === "number" ? w.cornerRadius : 12;
               var pad = w.density === "compact" ? "12px" : "16px";
@@ -1154,6 +1158,7 @@ const script = `
               var starColor = resolveStarColorEmbed(w);
               var fontSizeNames = w.fontSizeNames || 13;
               var fontSizeLabel = w.fontSizeLabel || 12;
+              var bodyFontFamily = useSerif ? serif : fontStack(w.fontFamily);
               var html = '<article class="why-widget-card" style="' + cardStyleCss + 'color:' + escapeHtml(w.textColor) + ';border-radius:' + radius + 'px;padding:' + pad + '">';
               if (w.showAvatars !== false) {
                 var sourceMarkHtml = w.showSourceLogo && item.data.source ? '<span style="margin-left:auto;font-weight:700;color:#4285f4;font-size:11px">' + (item.data.source === 'GOOGLE' ? 'G' : item.data.source === 'FACEBOOK' ? 'f' : item.data.source === 'YELP' ? 'Y' : '\u2713') + '</span>' : '';
@@ -1164,7 +1169,7 @@ const script = `
                   '</div>' + sourceMarkHtml + '</div>';
               }
               if (w.showRating !== false) { html += '<div style="font-size:14px;color:' + escapeHtml(starColor) + ';margin:8px 0">' + escapeHtml(stars(item.data.rating)) + '</div>'; }
-              html += '<div style="font-family:' + serif + ';font-size:16px;line-height:1.45;color:' + escapeHtml(w.textColor) + '">\u201c' + escapeHtml(body) + '\u201d</div>';
+              html += '<div style="font-family:' + bodyFontFamily + ';font-size:' + (useSerif ? 16 : (w.fontSizeBase || 13)) + 'px;line-height:1.45;color:' + escapeHtml(w.textColor) + '">' + (useSerif ? '\u201c' + escapeHtml(body) + '\u201d' : escapeHtml(body)) + '</div>';
               html += '</article>';
               return html;
             }
