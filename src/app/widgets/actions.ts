@@ -196,6 +196,8 @@ export async function updateReviewWidget(formData: FormData) {
 
   const showSourceLogo = String(formData.get("showSourceLogo") ?? "") === "on";
   const showAiSummary = String(formData.get("showAiSummary") ?? "") === "on";
+  const showNav = String(formData.get("showNav") ?? "") === "on";
+  const showPagination = String(formData.get("showPagination") ?? "") === "on";
 
   // Single testimonial IDs — enforce mutual exclusion
   const rawSingleReviewId = String(formData.get("singleTestimonialReviewId") ?? "").trim();
@@ -277,6 +279,8 @@ export async function updateReviewWidget(formData: FormData) {
       showResponses: String(formData.get("showResponses") ?? "") === "on",
       marqueeSpeed: ["slow", "normal", "fast"].includes(String(formData.get("marqueeSpeed") ?? "")) ? String(formData.get("marqueeSpeed")) : "normal",
       bodyMaxChars: Number.isFinite(rawBodyMaxChars) ? Math.max(40, Math.min(2000, Math.floor(rawBodyMaxChars))) : 280,
+      showNav,
+      showPagination,
 
       // Appearance panel
       primaryColor: hexColor(formData.get("primaryColor"), "#4338ca"),

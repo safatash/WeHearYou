@@ -680,6 +680,8 @@ model ReviewWidget {
   showAiSummary    Boolean      @default(true)
   marqueeSpeed     String       @default("normal")
   bodyMaxChars     Int          @default(280)
+  showNav          Boolean      @default(true)
+  showPagination   Boolean      @default(true)
 
   // Appearance panel
   primaryColor     String       @default("#4338ca")
