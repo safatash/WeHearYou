@@ -37,6 +37,12 @@ export type PreviewSettings = {
   showPagination: boolean;
   showResponses: boolean;
   starColor: string;
+  starColorMode: "gold" | "accent" | "ink";
+  fontFamily: string;
+  cardStyle: "border" | "shadow" | "soft";
+  density: "cozy" | "compact";
+  gridColumns: string;
+  wallStyle: "varied" | "uniform";
   fontSizeBase: number;
   fontSizeNames: number;
   fontSizeHeader: number;
@@ -84,6 +90,12 @@ export const PREVIEW_DEFAULTS: PreviewSettings = {
   showPagination: true,
   showResponses: false,
   starColor: "#fbbf24",
+  starColorMode: "gold",
+  fontFamily: "system",
+  cardStyle: "border",
+  density: "cozy",
+  gridColumns: "auto",
+  wallStyle: "varied",
   fontSizeBase: 14,
   fontSizeNames: 13,
   fontSizeHeader: 20,

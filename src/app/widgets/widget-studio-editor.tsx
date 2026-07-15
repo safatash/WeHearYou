@@ -103,12 +103,20 @@ export type StudioWidget = {
   fontSizeLabel: number;
   fontSizeSummary: number;
   bodyMaxChars: number;
+  // Appearance & style
+  fontFamily: string;
+  starColorMode: string;
+  cornerRadius: number;
+  cardStyle: string;
+  density: string;
+  gridColumns: string;
+  wallStyle: string;
+  enabledSources: string;
   // preserved-as-is fields (not exposed in this editor)
   sort: string;
   headerAlign: string;
   backgroundColor: string;
   textColor: string;
-  fontFamily: string;
 };
 
 function deriveTypeKey(w: StudioWidget): TypeKey {
@@ -172,7 +180,7 @@ const ColorField = ({ mode, color, onMode, onColor }: { mode: string; color: str
   </div>
 );
 
-const Toggle = ({ checked, onChange, label }: { checked: boolean; onChange: (v: boolean) => void; label: string }) => (
+const Toggle = ({ checked, onChange, label }: { checked: boolean; onChange: (v: boolean) => void; label?: string }) => (
   <button type="button" onClick={() => onChange(!checked)} style={st({ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, width: "100%", border: 0, background: "transparent", cursor: "pointer", padding: 0 })}>
     <span style={st({ fontSize: 13, color: "var(--ink-700)" })}>{label}</span>
     <span style={st({ width: 36, height: 21, borderRadius: 999, flex: "none", background: checked ? "var(--accent)" : "var(--ink-300)", transition: "background .16s", position: "relative" })}>
@@ -281,6 +289,22 @@ export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [], aiS
   const [fontSizeLabel, setFontSizeLabel] = useState(widget.fontSizeLabel ?? 12);
   const [fontSizeSummary, setFontSizeSummary] = useState(widget.fontSizeSummary ?? 14);
   const [bodyMaxChars, setBodyMaxChars] = useState(widget.bodyMaxChars ?? 280);
+  // Appearance & style
+  const [fontFamily, setFontFamily] = useState(widget.fontFamily || "system");
+  const [starColorMode, setStarColorMode] = useState(widget.starColorMode || "gold");
+  const [cornerRadius, setCornerRadius] = useState(widget.cornerRadius ?? 12);
+  const [cardStyle, setCardStyle] = useState(widget.cardStyle || "border");
+  const [density, setDensity] = useState(widget.density || "cozy");
+  const [gridColumns, setGridColumns] = useState(widget.gridColumns || "auto");
+  const [wallStyle, setWallStyle] = useState(widget.wallStyle || "varied");
+  // Sources: parse CSV string into a Set
+  const ALL_SOURCES = ["GOOGLE", "FACEBOOK", "YELP", "INTERNAL"] as const;
+  const SOURCE_LABELS: Record<string, string> = { GOOGLE: "Google", FACEBOOK: "Facebook", YELP: "Yelp", INTERNAL: "WeHearYou" };
+  const parseEnabledSources = (csv: string): Set<string> => {
+    if (!csv || csv.trim() === "") return new Set(ALL_SOURCES);
+    return new Set(csv.split(",").map((s) => s.trim()).filter(Boolean));
+  };
+  const [enabledSourcesSet, setEnabledSourcesSet] = useState<Set<string>>(() => parseEnabledSources(widget.enabledSources || ""));
   const [isActive, setIsActive] = useState(widget.isActive);
   // Badge
   const [badgeStyle, setBadgeStyle] = useState<BadgeStyle>((widget.badgeStyle as BadgeStyle) || "rating");
@@ -354,7 +378,13 @@ export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [], aiS
     fontSizeLabel,
     fontSizeSummary,
     bodyMaxChars,
-    radius: 12,
+    radius: cornerRadius,
+    cardStyle: cardStyle as PreviewSettings["cardStyle"],
+    density: density as PreviewSettings["density"],
+    gridColumns,
+    wallStyle: wallStyle as PreviewSettings["wallStyle"],
+    fontFamily,
+    starColorMode: starColorMode as PreviewSettings["starColorMode"],
     aiSummary: isReviewWall && content !== "videos" && showAiSummary,
     aiSummaryText,
     aiSummaryCount,
@@ -430,13 +460,23 @@ export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [], aiS
     if (floatingApprovedOnly) fd.append("floatingApprovedOnly", "on");
     fd.append("floatingMinRating", String(floatingMinRating));
 
+    // Appearance & style
+    fd.append("fontFamily", fontFamily);
+    fd.append("starColorMode", starColorMode);
+    fd.append("cornerRadius", String(cornerRadius));
+    fd.append("cardStyle", cardStyle);
+    fd.append("density", density);
+    fd.append("gridColumns", gridColumns);
+    fd.append("wallStyle", wallStyle);
+    // Sources: serialize Set back to CSV (empty string = all enabled)
+    const allEnabled = ALL_SOURCES.every((s) => enabledSourcesSet.has(s));
+    fd.append("enabledSources", allEnabled ? "" : Array.from(enabledSourcesSet).join(","));
     // preserved-as-is fields the editor doesn't expose
     fd.append("sort", widget.sort);
     fd.append("headerAlign", widget.headerAlign);
     fd.append("starColor", widget.starColor);
     fd.append("backgroundColor", widget.backgroundColor);
     fd.append("textColor", widget.textColor);
-    fd.append("fontFamily", widget.fontFamily);
 
     try {
       await updateReviewWidget(fd);
@@ -549,6 +589,67 @@ export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [], aiS
             <Swatches value={accent} onChange={setAccent} options={ACCENTS} />
           </Field>
 
+          {/* ── Typography & Style ── */}
+          {(isReviewWall || isSingle) && (
+            <>
+              <div className="hr" />
+              <Field label="Font">
+                <Segmented value={fontFamily} onChange={setFontFamily} options={[
+                  { value: "system", label: "System" },
+                  { value: "sans", label: "Sans" },
+                  { value: "serif", label: "Serif" },
+                  { value: "round", label: "Round" },
+                  { value: "mono", label: "Mono" },
+                ]} />
+              </Field>
+              <Field label="Star color">
+                <Segmented value={starColorMode} onChange={setStarColorMode} options={[
+                  { value: "gold", label: "Gold" },
+                  { value: "accent", label: "Accent" },
+                  { value: "ink", label: "Ink" },
+                ]} />
+              </Field>
+              <Field label="Corner radius" hint={`${cornerRadius}px`}>
+                <input type="range" min={0} max={22} step={1} value={cornerRadius}
+                  onChange={(e) => setCornerRadius(Number(e.target.value))}
+                  style={st({ width: "100%", accentColor: "var(--accent)" })} />
+                <div style={st({ display: "flex", justifyContent: "space-between", fontSize: 10.5, color: "var(--ink-400)", marginTop: 2 })}>
+                  <span>0</span><span>22px</span>
+                </div>
+              </Field>
+              <Field label="Card style">
+                <OptionGroup cols={3} value={cardStyle} onChange={setCardStyle} options={[
+                  { value: "border", label: "Bordered" },
+                  { value: "shadow", label: "Shadow" },
+                  { value: "soft", label: "Soft" },
+                ]} />
+              </Field>
+              <Field label="Density">
+                <Segmented value={density} onChange={setDensity} options={[
+                  { value: "cozy", label: "Cozy" },
+                  { value: "compact", label: "Compact" },
+                ]} />
+              </Field>
+              {typeKey === "grid" && (
+                <>
+                  <Field label="Columns">
+                    <Segmented value={gridColumns} onChange={setGridColumns} options={[
+                      { value: "auto", label: "Auto" },
+                      { value: "2", label: "2" },
+                      { value: "3", label: "3" },
+                    ]} />
+                  </Field>
+                  <Field label="Wall layout">
+                    <Segmented value={wallStyle} onChange={setWallStyle} options={[
+                      { value: "varied", label: "Varied" },
+                      { value: "uniform", label: "Uniform" },
+                    ]} />
+                  </Field>
+                </>
+              )}
+            </>
+          )}
+
           {/* ── Badge style ── */}
           {isBadge && (
             <>
@@ -650,6 +751,26 @@ export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [], aiS
           {(isReviewWall || isSingle) && (
             <>
               <div className="hr" />
+              <Field label="Sources">
+                <div style={st({ display: "flex", flexDirection: "column", gap: 11 })}>
+                  {ALL_SOURCES.map((src) => (
+                    <div key={src} style={st({ display: "flex", alignItems: "center", gap: 9 })}>
+                      <span style={st({ fontSize: 13, color: "var(--ink-700)", flex: 1 })}>{SOURCE_LABELS[src]}</span>
+                      <Toggle
+                        checked={enabledSourcesSet.has(src)}
+                        onChange={(v) => {
+                          setEnabledSourcesSet((prev) => {
+                            const next = new Set(prev);
+                            if (v) next.add(src); else next.delete(src);
+                            return next;
+                          });
+                        }}
+                        label=""
+                      />
+                    </div>
+                  ))}
+                </div>
+              </Field>
               <Field label="Minimum rating" hint={`${minRating}★ and up`}>
                 <input type="range" min={1} max={5} value={minRating} onChange={(e) => setMinRating(Number(e.target.value))} style={st({ width: "100%", accentColor: "var(--accent)" })} />
               </Field>

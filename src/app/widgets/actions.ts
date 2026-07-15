@@ -221,6 +221,13 @@ export async function updateReviewWidget(formData: FormData) {
   const rawLayout = String(formData.get("layout") ?? "grid");
   const rawAlign = String(formData.get("headerAlign") ?? "left");
   const rawFont = String(formData.get("fontFamily") ?? "system");
+  const rawStarColorMode = String(formData.get("starColorMode") ?? "gold");
+  const rawCornerRadius = parseInt(formData.get("cornerRadius") as string) || 12;
+  const rawCardStyle = String(formData.get("cardStyle") ?? "border");
+  const rawDensity = String(formData.get("density") ?? "cozy");
+  const rawGridColumns = String(formData.get("gridColumns") ?? "auto");
+  const rawWallStyle = String(formData.get("wallStyle") ?? "varied");
+  const rawEnabledSources = String(formData.get("enabledSources") ?? "").trim();
   const rawMinRating = Number(formData.get("minRating") ?? 1);
   const rawPageSize = Number(formData.get("pageSize") ?? 12);
   const rawBodyMaxChars = Number(formData.get("bodyMaxChars") ?? 280);
@@ -277,6 +284,13 @@ export async function updateReviewWidget(formData: FormData) {
       backgroundColor: hexColor(formData.get("backgroundColor"), "#ffffff"),
       textColor: hexColor(formData.get("textColor"), "#0f172a"),
       fontFamily: allowedFonts.has(rawFont) ? rawFont : "system",
+      starColorMode: ["gold", "accent", "ink"].includes(rawStarColorMode) ? rawStarColorMode : "gold",
+      cornerRadius: Math.max(0, Math.min(22, rawCornerRadius)),
+      cardStyle: ["border", "shadow", "soft"].includes(rawCardStyle) ? rawCardStyle : "border",
+      density: ["cozy", "compact"].includes(rawDensity) ? rawDensity : "cozy",
+      gridColumns: ["auto", "2", "3"].includes(rawGridColumns) ? rawGridColumns : "auto",
+      wallStyle: ["varied", "uniform"].includes(rawWallStyle) ? rawWallStyle : "varied",
+      enabledSources: rawEnabledSources, // empty string = all sources enabled
       fontSizeBase: Math.max(11, Math.min(18, fontSizeBase)),
       fontSizeNames: Math.max(10, Math.min(16, fontSizeNames)),
       fontSizeHeader: Math.max(14, Math.min(28, fontSizeHeader)),
