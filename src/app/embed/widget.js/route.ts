@@ -44,6 +44,14 @@ const script = `
 
   function ensureStyles() {
     if (document.getElementById("why-review-widget-styles")) return;
+    // Load Instrument Serif for varied wall layout
+    if (!document.getElementById("why-instrument-serif-font")) {
+      var fontLink = document.createElement("link");
+      fontLink.id = "why-instrument-serif-font";
+      fontLink.rel = "stylesheet";
+      fontLink.href = "https://fonts.googleapis.com/css2?family=Instrument+Serif&display=swap";
+      document.head.appendChild(fontLink);
+    }
     var style = document.createElement("style");
     style.id = "why-review-widget-styles";
     style.textContent =
@@ -1088,29 +1096,94 @@ const script = `
           '</div>';
 
           container = mount.querySelector("." + layoutClass);
+          // Apply dynamic grid columns and wall style to the grid container
+          if (container && (data.widget.layout === "grid" || data.widget.layout === "masonry" || data.widget.layout === "mixed-masonry")) {
+            var gc = data.widget.gridColumns || "auto";
+            if (gc === "2") {
+              container.style.gridTemplateColumns = "repeat(2, 1fr)";
+            } else if (gc === "3") {
+              container.style.gridTemplateColumns = "repeat(3, 1fr)";
+            }
+            // uniform: all cards same height; varied: natural masonry heights
+            if (data.widget.wallStyle === "uniform") {
+              container.style.alignItems = "stretch";
+            } else {
+              container.style.alignItems = "start";
+            }
+          }
           footerActions = mount.querySelector(".why-widget-footer");
           writeReviewContainer = mount.querySelector(".why-widget-write-review");
           brandingContainer = mount.querySelector(".why-widget-branding-wrap");
         }
 
         if (container) {
-          var cardsHtml = items.map(function (item) {
-            return item.type === "video" ? renderVideoCard(item.data) : renderCard(item.data, data.widget);
+          // Filter items by enabledSources if set
+          var enabledSrcList = (data.widget.enabledSources || "").split(",").map(function(s) { return s.trim().toUpperCase(); }).filter(Boolean);
+          var filteredItems = enabledSrcList.length > 0
+            ? items.filter(function(item) { return !item.data || !item.data.source || enabledSrcList.indexOf(item.data.source.toUpperCase()) !== -1; })
+            : items;
+          var isVaried = data.widget.wallStyle === "varied" || !data.widget.wallStyle;
+          var accentColor = data.widget.primaryColor || "#4338ca";
+          var serif = "'Instrument Serif', Georgia, serif";
+          var cardsHtml = filteredItems.map(function (item, idx) {
+            if (item.type === "video") return renderVideoCard(item.data);
+            // Varied layout: first card gets accent featured treatment
+            if (isVaried && idx === 0 && (data.widget.layout === "grid" || data.widget.layout === "masonry" || data.widget.layout === "mixed-masonry")) {
+              var w = data.widget;
+              var radius = typeof w.cornerRadius === "number" ? w.cornerRadius : 12;
+              var body = truncate(item.data.body || "", w.bodyMaxChars || 280);
+              var starColor = "#fff";
+              var starsHtml = w.showRating !== false ? '<div style="font-size:14px;color:' + starColor + ';margin-bottom:10px">' + escapeHtml(stars(item.data.rating)) + '</div>' : '';
+              var nameHtml = w.showAvatars !== false ? '<div style="font-size:13px;font-weight:600;color:rgba(255,255,255,.9)">' + escapeHtml(item.data.reviewerName || 'Anonymous') + '</div>' : '';
+              return '<article class="why-widget-card" style="background:' + escapeHtml(accentColor) + ';border:none;border-radius:' + radius + 'px;padding:20px;color:#fff">' +
+                starsHtml +
+                '<div style="font-family:' + serif + ';font-size:22px;line-height:1.35;font-weight:400;margin-bottom:16px;color:#fff">\u201c' + escapeHtml(body) + '\u201d</div>' +
+                (w.showAvatars !== false ? '<div style="display:flex;align-items:center;gap:10px;margin-top:auto">' +
+                  '<div style="width:36px;height:36px;border-radius:999px;background:rgba(255,255,255,.25);color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700">' + escapeHtml((item.data.reviewerName || '?').slice(0,1).toUpperCase()) + '</div>' +
+                  nameHtml +
+                '</div>' : '') +
+              '</article>';
+            }
+            // Varied layout: other cards use Instrument Serif for body text
+            if (isVaried && (data.widget.layout === "grid" || data.widget.layout === "masonry" || data.widget.layout === "mixed-masonry")) {
+              var w = data.widget;
+              var radius = typeof w.cornerRadius === "number" ? w.cornerRadius : 12;
+              var pad = w.density === "compact" ? "12px" : "16px";
+              var cardStyleCss = resolveCardStyleEmbed(w);
+              var body = truncate(item.data.body || "", w.bodyMaxChars || 280);
+              var starColor = resolveStarColorEmbed(w);
+              var fontSizeNames = w.fontSizeNames || 13;
+              var fontSizeLabel = w.fontSizeLabel || 12;
+              var html = '<article class="why-widget-card" style="' + cardStyleCss + 'color:' + escapeHtml(w.textColor) + ';border-radius:' + radius + 'px;padding:' + pad + '">';
+              if (w.showAvatars !== false) {
+                var sourceMarkHtml = w.showSourceLogo && item.data.source ? '<span style="margin-left:auto;font-weight:700;color:#4285f4;font-size:11px">' + (item.data.source === 'GOOGLE' ? 'G' : item.data.source === 'FACEBOOK' ? 'f' : item.data.source === 'YELP' ? 'Y' : '\u2713') + '</span>' : '';
+                html += '<div class="why-widget-reviewer">' +
+                  '<div style="width:32px;height:32px;border-radius:999px;background:#e2e8f0;color:#475569;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700">' + escapeHtml((item.data.reviewerName || '?').slice(0,1).toUpperCase()) + '</div>' +
+                  '<div><div class="why-widget-name" style="font-size:' + fontSizeNames + 'px">' + escapeHtml(item.data.reviewerName || 'Anonymous') + '</div>' +
+                  (w.showDate && item.data.reviewedAt ? '<div class="why-widget-date" style="font-size:' + fontSizeLabel + 'px">' + escapeHtml(formatDate(item.data.reviewedAt)) + '</div>' : '') +
+                  '</div>' + sourceMarkHtml + '</div>';
+              }
+              if (w.showRating !== false) { html += '<div style="font-size:14px;color:' + escapeHtml(starColor) + ';margin:8px 0">' + escapeHtml(stars(item.data.rating)) + '</div>'; }
+              html += '<div style="font-family:' + serif + ';font-size:16px;line-height:1.45;color:' + escapeHtml(w.textColor) + '">\u201c' + escapeHtml(body) + '\u201d</div>';
+              html += '</article>';
+              return html;
+            }
+            return renderCard(item.data, data.widget);
           }).join("");
           if (data.widget.layout === "slider") {
-            container.insertAdjacentHTML("beforeend", items.map(function (item) {
+            container.insertAdjacentHTML("beforeend", filteredItems.map(function (item) {
               var cardHtml = item.type === "video" ? renderVideoCard(item.data) : renderCard(item.data, data.widget);
               return '<div class="why-widget-slide">' + cardHtml + '</div>';
             }).join(""));
           } else if (data.widget.layout === "video" || data.widget.layout === "carousel") {
-            container.insertAdjacentHTML("beforeend", items.map(function (item, idx) {
+            container.insertAdjacentHTML("beforeend", filteredItems.map(function (item, idx) {
               var cardHtml = item.type === "video" ? renderVideoCard(item.data) : renderCard(item.data, data.widget);
               return '<div class="why-widget-carousel-item' + (idx === 0 ? ' active' : '') + '">' + cardHtml + '</div>';
             }).join(""));
             // Add pagination dots if pagination is enabled
             var paginationContainer = mount.querySelector(".why-widget-carousel-pagination");
             if (paginationContainer && data.widget.showPagination !== false) {
-              var dotsHtml = items.map(function (_, idx) {
+              var dotsHtml = filteredItems.map(function (_, idx) {
                 return '<div class="why-widget-carousel-dot' + (idx === 0 ? ' active' : '') + '"></div>';
               }).join("");
               paginationContainer.innerHTML = dotsHtml;

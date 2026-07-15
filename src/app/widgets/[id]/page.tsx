@@ -39,8 +39,10 @@ export default async function WidgetDetailPage({
       ? (query.tone as "success" | "error" | "info")
       : "success";
   const hdrs = await headers();
-  const host = hdrs.get("host") ?? "";
-  const proto = hdrs.get("x-forwarded-proto") ?? "https";
+  // Strip any newline/carriage-return characters that Vercel can inject into
+  // forwarded headers — these would break the embed code URL.
+  const host = (hdrs.get("host") ?? "").replace(/[\r\n]/g, "");
+  const proto = (hdrs.get("x-forwarded-proto") ?? "https").replace(/[\r\n]/g, "").split(",")[0].trim();
   // Prefer NEXT_PUBLIC_APP_URL so embed codes always reference the production
   // URL even when the customizer is opened in a local dev environment.
   const appUrl =
