@@ -993,6 +993,7 @@ export function WidgetCustomizer({
               </SectionCard>
 
               <SectionCard title="Display settings">
+                <ToggleRow label="AI Summary" sub="Show AI-generated review summary" on={showAiSummary} onChange={setAndMark(setShowAiSummary)} />
                 <ToggleRow label="Star rating" on={showRating} onChange={setAndMark(setShowRating)} />
                 <ToggleRow label="Reviewer name" on={showReviewerName} onChange={setAndMark(setShowReviewerName)} />
                 <ToggleRow label="Date" on={showDate} onChange={setAndMark(setShowDate)} />
@@ -1034,6 +1035,7 @@ export function WidgetCustomizer({
               </SectionCard>
 
               <SectionCard title="Display settings">
+                <ToggleRow label="AI Summary" sub="Show AI-generated review summary" on={showAiSummary} onChange={setAndMark(setShowAiSummary)} />
                 <ToggleRow label="Review count" on={showReviewCount} onChange={setAndMark(setShowReviewCount)} />
                 <ToggleRow label="Link to Google reviews" on={showWriteReview} onChange={setAndMark(setShowWriteReview)} />
                 <ToggleRow label="Dark theme" on={darkTheme} onChange={setAndMark(setDarkTheme)} />
