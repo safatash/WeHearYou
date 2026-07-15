@@ -473,9 +473,11 @@ const script = `
 
     // Row 2: Large rating number + stars + review count
     if (data.widget.showAvgRating && rating) {
+      var headerStarColor = resolveStarColorEmbed(data.widget);
+      var headerFontSize = data.widget.fontSizeHeader || 34;
       headerHtml += '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">' +
-        '<span class="why-widget-meta-rating" style="color:' + escapeHtml(data.widget.primaryColor) + '">' + escapeHtml(rating) + '</span>' +
-        '<span style="color:' + escapeHtml(data.widget.starColor) + ';font-size:18px">' + escapeHtml(roundedStars) + '</span>' +
+        '<span class="why-widget-meta-rating" style="color:' + escapeHtml(data.widget.primaryColor) + ';font-size:' + headerFontSize + 'px">' + escapeHtml(rating) + '</span>' +
+        '<span style="color:' + escapeHtml(headerStarColor) + ';font-size:18px">' + escapeHtml(roundedStars) + '</span>' +
         (data.widget.showReviewCount && data.location.reviewCount ? '<span class="why-widget-meta-count">Based on ' + escapeHtml(String(data.location.reviewCount)) + ' review' + (data.location.reviewCount === 1 ? '' : 's') + '</span>' : '') +
       '</div>';
     }
@@ -496,7 +498,9 @@ const script = `
     var countHtml = data.location.aiReviewSummaryReviewCount
       ? '<p style="margin:0;font-size:10px;color:' + escapeHtml(primaryColor) + '80">Based on ' + escapeHtml(String(data.location.aiReviewSummaryReviewCount)) + ' reviews</p>'
       : '';
-    return '<div style="background:' + escapeHtml(softBg) + ';border:1px solid ' + escapeHtml(softBorder) + ';border-radius:10px;padding:10px 12px;margin-top:10px;margin-bottom:16px;text-align:left;font-family:' + fontStack(data.widget.fontFamily) + '">' +
+    var aiRadius = typeof data.widget.cornerRadius === "number" ? data.widget.cornerRadius : 10;
+    var aiSummaryFontSize = data.widget.fontSizeSummary || 12;
+    return '<div style="background:' + escapeHtml(softBg) + ';border:1px solid ' + escapeHtml(softBorder) + ';border-radius:' + aiRadius + 'px;padding:10px 12px;margin-top:10px;margin-bottom:16px;text-align:left;font-family:' + fontStack(data.widget.fontFamily) + ';font-size:' + aiSummaryFontSize + 'px">' +
       '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">' +
         '<p style="margin:0;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:' + escapeHtml(primaryColor) + '">✶ AI Summary</p>' +
         countHtml +
@@ -518,14 +522,35 @@ const script = `
     return '<span style="font-size:11px;color:rgba(0,0,0,.4)">✓</span>';
   }
 
+  function resolveStarColorEmbed(widget) {
+    var mode = widget.starColorMode || "gold";
+    if (mode === "accent") return widget.primaryColor || "#4338ca";
+    if (mode === "ink") return widget.theme === "dark" ? "#f4f4f5" : "#18181b";
+    return widget.starColor || "#f59e0b";
+  }
+
+  function resolveCardStyleEmbed(widget) {
+    var style = widget.cardStyle || "border";
+    var bg = widget.backgroundColor || "#ffffff";
+    var isDark = widget.theme === "dark";
+    if (style === "shadow") return "background:" + bg + ";border:1px solid transparent;box-shadow:" + (isDark ? "0 4px 16px rgba(0,0,0,.45)" : "0 2px 12px rgba(0,0,0,.10)") + ";";
+    if (style === "soft") return "background:" + (isDark ? "rgba(255,255,255,.05)" : "rgba(0,0,0,.04)") + ";border:1px solid transparent;";
+    return "background:" + bg + ";border:1px solid rgba(0,0,0,.08);";
+  }
+
   function renderCard(review, widget) {
     var body = truncate(review.body || '', widget.bodyMaxChars || 280);
     var textColor = widget.textColor || "#0f172a";
-    var backgroundColor = widget.backgroundColor || "#ffffff";
-    var starColor = widget.starColor || "#f59e0b";
     var primaryColor = widget.primaryColor || "#4338ca";
+    var starColor = resolveStarColorEmbed(widget);
+    var cardStyleCss = resolveCardStyleEmbed(widget);
+    var radius = typeof widget.cornerRadius === "number" ? widget.cornerRadius : 12;
+    var pad = widget.density === "compact" ? "12px" : "16px";
+    var fontSizeBase = widget.fontSizeBase || 14;
+    var fontSizeNames = widget.fontSizeNames || 13;
+    var fontSizeLabel = widget.fontSizeLabel || 12;
 
-    var html = '<article class="why-widget-card" style="background:' + escapeHtml(backgroundColor) + ';color:' + escapeHtml(textColor) + '">';
+    var html = '<article class="why-widget-card" style="' + cardStyleCss + 'color:' + escapeHtml(textColor) + ';border-radius:' + radius + 'px;padding:' + pad + ';font-size:' + fontSizeBase + 'px">';
 
     // 1. Reviewer info at TOP: avatar left, name + date stacked right, source mark far right
     if (widget.showReviewerName) {
@@ -540,8 +565,8 @@ const script = `
       html += '<div class="why-widget-reviewer">' +
         avatarHtml +
         '<div>' +
-          '<div class="why-widget-name">' + escapeHtml(review.reviewerName || 'Anonymous') + '</div>' +
-          (widget.showDate && review.reviewedAt ? '<div class="why-widget-date">' + escapeHtml(formatDate(review.reviewedAt)) + '</div>' : '') +
+          '<div class="why-widget-name" style="font-size:' + fontSizeNames + 'px">' + escapeHtml(review.reviewerName || 'Anonymous') + '</div>' +
+          (widget.showDate && review.reviewedAt ? '<div class="why-widget-date" style="font-size:' + fontSizeLabel + 'px">' + escapeHtml(formatDate(review.reviewedAt)) + '</div>' : '') +
         '</div>' +
         sourceMarkHtml +
       '</div>';
@@ -1051,7 +1076,9 @@ const script = `
 
           // The widget "name" is an internal admin label — never render it on the
           // public/embed site. Customer-facing heading comes from renderHeader.
-          mount.innerHTML = '<div class="why-widget" style="font-family:' + fontStack(data.widget.fontFamily) + ';background:' + escapeHtml(data.widget.backgroundColor) + ';color:' + escapeHtml(data.widget.textColor) + ';border-radius:18px;padding:24px 28px;border:1px solid rgba(0,0,0,.06)">' +
+          var wrapRadius = typeof data.widget.cornerRadius === "number" ? data.widget.cornerRadius + 4 : 18;
+          var wrapPad = data.widget.density === "compact" ? "16px 20px" : "24px 28px";
+          mount.innerHTML = '<div class="why-widget" style="font-family:' + fontStack(data.widget.fontFamily) + ';background:' + escapeHtml(data.widget.backgroundColor) + ';color:' + escapeHtml(data.widget.textColor) + ';border-radius:' + wrapRadius + 'px;padding:' + wrapPad + ';border:1px solid rgba(0,0,0,.06)">' +
             renderHeader(data) +
             renderAiSummary(data) +
             listWrapper +

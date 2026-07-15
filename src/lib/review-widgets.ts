@@ -63,6 +63,13 @@ export type PublicWidgetPayload = {
     backgroundColor: string;
     textColor: string;
     fontFamily: string;
+    starColorMode: string;
+    cornerRadius: number;
+    cardStyle: string;
+    density: string;
+    gridColumns: string;
+    wallStyle: string;
+    enabledSources: string;
     // Collecting Widget
     collectDisplayFreq: string | null;
     collectButtonColor: string | null;
@@ -275,6 +282,13 @@ export async function getPublicReviewWidgetPayload(publicToken: string, page = 1
     backgroundColor: widget.backgroundColor,
     textColor: widget.textColor,
     fontFamily: widget.fontFamily,
+    starColorMode: (widget as { starColorMode?: string }).starColorMode ?? "gold",
+    cornerRadius: (widget as { cornerRadius?: number }).cornerRadius ?? 12,
+    cardStyle: (widget as { cardStyle?: string }).cardStyle ?? "border",
+    density: (widget as { density?: string }).density ?? "cozy",
+    gridColumns: (widget as { gridColumns?: string }).gridColumns ?? "auto",
+    wallStyle: (widget as { wallStyle?: string }).wallStyle ?? "varied",
+    enabledSources: (widget as { enabledSources?: string }).enabledSources ?? "",
     fontSizeBase: widget.fontSizeBase ?? 14,
     fontSizeNames: widget.fontSizeNames ?? 13,
     fontSizeHeader: widget.fontSizeHeader ?? 20,

@@ -142,9 +142,10 @@ const VIDEOS: Video[] = [
 ];
 
 
-const Stars = ({ value = 0, size = 14, gap = 1.5 }: { value?: number; size?: number; gap?: number }) => {
+const Stars = ({ value = 0, size = 14, gap = 1.5, color }: { value?: number; size?: number; gap?: number; color?: string }) => {
   const full = Math.floor(value);
   const frac = value - full;
+  const starFill = color || "var(--star)";
   return (
     <span style={st({ display: "inline-flex", gap })}>
       {[0, 1, 2, 3, 4].map((i) => {
@@ -156,7 +157,7 @@ const Stars = ({ value = 0, size = 14, gap = 1.5 }: { value?: number; size?: num
             </svg>
             <span style={st({ position: "absolute", inset: 0, width: `${fill * 100}%`, overflow: "hidden" })}>
               <svg viewBox="0 0 24 24" width={size} height={size} style={st({ display: "block" })}>
-                <path d="M12 3.6l2.6 5.3 5.8.85-4.2 4.1 1 5.78L12 17.9l-5.2 2.73 1-5.78-4.2-4.1 5.8-.85z" fill="var(--star)" />
+                <path d="M12 3.6l2.6 5.3 5.8.85-4.2 4.1 1 5.78L12 17.9l-5.2 2.73 1-5.78-4.2-4.1 5.8-.85z" fill={starFill} />
               </svg>
             </span>
           </span>
@@ -184,6 +185,26 @@ const Avatar = ({ name = "", size = 34 }: { name?: string; size?: number }) => {
     </span>
   );
 };
+
+const FONT_STACKS: Record<string, string> = {
+  system: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+  sans: "'Inter', 'Helvetica Neue', Arial, sans-serif",
+  serif: "'Georgia', 'Times New Roman', serif",
+  round: "'Nunito', 'Varela Round', sans-serif",
+  mono: "'JetBrains Mono', 'Fira Code', 'Courier New', monospace",
+};
+
+function resolveStarColor(s: PreviewSettings): string {
+  if (s.starColorMode === "accent") return s.accent;
+  if (s.starColorMode === "ink") return s.theme === "dark" ? "#f4f4f5" : "#18181b";
+  return s.starColor || "#fbbf24"; // gold
+}
+
+function resolveCardStyle(s: PreviewSettings, tk: { bg: string; card: string; line: string }) {
+  if (s.cardStyle === "shadow") return { background: tk.card, border: "1px solid transparent", boxShadow: s.theme === "dark" ? "0 4px 16px rgba(0,0,0,.45)" : "0 2px 12px rgba(0,0,0,.10)" };
+  if (s.cardStyle === "soft") return { background: s.theme === "dark" ? "rgba(255,255,255,.05)" : "rgba(0,0,0,.04)", border: "1px solid transparent" };
+  return { background: tk.card, border: `1px solid ${tk.line}` }; // border (default)
+}
 
 const wTokens = (s: PreviewSettings) =>
   s.theme === "dark"
@@ -214,20 +235,28 @@ const SourceBadge = ({ source, size = 18 }: { source: string; size?: number }) =
   </span>
 );
 
-const ReviewCardW = ({ r, s, tk }: { r: Review; s: PreviewSettings; tk: Tokens }) => (
-  <div style={st({ background: tk.card, border: `1px solid ${tk.line}`, borderRadius: s.radius, padding: 16, display: "flex", flexDirection: "column", gap: 9, minWidth: 0 })}>
-    <div style={st({ display: "flex", alignItems: "center", gap: 10 })}>
-      {s.showAvatars && <Avatar name={r.name} size={34} />}
-      <div style={st({ minWidth: 0, flex: 1 })}>
-        <div style={st({ fontSize: 13.5, fontWeight: 620, color: tk.text })}>{r.name}</div>
-        {s.showDates && <div style={st({ fontSize: 11.5, color: tk.muted })}>{r.time}</div>}
+const ReviewCardW = ({ r, s, tk }: { r: Review; s: PreviewSettings; tk: Tokens }) => {
+  const cardStyles = resolveCardStyle(s, tk);
+  const starColor = resolveStarColor(s);
+  const fontStack = FONT_STACKS[s.fontFamily] || FONT_STACKS.system;
+  const pad = s.density === "compact" ? 12 : 16;
+  const truncLen = s.bodyMaxChars || 280;
+  const bodyText = r.text.length > truncLen ? r.text.slice(0, truncLen) + "…" : r.text;
+  return (
+    <div style={st({ ...cardStyles, borderRadius: s.radius, padding: pad, display: "flex", flexDirection: "column", gap: s.density === "compact" ? 7 : 9, minWidth: 0, fontFamily: fontStack })}>
+      <div style={st({ display: "flex", alignItems: "center", gap: 10 })}>
+        {s.showAvatars && <Avatar name={r.name} size={s.density === "compact" ? 28 : 34} />}
+        <div style={st({ minWidth: 0, flex: 1 })}>
+          <div style={st({ fontSize: s.fontSizeNames || 13.5, fontWeight: 620, color: tk.text })}>{r.name}</div>
+          {s.showDates && <div style={st({ fontSize: s.fontSizeLabel || 11.5, color: tk.muted })}>{r.time}</div>}
+        </div>
+        {s.showSources && <SourceBadge source={r.source} size={18} />}
       </div>
-      {s.showSources && <SourceBadge source={r.source} size={18} />}
+      <Stars value={r.rating} size={s.density === "compact" ? 13 : 15} color={starColor} />
+      <p style={st({ fontSize: s.fontSizeBase || 13, lineHeight: 1.55, color: tk.sub, margin: 0, display: "-webkit-box", WebkitLineClamp: 4, WebkitBoxOrient: "vertical", overflow: "hidden" })}>{bodyText}</p>
     </div>
-    <Stars value={r.rating} size={15} />
-    <p style={st({ fontSize: 13, lineHeight: 1.55, color: tk.sub, margin: 0, display: "-webkit-box", WebkitLineClamp: 4, WebkitBoxOrient: "vertical", overflow: "hidden" })}>{r.text}</p>
-  </div>
-);
+  );
+};
 
 const VideoCardW = ({ v, s, tk }: { v: Video; s: PreviewSettings; tk: Tokens }) => (
   <div style={st({ background: tk.card, border: `1px solid ${tk.line}`, borderRadius: s.radius, overflow: "hidden", display: "flex", flexDirection: "column", minWidth: 0 })}>
@@ -303,14 +332,16 @@ function cornerStyle(pos: string): React.CSSProperties {
 }
 
 function Header({ s, tk, avg, total }: { s: PreviewSettings; tk: ReturnType<typeof wTokens>; avg: number; total: string }) {
+  const starColor = resolveStarColor(s);
+  const fontStack = FONT_STACKS[s.fontFamily] || FONT_STACKS.system;
   return s.showHeader ? (
-    <div style={st({ display: "flex", alignItems: "center", gap: 14, marginBottom: 18, flexWrap: "wrap" })}>
+    <div style={st({ display: "flex", alignItems: "center", gap: 14, marginBottom: 18, flexWrap: "wrap", fontFamily: fontStack })}>
       <div style={st({ display: "flex", alignItems: "baseline", gap: 8 })}>
-        <span style={st({ fontSize: 34, fontWeight: 720, letterSpacing: "-.03em", color: tk.text, fontFamily: "var(--font-mono)" })}>{avg}</span>
-        <Stars value={avg} size={18} />
+        <span style={st({ fontSize: s.fontSizeHeader || 34, fontWeight: 720, letterSpacing: "-.03em", color: tk.text })}>{avg}</span>
+        <Stars value={avg} size={18} color={starColor} />
       </div>
-      <div style={st({ height: 30, width: 1, background: tk.line })} />
-      <div style={st({ fontSize: 13, color: tk.sub })}>Based on <b style={st({ color: tk.text })}>{total}</b> verified reviews</div>
+      {s.showAvgRating !== false && s.showReviewCount !== false && <div style={st({ height: 30, width: 1, background: tk.line })} />}
+      {s.showReviewCount !== false && <div style={st({ fontSize: s.fontSizeLabel || 13, color: tk.sub })}>Based on <b style={st({ color: tk.text })}>{total}</b> verified reviews</div>}
       <div style={st({ marginLeft: "auto" })}><VerifiedTag s={s} tk={tk} /></div>
     </div>
   ) : null;
@@ -539,8 +570,17 @@ export function WidgetMockPreview({
   }
 
   // grid / carousel (Wall of Love)
-  const filteredReviews = reviews.filter((r) => s.sources[r.source] && r.rating >= s.minRating);
-  const videos = VIDEOS.filter((v) => s.sources[v.source]);
+  // Build a set of enabled sources from the gridColumns/wallStyle settings
+  // The `sources` field in PreviewSettings is a legacy Record<string,bool> — we also
+  // support the new string-based `enabledSources` CSV passed via previewSettings.
+  const enabledSourcesSet: Set<string> = (() => {
+    // Check if any source in the sources record is explicitly false
+    const hasExplicitFalse = Object.values(s.sources).some((v) => v === false);
+    if (!hasExplicitFalse) return new Set(["Google", "Facebook", "Yelp", "WeHearYou", "Trustpilot", "INTERNAL"]);
+    return new Set(Object.entries(s.sources).filter(([, v]) => v).map(([k]) => k));
+  })();
+  const filteredReviews = reviews.filter((r) => enabledSourcesSet.has(r.source) && r.rating >= s.minRating);
+  const videos = VIDEOS.filter((v) => enabledSourcesSet.has(v.source));
   let items: Array<{ kind: "review"; data: Review } | { kind: "video"; data: Video }>;
   if (s.content === "videos") items = videos.map((v) => ({ kind: "video" as const, data: v }));
   else if (s.content === "mixed") {
@@ -564,13 +604,34 @@ export function WidgetMockPreview({
       <Header s={s} tk={tk} avg={avg} total={total} />
       {showSummary && <AISummaryBox s={s} tk={tk} />}
       {s.type === "grid" ? (
-        <div style={st({ columns: s.device === "mobile" ? "1" : "240px", columnGap: 14 })}>
-          {items.map((it) => (
-            <div key={it.kind + it.data.id} style={st({ breakInside: "avoid", marginBottom: 14 })}>
-              {it.kind === "video" ? <VideoCardW v={it.data} s={s} tk={tk} /> : <ReviewCardW r={it.data} s={s} tk={tk} />}
+        (() => {
+          const gap = s.density === "compact" ? 10 : 14;
+          // Determine column layout
+          let gridStyle: React.CSSProperties;
+          if (s.device === "mobile") {
+            gridStyle = { columns: "1", columnGap: gap };
+          } else if (s.gridColumns === "2") {
+            gridStyle = { display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap };
+          } else if (s.gridColumns === "3") {
+            gridStyle = { display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap };
+          } else {
+            // auto = masonry-style columns
+            gridStyle = { columns: "240px", columnGap: gap };
+          }
+          // wallStyle: "uniform" = fixed card heights; "varied" = natural masonry
+          const cardWrap: React.CSSProperties = s.gridColumns !== "auto"
+            ? { display: "contents" } // grid layout handles spacing
+            : { breakInside: "avoid", marginBottom: gap };
+          return (
+            <div style={st(gridStyle)}>
+              {items.map((it) => (
+                <div key={it.kind + it.data.id} style={st(cardWrap)}>
+                  {it.kind === "video" ? <VideoCardW v={it.data} s={s} tk={tk} /> : <ReviewCardW r={it.data} s={s} tk={tk} />}
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
+          );
+        })()
       ) : (
         <div style={st({ display: "flex", flexDirection: "column", gap: 14 })}>
           {([["l", marqueeRows[0]], ["r", marqueeRows[1]]] as Array<["l" | "r", typeof items]>).map(([dir, row], idx) =>
