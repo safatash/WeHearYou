@@ -6,7 +6,7 @@ import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { Icon, type IconName } from "@/components/icon";
 import { WidgetMockPreview, type PreviewSettings } from "@/components/widget-mock-preview";
-import { updateReviewWidget } from "@/app/widgets/actions";
+import { updateReviewWidget, getOrCreateWidgetForLocation } from "@/app/widgets/actions";
 
 const st = (s: React.CSSProperties): React.CSSProperties => s;
 
@@ -54,6 +54,7 @@ export type StudioWidget = {
   id: string;
   publicToken: string;
   name: string;
+  organizationId: string;
   locationId: string;
   layout: string;
   contentType: string;
@@ -249,7 +250,8 @@ export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [], aiS
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [name, setName] = useState(widget.name);
-  const [locationId, setLocationId] = useState(widget.locationId);
+  const [locationId] = useState(widget.locationId);
+  const [locationSwitching, setLocationSwitching] = useState(false);
   const [typeKey, setTypeKey] = useState<TypeKey>(deriveTypeKey(widget));
   const [content, setContent] = useState<ContentKey>(deriveContent(widget.contentType));
   const [dark, setDark] = useState(widget.theme === "dark");
@@ -344,7 +346,6 @@ export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [], aiS
     const { widgetType, layout } = TYPE_TO_FIELDS[typeKey];
     const fd = new FormData();
     fd.append("widgetId", widget.id);
-    fd.append("locationId", locationId);
     fd.append("name", (name || "").trim() || "Untitled widget");
     fd.append("widgetType", widgetType);
     fd.append("layout", layout);
@@ -404,14 +405,9 @@ export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [], aiS
     fd.append("textColor", widget.textColor);
     fd.append("fontFamily", widget.fontFamily);
 
-    const locationChanged = locationId !== widget.locationId;
-
     try {
       await updateReviewWidget(fd);
       setSaveState("saved");
-      if (locationChanged) {
-        router.refresh();
-      }
       setTimeout(() => setSaveState("idle"), 1600);
     } catch (e) {
       if (isRedirectError(e)) {
@@ -472,12 +468,17 @@ export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [], aiS
             <Field label="Location">
               <select
                 value={locationId}
-                onChange={(e) => {
+                disabled={locationSwitching}
+                onChange={async (e) => {
                   const newLocationId = e.target.value;
-                  setLocationId(newLocationId);
-                  const params = new URLSearchParams(searchParams);
-                  params.set('location', newLocationId);
-                  router.push(`${pathname}?${params.toString()}`);
+                  if (newLocationId === locationId) return;
+                  setLocationSwitching(true);
+                  try {
+                    const { widgetId } = await getOrCreateWidgetForLocation(widget.id, newLocationId);
+                    router.push(`/widgets/${widgetId}`);
+                  } catch {
+                    setLocationSwitching(false);
+                  }
                 }}
                 style={st({ width: "100%", borderRadius: "var(--r-sm)", border: "1px solid var(--ink-200)", background: "var(--ink-50)", padding: "8px 11px", fontSize: 13, color: "var(--ink-900)", outline: "none" })}
               >

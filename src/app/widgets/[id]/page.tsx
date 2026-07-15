@@ -60,6 +60,7 @@ export default async function WidgetDetailPage({
       id: widget.id,
       publicToken: widget.publicToken,
       name: widget.name,
+      organizationId: widget.organizationId,
       locationId: widget.locationId,
       layout: widget.layout,
       contentType: widget.contentType,
