@@ -365,7 +365,8 @@ export function WidgetMockPreview({
 
   // Use real data if available, otherwise use defaults
   const reviews = realReviews && realReviews.length > 0 ? convertRealReviews(realReviews) : REVIEWS;
-  const avg = locationStats?.avgRating ?? 4.6;
+  const avgRating = locationStats?.avgRating ?? 4.6;
+  const avg = parseFloat(avgRating.toFixed(1));
   const total = locationStats?.reviewCount ? locationStats.reviewCount.toLocaleString() : "1,284";
 
   if (s.type === "floating") {
