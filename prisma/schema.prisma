@@ -700,6 +700,7 @@ model ReviewWidget {
   density          String       @default("cozy")    // "cozy" | "compact"
   gridColumns      String       @default("auto")    // "auto" | "2" | "3"
   wallStyle        String       @default("varied")  // "varied" | "uniform"
+  cardHeights      String       @default("equal")   // "equal" | "natural" (masonry)
   enabledSources   String       @default("")         // CSV of GOOGLE,FACEBOOK,YELP,TRUSTPILOT; "" = all
   showBranding     Boolean      @default(true)
   collectTitle     String?

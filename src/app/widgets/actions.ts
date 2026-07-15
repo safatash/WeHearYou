@@ -227,6 +227,7 @@ export async function updateReviewWidget(formData: FormData) {
   const rawDensity = String(formData.get("density") ?? "cozy");
   const rawGridColumns = String(formData.get("gridColumns") ?? "auto");
   const rawWallStyle = String(formData.get("wallStyle") ?? "varied");
+  const rawCardHeights = String(formData.get("cardHeights") ?? "equal");
   const rawEnabledSources = String(formData.get("enabledSources") ?? "").trim();
   const rawMinRating = Number(formData.get("minRating") ?? 1);
   const rawPageSize = Number(formData.get("pageSize") ?? 12);
@@ -290,6 +291,7 @@ export async function updateReviewWidget(formData: FormData) {
       density: ["cozy", "compact"].includes(rawDensity) ? rawDensity : "cozy",
       gridColumns: ["auto", "2", "3"].includes(rawGridColumns) ? rawGridColumns : "auto",
       wallStyle: ["varied", "uniform"].includes(rawWallStyle) ? rawWallStyle : "varied",
+      cardHeights: ["equal", "natural"].includes(rawCardHeights) ? rawCardHeights : "equal",
       enabledSources: rawEnabledSources, // empty string = all sources enabled
       fontSizeBase: Math.max(11, Math.min(18, fontSizeBase)),
       fontSizeNames: Math.max(10, Math.min(16, fontSizeNames)),

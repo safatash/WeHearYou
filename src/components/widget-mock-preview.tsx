@@ -43,6 +43,7 @@ export type PreviewSettings = {
   density: "cozy" | "compact";
   gridColumns: string;
   wallStyle: "varied" | "uniform";
+  cardHeights: "equal" | "natural";
   fontSizeBase: number;
   fontSizeNames: number;
   fontSizeHeader: number;
@@ -96,6 +97,7 @@ export const PREVIEW_DEFAULTS: PreviewSettings = {
   density: "cozy",
   gridColumns: "auto",
   wallStyle: "varied",
+  cardHeights: "equal",
   fontSizeBase: 14,
   fontSizeNames: 13,
   fontSizeHeader: 20,
@@ -665,6 +667,10 @@ export function WidgetMockPreview({
           let gridStyle: React.CSSProperties;
           if (s.device === "mobile") {
             gridStyle = { columns: "1", columnGap: gap };
+          } else if (s.cardHeights === "natural") {
+            // Natural masonry: always use CSS columns regardless of gridColumns setting
+            const colCount = s.gridColumns === "3" ? 3 : s.gridColumns === "2" ? 2 : 2;
+            gridStyle = { columns: colCount, columnGap: gap };
           } else if (s.gridColumns === "2") {
             gridStyle = { display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap };
           } else if (s.gridColumns === "3") {
@@ -673,9 +679,10 @@ export function WidgetMockPreview({
             // auto = masonry-style columns
             gridStyle = { columns: "240px", columnGap: gap };
           }
-          // uniform = all cards same height; varied = natural masonry heights
-          const uniformHeight = s.wallStyle === "uniform" ? 180 : undefined;
-          const cardWrap: React.CSSProperties = s.gridColumns !== "auto"
+          // cardHeights: "equal" = all cards same height; "natural" = masonry heights
+          const isNatural = s.cardHeights === "natural";
+          const uniformHeight = !isNatural ? 180 : undefined;
+          const cardWrap: React.CSSProperties = (s.gridColumns !== "auto" && !isNatural)
             ? { display: "contents" }
             : { breakInside: "avoid", marginBottom: gap };
           return (

@@ -69,6 +69,7 @@ export type PublicWidgetPayload = {
     density: string;
     gridColumns: string;
     wallStyle: string;
+    cardHeights: string;
     enabledSources: string;
     // Collecting Widget
     collectDisplayFreq: string | null;
@@ -288,6 +289,7 @@ export async function getPublicReviewWidgetPayload(publicToken: string, page = 1
     density: (widget as { density?: string }).density ?? "cozy",
     gridColumns: (widget as { gridColumns?: string }).gridColumns ?? "auto",
     wallStyle: (widget as { wallStyle?: string }).wallStyle ?? "varied",
+    cardHeights: (widget as { cardHeights?: string }).cardHeights ?? "equal",
     enabledSources: (widget as { enabledSources?: string }).enabledSources ?? "",
     fontSizeBase: widget.fontSizeBase ?? 14,
     fontSizeNames: widget.fontSizeNames ?? 13,

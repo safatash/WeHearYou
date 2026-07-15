@@ -111,6 +111,7 @@ export type StudioWidget = {
   density: string;
   gridColumns: string;
   wallStyle: string;
+  cardHeights: string;
   enabledSources: string;
   // preserved-as-is fields (not exposed in this editor)
   sort: string;
@@ -297,6 +298,7 @@ export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [], aiS
   const [density, setDensity] = useState(widget.density || "cozy");
   const [gridColumns, setGridColumns] = useState(widget.gridColumns || "auto");
   const [wallStyle, setWallStyle] = useState(widget.wallStyle || "varied");
+  const [cardHeights, setCardHeights] = useState(widget.cardHeights || "equal");
   // Sources: parse CSV string into a Set
   const ALL_SOURCES = ["GOOGLE", "FACEBOOK", "YELP", "INTERNAL"] as const;
   const SOURCE_LABELS: Record<string, string> = { GOOGLE: "Google", FACEBOOK: "Facebook", YELP: "Yelp", INTERNAL: "WeHearYou" };
@@ -383,6 +385,7 @@ export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [], aiS
     density: density as PreviewSettings["density"],
     gridColumns,
     wallStyle: wallStyle as PreviewSettings["wallStyle"],
+    cardHeights: cardHeights as PreviewSettings["cardHeights"],
     fontFamily,
     starColorMode: starColorMode as PreviewSettings["starColorMode"],
     aiSummary: isReviewWall && content !== "videos" && showAiSummary,
@@ -468,6 +471,7 @@ export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [], aiS
     fd.append("density", density);
     fd.append("gridColumns", gridColumns);
     fd.append("wallStyle", wallStyle);
+    fd.append("cardHeights", cardHeights);
     // Sources: serialize Set back to CSV (empty string = all enabled)
     const allEnabled = ALL_SOURCES.every((s) => enabledSourcesSet.has(s));
     fd.append("enabledSources", allEnabled ? "" : Array.from(enabledSourcesSet).join(","));
@@ -643,6 +647,12 @@ export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [], aiS
                     <Segmented value={wallStyle} onChange={setWallStyle} options={[
                       { value: "varied", label: "Varied" },
                       { value: "uniform", label: "Uniform" },
+                    ]} />
+                  </Field>
+                  <Field label="Card heights">
+                    <Segmented value={cardHeights} onChange={setCardHeights} options={[
+                      { value: "equal", label: "Equal" },
+                      { value: "natural", label: "Natural" },
                     ]} />
                   </Field>
                 </>

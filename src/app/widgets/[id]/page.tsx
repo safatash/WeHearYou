@@ -108,6 +108,7 @@ export default async function WidgetDetailPage({
       density: widget.density,
       gridColumns: widget.gridColumns,
       wallStyle: widget.wallStyle,
+      cardHeights: widget.cardHeights,
       enabledSources: widget.enabledSources,
       showAvgRating: widget.showAvgRating,
       showReviewCount: widget.showReviewCount,

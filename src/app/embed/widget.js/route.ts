@@ -67,6 +67,8 @@ const script = `
       ".why-widget-branding-wrap{margin-top:16px;padding-top:16px;border-top:1px solid rgba(0,0,0,.08);font-size:12px;font-weight:600}" +
       ".why-widget-branding-wrap a{text-decoration:none}" +
       ".why-widget-grid{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}" +
+      ".why-widget-card{break-inside:avoid;margin-bottom:0}" +
+      ".why-widget-masonry-col .why-widget-card{margin-bottom:16px}" +
       ".why-widget-list{display:flex;flex-direction:column;gap:12px}" +
       ".why-widget-slider{position:relative}" +
       ".why-widget-slider-track{display:flex;gap:16px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:8px;scrollbar-width:thin}" +
@@ -1099,16 +1101,31 @@ const script = `
           // Apply dynamic grid columns and wall style to the grid container
           if (container && (data.widget.layout === "grid" || data.widget.layout === "masonry" || data.widget.layout === "mixed-masonry")) {
             var gc = data.widget.gridColumns || "auto";
-            if (gc === "2") {
-              container.style.gridTemplateColumns = "repeat(2, 1fr)";
-            } else if (gc === "3") {
-              container.style.gridTemplateColumns = "repeat(3, 1fr)";
-            }
-            // uniform: all cards same height; varied: natural masonry heights
-            if (data.widget.wallStyle === "uniform") {
-              container.style.alignItems = "stretch";
+            var isNaturalHeights = data.widget.cardHeights === "natural";
+            if (isNaturalHeights) {
+              // Natural = true masonry: use CSS columns so cards have natural heights
+              container.style.display = "block";
+              container.style.gridTemplateColumns = "";
+              if (gc === "3") {
+                container.style.columns = "3";
+              } else if (gc === "2") {
+                container.style.columns = "2";
+              } else {
+                container.style.columns = "240px";
+              }
+              container.style.columnGap = "16px";
             } else {
-              container.style.alignItems = "start";
+              // Equal = CSS grid with equal row heights
+              container.style.display = "grid";
+              container.style.columns = "";
+              if (gc === "2") {
+                container.style.gridTemplateColumns = "repeat(2, 1fr)";
+              } else if (gc === "3") {
+                container.style.gridTemplateColumns = "repeat(3, 1fr)";
+              } else {
+                container.style.gridTemplateColumns = "repeat(auto-fit, minmax(260px, 1fr))";
+              }
+              container.style.alignItems = "stretch";
             }
           }
           footerActions = mount.querySelector(".why-widget-footer");
