@@ -18,10 +18,12 @@ export async function AppShell({
   children,
   activeScreen,
   flash,
+  selectedLocationId,
 }: {
   children: React.ReactNode;
   activeScreen: ScreenKey;
   flash?: { tone?: "success" | "error" | "info"; message: string } | null;
+  selectedLocationId?: string;
 }) {
   const jar = await cookies();
   const isImpersonating = Boolean(jar.get("why_impersonate")?.value);
@@ -200,7 +202,7 @@ export async function AppShell({
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <LocationSwitcher locations={locations} />
+            <LocationSwitcher locations={locations} currentLocationId={selectedLocationId} />
             <NotificationButton />
             <UserDropdown userName={userName} userEmail={userEmail} />
           </div>

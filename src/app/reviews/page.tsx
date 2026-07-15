@@ -34,7 +34,7 @@ export default async function ReviewsPage({
   const source: ReviewSourceFilter = ["google", "facebook", "internal"].includes(requestedSource)
     ? (requestedSource as ReviewSourceFilter)
     : "all";
-  const locationId = typeof query.locationId === "string" ? query.locationId : "all";
+  const locationId = typeof query.location === "string" ? query.location : "all";
   const selectedId = typeof query.selected === "string" ? query.selected : null;
 
   const locationIds = await getCurrentAccessibleLocationIds();
@@ -60,7 +60,7 @@ export default async function ReviewsPage({
     params.set("sort", sort);
     params.set("status", status);
     params.set("source", source);
-    params.set("locationId", allowedLocationId);
+    params.set("location", allowedLocationId);
     return `/reviews?${params.toString()}`;
   })();
 
@@ -69,13 +69,13 @@ export default async function ReviewsPage({
     params.set("sort", next.sort ?? sort);
     params.set("status", next.status ?? status);
     params.set("source", next.source ?? source);
-    params.set("locationId", next.locationId ?? allowedLocationId);
+    params.set("location", next.locationId ?? allowedLocationId);
     if (selectedId) params.set("selected", selectedId);
     return `/reviews?${params.toString()}`;
   };
 
   return (
-    <AppShell activeScreen="reviews">
+    <AppShell activeScreen="reviews" selectedLocationId={allowedLocationId !== "all" ? allowedLocationId : undefined}>
       <div className="flex flex-col gap-6">
         {/* Header */}
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">

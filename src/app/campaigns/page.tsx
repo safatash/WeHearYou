@@ -41,11 +41,13 @@ export default async function CampaignsPage({
         })
         .filter((entry): entry is { channel: string; id: string } => Boolean(entry))
     : [];
+  const selectedLocationId = typeof params.location === "string" ? params.location : null;
   const locationIds = await getCurrentAccessibleLocationIds();
-  const campaigns = await getCampaigns(locationIds);
+  const filteredIds = selectedLocationId && locationIds.includes(selectedLocationId) ? [selectedLocationId] : locationIds;
+  const campaigns = await getCampaigns(filteredIds);
 
   return (
-    <AppShell activeScreen="campaigns" flash={flash ? { message: flash, tone } : null}>
+    <AppShell activeScreen="campaigns" flash={flash ? { message: flash, tone } : null} selectedLocationId={selectedLocationId ?? undefined}>
       <div style={{ maxWidth: 1240, margin: "0 auto", padding: "var(--gutter)" }}>
         {createdCampaigns.length > 1 ? (
           <div style={{ padding: "14px 18px", borderRadius: "var(--r-md)", border: "1px solid var(--accent-border)", background: "var(--accent-soft)", marginBottom: "var(--gutter)" }}>

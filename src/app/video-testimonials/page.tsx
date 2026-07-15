@@ -19,13 +19,22 @@ function formatDuration(seconds: number | null) {
   return m > 0 ? `${m}m ${s}s` : `${s}s`;
 }
 
-export default async function VideoTestimonialsPage() {
+export default async function VideoTestimonialsPage({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const membership = await requireActiveMembershipPage();
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const query = (await searchParams) ?? {};
+  const selectedLocationId = typeof query.location === "string" ? query.location : null;
 
   const [locations, contactRows] = await Promise.all([
     prisma.location.findMany({
-      where: { organizationId: membership.organizationId },
+      where: {
+        organizationId: membership.organizationId,
+        ...(selectedLocationId ? { id: selectedLocationId } : {}),
+      },
       select: {
         id: true,
         name: true,
@@ -83,7 +92,7 @@ export default async function VideoTestimonialsPage() {
   const publishedCount = allTestimonials.filter((vt) => vt.status === "APPROVED").length;
 
   return (
-    <AppShell activeScreen="video-testimonials">
+    <AppShell activeScreen="video-testimonials" selectedLocationId={selectedLocationId ?? undefined}>
       <div className="mx-auto max-w-5xl space-y-6">
         <div>
           <p className="text-sm font-semibold uppercase tracking-[0.22em] text-indigo-600">Video Testimonials</p>

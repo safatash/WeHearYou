@@ -13,7 +13,11 @@ import { Icon } from "@/components/icon";
 import { Sparkline, RatingTrendChart, Donut, SourceBars } from "@/components/dashboard/charts";
 import { RecentReviews } from "@/components/dashboard/recent-reviews";
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const membership = await getCurrentMembership();
 
   if (!membership) {
@@ -49,14 +53,17 @@ export default async function DashboardPage() {
     redirect("/onboarding");
   }
 
+  const query = (await searchParams) ?? {};
+  const selectedLocationId = typeof query.location === "string" ? query.location : null;
   const locationIds = await getCurrentAccessibleLocationIds();
-  const dashboard = await getDashboardData(locationIds);
+  const filteredIds = selectedLocationId && locationIds.includes(selectedLocationId) ? [selectedLocationId] : locationIds;
+  const dashboard = await getDashboardData(filteredIds);
   const userName = membership.user.name?.split(" ")[0] || "there";
   const greeting = getGreeting(userName);
   const dateLabel = new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
 
   return (
-    <AppShell activeScreen="dashboard">
+    <AppShell activeScreen="dashboard" selectedLocationId={selectedLocationId ?? undefined}>
       <div style={{ maxWidth: 1240, margin: "0 auto", padding: "var(--gutter)" }}>
         {showChecklist && (
           <OnboardingChecklist

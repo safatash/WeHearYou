@@ -47,7 +47,7 @@ export default async function WidgetsPage({
   }));
 
   return (
-    <AppShell activeScreen="widgets" flash={flashMessage ? { message: flashMessage, tone: flashTone } : null}>
+    <AppShell activeScreen="widgets" flash={flashMessage ? { message: flashMessage, tone: flashTone } : null} selectedLocationId={selectedLocationId ?? undefined}>
       <WidgetsIndex widgets={indexWidgets} />
     </AppShell>
   );

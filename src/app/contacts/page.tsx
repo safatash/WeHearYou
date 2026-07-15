@@ -5,12 +5,19 @@ import { AppShell } from "@/components/app-shell";
 import { formatContactSource, formatContactStatus, formatLastInvite, getContacts } from "@/lib/contacts";
 import { getCurrentAccessibleLocationIds } from "@/lib/current-scope";
 
-export default async function ContactsPage() {
+export default async function ContactsPage({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const query = (await searchParams) ?? {};
+  const selectedLocationId = typeof query.location === "string" ? query.location : null;
   const locationIds = await getCurrentAccessibleLocationIds();
-  const contacts = await getContacts(locationIds);
+  const filteredIds = selectedLocationId && locationIds.includes(selectedLocationId) ? [selectedLocationId] : locationIds;
+  const contacts = await getContacts(filteredIds);
 
   return (
-    <AppShell activeScreen="contacts">
+    <AppShell activeScreen="contacts" selectedLocationId={selectedLocationId ?? undefined}>
       <div style={{ maxWidth: 1240, margin: "0 auto", padding: "var(--gutter)" }}>
         {/* Header */}
         <div

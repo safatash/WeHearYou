@@ -10,15 +10,22 @@ import { requireActiveMembershipPage } from "@/lib/page-guards";
 import { getCurrentAccessibleLocationIds } from "@/lib/current-scope";
 import { Icon } from "@/components/icon";
 
-export default async function AnalyticsPage() {
+export default async function AnalyticsPage({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const membership = await requireActiveMembershipPage();
   const analytics = await getAnalyticsData(membership.organizationId);
+  const query = (await searchParams) ?? {};
+  const selectedLocationId = typeof query.location === "string" ? query.location : null;
   const locationIds = await getCurrentAccessibleLocationIds();
-  const assistant = await getReviewAssistantAnalytics(locationIds, 30);
-  const resolution = await getResolutionStats(locationIds, 30);
+  const filteredIds = selectedLocationId && locationIds.includes(selectedLocationId) ? [selectedLocationId] : locationIds;
+  const assistant = await getReviewAssistantAnalytics(filteredIds, 30);
+  const resolution = await getResolutionStats(filteredIds, 30);
 
   return (
-    <AppShell activeScreen="analytics">
+    <AppShell activeScreen="analytics" selectedLocationId={selectedLocationId ?? undefined}>
       <div className="space-y-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
