@@ -8,14 +8,14 @@ import { ThumbnailSource } from "@prisma/client";
 import { validateImageFile, getImageContentType } from "@/lib/image-validation";
 import { isValidFrameData, saveFrameAsImage } from "@/lib/frame-capture-server";
 import { del } from "@vercel/blob";
+import { randomBytes } from "crypto";
 
 export async function generateVideoTestimonialLink(formData: FormData) {
   const locationId = String(formData.get("locationId") ?? "").trim();
   if (!locationId) throw new Error("Location is required");
   await requireLocationAccess(locationId);
 
-  const { nanoid } = await import("nanoid");
-  const token = nanoid(24);
+  const token = randomBytes(18).toString("base64url");
 
   await prisma.videoTestimonial.create({
     data: { locationId, token },
@@ -154,8 +154,7 @@ export async function sendVideoTestimonialRequest(formData: FormData) {
   });
   if (!location) throw new Error("Location not found");
 
-  const { nanoid } = await import("nanoid");
-  const token = nanoid(24);
+  const token = randomBytes(18).toString("base64url");
 
   await prisma.videoTestimonial.create({
     data: { locationId, token, submitterName: recipientName, submitterEmail: recipientEmail || null, prompt },
