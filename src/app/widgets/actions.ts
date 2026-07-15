@@ -229,6 +229,15 @@ export async function updateReviewWidget(formData: FormData) {
   const rawWallStyle = String(formData.get("wallStyle") ?? "varied");
   const rawCardHeights = String(formData.get("cardHeights") ?? "equal");
   const rawEnabledSources = String(formData.get("enabledSources") ?? "").trim();
+  // Spotlight & Pins
+  const rawSpotlightReviewId = String(formData.get("spotlightReviewId") ?? "").trim() || null;
+  const rawPinnedReviewIds = String(formData.get("pinnedReviewIds") ?? "").trim();
+  // reviewHighlights is a JSON string [{reviewId, quote}] — validate it's parseable
+  const rawReviewHighlights = (() => {
+    const raw = String(formData.get("reviewHighlights") ?? "").trim();
+    if (!raw) return "";
+    try { JSON.parse(raw); return raw; } catch { return ""; }
+  })();
   const rawMinRating = Number(formData.get("minRating") ?? 1);
   const rawPageSize = Number(formData.get("pageSize") ?? 12);
   const rawBodyMaxChars = Number(formData.get("bodyMaxChars") ?? 280);
@@ -293,6 +302,10 @@ export async function updateReviewWidget(formData: FormData) {
       wallStyle: ["varied", "uniform"].includes(rawWallStyle) ? rawWallStyle : "varied",
       cardHeights: ["equal", "natural"].includes(rawCardHeights) ? rawCardHeights : "equal",
       enabledSources: rawEnabledSources, // empty string = all sources enabled
+      // Spotlight & Pins
+      spotlightReviewId: rawSpotlightReviewId,
+      pinnedReviewIds: rawPinnedReviewIds,
+      reviewHighlights: rawReviewHighlights,
       fontSizeBase: Math.max(11, Math.min(18, fontSizeBase)),
       fontSizeNames: Math.max(10, Math.min(16, fontSizeNames)),
       fontSizeHeader: Math.max(14, Math.min(28, fontSizeHeader)),

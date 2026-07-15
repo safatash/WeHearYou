@@ -706,6 +706,11 @@ model ReviewWidget {
   collectTitle     String?
   collectSubtitle  String?
 
+  // Spotlight & Pins (Wall of Love)
+  spotlightReviewId  String?   // ID of review that gets accent/featured card treatment
+  pinnedReviewIds    String    @default("")  // CSV of review IDs to scatter near the top
+  reviewHighlights   String    @default("")  // JSON: [{reviewId, quote}] — inline text highlights
+
   // Widget type & single testimonial
   widgetType                 String?
   singleTestimonialReviewId  String?

@@ -1143,28 +1143,110 @@ const script = `
           var accentColor = data.widget.primaryColor || "#4338ca";
           var serif = "'Instrument Serif', Georgia, serif";
           var nonFeaturedReviewCount = 0;
-          var featuredIdx = isVaried ? filteredItems.findIndex(function(it) { return it.type !== "video"; }) : -1;
+
+          // Spotlight: use admin-selected review ID if set; otherwise fall back to first review in varied layout
+          var spotlightId = data.widget.spotlightReviewId || null;
+          var featuredIdx = (function() {
+            if (spotlightId) {
+              var idx = filteredItems.findIndex(function(it) { return it.type !== "video" && it.data && it.data.id === spotlightId; });
+              if (idx !== -1) return idx;
+            }
+            return isVaried ? filteredItems.findIndex(function(it) { return it.type !== "video"; }) : -1;
+          })();
+
+          // Build highlight map: reviewId -> quote
+          var highlightMap = {};
+          try {
+            var rawHighlights = data.widget.reviewHighlights || "";
+            var highlights = rawHighlights ? JSON.parse(rawHighlights) : [];
+            highlights.forEach(function(h) { if (h.reviewId && h.quote) highlightMap[h.reviewId] = h.quote; });
+          } catch(e) {}
+
+          // Helper: render body text with an optional highlighted phrase
+          function renderBodyWithHighlight(body, reviewId, textColor, fontFamily, fontSize, useQuotes) {
+            var quote = highlightMap[reviewId];
+            var escaped = escapeHtml(body);
+            if (!quote || !quote.trim()) {
+              return '<div style="font-family:' + fontFamily + ';font-size:' + fontSize + 'px;line-height:1.5;color:' + escapeHtml(textColor) + '">' + (useQuotes ? '\u201c' + escaped + '\u201d' : escaped) + '</div>';
+            }
+            var idx = body.indexOf(quote);
+            if (idx === -1) {
+              return '<div style="font-family:' + fontFamily + ';font-size:' + fontSize + 'px;line-height:1.5;color:' + escapeHtml(textColor) + '">' + (useQuotes ? '\u201c' + escaped + '\u201d' : escaped) + '</div>';
+            }
+            var before = escapeHtml(body.slice(0, idx));
+            var marked = escapeHtml(quote);
+            var after = escapeHtml(body.slice(idx + quote.length));
+            var markStyle = 'background:rgba(79,70,229,.14);color:' + escapeHtml(accentColor) + ';border-radius:3px;padding:0 2px;font-weight:600';
+            return '<div style="font-family:' + fontFamily + ';font-size:' + fontSize + 'px;line-height:1.5;color:' + escapeHtml(textColor) + '">' +
+              (useQuotes ? '\u201c' : '') + before +
+              '<mark style="' + markStyle + '">' + marked + '</mark>' +
+              after + (useQuotes ? '\u201d' : '') +
+            '</div>';
+          }
+
           var cardsHtml = filteredItems.map(function (item, idx) {
             if (item.type === "video") return renderVideoCard(item.data);
-            // Varied layout: first review card gets accent featured treatment
-            if (isVaried && idx === featuredIdx && (data.widget.layout === "grid" || data.widget.layout === "masonry" || data.widget.layout === "mixed-masonry")) {
+            var isSpotlight = idx === featuredIdx;
+            var isGridLayout = data.widget.layout === "grid" || data.widget.layout === "masonry" || data.widget.layout === "mixed-masonry";
+            var reviewId = item.data && item.data.id ? String(item.data.id) : "";
+
+            // Spotlight card in Varied layout: accent background + Instrument Serif
+            if (isSpotlight && isVaried && isGridLayout) {
               var w = data.widget;
               var radius = typeof w.cornerRadius === "number" ? w.cornerRadius : 12;
               var body = truncate(item.data.body || "", w.bodyMaxChars || 280);
               var starColor = "#fff";
               var starsHtml = w.showRating !== false ? '<div style="font-size:14px;color:' + starColor + ';margin-bottom:10px">' + escapeHtml(stars(item.data.rating)) + '</div>' : '';
               var nameHtml = w.showAvatars !== false ? '<div style="font-size:13px;font-weight:600;color:rgba(255,255,255,.9)">' + escapeHtml(item.data.reviewerName || 'Anonymous') + '</div>' : '';
+              // Highlight on accent bg: white semi-transparent mark
+              var quote = highlightMap[reviewId];
+              var bodyHtml;
+              if (quote && body.indexOf(quote) !== -1) {
+                var qi = body.indexOf(quote);
+                bodyHtml = '<div style="font-family:' + serif + ';font-size:22px;line-height:1.35;font-weight:400;margin-bottom:16px;color:#fff">\u201c' +
+                  escapeHtml(body.slice(0, qi)) +
+                  '<mark style="background:rgba(255,255,255,.28);color:#fff;border-radius:3px;padding:0 3px;font-weight:700">' + escapeHtml(quote) + '</mark>' +
+                  escapeHtml(body.slice(qi + quote.length)) + '\u201d</div>';
+              } else {
+                bodyHtml = '<div style="font-family:' + serif + ';font-size:22px;line-height:1.35;font-weight:400;margin-bottom:16px;color:#fff">\u201c' + escapeHtml(body) + '\u201d</div>';
+              }
               return '<article class="why-widget-card" style="background:' + escapeHtml(accentColor) + ';border:none;border-radius:' + radius + 'px;padding:20px;color:#fff">' +
-                starsHtml +
-                '<div style="font-family:' + serif + ';font-size:22px;line-height:1.35;font-weight:400;margin-bottom:16px;color:#fff">\u201c' + escapeHtml(body) + '\u201d</div>' +
+                starsHtml + bodyHtml +
                 (w.showAvatars !== false ? '<div style="display:flex;align-items:center;gap:10px;margin-top:auto">' +
                   '<div style="width:36px;height:36px;border-radius:999px;background:rgba(255,255,255,.25);color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700">' + escapeHtml((item.data.reviewerName || '?').slice(0,1).toUpperCase()) + '</div>' +
                   nameHtml +
                 '</div>' : '') +
               '</article>';
             }
+
+            // Spotlight card in Uniform layout: accent border highlight
+            if (isSpotlight && !isVaried && isGridLayout) {
+              var w = data.widget;
+              var radius = typeof w.cornerRadius === "number" ? w.cornerRadius : 12;
+              var pad = w.density === "compact" ? "12px" : "16px";
+              var cardStyleCss = resolveCardStyleEmbed(w);
+              var body = truncate(item.data.body || "", w.bodyMaxChars || 280);
+              var starColor = resolveStarColorEmbed(w);
+              var fontSizeBase = w.fontSizeBase || 14;
+              var fontSizeNames = w.fontSizeNames || 13;
+              var fontSizeLabel = w.fontSizeLabel || 12;
+              var html = '<article class="why-widget-card" style="' + cardStyleCss + 'border:2px solid ' + escapeHtml(accentColor) + ';box-shadow:0 0 0 3px ' + escapeHtml(accentColor) + '22;color:' + escapeHtml(w.textColor) + ';border-radius:' + radius + 'px;padding:' + pad + '">';
+              if (w.showAvatars !== false) {
+                var sourceMarkHtml = w.showSourceLogo && item.data.source ? '<span style="margin-left:auto;font-weight:700;color:#4285f4;font-size:11px">' + (item.data.source === 'GOOGLE' ? 'G' : item.data.source === 'FACEBOOK' ? 'f' : item.data.source === 'YELP' ? 'Y' : '\u2713') + '</span>' : '';
+                html += '<div class="why-widget-reviewer">' +
+                  '<div style="width:32px;height:32px;border-radius:999px;background:#e2e8f0;color:#475569;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700">' + escapeHtml((item.data.reviewerName || '?').slice(0,1).toUpperCase()) + '</div>' +
+                  '<div><div class="why-widget-name" style="font-size:' + fontSizeNames + 'px">' + escapeHtml(item.data.reviewerName || 'Anonymous') + '</div>' +
+                  (w.showDate && item.data.reviewedAt ? '<div class="why-widget-date" style="font-size:' + fontSizeLabel + 'px">' + escapeHtml(formatDate(item.data.reviewedAt)) + '</div>' : '') +
+                  '</div>' + sourceMarkHtml + '</div>';
+              }
+              if (w.showRating !== false) { html += '<div style="font-size:14px;color:' + escapeHtml(starColor) + ';margin:8px 0">' + escapeHtml(stars(item.data.rating)) + '</div>'; }
+              html += renderBodyWithHighlight(body, reviewId, w.textColor, fontStack(w.fontFamily), fontSizeBase, false);
+              html += '</article>';
+              return html;
+            }
+
             // Varied layout: non-featured cards — every 3rd one gets Instrument Serif
-            if (isVaried && (data.widget.layout === "grid" || data.widget.layout === "masonry" || data.widget.layout === "mixed-masonry")) {
+            if (isVaried && isGridLayout) {
               nonFeaturedReviewCount++;
               var useSerif = (nonFeaturedReviewCount % 3 === 0);
               var w = data.widget;
@@ -1186,7 +1268,7 @@ const script = `
                   '</div>' + sourceMarkHtml + '</div>';
               }
               if (w.showRating !== false) { html += '<div style="font-size:14px;color:' + escapeHtml(starColor) + ';margin:8px 0">' + escapeHtml(stars(item.data.rating)) + '</div>'; }
-              html += '<div style="font-family:' + bodyFontFamily + ';font-size:' + (useSerif ? 16 : (w.fontSizeBase || 13)) + 'px;line-height:1.45;color:' + escapeHtml(w.textColor) + '">' + (useSerif ? '\u201c' + escapeHtml(body) + '\u201d' : escapeHtml(body)) + '</div>';
+              html += renderBodyWithHighlight(body, reviewId, w.textColor, bodyFontFamily, useSerif ? 16 : (w.fontSizeBase || 13), useSerif);
               html += '</article>';
               return html;
             }

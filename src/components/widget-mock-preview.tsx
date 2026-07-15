@@ -50,6 +50,9 @@ export type PreviewSettings = {
   fontSizeLabel: number;
   fontSizeSummary: number;
   bodyMaxChars: number;
+  // Spotlight & Pins
+  spotlightReviewId?: string;
+  reviewHighlights?: Array<{ reviewId: string; quote: string }>;
   // Badge
   badgeStyle: "rating" | "compact" | "review_cta" | "trust";
   // Collecting
@@ -125,7 +128,7 @@ const SOURCE_META: Record<string, { color: string; letter: string }> = {
 
 const AV_COLORS = ["#6366f1", "#0ea5e9", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899", "#14b8a6"];
 
-type Review = { id: number; name: string; rating: number; text: string; time: string; source: string };
+type Review = { id: number; name: string; rating: number; text: string; time: string; source: string; realId?: string };
 type Video = { id: number; name: string; rating: number; quote: string; time: string; source: string; length: string };
 
 const REVIEWS: Review[] = [
@@ -242,14 +245,33 @@ const SourceBadge = ({ source, size = 18 }: { source: string; size?: number }) =
 );
 
 // FeaturedReviewCardW: accent-coloured card used for wallStyle="varied" featured slot
-const FeaturedReviewCardW = ({ r, s, tk }: { r: Review; s: PreviewSettings; tk: Tokens }) => {
+const FeaturedReviewCardW = ({ r, s, tk, highlightQuote }: { r: Review; s: PreviewSettings; tk: Tokens; highlightQuote?: string }) => {
   const starColor = "rgba(255,255,255,0.9)";
   const fontStack = FONT_STACKS[s.fontFamily] || FONT_STACKS.system;
   const pad = s.density === "compact" ? 16 : 22;
+  const bodyFontSize = (s.fontSizeBase || 14) + 4;
+  // Render body with highlight on white-on-accent background
+  const renderFeaturedBody = () => {
+    const text = r.text;
+    if (!highlightQuote || !highlightQuote.trim()) {
+      return <p style={st({ fontSize: bodyFontSize, lineHeight: 1.45, color: "#fff", margin: 0, fontWeight: 400, letterSpacing: "-.01em", fontFamily: INSTRUMENT_SERIF })}>&#8220;{text}&#8221;</p>;
+    }
+    const idx = text.indexOf(highlightQuote);
+    if (idx === -1) {
+      return <p style={st({ fontSize: bodyFontSize, lineHeight: 1.45, color: "#fff", margin: 0, fontWeight: 400, letterSpacing: "-.01em", fontFamily: INSTRUMENT_SERIF })}>&#8220;{text}&#8221;</p>;
+    }
+    return (
+      <p style={st({ fontSize: bodyFontSize, lineHeight: 1.45, color: "#fff", margin: 0, fontWeight: 400, letterSpacing: "-.01em", fontFamily: INSTRUMENT_SERIF })}>
+        &#8220;{text.slice(0, idx)}
+        <mark style={st({ background: "rgba(255,255,255,0.28)", color: "#fff", borderRadius: 3, padding: "0 3px", fontWeight: 700 })}>{highlightQuote}</mark>
+        {text.slice(idx + highlightQuote.length)}&#8221;
+      </p>
+    );
+  };
   return (
     <div style={st({ background: s.accent, borderRadius: s.radius, padding: pad, display: "flex", flexDirection: "column", gap: 12, minWidth: 0, fontFamily: fontStack, color: "#fff" })}>
       {s.showRating && <Stars value={r.rating} size={s.density === "compact" ? 15 : 18} color={starColor} />}
-      <p style={st({ fontSize: (s.fontSizeBase || 14) + 4, lineHeight: 1.45, color: "#fff", margin: 0, fontWeight: 400, letterSpacing: "-.01em", fontFamily: INSTRUMENT_SERIF })}>&#8220;{r.text}&#8221;</p>
+      {renderFeaturedBody()}
       {s.showAvatars && (
         <div style={st({ display: "flex", alignItems: "center", gap: 9, marginTop: 4 })}>
           <Avatar name={r.name} size={32} />
@@ -264,9 +286,34 @@ const FeaturedReviewCardW = ({ r, s, tk }: { r: Review; s: PreviewSettings; tk: 
   );
 };
 
-const ReviewCardW = ({ r, s, tk, featured, accentFont }: { r: Review; s: PreviewSettings; tk: Tokens; featured?: boolean; accentFont?: boolean }) => {
-  if (featured && s.wallStyle === "varied") return <FeaturedReviewCardW r={r} s={s} tk={tk} />;
+/* Renders review text with an optional highlighted phrase in accent color */
+function renderBodyWithHighlight(text: string, quote: string | undefined, accent: string, fontSize: number, color: string, font: string): React.ReactNode {
+  if (!quote || !quote.trim()) {
+    return <p style={st({ fontSize, lineHeight: 1.6, color, margin: 0, fontFamily: font })}>&#8220;{text}&#8221;</p>;
+  }
+  const idx = text.indexOf(quote);
+  if (idx === -1) {
+    return <p style={st({ fontSize, lineHeight: 1.6, color, margin: 0, fontFamily: font })}>&#8220;{text}&#8221;</p>;
+  }
+  const before = text.slice(0, idx);
+  const after = text.slice(idx + quote.length);
+  return (
+    <p style={st({ fontSize, lineHeight: 1.6, color, margin: 0, fontFamily: font })}>
+      &#8220;{before}
+      <mark style={st({ background: `color-mix(in srgb, ${accent} 18%, transparent)`, color: accent, borderRadius: 3, padding: "0 2px", fontWeight: 600 })}>{quote}</mark>
+      {after}&#8221;
+    </p>
+  );
+}
+
+const ReviewCardW = ({ r, s, tk, featured, accentFont, highlightQuote }: { r: Review; s: PreviewSettings; tk: Tokens; featured?: boolean; accentFont?: boolean; highlightQuote?: string }) => {
+  // Spotlight: featured in Varied = accent bg + serif; featured in Uniform = accent border
+  if (featured && s.wallStyle === "varied") return <FeaturedReviewCardW r={r} s={s} tk={tk} highlightQuote={highlightQuote} />;
   const cardStyles = resolveCardStyle(s, tk);
+  // If spotlight in Uniform layout, add accent border
+  const spotlightBorder = featured && s.wallStyle === "uniform"
+    ? { border: `2px solid ${s.accent}`, boxShadow: `0 0 0 3px color-mix(in srgb, ${s.accent} 18%, transparent)` }
+    : {};
   const starColor = resolveStarColor(s);
   const fontStack = FONT_STACKS[s.fontFamily] || FONT_STACKS.system;
   // In varied layout, only accent-font cards (roughly 1 in 3) use Instrument Serif
@@ -277,7 +324,7 @@ const ReviewCardW = ({ r, s, tk, featured, accentFont }: { r: Review; s: Preview
   // Fake owner response for preview
   const ownerReply = "Thank you so much for your kind words! We really appreciate you taking the time to share your experience.";
   return (
-    <div style={st({ ...cardStyles, borderRadius: s.radius, padding: pad, display: "flex", flexDirection: "column", gap: s.density === "compact" ? 7 : 9, minWidth: 0, fontFamily: fontStack })}>
+    <div style={st({ ...cardStyles, ...spotlightBorder, borderRadius: s.radius, padding: pad, display: "flex", flexDirection: "column", gap: s.density === "compact" ? 7 : 9, minWidth: 0, fontFamily: fontStack })}>
       {s.showAvatars && (
         <div style={st({ display: "flex", alignItems: "center", gap: 10 })}>
           <Avatar name={r.name} size={s.density === "compact" ? 28 : 34} />
@@ -294,7 +341,7 @@ const ReviewCardW = ({ r, s, tk, featured, accentFont }: { r: Review; s: Preview
         </div>
       )}
       {s.showRating && <Stars value={r.rating} size={s.density === "compact" ? 13 : 15} color={starColor} />}
-      <p style={st({ fontSize: s.fontSizeBase || 13, lineHeight: 1.6, color: tk.sub, margin: 0, fontFamily: bodyFont })}>&#8220;{bodyText}&#8221;</p>
+      {renderBodyWithHighlight(bodyText, highlightQuote, s.accent, s.fontSizeBase || 13, tk.sub, bodyFont)}
       {s.showResponses && (
         <div style={st({ background: `color-mix(in srgb, ${s.accent} 8%, ${tk.bg})`, border: `1px solid color-mix(in srgb, ${s.accent} 20%, ${tk.line})`, borderRadius: Math.max(4, s.radius - 4), padding: "9px 11px", fontSize: (s.fontSizeBase || 13) - 1, color: tk.sub, lineHeight: 1.5 })}>
           <span style={st({ fontWeight: 640, color: s.accent, fontSize: (s.fontSizeBase || 13) - 1 })}>Owner reply: </span>{ownerReply}
@@ -437,6 +484,7 @@ function convertRealReviews(realReviews: RealReview[]): Review[] {
     };
     return {
       id: parseInt(r.id, 10) || Math.random() * 1000000,
+      realId: r.id,
       name: r.reviewerName || "Anonymous",
       rating: r.rating,
       text: r.body,
@@ -658,8 +706,20 @@ export function WidgetMockPreview({
       {s.type === "grid" ? (
         (() => {
           const gap = s.density === "compact" ? 10 : 14;
-          // For varied layout, pick the highest-rated review as the featured card
-          const featuredIdx = s.wallStyle === "varied" ? items.findIndex((it) => it.kind === "review") : -1;
+          // Determine featured (spotlight) index:
+          // If spotlightReviewId is set, use that review; otherwise fall back to first review in varied layout
+          const spotlightId = s.spotlightReviewId;
+          const featuredIdx = (() => {
+            if (spotlightId) {
+              const idx = items.findIndex((it) => it.kind === "review" && it.data.realId === spotlightId);
+              return idx !== -1 ? idx : (s.wallStyle === "varied" ? items.findIndex((it) => it.kind === "review") : -1);
+            }
+            return s.wallStyle === "varied" ? items.findIndex((it) => it.kind === "review") : -1;
+          })();
+          // Build highlight lookup: realId -> quote
+          const highlightMap = new Map<string, string>(
+            (s.reviewHighlights || []).map((h) => [h.reviewId, h.quote])
+          );
           // In varied layout, every 3rd non-featured review card gets Instrument Serif (accent font)
           // Track non-featured review count to assign accent font to ~1 in 3
           let nonFeaturedReviewCount = 0;
@@ -694,9 +754,11 @@ export function WidgetMockPreview({
                   // Every 3rd non-featured review card gets Instrument Serif
                   accentFont = nonFeaturedReviewCount % 3 === 0;
                 }
+                const reviewRealId = it.kind === "review" ? it.data.realId : undefined;
+                const highlightQuote = reviewRealId ? highlightMap.get(reviewRealId) : undefined;
                 return (
                   <div key={it.kind + it.data.id} style={st({ ...cardWrap, ...(uniformHeight && s.gridColumns !== "auto" ? { height: uniformHeight, overflow: "hidden" } : {}) })}>
-                    {it.kind === "video" ? <VideoCardW v={it.data} s={s} tk={tk} /> : <ReviewCardW r={it.data} s={s} tk={tk} featured={idx === featuredIdx} accentFont={accentFont} />}
+                    {it.kind === "video" ? <VideoCardW v={it.data} s={s} tk={tk} /> : <ReviewCardW r={it.data} s={s} tk={tk} featured={idx === featuredIdx} accentFont={accentFont} highlightQuote={highlightQuote} />}
                   </div>
                 );
               })}

@@ -113,11 +113,25 @@ export type StudioWidget = {
   wallStyle: string;
   cardHeights: string;
   enabledSources: string;
+  // Spotlight & Pins
+  spotlightReviewId: string | null;
+  pinnedReviewIds: string;
+  reviewHighlights: string;
   // preserved-as-is fields (not exposed in this editor)
   sort: string;
   headerAlign: string;
   backgroundColor: string;
   textColor: string;
+};
+
+export type PickerReview = {
+  id: string;
+  reviewerName: string;
+  reviewerPhotoUrl: string | null;
+  rating: number;
+  body: string;
+  reviewedAt: string | null;
+  source: string;
 };
 
 function deriveTypeKey(w: StudioWidget): TypeKey {
@@ -254,7 +268,7 @@ const EmbedCode = ({ code, hint }: { code: string; hint: string }) => {
 };
 
 /* ================= Studio editor ================= */
-export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [], aiSummaryText = null, aiSummaryCount = null }: { widget: StudioWidget; embedScriptUrl: string; locations?: Array<{ id: string; name: string }>; aiSummaryText?: string | null; aiSummaryCount?: number | null }) {
+export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [], aiSummaryText = null, aiSummaryCount = null, availableReviews = [] }: { widget: StudioWidget; embedScriptUrl: string; locations?: Array<{ id: string; name: string }>; aiSummaryText?: string | null; aiSummaryCount?: number | null; availableReviews?: PickerReview[] }) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -308,6 +322,19 @@ export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [], aiS
   };
   const [enabledSourcesSet, setEnabledSourcesSet] = useState<Set<string>>(() => parseEnabledSources(widget.enabledSources || ""));
   const [isActive, setIsActive] = useState(widget.isActive);
+  // Spotlight & Pins
+  const [spotlightReviewId, setSpotlightReviewId] = useState<string | null>(widget.spotlightReviewId ?? null);
+  const [pinnedReviewIds, setPinnedReviewIds] = useState<string[]>(() =>
+    (widget.pinnedReviewIds || "").split(",").map((s) => s.trim()).filter(Boolean)
+  );
+  // reviewHighlights: [{reviewId, quote}] stored as JSON
+  type HighlightEntry = { reviewId: string; quote: string };
+  const [reviewHighlights, setReviewHighlights] = useState<HighlightEntry[]>(() => {
+    try { return JSON.parse(widget.reviewHighlights || "[]"); } catch { return []; }
+  });
+  const [highlightEditId, setHighlightEditId] = useState<string | null>(null);
+  const [highlightEditText, setHighlightEditText] = useState("");
+  const [spotlightSearch, setSpotlightSearch] = useState("");
   // Badge
   const [badgeStyle, setBadgeStyle] = useState<BadgeStyle>((widget.badgeStyle as BadgeStyle) || "rating");
   // Collecting
@@ -388,6 +415,8 @@ export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [], aiS
     cardHeights: cardHeights as PreviewSettings["cardHeights"],
     fontFamily,
     starColorMode: starColorMode as PreviewSettings["starColorMode"],
+    spotlightReviewId: spotlightReviewId ?? undefined,
+    reviewHighlights,
     aiSummary: isReviewWall && content !== "videos" && showAiSummary,
     aiSummaryText,
     aiSummaryCount,
@@ -475,6 +504,10 @@ export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [], aiS
     // Sources: serialize Set back to CSV (empty string = all enabled)
     const allEnabled = ALL_SOURCES.every((s) => enabledSourcesSet.has(s));
     fd.append("enabledSources", allEnabled ? "" : Array.from(enabledSourcesSet).join(","));
+    // Spotlight & Pins
+    fd.append("spotlightReviewId", spotlightReviewId ?? "");
+    fd.append("pinnedReviewIds", pinnedReviewIds.join(","));
+    fd.append("reviewHighlights", reviewHighlights.length > 0 ? JSON.stringify(reviewHighlights) : "");
     // preserved-as-is fields the editor doesn't expose
     fd.append("sort", widget.sort);
     fd.append("headerAlign", widget.headerAlign);
@@ -841,6 +874,175 @@ export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [], aiS
                   <span>80</span><span>1000 chars</span>
                 </div>
               </Field>
+
+              {/* ── Spotlight & Pins (Wall of Love only) ── */}
+              {typeKey === "grid" && availableReviews.length > 0 && (
+                <>
+                  <div className="hr" />
+                  <div style={st({ display: "flex", alignItems: "center", gap: 8 })}>
+                    <span style={st({ fontSize: 13, fontWeight: 660, color: "var(--ink-800)" })}>Spotlight & Pins</span>
+                  </div>
+
+                  {/* Spotlight card picker */}
+                  <Field label="Spotlight card" hint="Accent background + serif font">
+                    <div style={st({ display: "flex", flexDirection: "column", gap: 6 })}>
+                      <input
+                        type="text"
+                        placeholder="Search reviews…"
+                        value={spotlightSearch}
+                        onChange={(e) => setSpotlightSearch(e.target.value)}
+                        style={st({ width: "100%", borderRadius: "var(--r-sm)", border: "1px solid var(--ink-200)", background: "var(--ink-50)", padding: "6px 10px", fontSize: 12.5, color: "var(--ink-900)", outline: "none" })}
+                      />
+                      {spotlightReviewId && (() => {
+                        const r = availableReviews.find((r) => r.id === spotlightReviewId);
+                        if (!r) return null;
+                        return (
+                          <div style={st({ borderRadius: 8, border: `1.5px solid ${accent}`, background: `color-mix(in srgb, ${accent} 8%, var(--white))`, padding: "9px 11px", display: "flex", alignItems: "flex-start", gap: 9 })}>
+                            <div style={st({ flex: 1, minWidth: 0 })}>
+                              <div style={st({ fontSize: 11.5, color: accent, fontWeight: 660, marginBottom: 3 })}>Spotlight</div>
+                              <div style={st({ fontSize: 12, color: "var(--ink-700)", lineHeight: 1.4 })}>{r.body.slice(0, 80)}{r.body.length > 80 ? "…" : ""}</div>
+                              <div style={st({ fontSize: 11, color: "var(--ink-500)", marginTop: 3 })}>{r.reviewerName}</div>
+                            </div>
+                            <button type="button" onClick={() => setSpotlightReviewId(null)}
+                              style={st({ border: 0, background: "transparent", cursor: "pointer", color: "var(--ink-400)", fontSize: 16, lineHeight: 1, padding: 2 })}>×</button>
+                          </div>
+                        );
+                      })()}
+                      <div style={st({ maxHeight: 180, overflowY: "auto", display: "flex", flexDirection: "column", gap: 5 })}>
+                        {availableReviews
+                          .filter((r) => r.id !== spotlightReviewId && (spotlightSearch === "" || r.body.toLowerCase().includes(spotlightSearch.toLowerCase()) || r.reviewerName.toLowerCase().includes(spotlightSearch.toLowerCase())))
+                          .slice(0, 12)
+                          .map((r) => (
+                            <button key={r.id} type="button"
+                              onClick={() => { setSpotlightReviewId(r.id); setSpotlightSearch(""); }}
+                              style={st({ textAlign: "left", borderRadius: 7, border: "1px solid var(--ink-200)", background: "var(--white)", padding: "8px 10px", cursor: "pointer", display: "flex", flexDirection: "column", gap: 3 })}>
+                              <div style={st({ display: "flex", alignItems: "center", gap: 6 })}>
+                                <span style={st({ fontSize: 11, color: "#f59e0b" })}>{'★'.repeat(r.rating)}</span>
+                                <span style={st({ fontSize: 11, color: "var(--ink-500)", fontWeight: 560 })}>{r.reviewerName}</span>
+                              </div>
+                              <div style={st({ fontSize: 11.5, color: "var(--ink-600)", lineHeight: 1.4 })}>{r.body.slice(0, 70)}{r.body.length > 70 ? "…" : ""}</div>
+                            </button>
+                          ))}
+                      </div>
+                    </div>
+                  </Field>
+
+                  {/* Pinned reviews multi-select */}
+                  <Field label="Pinned reviews" hint="Scattered near the top">
+                    <div style={st({ display: "flex", flexDirection: "column", gap: 6 })}>
+                      {pinnedReviewIds.length > 0 && (
+                        <div style={st({ display: "flex", flexDirection: "column", gap: 4 })}>
+                          {pinnedReviewIds.map((pid) => {
+                            const r = availableReviews.find((r) => r.id === pid);
+                            if (!r) return null;
+                            return (
+                              <div key={pid} style={st({ borderRadius: 7, border: "1px solid var(--ink-200)", background: "var(--ink-50)", padding: "7px 10px", display: "flex", alignItems: "flex-start", gap: 8 })}>
+                                <div style={st({ flex: 1, minWidth: 0 })}>
+                                  <div style={st({ fontSize: 11.5, color: "var(--ink-700)", lineHeight: 1.4 })}>{r.body.slice(0, 60)}{r.body.length > 60 ? "…" : ""}</div>
+                                  <div style={st({ fontSize: 11, color: "var(--ink-500)", marginTop: 2 })}>{r.reviewerName}</div>
+                                </div>
+                                <button type="button" onClick={() => setPinnedReviewIds((prev) => prev.filter((id) => id !== pid))}
+                                  style={st({ border: 0, background: "transparent", cursor: "pointer", color: "var(--ink-400)", fontSize: 16, lineHeight: 1, padding: 2 })}>×</button>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                      <div style={st({ maxHeight: 160, overflowY: "auto", display: "flex", flexDirection: "column", gap: 5 })}>
+                        {availableReviews
+                          .filter((r) => !pinnedReviewIds.includes(r.id) && r.id !== spotlightReviewId)
+                          .slice(0, 15)
+                          .map((r) => (
+                            <button key={r.id} type="button"
+                              onClick={() => setPinnedReviewIds((prev) => prev.length < 8 ? [...prev, r.id] : prev)}
+                              style={st({ textAlign: "left", borderRadius: 7, border: "1px solid var(--ink-200)", background: "var(--white)", padding: "7px 10px", cursor: "pointer", display: "flex", flexDirection: "column", gap: 3 })}>
+                              <div style={st({ display: "flex", alignItems: "center", gap: 6 })}>
+                                <span style={st({ fontSize: 11, color: "#f59e0b" })}>{'★'.repeat(r.rating)}</span>
+                                <span style={st({ fontSize: 11, color: "var(--ink-500)", fontWeight: 560 })}>{r.reviewerName}</span>
+                                <span style={st({ fontSize: 10.5, color: "var(--ink-400)", marginLeft: "auto" })}>+ Pin</span>
+                              </div>
+                              <div style={st({ fontSize: 11.5, color: "var(--ink-600)", lineHeight: 1.4 })}>{r.body.slice(0, 60)}{r.body.length > 60 ? "…" : ""}</div>
+                            </button>
+                          ))}
+                      </div>
+                      {pinnedReviewIds.length >= 8 && (
+                        <p style={st({ fontSize: 11, color: "var(--ink-400)", margin: 0 })}>Maximum 8 pinned reviews</p>
+                      )}
+                    </div>
+                  </Field>
+
+                  {/* Inline quote highlights */}
+                  <Field label="Quote highlights" hint="Highlighted text snippets">
+                    <div style={st({ display: "flex", flexDirection: "column", gap: 6 })}>
+                      <p style={st({ fontSize: 11.5, color: "var(--ink-500)", margin: 0, lineHeight: 1.5 })}>Select a review and paste the exact phrase you want highlighted in accent color.</p>
+                      {reviewHighlights.map((h) => {
+                        const r = availableReviews.find((r) => r.id === h.reviewId);
+                        return (
+                          <div key={h.reviewId} style={st({ borderRadius: 7, border: "1px solid var(--ink-200)", background: "var(--ink-50)", padding: "8px 10px" })}>
+                            {highlightEditId === h.reviewId ? (
+                              <div style={st({ display: "flex", flexDirection: "column", gap: 6 })}>
+                                <div style={st({ fontSize: 11, color: "var(--ink-500)" })}>{r?.reviewerName} · {r?.body.slice(0, 50)}{(r?.body.length ?? 0) > 50 ? "…" : ""}</div>
+                                <textarea
+                                  value={highlightEditText}
+                                  onChange={(e) => setHighlightEditText(e.target.value)}
+                                  placeholder="Paste the exact phrase to highlight…"
+                                  rows={2}
+                                  style={st({ width: "100%", borderRadius: 6, border: "1px solid var(--ink-200)", padding: "6px 8px", fontSize: 12, resize: "vertical", outline: "none", fontFamily: "inherit" })}
+                                />
+                                <div style={st({ display: "flex", gap: 6 })}>
+                                  <button type="button" onClick={() => {
+                                    if (highlightEditText.trim()) {
+                                      setReviewHighlights((prev) => prev.map((x) => x.reviewId === h.reviewId ? { ...x, quote: highlightEditText.trim() } : x));
+                                    }
+                                    setHighlightEditId(null);
+                                  }} style={st({ flex: 1, borderRadius: 6, border: 0, background: accent, color: "#fff", padding: "5px 0", fontSize: 12, fontWeight: 600, cursor: "pointer" })}>Save</button>
+                                  <button type="button" onClick={() => setHighlightEditId(null)}
+                                    style={st({ flex: 1, borderRadius: 6, border: "1px solid var(--ink-200)", background: "var(--white)", color: "var(--ink-600)", padding: "5px 0", fontSize: 12, cursor: "pointer" })}>Cancel</button>
+                                </div>
+                              </div>
+                            ) : (
+                              <div style={st({ display: "flex", alignItems: "flex-start", gap: 8 })}>
+                                <div style={st({ flex: 1, minWidth: 0 })}>
+                                  <div style={st({ fontSize: 11, color: "var(--ink-500)", marginBottom: 2 })}>{r?.reviewerName}</div>
+                                  <div style={st({ fontSize: 12, color: accent, fontWeight: 560, background: `color-mix(in srgb, ${accent} 12%, var(--white))`, borderRadius: 4, padding: "2px 6px", display: "inline" })}>“{h.quote}”</div>
+                                </div>
+                                <div style={st({ display: "flex", gap: 4 })}>
+                                  <button type="button" onClick={() => { setHighlightEditId(h.reviewId); setHighlightEditText(h.quote); }}
+                                    style={st({ border: 0, background: "transparent", cursor: "pointer", color: "var(--ink-400)", fontSize: 12, padding: 2 })}>Edit</button>
+                                  <button type="button" onClick={() => setReviewHighlights((prev) => prev.filter((x) => x.reviewId !== h.reviewId))}
+                                    style={st({ border: 0, background: "transparent", cursor: "pointer", color: "var(--ink-400)", fontSize: 16, lineHeight: 1, padding: 2 })}>×</button>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                      {/* Add highlight: pick review from list */}
+                      <div style={st({ maxHeight: 140, overflowY: "auto", display: "flex", flexDirection: "column", gap: 4 })}>
+                        {availableReviews
+                          .filter((r) => !reviewHighlights.some((h) => h.reviewId === r.id))
+                          .slice(0, 12)
+                          .map((r) => (
+                            <button key={r.id} type="button"
+                              onClick={() => {
+                                setReviewHighlights((prev) => [...prev, { reviewId: r.id, quote: "" }]);
+                                setHighlightEditId(r.id);
+                                setHighlightEditText("");
+                              }}
+                              style={st({ textAlign: "left", borderRadius: 7, border: "1px solid var(--ink-200)", background: "var(--white)", padding: "7px 10px", cursor: "pointer", display: "flex", flexDirection: "column", gap: 3 })}>
+                              <div style={st({ display: "flex", alignItems: "center", gap: 6 })}>
+                                <span style={st({ fontSize: 11, color: "#f59e0b" })}>{'★'.repeat(r.rating)}</span>
+                                <span style={st({ fontSize: 11, color: "var(--ink-500)", fontWeight: 560 })}>{r.reviewerName}</span>
+                                <span style={st({ fontSize: 10.5, color: accent, marginLeft: "auto" })}>+ Highlight</span>
+                              </div>
+                              <div style={st({ fontSize: 11.5, color: "var(--ink-600)", lineHeight: 1.4 })}>{r.body.slice(0, 60)}{r.body.length > 60 ? "…" : ""}</div>
+                            </button>
+                          ))}
+                      </div>
+                    </div>
+                  </Field>
+                </>
+              )}
             </>
           )}
 

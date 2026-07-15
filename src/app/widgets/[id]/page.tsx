@@ -110,6 +110,10 @@ export default async function WidgetDetailPage({
       wallStyle: widget.wallStyle,
       cardHeights: widget.cardHeights,
       enabledSources: widget.enabledSources,
+      // Spotlight & Pins
+      spotlightReviewId: (widget as { spotlightReviewId?: string | null }).spotlightReviewId ?? null,
+      pinnedReviewIds: (widget as { pinnedReviewIds?: string }).pinnedReviewIds ?? "",
+      reviewHighlights: (widget as { reviewHighlights?: string }).reviewHighlights ?? "",
       showAvgRating: widget.showAvgRating,
       showReviewCount: widget.showReviewCount,
       showResponses: widget.showResponses,
@@ -125,9 +129,20 @@ export default async function WidgetDetailPage({
     const profile = widget.location.publicProfile;
     const aiSummaryText = profile?.showAiReviewSummary ? (profile.aiReviewSummary ?? null) : null;
     const aiSummaryCount = profile?.showAiReviewSummary ? (profile.aiReviewSummaryReviewCount ?? null) : null;
+    // Fetch available reviews for the Spotlight & Pins picker
+    const pickerData = await getWidgetPickerData(widget.locationId);
+    const availableReviews = pickerData.reviews.map((r) => ({
+      id: r.id,
+      reviewerName: r.reviewerName,
+      reviewerPhotoUrl: r.reviewerPhotoUrl,
+      rating: r.rating,
+      body: r.body,
+      reviewedAt: r.reviewedAt,
+      source: r.source,
+    }));
     return (
       <AppShell activeScreen="widgets" flash={flash ? { message: flash, tone } : null}>
-        <WidgetStudioEditor widget={studioWidget} embedScriptUrl={embedScriptUrl} locations={locationOptions} aiSummaryText={aiSummaryText} aiSummaryCount={aiSummaryCount} />
+        <WidgetStudioEditor widget={studioWidget} embedScriptUrl={embedScriptUrl} locations={locationOptions} aiSummaryText={aiSummaryText} aiSummaryCount={aiSummaryCount} availableReviews={availableReviews} />
       </AppShell>
     );
   }
