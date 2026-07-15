@@ -281,6 +281,7 @@ export async function updateReviewWidget(formData: FormData) {
       bodyMaxChars: Number.isFinite(rawBodyMaxChars) ? Math.max(40, Math.min(2000, Math.floor(rawBodyMaxChars))) : 280,
       showNav,
       showPagination,
+      showBranding: String(formData.get("showBranding") ?? "") === "on",
 
       // Appearance panel
       primaryColor: hexColor(formData.get("primaryColor"), "#4338ca"),

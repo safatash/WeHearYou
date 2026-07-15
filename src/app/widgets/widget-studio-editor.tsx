@@ -89,16 +89,25 @@ export type StudioWidget = {
   floatingMobileBehavior: string | null;
   floatingApprovedOnly: boolean | null;
   floatingMinRating: number | null;
-  // preserved-as-is fields (not exposed in this editor)
-  sort: string;
-  headerAlign: string;
-  bodyMaxChars: number;
-  backgroundColor: string;
-  textColor: string;
-  fontFamily: string;
+  // now exposed in editor
   showAvgRating: boolean;
   showReviewCount: boolean;
   showResponses: boolean;
+  showNav: boolean;
+  showPagination: boolean;
+  showBranding: boolean;
+  fontSizeBase: number;
+  fontSizeNames: number;
+  fontSizeHeader: number;
+  fontSizeLabel: number;
+  fontSizeSummary: number;
+  bodyMaxChars: number;
+  // preserved-as-is fields (not exposed in this editor)
+  sort: string;
+  headerAlign: string;
+  backgroundColor: string;
+  textColor: string;
+  fontFamily: string;
 };
 
 function deriveTypeKey(w: StudioWidget): TypeKey {
@@ -180,6 +189,22 @@ const Swatches = ({ value, options, onChange }: { value: string; options: string
   </div>
 );
 
+/* ── font size slider ────────────────────────────────────────────────────── */
+const FontSlider = ({ label, value, min, max, onChange }: { label: string; value: number; min: number; max: number; onChange: (v: number) => void }) => (
+  <div style={st({ display: "flex", flexDirection: "column", gap: 4 })}>
+    <div style={st({ display: "flex", justifyContent: "space-between", alignItems: "baseline" })}>
+      <span style={st({ fontSize: 12, color: "var(--ink-500)", fontWeight: 560 })}>{label}</span>
+      <span style={st({ fontSize: 11.5, fontWeight: 600, color: "var(--ink-700)" })}>{value}px</span>
+    </div>
+    <input type="range" min={min} max={max} step={1} value={value}
+      onChange={(e) => onChange(Number(e.target.value))}
+      style={st({ width: "100%", accentColor: "var(--accent)" })} />
+    <div style={st({ display: "flex", justifyContent: "space-between", fontSize: 10.5, color: "var(--ink-400)" })}>
+      <span>{min}px</span><span>{max}px</span>
+    </div>
+  </div>
+);
+
 /* ── faux browser frame (ported from mock) ───────────────────────────────── */
 const SiteFrame = ({ children }: { children: React.ReactNode }) => (
   <div style={st({ width: "100%", margin: "0 auto", borderRadius: 14, overflow: "hidden", border: "1px solid var(--ink-200)", background: "#fff", boxShadow: "var(--shadow-lg)" })}>
@@ -232,13 +257,27 @@ export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [], aiS
   const [minRating, setMinRating] = useState(widget.minRating || 1);
   const [pageSize, setPageSize] = useState(snapPageSize(widget.pageSize || 12));
   const [marqueeSpeed, setMarqueeSpeed] = useState(widget.marqueeSpeed || "normal");
+  // Display toggles
   const [showHeader, setShowHeader] = useState(widget.showHeader);
+  const [showAvgRating, setShowAvgRating] = useState(widget.showAvgRating);
+  const [showReviewCount, setShowReviewCount] = useState(widget.showReviewCount);
   const [showReviewerName, setShowReviewerName] = useState(widget.showReviewerName);
   const [showDate, setShowDate] = useState(widget.showDate);
   const [showSourceLogo, setShowSourceLogo] = useState(widget.showSourceLogo);
   const [showRating, setShowRating] = useState(widget.showRating);
   const [showWriteReview, setShowWriteReview] = useState(widget.showWriteReview);
   const [showAiSummary, setShowAiSummary] = useState(widget.showAiSummary);
+  const [showResponses, setShowResponses] = useState(widget.showResponses);
+  const [showNav, setShowNav] = useState(widget.showNav);
+  const [showPagination, setShowPagination] = useState(widget.showPagination);
+  const [showBranding, setShowBranding] = useState(widget.showBranding);
+  // Typography
+  const [fontSizeBase, setFontSizeBase] = useState(widget.fontSizeBase ?? 14);
+  const [fontSizeNames, setFontSizeNames] = useState(widget.fontSizeNames ?? 13);
+  const [fontSizeHeader, setFontSizeHeader] = useState(widget.fontSizeHeader ?? 20);
+  const [fontSizeLabel, setFontSizeLabel] = useState(widget.fontSizeLabel ?? 12);
+  const [fontSizeSummary, setFontSizeSummary] = useState(widget.fontSizeSummary ?? 14);
+  const [bodyMaxChars, setBodyMaxChars] = useState(widget.bodyMaxChars ?? 280);
   const [isActive, setIsActive] = useState(widget.isActive);
   // Badge
   const [badgeStyle, setBadgeStyle] = useState<BadgeStyle>((widget.badgeStyle as BadgeStyle) || "rating");
@@ -280,7 +319,7 @@ export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [], aiS
     showDates: showDate,
     showAvatars: showReviewerName,
     showSources: showSourceLogo,
-    showBranding: true,
+    showBranding,
     aiSummary: isReviewWall && content !== "videos" && showAiSummary,
     aiSummaryText,
     aiSummaryCount,
@@ -314,13 +353,27 @@ export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [], aiS
     fd.append("pageSize", String(pageSize));
     fd.append("marqueeSpeed", marqueeSpeed);
     if (isActive) fd.append("isActive", "on");
+    // Display toggles
     if (showHeader) fd.append("showHeader", "on");
+    if (showAvgRating) fd.append("showAvgRating", "on");
+    if (showReviewCount) fd.append("showReviewCount", "on");
     if (showRating) fd.append("showRating", "on");
     if (showReviewerName) fd.append("showReviewerName", "on");
     if (showDate) fd.append("showDate", "on");
     if (showWriteReview) fd.append("showWriteReview", "on");
     if (showSourceLogo) fd.append("showSourceLogo", "on");
     if (showAiSummary) fd.append("showAiSummary", "on");
+    if (showResponses) fd.append("showResponses", "on");
+    if (showNav) fd.append("showNav", "on");
+    if (showPagination) fd.append("showPagination", "on");
+    if (showBranding) fd.append("showBranding", "on");
+    // Typography
+    fd.append("fontSizeBase", String(fontSizeBase));
+    fd.append("fontSizeNames", String(fontSizeNames));
+    fd.append("fontSizeHeader", String(fontSizeHeader));
+    fd.append("fontSizeLabel", String(fontSizeLabel));
+    fd.append("fontSizeSummary", String(fontSizeSummary));
+    fd.append("bodyMaxChars", String(bodyMaxChars));
 
     // Badge
     fd.append("badgeStyle", badgeStyle);
@@ -344,14 +397,10 @@ export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [], aiS
     // preserved-as-is fields the editor doesn't expose
     fd.append("sort", widget.sort);
     fd.append("headerAlign", widget.headerAlign);
-    fd.append("bodyMaxChars", String(widget.bodyMaxChars));
     fd.append("starColor", widget.starColor);
     fd.append("backgroundColor", widget.backgroundColor);
     fd.append("textColor", widget.textColor);
     fd.append("fontFamily", widget.fontFamily);
-    if (widget.showAvgRating) fd.append("showAvgRating", "on");
-    if (widget.showReviewCount) fd.append("showReviewCount", "on");
-    if (widget.showResponses) fd.append("showResponses", "on");
 
     const locationChanged = locationId !== widget.locationId;
 
@@ -589,12 +638,41 @@ export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [], aiS
               <Field label="Display">
                 <div style={st({ display: "flex", flexDirection: "column", gap: 12 })}>
                   <Toggle checked={showHeader} onChange={setShowHeader} label="Summary header" />
+                  {showHeader && <Toggle checked={showAvgRating} onChange={setShowAvgRating} label="Average rating" />}
+                  {showHeader && <Toggle checked={showReviewCount} onChange={setShowReviewCount} label="Review count" />}
                   <Toggle checked={showReviewerName} onChange={setShowReviewerName} label="Reviewer names & avatars" />
                   <Toggle checked={showRating} onChange={setShowRating} label="Star ratings" />
                   <Toggle checked={showDate} onChange={setShowDate} label="Review dates" />
                   <Toggle checked={showSourceLogo} onChange={setShowSourceLogo} label="Source logos" />
+                  <Toggle checked={showResponses} onChange={setShowResponses} label="Owner responses" />
                   {isReviewWall && <Toggle checked={showWriteReview} onChange={setShowWriteReview} label="Write a review link" />}
                   {isReviewWall && content !== "videos" && <Toggle checked={showAiSummary} onChange={setShowAiSummary} label="AI summary" />}
+                  {isReviewWall && <Toggle checked={showNav} onChange={setShowNav} label="Navigation arrows" />}
+                  {isReviewWall && <Toggle checked={showPagination} onChange={setShowPagination} label="Pagination / load more" />}
+                  <Toggle checked={showBranding} onChange={setShowBranding} label="WeHearYou branding" />
+                </div>
+              </Field>
+
+              {/* ── Typography ── */}
+              <div className="hr" />
+              <Field label="Typography">
+                <div style={st({ display: "flex", flexDirection: "column", gap: 14 })}>
+                  <FontSlider label="Review text" value={fontSizeBase} min={11} max={18} onChange={setFontSizeBase} />
+                  <FontSlider label="Reviewer names" value={fontSizeNames} min={10} max={16} onChange={setFontSizeNames} />
+                  <FontSlider label="Header title" value={fontSizeHeader} min={14} max={28} onChange={setFontSizeHeader} />
+                  <FontSlider label="Dates & labels" value={fontSizeLabel} min={10} max={14} onChange={setFontSizeLabel} />
+                  {content !== "videos" && <FontSlider label="AI summary text" value={fontSizeSummary} min={11} max={16} onChange={setFontSizeSummary} />}
+                </div>
+              </Field>
+
+              {/* ── Review text length ── */}
+              <div className="hr" />
+              <Field label="Review text limit" hint={`${bodyMaxChars} chars`}>
+                <input type="range" min={80} max={600} step={20} value={bodyMaxChars}
+                  onChange={(e) => setBodyMaxChars(Number(e.target.value))}
+                  style={st({ width: "100%", accentColor: "var(--accent)" })} />
+                <div style={st({ display: "flex", justifyContent: "space-between", fontSize: 10.5, color: "var(--ink-400)", marginTop: 2 })}>
+                  <span>80</span><span>600 chars</span>
                 </div>
               </Field>
             </>
