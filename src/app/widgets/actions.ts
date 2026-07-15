@@ -218,17 +218,6 @@ export async function updateReviewWidget(formData: FormData) {
   const rawCollectButtonPosition = String(formData.get("collectButtonPosition") ?? "").trim();
   const rawCollectButtonColor = String(formData.get("collectButtonColor") ?? "").trim();
 
-  // Optional location change (validate it belongs to the same org).
-  const rawLocationId = String(formData.get("locationId") ?? "").trim();
-  let locationUpdate: { locationId?: string } = {};
-  if (rawLocationId) {
-    const loc = await prisma.location.findFirst({
-      where: { id: rawLocationId, organizationId: existing.organizationId },
-      select: { id: true },
-    });
-    if (loc) locationUpdate = { locationId: loc.id };
-  }
-
   const rawLayout = String(formData.get("layout") ?? "grid");
   const rawAlign = String(formData.get("headerAlign") ?? "left");
   const rawFont = String(formData.get("fontFamily") ?? "system");
@@ -249,7 +238,6 @@ export async function updateReviewWidget(formData: FormData) {
   await prisma.reviewWidget.update({
     where: { id: widgetId },
     data: {
-      ...locationUpdate,
       name: String(formData.get("name") ?? "").trim(),
       layout: allowedLayouts.has(rawLayout) ? rawLayout : "grid",
       contentType,
@@ -281,6 +269,7 @@ export async function updateReviewWidget(formData: FormData) {
       bodyMaxChars: Number.isFinite(rawBodyMaxChars) ? Math.max(40, Math.min(2000, Math.floor(rawBodyMaxChars))) : 280,
       showNav,
       showPagination,
+      showBranding: String(formData.get("showBranding") ?? "") === "on",
 
       // Appearance panel
       primaryColor: hexColor(formData.get("primaryColor"), "#4338ca"),
@@ -391,4 +380,70 @@ export async function regenerateReviewWidgetToken(formData: FormData) {
   });
 
   redirect(`/widgets/${widgetId}?flash=Embed+token+regenerated&tone=success`);
+}
+
+/**
+ * Navigate the studio editor to the equivalent widget for a different location.
+ * If a widget of the same type already exists for the target location, returns
+ * its ID. Otherwise clones the source widget's settings into a new widget for
+ * that location (preserving all appearance/display preferences) and returns the
+ * new ID. This ensures each location always has its own independent widget with
+ * its own embed code.
+ */
+export async function getOrCreateWidgetForLocation(
+  sourceWidgetId: string,
+  targetLocationId: string,
+): Promise<{ widgetId: string }> {
+  const source = await prisma.reviewWidget.findUnique({ where: { id: sourceWidgetId } });
+  if (!source) throw new Error("Source widget not found");
+
+  await requireOrganizationAccess(source.organizationId);
+
+  // Verify the target location belongs to the same org.
+  const targetLocation = await prisma.location.findFirst({
+    where: { id: targetLocationId, organizationId: source.organizationId },
+    select: { id: true },
+  });
+  if (!targetLocation) throw new Error("Location not found for this organization");
+
+  // Look for an existing widget of the same type for the target location.
+  const existing = await prisma.reviewWidget.findFirst({
+    where: {
+      organizationId: source.organizationId,
+      locationId: targetLocationId,
+      widgetType: source.widgetType,
+      layout: source.layout,
+    },
+    select: { id: true },
+    orderBy: { createdAt: "desc" },
+  });
+
+  if (existing) {
+    return { widgetId: existing.id };
+  }
+
+  // No existing widget — clone source settings into a new widget for the target location.
+  const {
+    id: _id,
+    publicToken: _publicToken,
+    createdAt: _createdAt,
+    updatedAt: _updatedAt,
+    locationId: _locationId,
+    name,
+    ...rest
+  } = source;
+
+  const newWidget = await prisma.reviewWidget.create({
+    data: {
+      ...rest,
+      locationId: targetLocationId,
+      name,
+      publicToken: generateReviewWidgetToken(),
+      // Reset single-testimonial pins — they belong to the source location's reviews.
+      singleTestimonialReviewId: null,
+      singleTestimonialVideoId: null,
+    },
+  });
+
+  return { widgetId: newWidget.id };
 }

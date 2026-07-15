@@ -60,6 +60,7 @@ export default async function WidgetDetailPage({
       id: widget.id,
       publicToken: widget.publicToken,
       name: widget.name,
+      organizationId: widget.organizationId,
       locationId: widget.locationId,
       layout: widget.layout,
       contentType: widget.contentType,
@@ -102,6 +103,14 @@ export default async function WidgetDetailPage({
       showAvgRating: widget.showAvgRating,
       showReviewCount: widget.showReviewCount,
       showResponses: widget.showResponses,
+      showNav: widget.showNav,
+      showPagination: widget.showPagination,
+      showBranding: widget.showBranding,
+      fontSizeBase: widget.fontSizeBase,
+      fontSizeNames: widget.fontSizeNames,
+      fontSizeHeader: widget.fontSizeHeader,
+      fontSizeLabel: widget.fontSizeLabel,
+      fontSizeSummary: widget.fontSizeSummary,
     };
     const profile = widget.location.publicProfile;
     const aiSummaryText = profile?.showAiReviewSummary ? (profile.aiReviewSummary ?? null) : null;
