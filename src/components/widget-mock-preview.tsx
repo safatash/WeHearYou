@@ -29,6 +29,20 @@ export type PreviewSettings = {
   showSources: boolean;
   showHeader: boolean;
   showBranding: boolean;
+  showRating: boolean;
+  showAvgRating: boolean;
+  showReviewCount: boolean;
+  showWriteReview: boolean;
+  showNav: boolean;
+  showPagination: boolean;
+  showResponses: boolean;
+  starColor: string;
+  fontSizeBase: number;
+  fontSizeNames: number;
+  fontSizeHeader: number;
+  fontSizeLabel: number;
+  fontSizeSummary: number;
+  bodyMaxChars: number;
   // Badge
   badgeStyle: "rating" | "compact" | "review_cta" | "trust";
   // Collecting
@@ -62,6 +76,20 @@ export const PREVIEW_DEFAULTS: PreviewSettings = {
   showSources: true,
   showHeader: true,
   showBranding: true,
+  showRating: true,
+  showAvgRating: true,
+  showReviewCount: true,
+  showWriteReview: true,
+  showNav: true,
+  showPagination: true,
+  showResponses: false,
+  starColor: "#fbbf24",
+  fontSizeBase: 14,
+  fontSizeNames: 13,
+  fontSizeHeader: 20,
+  fontSizeLabel: 12,
+  fontSizeSummary: 14,
+  bodyMaxChars: 280,
   badgeStyle: "rating",
   collectPosition: "bottom-right",
   collectTheme: "default",
@@ -276,14 +304,72 @@ function Header({ s, tk, avg, total }: { s: PreviewSettings; tk: ReturnType<type
   ) : null;
 }
 
-export function WidgetMockPreview({ settings }: { settings: Partial<PreviewSettings> }) {
+type RealReview = {
+  id: string;
+  reviewerName: string;
+  reviewerPhotoUrl: string | null;
+  rating: number;
+  body: string;
+  reviewedAt: string | null;
+  source: string;
+};
+
+function formatRelativeTime(dateStr: string | null): string {
+  if (!dateStr) return "recently";
+  const date = new Date(dateStr);
+  const now = new Date();
+  const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+  if (seconds < 60) return "just now";
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes} minute${minutes > 1 ? "s" : ""} ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} hour${hours > 1 ? "s" : ""} ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days} day${days > 1 ? "s" : ""} ago`;
+  const weeks = Math.floor(days / 7);
+  if (weeks < 4) return `${weeks} week${weeks > 1 ? "s" : ""} ago`;
+  return dateStr.split("T")[0];
+}
+
+function convertRealReviews(realReviews: RealReview[]): Review[] {
+  return realReviews.map((r) => {
+    const sourceMap: Record<string, string> = {
+      GOOGLE: "Google",
+      FACEBOOK: "Facebook",
+      YELP: "Yelp",
+      INTERNAL: "WeHearYou",
+      WEHEARYOU: "WeHearYou",
+    };
+    return {
+      id: parseInt(r.id, 10) || Math.random() * 1000000,
+      name: r.reviewerName || "Anonymous",
+      rating: r.rating,
+      text: r.body,
+      time: formatRelativeTime(r.reviewedAt),
+      source: sourceMap[r.source] || r.source,
+    };
+  });
+}
+
+export function WidgetMockPreview({
+  settings,
+  realReviews,
+  locationStats,
+}: {
+  settings: Partial<PreviewSettings>;
+  realReviews?: RealReview[];
+  locationStats?: { avgRating: number | null; reviewCount: number };
+}) {
   const s: PreviewSettings = { ...PREVIEW_DEFAULTS, ...settings };
   const tk = wTokens(s);
-  const avg = 4.6;
-  const total = "1,284";
+
+  // Use real data if available, otherwise use defaults
+  const reviews = realReviews && realReviews.length > 0 ? convertRealReviews(realReviews) : REVIEWS;
+  const avg = locationStats?.avgRating ? locationStats.avgRating.toFixed(1) : 4.6;
+  const total = locationStats?.reviewCount ? locationStats.reviewCount.toLocaleString() : "1,284";
 
   if (s.type === "floating") {
-    const r = REVIEWS.find((x) => x.rating >= s.floatingMinRating) || REVIEWS[0];
+    const r = reviews.find((x) => x.rating >= s.floatingMinRating) || reviews[0];
     const accent = s.floatingAccentColor || s.accent;
     const compact = s.floatingVariation === "compact";
     const quote = r.text.length > (compact ? 60 : 110) ? r.text.slice(0, compact ? 60 : 110) + "…" : r.text;
@@ -414,7 +500,7 @@ export function WidgetMockPreview({ settings }: { settings: Partial<PreviewSetti
   if (s.type === "single") {
     const useVideo = s.content === "videos";
     const v = VIDEOS[0];
-    const r = REVIEWS.find((x) => s.sources[x.source] && x.rating >= 5) || REVIEWS[0];
+    const r = reviews.find((x) => s.sources[x.source] && x.rating >= 5) || reviews[0];
     return (
       <div style={st({ maxWidth: 540, margin: "0 auto" })}>
         {useVideo ? (
@@ -440,12 +526,12 @@ export function WidgetMockPreview({ settings }: { settings: Partial<PreviewSetti
   }
 
   // grid / carousel (Wall of Love)
-  const reviews = REVIEWS.filter((r) => s.sources[r.source] && r.rating >= s.minRating);
+  const filteredReviews = reviews.filter((r) => s.sources[r.source] && r.rating >= s.minRating);
   const videos = VIDEOS.filter((v) => s.sources[v.source]);
   let items: Array<{ kind: "review"; data: Review } | { kind: "video"; data: Video }>;
   if (s.content === "videos") items = videos.map((v) => ({ kind: "video" as const, data: v }));
   else if (s.content === "mixed") {
-    const rs = reviews.map((r) => ({ kind: "review" as const, data: r }));
+    const rs = filteredReviews.map((r) => ({ kind: "review" as const, data: r }));
     const vs = videos.map((v) => ({ kind: "video" as const, data: v }));
     items = [];
     let ri = 0, vi = 0;
@@ -454,7 +540,7 @@ export function WidgetMockPreview({ settings }: { settings: Partial<PreviewSetti
       if (ri < rs.length) items.push(rs[ri++]);
       if (ri < rs.length) items.push(rs[ri++]);
     }
-  } else items = reviews.map((r) => ({ kind: "review" as const, data: r }));
+  } else items = filteredReviews.map((r) => ({ kind: "review" as const, data: r }));
   const marqueeRows = buildMarqueeRows(items);
   const marqueeDur = s.marqueeSpeed === "slow" ? 60 : s.marqueeSpeed === "fast" ? 26 : 40;
   items = items.slice(0, s.maxReviews);

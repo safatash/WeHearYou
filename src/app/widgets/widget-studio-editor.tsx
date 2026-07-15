@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { isRedirectError } from "next/dist/client/components/redirect-error";
@@ -258,7 +258,37 @@ export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [], aiS
   const [floatingMobile, setFloatingMobile] = useState(widget.floatingMobileBehavior || "show");
   const [floatingApprovedOnly, setFloatingApprovedOnly] = useState(widget.floatingApprovedOnly ?? true);
   const [floatingMinRating, setFloatingMinRating] = useState(widget.floatingMinRating ?? 4);
+  const [showNav, setShowNav] = useState(widget.showNav ?? true);
+  const [showPagination, setShowPagination] = useState(widget.showPagination ?? true);
+  const [showBranding, setShowBranding] = useState(widget.showBranding ?? true);
+  const [showAvgRating, setShowAvgRating] = useState(widget.showAvgRating ?? true);
+  const [showReviewCount, setShowReviewCount] = useState(widget.showReviewCount ?? true);
+  const [showResponses, setShowResponses] = useState(widget.showResponses ?? false);
+  const [starColor, setStarColor] = useState(widget.starColor ?? "#fbbf24");
+  const [fontSizeBase, setFontSizeBase] = useState(widget.fontSizeBase ?? 14);
+  const [fontSizeNames, setFontSizeNames] = useState(widget.fontSizeNames ?? 13);
+  const [fontSizeHeader, setFontSizeHeader] = useState(widget.fontSizeHeader ?? 20);
+  const [fontSizeLabel, setFontSizeLabel] = useState(widget.fontSizeLabel ?? 12);
+  const [fontSizeSummary, setFontSizeSummary] = useState(widget.fontSizeSummary ?? 14);
+  const [bodyMaxChars, setBodyMaxChars] = useState(widget.bodyMaxChars ?? 280);
+  const [realPayload, setRealPayload] = useState<any>(null);
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
+
+  // Fetch real widget data for live preview
+  useEffect(() => {
+    const fetchRealData = async () => {
+      try {
+        const res = await fetch(`/api/public/widgets/${widget.publicToken}?page=1`);
+        if (res.ok) {
+          const data = await res.json();
+          setRealPayload(data);
+        }
+      } catch (e) {
+        console.error("Failed to fetch widget preview data", e);
+      }
+    };
+    fetchRealData();
+  }, [widget.publicToken]);
 
   const isBadge = typeKey === "badge";
   const isSingle = typeKey === "single";
@@ -279,7 +309,22 @@ export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [], aiS
     showDates: showDate,
     showAvatars: showReviewerName,
     showSources: showSourceLogo,
-    showBranding: true,
+    showBranding,
+    showRating,
+    showAvgRating,
+    showReviewCount,
+    showWriteReview,
+    showNav,
+    showPagination,
+    showResponses,
+    starColor,
+    fontSizeBase,
+    fontSizeNames,
+    fontSizeHeader,
+    fontSizeLabel,
+    fontSizeSummary,
+    bodyMaxChars,
+    radius: widget.cornerRadius ?? 12,
     aiSummary: isReviewWall && content !== "videos",
     aiSummaryText,
     aiSummaryCount,
@@ -627,7 +672,11 @@ export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [], aiS
                         <div style={st({ fontSize: 14, color: dark ? "#a1a1aa" : "#52525b", marginTop: 8 })}>See what our community is saying.</div>
                       </div>
                     )}
-                    <WidgetMockPreview settings={previewSettings} />
+                    <WidgetMockPreview
+                      settings={previewSettings}
+                      realReviews={realPayload?.reviews}
+                      locationStats={realPayload?.location ? { avgRating: realPayload.location.avgRating, reviewCount: realPayload.location.reviewCount } : undefined}
+                    />
                   </div>
                 </div>
               </SiteFrame>
