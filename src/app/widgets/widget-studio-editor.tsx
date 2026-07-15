@@ -273,7 +273,8 @@ export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [], aiS
   const [showNav, setShowNav] = useState(widget.showNav);
   const [showPagination, setShowPagination] = useState(widget.showPagination);
   const [showBranding, setShowBranding] = useState(widget.showBranding);
-  // Typography
+  // Typography & Colors
+  const [starColor, setStarColor] = useState(widget.starColor ?? "#fbbf24");
   const [fontSizeBase, setFontSizeBase] = useState(widget.fontSizeBase ?? 14);
   const [fontSizeNames, setFontSizeNames] = useState(widget.fontSizeNames ?? 13);
   const [fontSizeHeader, setFontSizeHeader] = useState(widget.fontSizeHeader ?? 20);
@@ -300,19 +301,6 @@ export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [], aiS
   const [floatingMobile, setFloatingMobile] = useState(widget.floatingMobileBehavior || "show");
   const [floatingApprovedOnly, setFloatingApprovedOnly] = useState(widget.floatingApprovedOnly ?? true);
   const [floatingMinRating, setFloatingMinRating] = useState(widget.floatingMinRating ?? 4);
-  const [showNav, setShowNav] = useState(widget.showNav ?? true);
-  const [showPagination, setShowPagination] = useState(widget.showPagination ?? true);
-  const [showBranding, setShowBranding] = useState(widget.showBranding ?? true);
-  const [showAvgRating, setShowAvgRating] = useState(widget.showAvgRating ?? true);
-  const [showReviewCount, setShowReviewCount] = useState(widget.showReviewCount ?? true);
-  const [showResponses, setShowResponses] = useState(widget.showResponses ?? false);
-  const [starColor, setStarColor] = useState(widget.starColor ?? "#fbbf24");
-  const [fontSizeBase, setFontSizeBase] = useState(widget.fontSizeBase ?? 14);
-  const [fontSizeNames, setFontSizeNames] = useState(widget.fontSizeNames ?? 13);
-  const [fontSizeHeader, setFontSizeHeader] = useState(widget.fontSizeHeader ?? 20);
-  const [fontSizeLabel, setFontSizeLabel] = useState(widget.fontSizeLabel ?? 12);
-  const [fontSizeSummary, setFontSizeSummary] = useState(widget.fontSizeSummary ?? 14);
-  const [bodyMaxChars, setBodyMaxChars] = useState(widget.bodyMaxChars ?? 280);
   const [realPayload, setRealPayload] = useState<any>(null);
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
 
@@ -366,7 +354,7 @@ export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [], aiS
     fontSizeLabel,
     fontSizeSummary,
     bodyMaxChars,
-    radius: widget.cornerRadius ?? 12,
+    radius: 12,
     aiSummary: isReviewWall && content !== "videos" && showAiSummary,
     aiSummaryText,
     aiSummaryCount,
