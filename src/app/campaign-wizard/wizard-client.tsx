@@ -349,13 +349,14 @@ const DEFAULT_MSG = {
 };
 
 export function CampaignWizard({ locations, appUrl }: { locations: Location[]; appUrl: string }) {
+  const first = locations[0];
+  const p = first?.publicProfile;
+
   const [step, setStep] = useState(0);
   const [maxReached, setMaxReached] = useState(0);
   const [saved, setSaved] = useState(false);
   const [isPending, startTransition] = useTransition();
-
-  const first = locations[0];
-  const p = first?.publicProfile;
+  const [previewLocationId, setPreviewLocationId] = useState<string | null>(first?.id ?? null);
 
   const [name, setName] = useState("Post-visit review request");
   const [locationIds, setLocationIds] = useState<string[]>(first ? [first.id] : []);
@@ -395,32 +396,30 @@ export function CampaignWizard({ locations, appUrl }: { locations: Location[]; a
   }, [channel]);
 
   const selectedLocations = locations.filter((l) => locationIds.includes(l.id));
-  const previewLocation = selectedLocations[0] ?? first;
+  const previewLocation = locations.find((l) => l.id === previewLocationId) || selectedLocations[0] || first;
 
   // update form state when preview location changes
   useEffect(() => {
-    if (locationIds.length > 0) {
-      const currentLocation = locations.find((l) => l.id === locationIds[0]);
-      if (currentLocation?.publicProfile) {
-        const profile = currentLocation.publicProfile;
-        setFunnelStyle(profile.funnelStyle ?? "SIMPLE");
-        setRatingStyle(profile.funnelRatingStyle ?? "stars");
-        setHeadline(profile.funnelPromptTitle ?? `How was your experience with ${currentLocation.name}?`);
-        setSubheading(profile.funnelPromptBody ?? "Happy customers can continue to a public review, while lower ratings stay private so our team can follow up directly.");
-        setChannels(
-          Array.isArray(profile.highRatingDestinations) && profile.highRatingDestinations.length > 0
-            ? profile.highRatingDestinations
-            : ["WEHEARYOU", "GOOGLE"]
-        );
-        setPrimaryChannel(profile.highRatingPrimaryDestination ?? "");
-        setGateThreshold(profile.negativeFilterThreshold ?? 4);
-        setLowDestination(profile.lowRatingDestination ?? "PRIVATE");
-        setLowCustomUrl(profile.lowRatingCustomUrl ?? "");
-        setFacebookReviewUrl(profile.facebookReviewUrl ?? "");
-        setCustomReviewUrl(profile.customReviewUrl ?? "");
-      }
+    const currentLocation = previewLocation;
+    if (currentLocation?.publicProfile) {
+      const profile = currentLocation.publicProfile;
+      setFunnelStyle(profile.funnelStyle ?? "SIMPLE");
+      setRatingStyle(profile.funnelRatingStyle ?? "stars");
+      setHeadline(profile.funnelPromptTitle ?? `How was your experience with ${currentLocation.name}?`);
+      setSubheading(profile.funnelPromptBody ?? "Happy customers can continue to a public review, while lower ratings stay private so our team can follow up directly.");
+      setChannels(
+        Array.isArray(profile.highRatingDestinations) && profile.highRatingDestinations.length > 0
+          ? profile.highRatingDestinations
+          : ["WEHEARYOU", "GOOGLE"]
+      );
+      setPrimaryChannel(profile.highRatingPrimaryDestination ?? "");
+      setGateThreshold(profile.negativeFilterThreshold ?? 4);
+      setLowDestination(profile.lowRatingDestination ?? "PRIVATE");
+      setLowCustomUrl(profile.lowRatingCustomUrl ?? "");
+      setFacebookReviewUrl(profile.facebookReviewUrl ?? "");
+      setCustomReviewUrl(profile.customReviewUrl ?? "");
     }
-  }, [locationIds, locations]);
+  }, [previewLocation]);
   const funnelUrl = previewLocation ? `${appUrl}/f/${previewLocation.slug}` : "";
 
   const cfg: Cfg = {
@@ -430,7 +429,17 @@ export function CampaignWizard({ locations, appUrl }: { locations: Location[]; a
     gateEnabled, gateThreshold, lowDestination, lowCustomUrl, channel, delay, subject, message,
   };
 
-  const toggleLocation = (id: string) => setLocationIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  const toggleLocation = (id: string) => {
+    setLocationIds((prev) => {
+      const newIds = prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id];
+      if (!newIds.includes(previewLocationId ?? "")) {
+        setPreviewLocationId(newIds[0] ?? null);
+      } else {
+        setPreviewLocationId(id);
+      }
+      return newIds;
+    });
+  };
   const toggleChannel = (id: string) => setChannels((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
 
   const stepId = STEPS[step].id;
