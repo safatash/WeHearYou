@@ -797,7 +797,7 @@ export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [], aiS
                   <Toggle checked={showHeader} onChange={setShowHeader} label="Summary header" />
                   {showHeader && <Toggle checked={showAvgRating} onChange={setShowAvgRating} label="Average rating" />}
                   {showHeader && <Toggle checked={showReviewCount} onChange={setShowReviewCount} label="Review count" />}
-                  <Toggle checked={showReviewerName} onChange={setShowReviewerName} label="Reviewer names & avatars" />
+                  <Toggle checked={showReviewerName} onChange={setShowReviewerName} label="Reviewer avatars" />
                   <Toggle checked={showRating} onChange={setShowRating} label="Star ratings" />
                   <Toggle checked={showDate} onChange={setShowDate} label="Review dates" />
                   <Toggle checked={showSourceLogo} onChange={setShowSourceLogo} label="Source logos" />
@@ -817,7 +817,6 @@ export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [], aiS
                   <FontSlider label="Review text" value={fontSizeBase} min={11} max={18} onChange={setFontSizeBase} />
                   <FontSlider label="Reviewer names" value={fontSizeNames} min={10} max={16} onChange={setFontSizeNames} />
                   <FontSlider label="Header title" value={fontSizeHeader} min={14} max={28} onChange={setFontSizeHeader} />
-                  <FontSlider label="Dates & labels" value={fontSizeLabel} min={10} max={14} onChange={setFontSizeLabel} />
                   {content !== "videos" && <FontSlider label="AI summary text" value={fontSizeSummary} min={11} max={16} onChange={setFontSizeSummary} />}
                 </div>
               </Field>
@@ -825,11 +824,11 @@ export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [], aiS
               {/* ── Review text length ── */}
               <div className="hr" />
               <Field label="Review text limit" hint={`${bodyMaxChars} chars`}>
-                <input type="range" min={80} max={600} step={20} value={bodyMaxChars}
+                <input type="range" min={80} max={1000} step={20} value={bodyMaxChars}
                   onChange={(e) => setBodyMaxChars(Number(e.target.value))}
                   style={st({ width: "100%", accentColor: "var(--accent)" })} />
                 <div style={st({ display: "flex", justifyContent: "space-between", fontSize: 10.5, color: "var(--ink-400)", marginTop: 2 })}>
-                  <span>80</span><span>600 chars</span>
+                  <span>80</span><span>1000 chars</span>
                 </div>
               </Field>
             </>

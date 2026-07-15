@@ -235,25 +235,63 @@ const SourceBadge = ({ source, size = 18 }: { source: string; size?: number }) =
   </span>
 );
 
-const ReviewCardW = ({ r, s, tk }: { r: Review; s: PreviewSettings; tk: Tokens }) => {
+// FeaturedReviewCardW: accent-coloured card used for wallStyle="varied" featured slot
+const FeaturedReviewCardW = ({ r, s, tk }: { r: Review; s: PreviewSettings; tk: Tokens }) => {
+  const starColor = "rgba(255,255,255,0.9)";
+  const fontStack = FONT_STACKS[s.fontFamily] || FONT_STACKS.system;
+  const pad = s.density === "compact" ? 16 : 22;
+  return (
+    <div style={st({ background: s.accent, borderRadius: s.radius, padding: pad, display: "flex", flexDirection: "column", gap: 12, minWidth: 0, fontFamily: fontStack, color: "#fff" })}>
+      {s.showRating && <Stars value={r.rating} size={s.density === "compact" ? 15 : 18} color={starColor} />}
+      <p style={st({ fontSize: (s.fontSizeBase || 14) + 4, lineHeight: 1.45, color: "#fff", margin: 0, fontWeight: 600, letterSpacing: "-.01em" })}>&#8220;{r.text}&#8221;</p>
+      {s.showAvatars && (
+        <div style={st({ display: "flex", alignItems: "center", gap: 9, marginTop: 4 })}>
+          <Avatar name={r.name} size={32} />
+          <div>
+            <div style={st({ fontSize: s.fontSizeNames || 13, fontWeight: 640, color: "#fff" })}>{r.name}</div>
+            {s.showDates && <div style={st({ fontSize: s.fontSizeLabel || 11, color: "rgba(255,255,255,.7)" })}>{r.time}</div>}
+          </div>
+          {s.showSources && <span style={st({ marginLeft: "auto" })}><SourceBadge source={r.source} size={18} /></span>}
+        </div>
+      )}
+    </div>
+  );
+};
+
+const ReviewCardW = ({ r, s, tk, featured }: { r: Review; s: PreviewSettings; tk: Tokens; featured?: boolean }) => {
+  if (featured && s.wallStyle === "varied") return <FeaturedReviewCardW r={r} s={s} tk={tk} />;
   const cardStyles = resolveCardStyle(s, tk);
   const starColor = resolveStarColor(s);
   const fontStack = FONT_STACKS[s.fontFamily] || FONT_STACKS.system;
   const pad = s.density === "compact" ? 12 : 16;
   const truncLen = s.bodyMaxChars || 280;
   const bodyText = r.text.length > truncLen ? r.text.slice(0, truncLen) + "…" : r.text;
+  // Fake owner response for preview
+  const ownerReply = "Thank you so much for your kind words! We really appreciate you taking the time to share your experience.";
   return (
     <div style={st({ ...cardStyles, borderRadius: s.radius, padding: pad, display: "flex", flexDirection: "column", gap: s.density === "compact" ? 7 : 9, minWidth: 0, fontFamily: fontStack })}>
-      <div style={st({ display: "flex", alignItems: "center", gap: 10 })}>
-        {s.showAvatars && <Avatar name={r.name} size={s.density === "compact" ? 28 : 34} />}
-        <div style={st({ minWidth: 0, flex: 1 })}>
-          <div style={st({ fontSize: s.fontSizeNames || 13.5, fontWeight: 620, color: tk.text })}>{r.name}</div>
-          {s.showDates && <div style={st({ fontSize: s.fontSizeLabel || 11.5, color: tk.muted })}>{r.time}</div>}
+      {s.showAvatars && (
+        <div style={st({ display: "flex", alignItems: "center", gap: 10 })}>
+          <Avatar name={r.name} size={s.density === "compact" ? 28 : 34} />
+          <div style={st({ minWidth: 0, flex: 1 })}>
+            <div style={st({ fontSize: s.fontSizeNames || 13.5, fontWeight: 620, color: tk.text })}>{r.name}</div>
+            {s.showDates && <div style={st({ fontSize: s.fontSizeLabel || 11.5, color: tk.muted })}>{r.time}</div>}
+          </div>
+          {s.showSources && <SourceBadge source={r.source} size={18} />}
         </div>
-        {s.showSources && <SourceBadge source={r.source} size={18} />}
-      </div>
-      <Stars value={r.rating} size={s.density === "compact" ? 13 : 15} color={starColor} />
-      <p style={st({ fontSize: s.fontSizeBase || 13, lineHeight: 1.55, color: tk.sub, margin: 0, display: "-webkit-box", WebkitLineClamp: 4, WebkitBoxOrient: "vertical", overflow: "hidden" })}>{bodyText}</p>
+      )}
+      {!s.showAvatars && s.showSources && (
+        <div style={st({ display: "flex", justifyContent: "flex-end" })}>
+          <SourceBadge source={r.source} size={18} />
+        </div>
+      )}
+      {s.showRating && <Stars value={r.rating} size={s.density === "compact" ? 13 : 15} color={starColor} />}
+      <p style={st({ fontSize: s.fontSizeBase || 13, lineHeight: 1.55, color: tk.sub, margin: 0 })}>{bodyText}</p>
+      {s.showResponses && (
+        <div style={st({ background: `color-mix(in srgb, ${s.accent} 8%, ${tk.bg})`, border: `1px solid color-mix(in srgb, ${s.accent} 20%, ${tk.line})`, borderRadius: Math.max(4, s.radius - 4), padding: "9px 11px", fontSize: (s.fontSizeBase || 13) - 1, color: tk.sub, lineHeight: 1.5 })}>
+          <span style={st({ fontWeight: 640, color: s.accent, fontSize: (s.fontSizeBase || 13) - 1 })}>Owner reply: </span>{ownerReply}
+        </div>
+      )}
     </div>
   );
 };
@@ -300,7 +338,7 @@ const AISummaryBox = ({ s, tk }: { s: PreviewSettings; tk: Tokens }) => {
           <span style={st({ marginLeft: "auto", fontSize: 11, color: tk.muted, whiteSpace: "nowrap" })}>Based on {s.aiSummaryCount} reviews</span>
         ) : null}
       </div>
-      <p style={st({ fontSize: 13, lineHeight: 1.6, color: tk.sub, margin: 0 })}>{text}</p>
+      <p style={st({ fontSize: s.fontSizeSummary || 13, lineHeight: 1.6, color: tk.sub, margin: 0 })}>{text}</p>
       <div style={st({ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 11 })}>
         {chips.map((h) => (
           <span key={h} style={st({ fontSize: 11.5, fontWeight: 540, padding: "3px 9px", borderRadius: 999, background: tk.card, border: `1px solid ${tk.line}`, color: tk.sub })}>{h}</span>
@@ -334,17 +372,23 @@ function cornerStyle(pos: string): React.CSSProperties {
 function Header({ s, tk, avg, total }: { s: PreviewSettings; tk: ReturnType<typeof wTokens>; avg: number; total: string }) {
   const starColor = resolveStarColor(s);
   const fontStack = FONT_STACKS[s.fontFamily] || FONT_STACKS.system;
-  return s.showHeader ? (
+  if (!s.showHeader) return null;
+  const showAvg = s.showAvgRating !== false;
+  const showCount = s.showReviewCount !== false;
+  if (!showAvg && !showCount) return null;
+  return (
     <div style={st({ display: "flex", alignItems: "center", gap: 14, marginBottom: 18, flexWrap: "wrap", fontFamily: fontStack })}>
-      <div style={st({ display: "flex", alignItems: "baseline", gap: 8 })}>
-        <span style={st({ fontSize: s.fontSizeHeader || 34, fontWeight: 720, letterSpacing: "-.03em", color: tk.text })}>{avg}</span>
-        <Stars value={avg} size={18} color={starColor} />
-      </div>
-      {s.showAvgRating !== false && s.showReviewCount !== false && <div style={st({ height: 30, width: 1, background: tk.line })} />}
-      {s.showReviewCount !== false && <div style={st({ fontSize: s.fontSizeLabel || 13, color: tk.sub })}>Based on <b style={st({ color: tk.text })}>{total}</b> verified reviews</div>}
+      {showAvg && (
+        <div style={st({ display: "flex", alignItems: "baseline", gap: 8 })}>
+          <span style={st({ fontSize: s.fontSizeHeader || 34, fontWeight: 720, letterSpacing: "-.03em", color: tk.text })}>{avg}</span>
+          <Stars value={avg} size={18} color={starColor} />
+        </div>
+      )}
+      {showAvg && showCount && <div style={st({ height: 30, width: 1, background: tk.line })} />}
+      {showCount && <div style={st({ fontSize: s.fontSizeLabel || 13, color: tk.sub })}>Based on <b style={st({ color: tk.text })}>{total}</b> verified reviews</div>}
       <div style={st({ marginLeft: "auto" })}><VerifiedTag s={s} tk={tk} /></div>
     </div>
-  ) : null;
+  );
 }
 
 type RealReview = {
@@ -606,6 +650,8 @@ export function WidgetMockPreview({
       {s.type === "grid" ? (
         (() => {
           const gap = s.density === "compact" ? 10 : 14;
+          // For varied layout, pick the highest-rated review as the featured card
+          const featuredIdx = s.wallStyle === "varied" ? items.findIndex((it) => it.kind === "review") : -1;
           // Determine column layout
           let gridStyle: React.CSSProperties;
           if (s.device === "mobile") {
@@ -618,15 +664,16 @@ export function WidgetMockPreview({
             // auto = masonry-style columns
             gridStyle = { columns: "240px", columnGap: gap };
           }
-          // wallStyle: "uniform" = fixed card heights; "varied" = natural masonry
+          // uniform = all cards same height; varied = natural masonry heights
+          const uniformHeight = s.wallStyle === "uniform" ? 180 : undefined;
           const cardWrap: React.CSSProperties = s.gridColumns !== "auto"
-            ? { display: "contents" } // grid layout handles spacing
+            ? { display: "contents" }
             : { breakInside: "avoid", marginBottom: gap };
           return (
             <div style={st(gridStyle)}>
-              {items.map((it) => (
-                <div key={it.kind + it.data.id} style={st(cardWrap)}>
-                  {it.kind === "video" ? <VideoCardW v={it.data} s={s} tk={tk} /> : <ReviewCardW r={it.data} s={s} tk={tk} />}
+              {items.map((it, idx) => (
+                <div key={it.kind + it.data.id} style={st({ ...cardWrap, ...(uniformHeight && s.gridColumns !== "auto" ? { height: uniformHeight, overflow: "hidden" } : {}) })}>
+                  {it.kind === "video" ? <VideoCardW v={it.data} s={s} tk={tk} /> : <ReviewCardW r={it.data} s={s} tk={tk} featured={idx === featuredIdx} />}
                 </div>
               ))}
             </div>
@@ -634,7 +681,7 @@ export function WidgetMockPreview({
         })()
       ) : (
         <div style={st({ display: "flex", flexDirection: "column", gap: 14 })}>
-          {([["l", marqueeRows[0]], ["r", marqueeRows[1]]] as Array<["l" | "r", typeof items]>).map(([dir, row], idx) =>
+          {(["l", marqueeRows[0]], ["r", marqueeRows[1]]] as Array<["l" | "r", typeof items]>).map(([dir, row], idx) =>
             row.length ? (
               <div key={dir} className="why-marq">
                 <div className={`why-marq-track why-marq-track--${dir}`} style={st({ gap: 14, animationDuration: `${idx === 0 ? marqueeDur : Math.round(marqueeDur * 1.22)}s` })}>
@@ -647,6 +694,26 @@ export function WidgetMockPreview({
               </div>
             ) : null,
           )}
+          {/* Nav arrows for carousel */}
+          {s.showNav && (
+            <div style={st({ display: "flex", justifyContent: "center", gap: 10, marginTop: 8 })}>
+              {["‹", "›"].map((arrow) => (
+                <button key={arrow} style={st({ width: 34, height: 34, borderRadius: "50%", border: `1px solid ${tk.line}`, background: tk.card, color: tk.text, fontSize: 18, cursor: "default", display: "grid", placeItems: "center" })}>{arrow}</button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+      {/* Write a review link */}
+      {s.showWriteReview && s.type === "grid" && (
+        <div style={st({ marginTop: 14, textAlign: "center" })}>
+          <a style={st({ fontSize: 13, color: s.accent, fontWeight: 580, textDecoration: "none", cursor: "default" })}>+ Write a review</a>
+        </div>
+      )}
+      {/* Pagination / load more */}
+      {s.showPagination && s.type === "grid" && (
+        <div style={st({ marginTop: 14, display: "flex", justifyContent: "center" })}>
+          <button style={st({ padding: "8px 22px", borderRadius: s.radius, border: `1px solid ${tk.line}`, background: tk.card, color: tk.sub, fontSize: 13, cursor: "default", fontWeight: 560 })}>Load more reviews</button>
         </div>
       )}
       {items.length === 0 && <div style={st({ textAlign: "center", padding: 30, color: tk.muted, fontSize: 13 })}>No content matches these filters.</div>}
