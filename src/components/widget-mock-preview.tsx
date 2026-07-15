@@ -194,6 +194,10 @@ const FONT_STACKS: Record<string, string> = {
   mono: "'JetBrains Mono', 'Fira Code', 'Courier New', monospace",
 };
 
+// Instrument Serif is used for review body text in the "varied" wall layout
+// to give the editorial testimonial feel seen in the mockup.
+const INSTRUMENT_SERIF = "'Instrument Serif', 'Georgia', serif";
+
 function resolveStarColor(s: PreviewSettings): string {
   if (s.starColorMode === "accent") return s.accent;
   if (s.starColorMode === "ink") return s.theme === "dark" ? "#f4f4f5" : "#18181b";
@@ -243,7 +247,7 @@ const FeaturedReviewCardW = ({ r, s, tk }: { r: Review; s: PreviewSettings; tk: 
   return (
     <div style={st({ background: s.accent, borderRadius: s.radius, padding: pad, display: "flex", flexDirection: "column", gap: 12, minWidth: 0, fontFamily: fontStack, color: "#fff" })}>
       {s.showRating && <Stars value={r.rating} size={s.density === "compact" ? 15 : 18} color={starColor} />}
-      <p style={st({ fontSize: (s.fontSizeBase || 14) + 4, lineHeight: 1.45, color: "#fff", margin: 0, fontWeight: 600, letterSpacing: "-.01em" })}>&#8220;{r.text}&#8221;</p>
+      <p style={st({ fontSize: (s.fontSizeBase || 14) + 4, lineHeight: 1.45, color: "#fff", margin: 0, fontWeight: 400, letterSpacing: "-.01em", fontFamily: INSTRUMENT_SERIF })}>&#8220;{r.text}&#8221;</p>
       {s.showAvatars && (
         <div style={st({ display: "flex", alignItems: "center", gap: 9, marginTop: 4 })}>
           <Avatar name={r.name} size={32} />
@@ -263,6 +267,8 @@ const ReviewCardW = ({ r, s, tk, featured }: { r: Review; s: PreviewSettings; tk
   const cardStyles = resolveCardStyle(s, tk);
   const starColor = resolveStarColor(s);
   const fontStack = FONT_STACKS[s.fontFamily] || FONT_STACKS.system;
+  // In varied layout, all review body text uses Instrument Serif for the editorial look
+  const bodyFont = s.wallStyle === "varied" ? INSTRUMENT_SERIF : fontStack;
   const pad = s.density === "compact" ? 12 : 16;
   const truncLen = s.bodyMaxChars || 280;
   const bodyText = r.text.length > truncLen ? r.text.slice(0, truncLen) + "…" : r.text;
@@ -286,7 +292,7 @@ const ReviewCardW = ({ r, s, tk, featured }: { r: Review; s: PreviewSettings; tk
         </div>
       )}
       {s.showRating && <Stars value={r.rating} size={s.density === "compact" ? 13 : 15} color={starColor} />}
-      <p style={st({ fontSize: s.fontSizeBase || 13, lineHeight: 1.55, color: tk.sub, margin: 0 })}>{bodyText}</p>
+      <p style={st({ fontSize: s.fontSizeBase || 13, lineHeight: 1.6, color: tk.sub, margin: 0, fontFamily: bodyFont })}>&#8220;{bodyText}&#8221;</p>
       {s.showResponses && (
         <div style={st({ background: `color-mix(in srgb, ${s.accent} 8%, ${tk.bg})`, border: `1px solid color-mix(in srgb, ${s.accent} 20%, ${tk.line})`, borderRadius: Math.max(4, s.radius - 4), padding: "9px 11px", fontSize: (s.fontSizeBase || 13) - 1, color: tk.sub, lineHeight: 1.5 })}>
           <span style={st({ fontWeight: 640, color: s.accent, fontSize: (s.fontSizeBase || 13) - 1 })}>Owner reply: </span>{ownerReply}
