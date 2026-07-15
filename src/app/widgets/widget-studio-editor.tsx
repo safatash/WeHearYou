@@ -221,7 +221,7 @@ const SiteFrame = ({ children }: { children: React.ReactNode }) => (
 );
 
 /* ── embed code block ────────────────────────────────────────────────────── */
-const EmbedCode = ({ code }: { code: string }) => {
+const EmbedCode = ({ code, hint }: { code: string; hint: string }) => {
   const [copied, setCopied] = useState(false);
   const copy = () => {
     navigator.clipboard?.writeText(code).catch(() => {});
@@ -233,7 +233,7 @@ const EmbedCode = ({ code }: { code: string }) => {
       <div style={st({ display: "flex", alignItems: "center", gap: 10, padding: "13px 18px", borderBottom: "1px solid var(--ink-200)" })}>
         <Icon name="code" size={17} style={{ color: "var(--accent)" }} />
         <span style={st({ fontSize: 14, fontWeight: 620 })}>Embed code</span>
-        <span className="badge badge-neutral" style={st({ marginLeft: 4 })}>Paste before &lt;/body&gt;</span>
+        <span className="badge badge-neutral" style={st({ marginLeft: 4 })}>{hint}</span>
         <button type="button" className={`btn btn-sm ${copied ? "btn-soft" : "btn-secondary"}`} style={st({ marginLeft: "auto" })} onClick={copy}>
           <Icon name={copied ? "check" : "copy"} size={14} />{copied ? "Copied" : "Copy code"}
         </button>
@@ -335,7 +335,9 @@ export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [], aiS
   };
 
   const scriptSrc = `${embedScriptUrl}?t=${widget.publicToken}`;
-  const embedCode = `<div id="why-widget-${widget.publicToken}"></div>\n<script src="${scriptSrc}" data-token="${widget.publicToken}" data-mount="#why-widget-${widget.publicToken}"></script>`;
+  const embedCode = isCollecting || isFloating
+    ? `<script src="${scriptSrc}" data-token="${widget.publicToken}"></script>`
+    : `<div id="why-widget-${widget.publicToken}"></div><script src="${scriptSrc}" data-token="${widget.publicToken}" data-mount="#why-widget-${widget.publicToken}"></script>`;
 
   const handleSave = async () => {
     setSaveState("saving");
@@ -715,7 +717,7 @@ export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [], aiS
             </div>
           </div>
 
-          <EmbedCode code={embedCode} />
+          <EmbedCode code={embedCode} hint={isCollecting || isFloating ? "Add to global <head>" : "Paste where you want it to appear"} />
         </div>
       </div>
     </div>
