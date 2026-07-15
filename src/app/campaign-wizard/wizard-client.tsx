@@ -363,7 +363,11 @@ export function CampaignWizard({ locations, appUrl }: { locations: Location[]; a
   const [ratingStyle, setRatingStyle] = useState(p?.funnelRatingStyle ?? "stars");
   const [headline, setHeadline] = useState(p?.funnelPromptTitle ?? `How was your experience with ${first?.name ?? "us"}?`);
   const [subheading, setSubheading] = useState(p?.funnelPromptBody ?? "Happy customers can continue to a public review, while lower ratings stay private so our team can follow up directly.");
-  const [channels, setChannels] = useState<string[]>(p?.highRatingDestinations?.length ? p.highRatingDestinations : ["WEHEARYOU", "GOOGLE"]);
+  const [channels, setChannels] = useState<string[]>(
+    Array.isArray(p?.highRatingDestinations) && p.highRatingDestinations.length > 0
+      ? p.highRatingDestinations
+      : ["WEHEARYOU", "GOOGLE"]
+  );
   const [primaryChannel, setPrimaryChannel] = useState(p?.highRatingPrimaryDestination ?? "");
   const [facebookReviewUrl, setFacebookReviewUrl] = useState(p?.facebookReviewUrl ?? "");
   const [customReviewUrl, setCustomReviewUrl] = useState(p?.customReviewUrl ?? "");
@@ -392,6 +396,31 @@ export function CampaignWizard({ locations, appUrl }: { locations: Location[]; a
 
   const selectedLocations = locations.filter((l) => locationIds.includes(l.id));
   const previewLocation = selectedLocations[0] ?? first;
+
+  // update form state when preview location changes
+  useEffect(() => {
+    if (locationIds.length > 0) {
+      const currentLocation = locations.find((l) => l.id === locationIds[0]);
+      if (currentLocation?.publicProfile) {
+        const profile = currentLocation.publicProfile;
+        setFunnelStyle(profile.funnelStyle ?? "SIMPLE");
+        setRatingStyle(profile.funnelRatingStyle ?? "stars");
+        setHeadline(profile.funnelPromptTitle ?? `How was your experience with ${currentLocation.name}?`);
+        setSubheading(profile.funnelPromptBody ?? "Happy customers can continue to a public review, while lower ratings stay private so our team can follow up directly.");
+        setChannels(
+          Array.isArray(profile.highRatingDestinations) && profile.highRatingDestinations.length > 0
+            ? profile.highRatingDestinations
+            : ["WEHEARYOU", "GOOGLE"]
+        );
+        setPrimaryChannel(profile.highRatingPrimaryDestination ?? "");
+        setGateThreshold(profile.negativeFilterThreshold ?? 4);
+        setLowDestination(profile.lowRatingDestination ?? "PRIVATE");
+        setLowCustomUrl(profile.lowRatingCustomUrl ?? "");
+        setFacebookReviewUrl(profile.facebookReviewUrl ?? "");
+        setCustomReviewUrl(profile.customReviewUrl ?? "");
+      }
+    }
+  }, [locationIds, locations]);
   const funnelUrl = previewLocation ? `${appUrl}/f/${previewLocation.slug}` : "";
 
   const cfg: Cfg = {
