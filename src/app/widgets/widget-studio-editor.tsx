@@ -350,9 +350,15 @@ export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [], aiS
     if (widget.showAvgRating) fd.append("showAvgRating", "on");
     if (widget.showReviewCount) fd.append("showReviewCount", "on");
     if (widget.showResponses) fd.append("showResponses", "on");
+
+    const locationChanged = locationId !== widget.locationId;
+
     try {
       await updateReviewWidget(fd);
       setSaveState("saved");
+      if (locationChanged) {
+        router.refresh();
+      }
       setTimeout(() => setSaveState("idle"), 1600);
     } catch (e) {
       if (isRedirectError(e)) {
