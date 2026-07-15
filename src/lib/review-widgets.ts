@@ -53,6 +53,9 @@ export type PublicWidgetPayload = {
     showResponses: boolean;
     showSourceLogo: boolean;
     showAiSummary: boolean;
+    showBranding: boolean;
+    showNav: boolean;
+    showPagination: boolean;
     bodyMaxChars: number;
     // Appearance
     primaryColor: string;
@@ -263,6 +266,9 @@ export async function getPublicReviewWidgetPayload(publicToken: string, page = 1
     showResponses: widget.showResponses,
     showSourceLogo: widget.showSourceLogo,
     showAiSummary: widget.showAiSummary,
+    showBranding: widget.showBranding,
+    showNav: true,
+    showPagination: true,
     bodyMaxChars: widget.bodyMaxChars,
     primaryColor: widget.primaryColor,
     starColor: widget.starColor,
