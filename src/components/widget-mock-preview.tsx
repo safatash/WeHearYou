@@ -681,7 +681,7 @@ export function WidgetMockPreview({
         })()
       ) : (
         <div style={st({ display: "flex", flexDirection: "column", gap: 14 })}>
-          {(["l", marqueeRows[0]], ["r", marqueeRows[1]]] as Array<["l" | "r", typeof items]>).map(([dir, row], idx) =>
+          {([["l", marqueeRows[0]], ["r", marqueeRows[1]]] as Array<["l" | "r", typeof items]>).map(([dir, row], idx) =>
             row.length ? (
               <div key={dir} className="why-marq">
                 <div className={`why-marq-track why-marq-track--${dir}`} style={st({ gap: 14, animationDuration: `${idx === 0 ? marqueeDur : Math.round(marqueeDur * 1.22)}s` })}>
