@@ -721,7 +721,7 @@ export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [], aiS
         </div>
 
         {/* preview */}
-        <div style={st({ display: "flex", flexDirection: "column", gap: "var(--gutter)" })}>
+        <div style={st({ display: "flex", flexDirection: "column", gap: "var(--gutter)", position: "sticky", top: "var(--gutter)", height: "fit-content" })}>
           <div className="card" style={st({ padding: 0, overflow: "hidden" })}>
             <div style={st({ display: "flex", alignItems: "center", gap: 10, padding: "12px 18px", borderBottom: "1px solid var(--ink-200)" })}>
               <span className="badge badge-success"><span style={st({ width: 6, height: 6, borderRadius: "50%", background: "var(--success)" })} />Live preview</span>
