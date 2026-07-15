@@ -513,7 +513,7 @@ const script = `
         '<p style="margin:0;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:' + escapeHtml(primaryColor) + '">✶ AI Summary</p>' +
         countHtml +
       '</div>' +
-      '<p style="margin:0;color:' + escapeHtml(data.widget.textColor) + ';font-size:12px;line-height:1.6;opacity:.85">' + escapeHtml(data.location.aiReviewSummary) + '</p>' +
+      '<p style="margin:0;color:' + escapeHtml(data.widget.textColor) + ';font-size:' + aiSummaryFontSize + 'px;line-height:1.6;opacity:.85">' + escapeHtml(data.location.aiReviewSummary) + '</p>' +
     '</div>';
   }
 
