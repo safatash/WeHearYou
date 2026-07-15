@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { Icon, type IconName } from "@/components/icon";
 import { WidgetMockPreview, type PreviewSettings } from "@/components/widget-mock-preview";
@@ -219,6 +220,9 @@ const EmbedCode = ({ code }: { code: string }) => {
 
 /* ================= Studio editor ================= */
 export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [], aiSummaryText = null, aiSummaryCount = null }: { widget: StudioWidget; embedScriptUrl: string; locations?: Array<{ id: string; name: string }>; aiSummaryText?: string | null; aiSummaryCount?: number | null }) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [name, setName] = useState(widget.name);
   const [locationId, setLocationId] = useState(widget.locationId);
   const [typeKey, setTypeKey] = useState<TypeKey>(deriveTypeKey(widget));
@@ -409,7 +413,13 @@ export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [], aiS
             <Field label="Location">
               <select
                 value={locationId}
-                onChange={(e) => setLocationId(e.target.value)}
+                onChange={(e) => {
+                  const newLocationId = e.target.value;
+                  setLocationId(newLocationId);
+                  const params = new URLSearchParams(searchParams);
+                  params.set('location', newLocationId);
+                  router.push(`${pathname}?${params.toString()}`);
+                }}
                 style={st({ width: "100%", borderRadius: "var(--r-sm)", border: "1px solid var(--ink-200)", background: "var(--ink-50)", padding: "8px 11px", fontSize: 13, color: "var(--ink-900)", outline: "none" })}
               >
                 {locations.some((l) => l.id === locationId) ? null : <option value={locationId}>Current location</option>}

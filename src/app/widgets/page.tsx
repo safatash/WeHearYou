@@ -17,10 +17,16 @@ export default async function WidgetsPage({
     typeof query.tone === "string" && ["success", "error", "info"].includes(query.tone)
       ? (query.tone as "success" | "error" | "info")
       : "success";
+  const selectedLocationId = typeof query.location === "string" ? query.location : null;
 
   const widgets = await getOrganizationReviewWidgets(membership.organization.id);
 
-  const indexWidgets: IndexWidget[] = widgets.map((w) => ({
+  // Filter widgets by selected location if specified
+  const filteredWidgets = selectedLocationId
+    ? widgets.filter(w => w.locationId === selectedLocationId)
+    : widgets;
+
+  const indexWidgets: IndexWidget[] = filteredWidgets.map((w) => ({
     id: w.id,
     name: w.name,
     layout: w.layout,

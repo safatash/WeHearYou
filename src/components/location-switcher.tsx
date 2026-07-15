@@ -1,15 +1,19 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { usePathname, useSearchParams, useRouter } from 'next/navigation';
 
 interface Location {
   id: string;
   name: string;
 }
 
-export function LocationSwitcher({ locations }: { locations: Location[] }) {
+export function LocationSwitcher({ locations, currentLocationId }: { locations: Location[], currentLocationId?: string }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const router = useRouter();
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -24,7 +28,15 @@ export function LocationSwitcher({ locations }: { locations: Location[] }) {
     }
   }, [open]);
 
-  const currentLocation = locations[0];
+  const selectedLocationId = currentLocationId || searchParams.get('location') || locations[0]?.id;
+  const currentLocation = locations.find(l => l.id === selectedLocationId) || locations[0];
+
+  const handleLocationChange = (locationId: string) => {
+    const params = new URLSearchParams(searchParams);
+    params.set('location', locationId);
+    router.push(`${pathname}?${params.toString()}`);
+    setOpen(false);
+  };
 
   return (
     <div ref={ref} style={{ position: 'relative' }}>
@@ -76,17 +88,14 @@ export function LocationSwitcher({ locations }: { locations: Location[] }) {
               {locations.map((location) => (
                 <button
                   key={location.id}
-                  onClick={() => {
-                    setOpen(false);
-                    // TODO: Handle location switch
-                  }}
+                  onClick={() => handleLocationChange(location.id)}
                   style={{
                     width: '100%',
                     padding: '10px 16px',
                     textAlign: 'left',
                     border: 'none',
-                    background: location.id === currentLocation?.id ? 'var(--accent-soft)' : 'transparent',
-                    color: location.id === currentLocation?.id ? 'var(--accent-strong)' : 'var(--ink-900)',
+                    background: location.id === selectedLocationId ? 'var(--accent-soft)' : 'transparent',
+                    color: location.id === selectedLocationId ? 'var(--accent-strong)' : 'var(--ink-900)',
                     fontSize: 13,
                     fontWeight: 600,
                     cursor: 'pointer',
@@ -95,7 +104,7 @@ export function LocationSwitcher({ locations }: { locations: Location[] }) {
                     gap: 8,
                   }}
                 >
-                  {location.id === currentLocation?.id && <span>✓</span>}
+                  {location.id === selectedLocationId && <span>✓</span>}
                   {location.name}
                 </button>
               ))}
