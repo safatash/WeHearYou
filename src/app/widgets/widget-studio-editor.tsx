@@ -238,6 +238,7 @@ export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [], aiS
   const [showSourceLogo, setShowSourceLogo] = useState(widget.showSourceLogo);
   const [showRating, setShowRating] = useState(widget.showRating);
   const [showWriteReview, setShowWriteReview] = useState(widget.showWriteReview);
+  const [showAiSummary, setShowAiSummary] = useState(widget.showAiSummary);
   const [isActive, setIsActive] = useState(widget.isActive);
   // Badge
   const [badgeStyle, setBadgeStyle] = useState<BadgeStyle>((widget.badgeStyle as BadgeStyle) || "rating");
@@ -280,7 +281,7 @@ export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [], aiS
     showAvatars: showReviewerName,
     showSources: showSourceLogo,
     showBranding: true,
-    aiSummary: isReviewWall && content !== "videos",
+    aiSummary: isReviewWall && content !== "videos" && showAiSummary,
     aiSummaryText,
     aiSummaryCount,
     badgeStyle,
@@ -319,6 +320,7 @@ export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [], aiS
     if (showDate) fd.append("showDate", "on");
     if (showWriteReview) fd.append("showWriteReview", "on");
     if (showSourceLogo) fd.append("showSourceLogo", "on");
+    if (showAiSummary) fd.append("showAiSummary", "on");
 
     // Badge
     fd.append("badgeStyle", badgeStyle);
@@ -592,6 +594,7 @@ export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [], aiS
                   <Toggle checked={showDate} onChange={setShowDate} label="Review dates" />
                   <Toggle checked={showSourceLogo} onChange={setShowSourceLogo} label="Source logos" />
                   {isReviewWall && <Toggle checked={showWriteReview} onChange={setShowWriteReview} label="Write a review link" />}
+                  {isReviewWall && content !== "videos" && <Toggle checked={showAiSummary} onChange={setShowAiSummary} label="AI summary" />}
                 </div>
               </Field>
             </>
