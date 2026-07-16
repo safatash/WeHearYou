@@ -1,10 +1,16 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { Icon, type IconName } from "@/components/icon";
 import { WidgetMockPreview, mapWidgetToPreviewSettings } from "@/components/widget-mock-preview";
-import { createDraftReviewWidget, deleteReviewWidget, duplicateReviewWidget } from "@/app/widgets/actions";
+import {
+  createDraftReviewWidget,
+  deleteReviewWidget,
+  duplicateReviewWidget,
+  bulkDeleteWidgets,
+  bulkToggleWidgetsActive,
+} from "@/app/widgets/actions";
 
 const st = (s: React.CSSProperties): React.CSSProperties => s;
 
@@ -72,8 +78,17 @@ function WidgetThumb({ w }: { w: IndexWidget }) {
   );
 }
 
-function WidgetCard({ w }: { w: IndexWidget }) {
+function WidgetCard({
+  w,
+  selected,
+  onToggleSelect,
+}: {
+  w: IndexWidget;
+  selected: boolean;
+  onToggleSelect: (id: string) => void;
+}) {
   const [menu, setMenu] = useState(false);
+  const [hovered, setHovered] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const h = (e: MouseEvent) => {
@@ -85,9 +100,57 @@ function WidgetCard({ w }: { w: IndexWidget }) {
 
   const meta = TYPE_META[previewType(w)] || TYPE_META.grid;
   const accent = w.primaryColor || "#4f46e5";
+  const showCheckbox = hovered || selected;
 
   return (
-    <div className="card" style={st({ padding: 0, display: "flex", flexDirection: "column", position: "relative", zIndex: menu ? 30 : undefined })}>
+    <div
+      className="card"
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={st({
+        padding: 0,
+        display: "flex",
+        flexDirection: "column",
+        position: "relative",
+        zIndex: menu ? 30 : undefined,
+        outline: selected ? `2px solid var(--accent)` : undefined,
+        outlineOffset: selected ? 2 : undefined,
+        transition: "outline 0.1s",
+      })}
+    >
+      {/* Hover-reveal checkbox */}
+      <button
+        type="button"
+        onClick={(e) => { e.preventDefault(); onToggleSelect(w.id); }}
+        aria-label={selected ? "Deselect widget" : "Select widget"}
+        style={st({
+          position: "absolute",
+          top: 10,
+          left: 10,
+          zIndex: 20,
+          width: 22,
+          height: 22,
+          borderRadius: 6,
+          border: selected ? "2px solid var(--accent)" : "2px solid rgba(255,255,255,.7)",
+          background: selected ? "var(--accent)" : "rgba(255,255,255,.85)",
+          backdropFilter: "blur(4px)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          cursor: "pointer",
+          opacity: showCheckbox ? 1 : 0,
+          transition: "opacity 0.15s, background 0.1s, border-color 0.1s",
+          boxShadow: "0 1px 4px rgba(0,0,0,.18)",
+          padding: 0,
+        })}
+      >
+        {selected && (
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+            <path d="M2 6l3 3 5-5" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        )}
+      </button>
+
       <Link href={`/widgets/${w.id}`} className="tap" style={st({ display: "block", textDecoration: "none" })}>
         <WidgetThumb w={w} />
       </Link>
@@ -118,7 +181,7 @@ function WidgetCard({ w }: { w: IndexWidget }) {
                 <form
                   action={deleteReviewWidget}
                   onSubmit={(e) => {
-                    if (!window.confirm(`Delete “${w.name}”? This can't be undone.`)) e.preventDefault();
+                    if (!window.confirm(`Delete "${w.name}"? This can't be undone.`)) e.preventDefault();
                   }}
                 >
                   <input type="hidden" name="widgetId" value={w.id} />
@@ -146,6 +209,162 @@ function WidgetCard({ w }: { w: IndexWidget }) {
           <span style={st({ fontSize: 11.5, color: "var(--ink-400)", marginLeft: "auto" })}>Edited {fmtDate(w.updatedAt)}</span>
         </div>
       </div>
+    </div>
+  );
+}
+
+/* ── Sticky bulk action bar ─────────────────────────────────────────────────── */
+function BulkActionBar({
+  selectedIds,
+  widgets,
+  onClear,
+  onSelectAll,
+  totalCount,
+}: {
+  selectedIds: Set<string>;
+  widgets: IndexWidget[];
+  onClear: () => void;
+  onSelectAll: () => void;
+  totalCount: number;
+}) {
+  const count = selectedIds.size;
+  const [isPending, startTransition] = useTransition();
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  // Determine mixed/all-active/all-inactive state of selection
+  const selectedWidgets = widgets.filter((w) => selectedIds.has(w.id));
+  const allActive = selectedWidgets.every((w) => w.isActive);
+  const allInactive = selectedWidgets.every((w) => !w.isActive);
+  // If mixed, show both buttons; if all active, show Deactivate; if all inactive, show Activate
+  const showActivate = !allActive;
+  const showDeactivate = !allInactive;
+
+  const idsValue = Array.from(selectedIds).join(",");
+
+  if (count === 0) return null;
+
+  return (
+    <div
+      style={st({
+        position: "fixed",
+        bottom: 28,
+        left: "50%",
+        transform: "translateX(-50%)",
+        zIndex: 100,
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        background: "var(--ink-900)",
+        color: "#fff",
+        borderRadius: 999,
+        padding: "10px 14px 10px 18px",
+        boxShadow: "0 8px 32px rgba(0,0,0,.28), 0 2px 8px rgba(0,0,0,.18)",
+        whiteSpace: "nowrap",
+        minWidth: 0,
+        animation: "why-bar-in 0.18s cubic-bezier(.34,1.56,.64,1)",
+      })}
+    >
+      <style>{`@keyframes why-bar-in{from{opacity:0;transform:translateX(-50%) translateY(12px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}`}</style>
+
+      {/* Count + select-all */}
+      <span style={st({ fontSize: 13.5, fontWeight: 620, color: "#fff", marginRight: 2 })}>
+        {count} selected
+      </span>
+      {count < totalCount && (
+        <button
+          type="button"
+          onClick={onSelectAll}
+          style={st({ fontSize: 12.5, color: "rgba(255,255,255,.55)", background: "none", border: "none", cursor: "pointer", padding: "0 4px", textDecoration: "underline", textUnderlineOffset: 2 })}
+        >
+          Select all {totalCount}
+        </button>
+      )}
+
+      <div style={st({ width: 1, height: 20, background: "rgba(255,255,255,.15)", margin: "0 4px" })} />
+
+      {/* Activate */}
+      {showActivate && (
+        <form
+          action={bulkToggleWidgetsActive}
+          onSubmit={(e) => { e.preventDefault(); startTransition(() => { (e.target as HTMLFormElement).requestSubmit(); }); }}
+        >
+          <input type="hidden" name="widgetIds" value={idsValue} />
+          <input type="hidden" name="isActive" value="true" />
+          <button
+            type="submit"
+            disabled={isPending}
+            style={st({ display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 580, color: "#fff", background: "rgba(255,255,255,.1)", border: "1px solid rgba(255,255,255,.15)", borderRadius: 999, padding: "6px 13px", cursor: "pointer", transition: "background .15s" })}
+          >
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="6.5" cy="6.5" r="5.5" stroke="currentColor" strokeWidth="1.4"/><circle cx="6.5" cy="6.5" r="2.5" fill="currentColor"/></svg>
+            Activate
+          </button>
+        </form>
+      )}
+
+      {/* Deactivate */}
+      {showDeactivate && (
+        <form
+          action={bulkToggleWidgetsActive}
+          onSubmit={(e) => { e.preventDefault(); startTransition(() => { (e.target as HTMLFormElement).requestSubmit(); }); }}
+        >
+          <input type="hidden" name="widgetIds" value={idsValue} />
+          <input type="hidden" name="isActive" value="false" />
+          <button
+            type="submit"
+            disabled={isPending}
+            style={st({ display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 580, color: "rgba(255,255,255,.8)", background: "rgba(255,255,255,.08)", border: "1px solid rgba(255,255,255,.12)", borderRadius: 999, padding: "6px 13px", cursor: "pointer", transition: "background .15s" })}
+          >
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="6.5" cy="6.5" r="5.5" stroke="currentColor" strokeWidth="1.4" strokeDasharray="3 2"/></svg>
+            Deactivate
+          </button>
+        </form>
+      )}
+
+      {/* Delete */}
+      {!confirmDelete ? (
+        <button
+          type="button"
+          onClick={() => setConfirmDelete(true)}
+          style={st({ display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 580, color: "#fca5a5", background: "rgba(239,68,68,.12)", border: "1px solid rgba(239,68,68,.25)", borderRadius: 999, padding: "6px 13px", cursor: "pointer", transition: "background .15s" })}
+        >
+          <Icon name="trash" size={13} />Delete
+        </button>
+      ) : (
+        <form
+          action={bulkDeleteWidgets}
+          onSubmit={(e) => { e.preventDefault(); startTransition(() => { (e.target as HTMLFormElement).requestSubmit(); }); }}
+          style={st({ display: "flex", alignItems: "center", gap: 6 })}
+        >
+          <input type="hidden" name="widgetIds" value={idsValue} />
+          <span style={st({ fontSize: 12.5, color: "#fca5a5" })}>Delete {count}?</span>
+          <button
+            type="submit"
+            disabled={isPending}
+            style={st({ fontSize: 13, fontWeight: 680, color: "#fff", background: "#ef4444", border: "none", borderRadius: 999, padding: "6px 13px", cursor: "pointer" })}
+          >
+            Confirm
+          </button>
+          <button
+            type="button"
+            onClick={() => setConfirmDelete(false)}
+            style={st({ fontSize: 13, color: "rgba(255,255,255,.55)", background: "none", border: "none", cursor: "pointer", padding: "6px 4px" })}
+          >
+            Cancel
+          </button>
+        </form>
+      )}
+
+      <div style={st({ width: 1, height: 20, background: "rgba(255,255,255,.15)", margin: "0 4px" })} />
+
+      {/* Clear */}
+      <button
+        type="button"
+        onClick={onClear}
+        aria-label="Clear selection"
+        style={st({ width: 28, height: 28, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(255,255,255,.1)", border: "none", cursor: "pointer", color: "rgba(255,255,255,.7)", flexShrink: 0 })}
+      >
+        <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M1 1l9 9M10 1L1 10" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/></svg>
+      </button>
     </div>
   );
 }
@@ -178,6 +397,19 @@ function WidgetsEmpty() {
 
 export function WidgetsIndex({ widgets }: { widgets: IndexWidget[] }) {
   const count = widgets.length;
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const clearSelection = () => setSelectedIds(new Set());
+  const selectAll = () => setSelectedIds(new Set(widgets.map((w) => w.id)));
+
   return (
     <div style={st({ maxWidth: 1240, margin: "0 auto" })}>
       <div style={st({ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 16, flexWrap: "wrap", marginBottom: "var(--gutter)" })}>
@@ -198,19 +430,34 @@ export function WidgetsIndex({ widgets }: { widgets: IndexWidget[] }) {
       {count === 0 ? (
         <WidgetsEmpty />
       ) : (
-        <div style={st({ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(290px, 1fr))", gap: "var(--gutter)" })}>
-          {widgets.map((w) => (
-            <WidgetCard key={w.id} w={w} />
-          ))}
-          <form action={createDraftReviewWidget} style={st({ display: "flex" })}>
-            <button type="submit" className="tap focus-ring" style={st({ width: "100%", minHeight: 240, border: "1.5px dashed var(--ink-300)", borderRadius: "var(--r-lg)", background: "var(--white)", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, color: "var(--ink-500)" })}>
-              <span style={st({ width: 46, height: 46, borderRadius: 13, display: "grid", placeItems: "center", background: "var(--accent-soft)", color: "var(--accent-strong)" })}>
-                <Icon name="plus" size={22} />
-              </span>
-              <span style={st({ fontSize: 13.5, fontWeight: 580 })}>New widget</span>
-            </button>
-          </form>
-        </div>
+        <>
+          <div style={st({ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(290px, 1fr))", gap: "var(--gutter)" })}>
+            {widgets.map((w) => (
+              <WidgetCard
+                key={w.id}
+                w={w}
+                selected={selectedIds.has(w.id)}
+                onToggleSelect={toggleSelect}
+              />
+            ))}
+            <form action={createDraftReviewWidget} style={st({ display: "flex" })}>
+              <button type="submit" className="tap focus-ring" style={st({ width: "100%", minHeight: 240, border: "1.5px dashed var(--ink-300)", borderRadius: "var(--r-lg)", background: "var(--white)", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, color: "var(--ink-500)" })}>
+                <span style={st({ width: 46, height: 46, borderRadius: 13, display: "grid", placeItems: "center", background: "var(--accent-soft)", color: "var(--accent-strong)" })}>
+                  <Icon name="plus" size={22} />
+                </span>
+                <span style={st({ fontSize: 13.5, fontWeight: 580 })}>New widget</span>
+              </button>
+            </form>
+          </div>
+
+          <BulkActionBar
+            selectedIds={selectedIds}
+            widgets={widgets}
+            onClear={clearSelection}
+            onSelectAll={selectAll}
+            totalCount={count}
+          />
+        </>
       )}
     </div>
   );

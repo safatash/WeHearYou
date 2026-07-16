@@ -353,6 +353,64 @@ export async function deleteReviewWidget(formData: FormData) {
   redirect("/widgets?flash=Widget+deleted&tone=success");
 }
 
+export async function bulkDeleteWidgets(formData: FormData) {
+  "use server";
+  const raw = String(formData.get("widgetIds") ?? "").trim();
+  const widgetIds = raw.split(",").map((s) => s.trim()).filter(Boolean);
+  if (!widgetIds.length) redirect("/widgets?flash=No+widgets+selected&tone=error");
+
+  // Verify all widgets belong to an org the caller can access
+  const widgets = await prisma.reviewWidget.findMany({
+    where: { id: { in: widgetIds } },
+    select: { id: true, organizationId: true },
+  });
+  if (!widgets.length) redirect("/widgets?flash=Widgets+not+found&tone=error");
+
+  // All widgets must belong to the same org (they always will from the UI)
+  const orgId = widgets[0].organizationId;
+  await requireOrganizationAccess(orgId);
+
+  // Only delete widgets that actually belong to this org
+  const ownedIds = widgets
+    .filter((w) => w.organizationId === orgId)
+    .map((w) => w.id);
+
+  await prisma.reviewWidget.deleteMany({ where: { id: { in: ownedIds } } });
+
+  const count = ownedIds.length;
+  redirect(`/widgets?flash=${count}+widget${count === 1 ? "" : "s"}+deleted&tone=success`);
+}
+
+export async function bulkToggleWidgetsActive(formData: FormData) {
+  "use server";
+  const raw = String(formData.get("widgetIds") ?? "").trim();
+  const widgetIds = raw.split(",").map((s) => s.trim()).filter(Boolean);
+  const targetActive = formData.get("isActive") === "true";
+  if (!widgetIds.length) redirect("/widgets?flash=No+widgets+selected&tone=error");
+
+  const widgets = await prisma.reviewWidget.findMany({
+    where: { id: { in: widgetIds } },
+    select: { id: true, organizationId: true },
+  });
+  if (!widgets.length) redirect("/widgets?flash=Widgets+not+found&tone=error");
+
+  const orgId = widgets[0].organizationId;
+  await requireOrganizationAccess(orgId);
+
+  const ownedIds = widgets
+    .filter((w) => w.organizationId === orgId)
+    .map((w) => w.id);
+
+  await prisma.reviewWidget.updateMany({
+    where: { id: { in: ownedIds } },
+    data: { isActive: targetActive },
+  });
+
+  const count = ownedIds.length;
+  const label = targetActive ? "activated" : "deactivated";
+  redirect(`/widgets?flash=${count}+widget${count === 1 ? "" : "s"}+${label}&tone=success`);
+}
+
 export async function duplicateReviewWidget(formData: FormData) {
   const widgetId = String(formData.get("widgetId") ?? "").trim();
   if (!widgetId) throw new Error("Widget is required");
