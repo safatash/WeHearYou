@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState, useTransition } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Icon, type IconName } from "@/components/icon";
 import { WidgetMockPreview, mapWidgetToPreviewSettings } from "@/components/widget-mock-preview";
@@ -228,7 +228,6 @@ function BulkActionBar({
   totalCount: number;
 }) {
   const count = selectedIds.size;
-  const [isPending, startTransition] = useTransition();
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   // Determine mixed/all-active/all-inactive state of selection
@@ -284,15 +283,11 @@ function BulkActionBar({
 
       {/* Activate */}
       {showActivate && (
-        <form
-          action={bulkToggleWidgetsActive}
-          onSubmit={(e) => { e.preventDefault(); startTransition(() => { (e.target as HTMLFormElement).requestSubmit(); }); }}
-        >
+        <form action={bulkToggleWidgetsActive}>
           <input type="hidden" name="widgetIds" value={idsValue} />
           <input type="hidden" name="isActive" value="true" />
           <button
             type="submit"
-            disabled={isPending}
             style={st({ display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 580, color: "#fff", background: "rgba(255,255,255,.1)", border: "1px solid rgba(255,255,255,.15)", borderRadius: 999, padding: "6px 13px", cursor: "pointer", transition: "background .15s" })}
           >
             <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="6.5" cy="6.5" r="5.5" stroke="currentColor" strokeWidth="1.4"/><circle cx="6.5" cy="6.5" r="2.5" fill="currentColor"/></svg>
@@ -303,15 +298,11 @@ function BulkActionBar({
 
       {/* Deactivate */}
       {showDeactivate && (
-        <form
-          action={bulkToggleWidgetsActive}
-          onSubmit={(e) => { e.preventDefault(); startTransition(() => { (e.target as HTMLFormElement).requestSubmit(); }); }}
-        >
+        <form action={bulkToggleWidgetsActive}>
           <input type="hidden" name="widgetIds" value={idsValue} />
           <input type="hidden" name="isActive" value="false" />
           <button
             type="submit"
-            disabled={isPending}
             style={st({ display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 580, color: "rgba(255,255,255,.8)", background: "rgba(255,255,255,.08)", border: "1px solid rgba(255,255,255,.12)", borderRadius: 999, padding: "6px 13px", cursor: "pointer", transition: "background .15s" })}
           >
             <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="6.5" cy="6.5" r="5.5" stroke="currentColor" strokeWidth="1.4" strokeDasharray="3 2"/></svg>
@@ -332,14 +323,12 @@ function BulkActionBar({
       ) : (
         <form
           action={bulkDeleteWidgets}
-          onSubmit={(e) => { e.preventDefault(); startTransition(() => { (e.target as HTMLFormElement).requestSubmit(); }); }}
           style={st({ display: "flex", alignItems: "center", gap: 6 })}
         >
           <input type="hidden" name="widgetIds" value={idsValue} />
           <span style={st({ fontSize: 12.5, color: "#fca5a5" })}>Delete {count}?</span>
           <button
             type="submit"
-            disabled={isPending}
             style={st({ fontSize: 13, fontWeight: 680, color: "#fff", background: "#ef4444", border: "none", borderRadius: 999, padding: "6px 13px", cursor: "pointer" })}
           >
             Confirm
