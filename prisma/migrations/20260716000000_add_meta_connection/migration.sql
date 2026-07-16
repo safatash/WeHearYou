@@ -1,13 +1,13 @@
 -- CreateTable MetaAccountConnection
 CREATE TABLE "MetaAccountConnection" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "organizationId" TEXT NOT NULL,
     "pageId" TEXT,
     "pageName" TEXT,
     "accessToken" TEXT,
     "tokenType" TEXT,
-    "expiresAt" DATETIME,
-    "lastSyncedAt" DATETIME,
+    "expiresAt" TIMESTAMP(3),
+    "lastSyncedAt" TIMESTAMP(3),
     "lastBatchSyncStatus" TEXT,
     "lastBatchSyncMessage" TEXT,
     "lastBatchSyncedCount" INTEGER,
@@ -17,13 +17,15 @@ CREATE TABLE "MetaAccountConnection" (
     "lastBatchUpdatedCount" INTEGER,
     "lastBatchSkippedCount" INTEGER,
     "lastBatchFetchedCount" INTEGER,
-    "lastBatchSyncAt" DATETIME,
+    "lastBatchSyncAt" TIMESTAMP(3),
     "reviewCount" INTEGER DEFAULT 0,
-    "connectedAt" DATETIME,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL,
-    CONSTRAINT "MetaAccountConnection_organizationId_fkey" FOREIGN KEY ("organizationId") REFERENCES "Organization" ("id") ON DELETE CASCADE
+    "connectedAt" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    CONSTRAINT "MetaAccountConnection_pkey" PRIMARY KEY ("id")
 );
+
+ALTER TABLE "MetaAccountConnection" ADD CONSTRAINT "MetaAccountConnection_organizationId_fkey" FOREIGN KEY ("organizationId") REFERENCES "Organization" ("id") ON DELETE CASCADE;
 
 -- CreateIndex
 CREATE INDEX "MetaAccountConnection_organizationId_idx" ON "MetaAccountConnection"("organizationId");

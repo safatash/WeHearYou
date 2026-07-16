@@ -25,6 +25,7 @@ import { prisma } from "@/lib/prisma";
 import { requireLocationAccess, requireOrganizationAccess, requireReviewReplyAccess, requireTeamManagement } from "@/lib/authz";
 import { exchangeMetaCodeForToken, fetchMetaPageInfo, fetchMetaPageRatings, normalizeMetaRating } from "@/lib/meta-oauth";
 import { hasMetaReviewChanged, normalizeMetaReviewerName, normalizeMetaReviewText } from "@/lib/meta-review-sync";
+import { decryptToken } from "@/lib/token-encryption";
 import type { RawRating } from "@/lib/meta-oauth";
 
 import { tryAutoSendGoogleReplyForReview } from "@/lib/auto-send-reply";
@@ -219,15 +220,25 @@ export async function performMetaReviewSync(locationId: string) {
   let metaReviews: RawRating[] = [];
 
   try {
-    const accessToken = location.metaConnection.accessToken;
+    const accessToken = decryptToken(location.metaConnection.accessToken);
     const pageId = location.metaConnection.pageId;
 
     if (!accessToken || !pageId) {
       throw new Error("Facebook page connection incomplete");
     }
 
-    const response = await fetchMetaPageRatings(accessToken, pageId);
-    metaReviews = Array.isArray(response.data) ? response.data : [];
+    let allReviews: RawRating[] = [];
+    let hasNextPage = true;
+    let afterCursor: string | undefined;
+
+    while (hasNextPage) {
+      const response = await fetchMetaPageRatings(accessToken, pageId, "100", afterCursor);
+      allReviews.push(...(Array.isArray(response.data) ? response.data : []));
+      hasNextPage = Boolean(response.paging?.next);
+      afterCursor = response.paging?.cursors?.after;
+    }
+
+    metaReviews = allReviews;
   } catch (error) {
     const message = error instanceof Error ? error.message : "Facebook review sync failed";
 
@@ -253,7 +264,11 @@ export async function performMetaReviewSync(locationId: string) {
       continue;
     }
 
-    const reviewId = `facebook-${rawReview.open_graph_story?.id || `${location.id}-${Date.now()}`}`;
+    if (!rawReview.open_graph_story?.id) {
+      continue; // Skip reviews without stable ID
+    }
+
+    const reviewId = `facebook-${rawReview.open_graph_story.id}`;
     const reviewedAt = rawReview.created_time ? new Date(rawReview.created_time) : null;
 
     const normalizedReviewerName = normalizeMetaReviewerName(rawReview.reviewer?.name);
@@ -352,6 +367,13 @@ export async function performMetaReviewSync(locationId: string) {
       lastSyncSkippedCount: skippedCount,
       lastSyncFetchedCount: metaReviews.length,
       lastSyncAt: new Date(),
+    },
+  });
+
+  await prisma.metaAccountConnection.update({
+    where: { id: location.metaConnection.id },
+    data: {
+      reviewCount: publishedReviews.length,
     },
   });
 

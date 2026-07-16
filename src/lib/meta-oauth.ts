@@ -108,13 +108,14 @@ export async function fetchMetaPageRatings(
   accessToken: string,
   pageId: string,
   limit: string = "100",
+  afterCursor?: string,
 ): Promise<MetaGraphConnection<RawRating>> {
   const result = await metaGraphGet<MetaGraphConnection<RawRating>>(
     `${pageId}/ratings`,
     {
       fields: "created_time,has_rating,has_review,rating,recommendation_type,review_text,reviewer,open_graph_story",
       limit,
-      after: "", // pagination handled by caller
+      after: afterCursor || "",
     },
     accessToken,
   );
