@@ -514,8 +514,9 @@ export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [], aiS
     fd.append("sort", widget.sort);
     fd.append("headerAlign", widget.headerAlign);
     fd.append("starColor", widget.starColor);
-    fd.append("backgroundColor", widget.backgroundColor);
-    fd.append("textColor", widget.textColor);
+    // Derive bg/text from the current dark toggle so dark mode is always saved correctly
+    fd.append("backgroundColor", dark ? "#17171b" : "#ffffff");
+    fd.append("textColor", dark ? "#f4f4f5" : "#18181b");
 
     try {
       await updateReviewWidget(fd);

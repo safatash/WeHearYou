@@ -4,8 +4,10 @@ const script = `
 (function () {
   var FONT_STACKS = {
     system: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
-    sans: "Inter, ui-sans-serif, system-ui, sans-serif",
-    serif: "Georgia, 'Times New Roman', serif"
+    sans: "'Inter', ui-sans-serif, system-ui, sans-serif",
+    serif: "'Georgia', 'Times New Roman', serif",
+    round: "'Nunito', 'Varela Round', sans-serif",
+    mono: "'JetBrains Mono', 'Fira Code', 'Courier New', monospace"
   };
 
   function fontStack(name) {
@@ -49,7 +51,7 @@ const script = `
       var fontLink = document.createElement("link");
       fontLink.id = "why-instrument-serif-font";
       fontLink.rel = "stylesheet";
-      fontLink.href = "https://fonts.googleapis.com/css2?family=Instrument+Serif&display=swap";
+      fontLink.href = "https://fonts.googleapis.com/css2?family=Instrument+Serif&family=Inter:wght@400;500;600;700&family=Nunito:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap";
       document.head.appendChild(fontLink);
     }
     var style = document.createElement("style");
@@ -80,7 +82,7 @@ const script = `
       ".why-widget-slider-controls{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:8px;font-size:12px}" +
       ".why-widget-slider-btn{border:1px solid rgba(0,0,0,.1);background:#fff;border-radius:999px;width:28px;height:28px;cursor:pointer;font-weight:700}" +
       ".why-widget-slider-btn[disabled]{opacity:.4;cursor:not-allowed}" +
-      ".why-widget-card{display:flex;flex-direction:column;gap:8px;border:1px solid rgba(0,0,0,.08);border-radius:16px;padding:16px;background:#fff;height:100%}" +
+      ".why-widget-card{display:flex;flex-direction:column;gap:8px;height:100%}" +
       ".why-widget-stars{font-size:14px}" +
       ".why-widget-reviewer{display:flex;align-items:center;gap:10px}" +
       ".why-widget-avatar{width:32px;height:32px;border-radius:999px;object-fit:cover;background:#e2e8f0}" +
@@ -541,11 +543,13 @@ const script = `
 
   function resolveCardStyleEmbed(widget) {
     var style = widget.cardStyle || "border";
-    var bg = widget.backgroundColor || "#ffffff";
     var isDark = widget.theme === "dark";
-    if (style === "shadow") return "background:" + bg + ";border:1px solid transparent;box-shadow:" + (isDark ? "0 4px 16px rgba(0,0,0,.45)" : "0 2px 12px rgba(0,0,0,.10)") + ";";
+    // Use theme-aware card background token (matches wTokens in the preview)
+    var cardBg = isDark ? "#212126" : (widget.backgroundColor || "#ffffff");
+    var lineColor = isDark ? "rgba(255,255,255,.08)" : "rgba(0,0,0,.08)";
+    if (style === "shadow") return "background:" + cardBg + ";border:1px solid transparent;box-shadow:" + (isDark ? "0 4px 16px rgba(0,0,0,.45)" : "0 2px 12px rgba(0,0,0,.10)") + ";";
     if (style === "soft") return "background:" + (isDark ? "rgba(255,255,255,.05)" : "rgba(0,0,0,.04)") + ";border:1px solid transparent;";
-    return "background:" + bg + ";border:1px solid rgba(0,0,0,.08);";
+    return "background:" + cardBg + ";border:1px solid " + lineColor + ";";
   }
 
   function renderCard(review, widget) {
@@ -560,7 +564,7 @@ const script = `
     var fontSizeNames = widget.fontSizeNames || 13;
     var fontSizeLabel = widget.fontSizeLabel || 12;
 
-    var html = '<article class="why-widget-card" style="' + cardStyleCss + 'color:' + escapeHtml(textColor) + ';border-radius:' + radius + 'px;padding:' + pad + ';font-size:' + fontSizeBase + 'px">';
+    var html = '<article class="why-widget-card" style="' + cardStyleCss + 'color:' + escapeHtml(textColor) + ';border-radius:' + radius + 'px;padding:' + pad + ';font-size:' + fontSizeBase + 'px;font-family:' + fontStack(widget.fontFamily) + '">';
 
     // 1. Reviewer info at TOP: avatar left, name + date stacked right, source mark far right
     if (widget.showReviewerName) {
@@ -1088,7 +1092,15 @@ const script = `
           // public/embed site. Customer-facing heading comes from renderHeader.
           var wrapRadius = typeof data.widget.cornerRadius === "number" ? data.widget.cornerRadius + 4 : 18;
           var wrapPad = data.widget.density === "compact" ? "16px 20px" : "24px 28px";
-          mount.innerHTML = '<div class="why-widget" style="font-family:' + fontStack(data.widget.fontFamily) + ';background:' + escapeHtml(data.widget.backgroundColor) + ';color:' + escapeHtml(data.widget.textColor) + ';border-radius:' + wrapRadius + 'px;padding:' + wrapPad + ';border:1px solid rgba(0,0,0,.06)">' +
+          // Derive bg/text from theme field so dark mode always works regardless of stored raw colors
+          var isDarkTheme = data.widget.theme === "dark";
+          var wrapBg = isDarkTheme ? "#17171b" : (data.widget.backgroundColor || "#ffffff");
+          var wrapText = isDarkTheme ? "#f4f4f5" : (data.widget.textColor || "#18181b");
+          var wrapBorder = isDarkTheme ? "rgba(255,255,255,.07)" : "rgba(0,0,0,.06)";
+          // Patch widget colors so all downstream card renderers use the correct theme tokens
+          data.widget.backgroundColor = wrapBg;
+          data.widget.textColor = wrapText;
+          mount.innerHTML = '<div class="why-widget" style="font-family:' + fontStack(data.widget.fontFamily) + ';background:' + escapeHtml(wrapBg) + ';color:' + escapeHtml(wrapText) + ';border-radius:' + wrapRadius + 'px;padding:' + wrapPad + ';border:1px solid ' + wrapBorder + '">' +
             renderHeader(data) +
             renderAiSummary(data) +
             listWrapper +
