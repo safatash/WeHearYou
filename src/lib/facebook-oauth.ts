@@ -85,7 +85,11 @@ export function verifyFacebookOAuthState(state: string): FacebookOAuthStatePaylo
 
 // ─── OAuth URL builder ───────────────────────────────────────────────────────
 
-const FACEBOOK_SCOPES = ["pages_show_list", "pages_read_engagement", "pages_read_user_content"];
+// pages_show_list is the only scope valid in the initial OAuth dialog for a standard Facebook Login app.
+// pages_read_engagement and pages_read_user_content must be added as Products in the Facebook App
+// Dashboard (Facebook Login → Settings → Permissions & Features) before they can be requested.
+// Once added there, append them back here: ["pages_show_list", "pages_read_engagement", "pages_read_user_content"]
+const FACEBOOK_SCOPES = ["pages_show_list"];
 
 export function buildFacebookOAuthUrl({ organizationId, returnTo }: { organizationId: string; returnTo?: string }): string {
   const { appId, redirectUri } = getFacebookOAuthConfig();
