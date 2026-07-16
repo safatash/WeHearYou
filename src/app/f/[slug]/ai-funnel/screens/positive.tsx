@@ -734,7 +734,11 @@ export const PosCelebrate = ({ props, state, set, go, onDestinationChosen }: Scr
 
   function destHref(d: (typeof props.destinations)[number]): string {
     if (d.isInternal) {
-      return `${props.internalReviewBase}/review?rating=${state.rating}${props.embed ? "&embed=1" : ""}`;
+      const body = state.selectedVersion === "short" ? state.reviewShort : state.reviewLong;
+      const params = new URLSearchParams({ rating: String(state.rating) });
+      if (body) params.set("body", body);
+      if (props.embed) params.set("embed", "1");
+      return `${props.internalReviewBase}/review?${params.toString()}`;
     }
     return d.url ?? "#";
   }
