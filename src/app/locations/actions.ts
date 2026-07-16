@@ -23,6 +23,9 @@ import { hasGoogleReviewChanged } from "@/lib/google-review-sync";
 import { buildGoogleWriteReviewLink } from "@/lib/locations";
 import { prisma } from "@/lib/prisma";
 import { requireLocationAccess, requireOrganizationAccess, requireReviewReplyAccess, requireTeamManagement } from "@/lib/authz";
+import { exchangeMetaCodeForToken, fetchMetaPageInfo, fetchMetaPageRatings, normalizeMetaRating } from "@/lib/meta-oauth";
+import { hasMetaReviewChanged, normalizeMetaReviewerName, normalizeMetaReviewText } from "@/lib/meta-review-sync";
+import type { RawRating } from "@/lib/meta-oauth";
 
 import { tryAutoSendGoogleReplyForReview } from "@/lib/auto-send-reply";
 function formatGoogleWeekdayDescriptions(weekdayDescriptions?: string[] | null) {
@@ -71,6 +74,24 @@ async function requireGoogleConnectionForOrganization(googleConnectionId: string
 
   if (!connection) {
     throw new Error("Google connection not found for this organization");
+  }
+
+  return connection;
+}
+
+async function requireMetaConnectionForOrganization(metaConnectionId: string, organizationId: string) {
+  const connection = await prisma.metaAccountConnection.findFirst({
+    where: {
+      id: metaConnectionId,
+      organizationId,
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  if (!connection) {
+    throw new Error("Meta connection not found for this organization");
   }
 
   return connection;
@@ -169,6 +190,177 @@ async function persistConnectionBatchSyncResult({
       lastBatchSyncAt: new Date(),
     },
   });
+}
+
+export async function performMetaReviewSync(locationId: string) {
+  await requireLocationAccess(locationId);
+
+  const location = await prisma.location.findUnique({
+    where: { id: locationId },
+    include: {
+      metaConnection: true,
+    },
+  });
+
+  if (!location?.metaConnection) {
+    await prisma.location.update({
+      where: { id: locationId },
+      data: {
+        lastSyncStatus: "error",
+        lastSyncMessage: "Connect a Facebook page before syncing reviews",
+        lastSyncSkippedCount: null,
+        lastSyncAt: new Date(),
+      },
+    });
+
+    throw new Error("Connect a Facebook page before syncing reviews");
+  }
+
+  let metaReviews: RawRating[] = [];
+
+  try {
+    const accessToken = location.metaConnection.accessToken;
+    const pageId = location.metaConnection.pageId;
+
+    if (!accessToken || !pageId) {
+      throw new Error("Facebook page connection incomplete");
+    }
+
+    const response = await fetchMetaPageRatings(accessToken, pageId);
+    metaReviews = Array.isArray(response.data) ? response.data : [];
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Facebook review sync failed";
+
+    await prisma.location.update({
+      where: { id: location.id },
+      data: {
+        lastSyncStatus: "error",
+        lastSyncMessage: message,
+        lastSyncSkippedCount: null,
+        lastSyncAt: new Date(),
+      },
+    });
+
+    throw error;
+  }
+
+  let createdCount = 0;
+  let updatedCount = 0;
+  let skippedCount = 0;
+
+  for (const rawReview of metaReviews) {
+    if (!rawReview.has_rating && !rawReview.has_review) {
+      continue;
+    }
+
+    const reviewId = `facebook-${rawReview.open_graph_story?.id || `${location.id}-${Date.now()}`}`;
+    const reviewedAt = rawReview.created_time ? new Date(rawReview.created_time) : null;
+
+    const normalizedReviewerName = normalizeMetaReviewerName(rawReview.reviewer?.name);
+    const normalizedRating = normalizeMetaRating(rawReview.rating);
+    const normalizedBody = normalizeMetaReviewText(rawReview.review_text);
+    const sourceUpdatedAt = rawReview.created_time ? new Date(rawReview.created_time) : null;
+
+    const existingReview = await prisma.review.findFirst({
+      where: {
+        locationId: location.id,
+        externalId: reviewId,
+        source: ReviewSource.FACEBOOK,
+      },
+      select: {
+        id: true,
+        reviewerName: true,
+        rating: true,
+        body: true,
+        sourceUpdatedAt: true,
+      },
+    });
+
+    if (existingReview) {
+      const changed = hasMetaReviewChanged(
+        { ...existingReview, rating: existingReview.rating ?? 0, reviewedAt: null },
+        {
+          reviewerName: normalizedReviewerName,
+          rating: normalizedRating,
+          body: normalizedBody,
+          reviewedAt,
+          sourceUpdatedAt,
+        },
+      );
+
+      if (changed) {
+        await prisma.review.update({
+          where: { id: existingReview.id },
+          data: {
+            reviewerName: normalizedReviewerName,
+            rating: normalizedRating,
+            body: normalizedBody,
+            status: ReviewStatus.PUBLISHED,
+            reviewedAt,
+            publishedExternally: true,
+            sourceUpdatedAt,
+            lastImportedAt: new Date(),
+          },
+        });
+        updatedCount += 1;
+      } else {
+        skippedCount += 1;
+      }
+    } else {
+      await prisma.review.create({
+        data: {
+          locationId: location.id,
+          source: ReviewSource.FACEBOOK,
+          externalId: reviewId,
+          reviewerName: normalizedReviewerName,
+          rating: normalizedRating,
+          status: ReviewStatus.PUBLISHED,
+          body: normalizedBody,
+          reviewedAt,
+          publishedExternally: true,
+          sourceUpdatedAt,
+          lastImportedAt: new Date(),
+        },
+      });
+      createdCount += 1;
+    }
+  }
+
+  const publishedReviews = await prisma.review.findMany({
+    where: {
+      locationId: location.id,
+      source: ReviewSource.FACEBOOK,
+      status: ReviewStatus.PUBLISHED,
+    },
+    select: {
+      rating: true,
+    },
+  });
+
+  const avgRating = publishedReviews.length
+    ? publishedReviews.reduce((sum, review) => sum + (review.rating ?? 0), 0) / publishedReviews.length
+    : null;
+
+  await prisma.location.update({
+    where: { id: location.id },
+    data: {
+      avgRating,
+      lastSyncStatus: "success",
+      lastSyncMessage: null,
+      lastSyncImportedCount: createdCount,
+      lastSyncUpdatedCount: updatedCount,
+      lastSyncSkippedCount: skippedCount,
+      lastSyncFetchedCount: metaReviews.length,
+      lastSyncAt: new Date(),
+    },
+  });
+
+  return {
+    createdCount,
+    updatedCount,
+    skippedCount,
+    fetchedCount: metaReviews.length,
+  };
 }
 
 export async function performGoogleReviewSync(locationId: string) {
@@ -478,6 +670,117 @@ export async function syncAllGoogleReviewsForConnection(formData: FormData) {
       totalCount: 0,
     });
     const params = buildIntegrationErrorParams("bulk-sync-error", message);
+
+    redirect(`/integrations?${params.toString()}`);
+  }
+}
+
+export async function syncAllMetaReviewsForConnection(formData: FormData) {
+  const metaConnectionId = String(formData.get("metaConnectionId") ?? "").trim();
+
+  if (!metaConnectionId) {
+    throw new Error("Meta connection is required");
+  }
+
+  const membership = await requireTeamManagement();
+  await requireMetaConnectionForOrganization(metaConnectionId, membership.organizationId);
+
+  try {
+    const locations = await prisma.location.findMany({
+      where: {
+        organizationId: membership.organizationId,
+        metaConnectionId,
+      },
+      orderBy: {
+        createdAt: "asc",
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (locations.length === 0) {
+      throw new Error("No locations are connected to this Facebook page");
+    }
+
+    let totalCreated = 0;
+    let totalUpdated = 0;
+    let totalSkipped = 0;
+    let totalFetched = 0;
+    let syncedCount = 0;
+    let failedCount = 0;
+    const failedLocationNames: string[] = [];
+
+    for (const location of locations) {
+      try {
+        const result = await performMetaReviewSync(location.id);
+        totalCreated += result.createdCount;
+        totalUpdated += result.updatedCount;
+        totalSkipped += result.skippedCount;
+        totalFetched += result.fetchedCount;
+        syncedCount += 1;
+      } catch {
+        const failedLocation = await prisma.location.findUnique({
+          where: { id: location.id },
+          select: { name: true },
+        });
+        failedLocationNames.push(failedLocation?.name ?? "Unknown location");
+        failedCount += 1;
+      }
+    }
+
+    const message =
+      failedCount > 0
+        ? `Synced ${syncedCount}/${locations.length} locations. ${totalCreated} created, ${totalUpdated} updated, ${totalSkipped} skipped.`
+        : `Synced all locations. ${totalCreated} created, ${totalUpdated} updated, ${totalSkipped} skipped.`;
+
+    await prisma.metaAccountConnection.update({
+      where: { id: metaConnectionId },
+      data: {
+        lastBatchSyncStatus: failedCount > 0 ? "partial" : "success",
+        lastBatchSyncMessage: message,
+        lastBatchSyncedCount: syncedCount,
+        lastBatchFailedCount: failedCount,
+        lastBatchFailedNames: failedLocationNames.join("|"),
+        lastBatchImportedCount: totalCreated,
+        lastBatchUpdatedCount: totalUpdated,
+        lastBatchSkippedCount: totalSkipped,
+        lastBatchFetchedCount: totalFetched,
+        lastBatchSyncAt: new Date(),
+        lastSyncedAt: new Date(),
+      },
+    });
+
+    const params = new URLSearchParams({
+      facebook: failedCount > 0 ? "partial-sync" : "synced",
+      created: String(totalCreated),
+      updated: String(totalUpdated),
+      skipped: String(totalSkipped),
+      total: String(totalFetched),
+      locations: String(syncedCount),
+      failed: String(failedCount),
+      ...(failedLocationNames.length > 0 && { failedNames: failedLocationNames.join("|") }),
+    });
+
+    redirect(`/integrations?${params.toString()}`);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Meta review sync failed";
+    await prisma.metaAccountConnection.update({
+      where: { id: metaConnectionId },
+      data: {
+        lastBatchSyncStatus: "error",
+        lastBatchSyncMessage: message,
+        lastBatchSyncedCount: 0,
+        lastBatchFailedCount: 0,
+        lastBatchFailedNames: "",
+        lastBatchSyncAt: new Date(),
+      },
+    });
+
+    const params = new URLSearchParams({
+      facebook: "sync-error",
+      message,
+    });
 
     redirect(`/integrations?${params.toString()}`);
   }
@@ -1384,6 +1687,34 @@ export async function disconnectGoogleConnection(formData: FormData) {
   }
 
   redirect(`/integrations?google=connected&message=${encodeURIComponent("Google connection disconnected")}`);
+}
+
+export async function disconnectMetaConnection(formData: FormData) {
+  const metaConnectionId = String(formData.get("metaConnectionId") ?? "").trim();
+
+  if (!metaConnectionId) {
+    throw new Error("Meta connection is required");
+  }
+
+  const membership = await requireTeamManagement();
+  await requireMetaConnectionForOrganization(metaConnectionId, membership.organizationId);
+
+  try {
+    await prisma.location.updateMany({
+      where: { metaConnectionId },
+      data: { metaConnectionId: null },
+    });
+
+    await prisma.metaAccountConnection.delete({
+      where: { id: metaConnectionId },
+    });
+
+    revalidatePath("/integrations");
+    redirect("/integrations?facebook=disconnected");
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Disconnect failed";
+    redirect(`/integrations?facebook=disconnect-error&message=${encodeURIComponent(message)}`);
+  }
 }
 
 export async function retryFailedGoogleSyncs(formData: FormData) {
