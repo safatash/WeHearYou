@@ -14,7 +14,7 @@ const FLOW: Record<"positive" | "negative", [ScreenId, string][]> = {
 };
 
 export function AiFunnelFlow(props: AiFunnelProps & {
-  onRecordPositive?: (i: { slug: string; rating: number; body: string; embed: boolean }) => Promise<unknown>;
+  onRecordPositive?: (i: { slug: string; rating: number; body: string; embed: boolean; destination?: string }) => Promise<unknown>;
   onRecordNegative?: (i: { slug: string; rating: number; feedback: string; contact: string; embed: boolean }) => Promise<unknown>;
   initialScreen?: ScreenId;
   initialRating?: number;
@@ -28,10 +28,8 @@ export function AiFunnelFlow(props: AiFunnelProps & {
   const set = (patch: Partial<FunnelState>) => setState(prev => ({ ...prev, ...patch }));
 
   const go = (next: ScreenId) => {
-    // fire persistence on the terminal-confirm transitions (best-effort; never block UI)
-    if (next === "pos-celebrate") {
-      startTransition(() => { void onRecordPositive({ slug: props.slug, rating: state.rating, body: state.reviewLong, embed: props.embed }); });
-    } else if (next === "neg-submitted") {
+    // fire persistence on neg-submitted immediately (no destination choice needed)
+    if (next === "neg-submitted") {
       startTransition(() => { void onRecordNegative({ slug: props.slug, rating: state.rating, feedback: state.feedbackFinal || state.feedback, contact: contactSummary(state), embed: props.embed }); });
     }
     setScreen(next);
@@ -39,7 +37,16 @@ export function AiFunnelFlow(props: AiFunnelProps & {
     if (el) el.scrollTop = 0;
   };
 
-  const ctx = { props, state, set, go };
+  // Called when the customer clicks a destination link on the Copy & Post screen.
+  // Only persist the review for the WeHearYou internal path; external destinations
+  // (Google, Facebook, etc.) will be imported via GBP/platform sync.
+  const handleDestinationChosen = (destinationId: string) => {
+    startTransition(() => {
+      void onRecordPositive({ slug: props.slug, rating: state.rating, body: state.reviewLong, embed: props.embed, destination: destinationId });
+    });
+  };
+
+  const ctx = { props, state, set, go, onDestinationChosen: handleDestinationChosen };
   let view: React.ReactNode;
   switch (screen) {
     case "rating": view = <RatingScreen {...ctx} />; break;

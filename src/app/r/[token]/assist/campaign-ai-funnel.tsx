@@ -9,7 +9,7 @@ export function CampaignAiFunnel({ props, token, rating }: { props: AiFunnelProp
       {...props}
       initialScreen="pos-intro"
       initialRating={rating}
-      onRecordPositive={(i) => recordCampaignPositiveReview({ token, rating: i.rating, body: i.body })}
+      onRecordPositive={(i) => recordCampaignPositiveReview({ token, rating: i.rating, body: i.body, destination: i.destination })}
     />
   );
 }

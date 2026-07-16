@@ -56,20 +56,37 @@ export default async function ReviewAssistPage({
     YELP: "Y",
     FACEBOOK: "f",
     TRUSTPILOT: "★",
+    WEHEARYOU: "W",
   };
   const DEST_COLOR: Record<string, string> = {
     GOOGLE: "var(--src-google)",
     YELP: "var(--src-yelp)",
     FACEBOOK: "var(--src-facebook)",
     TRUSTPILOT: "var(--src-trustpilot)",
+    WEHEARYOU: "var(--accent)",
   };
 
-  const rawDestinations = [
-    { key: "GOOGLE", label: "Google", url: location.reviewLink ?? null },
-    { key: "YELP", label: "Yelp", url: location.yelpBusinessUrl ?? null },
-    { key: "FACEBOOK", label: "Facebook", url: profile.facebookReviewUrl ?? null },
-    { key: "TRUSTPILOT", label: "Trustpilot", url: profile.trustpilotReviewUrl ?? null },
-  ].filter((d): d is { key: string; label: string; url: string } => Boolean(d.url));
+  // Build the candidate list from all possible platforms + WeHearYou internal.
+  // A destination is included only if:
+  //   (a) it's in the location's highRatingDestinations config, AND
+  //   (b) it has a valid URL (or is the internal WeHearYou path, which needs no URL).
+  const configuredDests: string[] = Array.isArray(profile.highRatingDestinations)
+    ? profile.highRatingDestinations
+    : ["GOOGLE"];
+
+  const allCandidates: { key: string; label: string; url: string | null; isInternal: boolean }[] = [
+    { key: "GOOGLE",     label: "Google",     url: location.reviewLink ?? null,       isInternal: false },
+    { key: "YELP",       label: "Yelp",       url: location.yelpBusinessUrl ?? null,  isInternal: false },
+    { key: "FACEBOOK",   label: "Facebook",   url: profile.facebookReviewUrl ?? null, isInternal: false },
+    { key: "TRUSTPILOT", label: "Trustpilot", url: profile.trustpilotReviewUrl ?? null, isInternal: false },
+    { key: "WEHEARYOU",  label: "WeHearYou",  url: null,                              isInternal: true },
+  ];
+
+  const rawDestinations = allCandidates.filter((d) => {
+    if (!configuredDests.includes(d.key)) return false;
+    if (d.isInternal) return true; // WeHearYou never needs an external URL
+    return Boolean(d.url);
+  });
 
   const destinations: FunnelDestination[] = rawDestinations.map((d, index) => ({
     id: d.key.toLowerCase(),
@@ -78,7 +95,7 @@ export default async function ReviewAssistPage({
     glyph: DEST_GLYPH[d.key] ?? d.key[0],
     color: DEST_COLOR[d.key] ?? "var(--accent)",
     preferred: index === 0,
-    isInternal: false,
+    isInternal: d.isInternal,
   }));
 
   const aiProps: AiFunnelProps = {

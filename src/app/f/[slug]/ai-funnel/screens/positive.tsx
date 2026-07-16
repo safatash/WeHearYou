@@ -48,6 +48,7 @@ interface ScreenCtx {
   state: FunnelState;
   set: (patch: Partial<FunnelState>) => void;
   go: (screen: ScreenId) => void;
+  onDestinationChosen?: (destinationId: string) => void;
 }
 
 /* ── RatingScreen ────────────────────────────────────────────────────────── */
@@ -697,7 +698,7 @@ export const PosConfirm = ({ props, state, set, go }: ScreenCtx) => {
 
 /* ── PosCelebrate ────────────────────────────────────────────────────────── */
 
-export const PosCelebrate = ({ props, state, go }: ScreenCtx) => {
+export const PosCelebrate = ({ props, state, set, go, onDestinationChosen }: ScreenCtx) => {
   const [copied, setCopied] = useState(false);
   const [fired, setFired] = useState(false);
 
@@ -746,6 +747,12 @@ export const PosCelebrate = ({ props, state, go }: ScreenCtx) => {
     return d.isInternal ? undefined : "noopener noreferrer";
   }
 
+  function handleDestClick(d: (typeof props.destinations)[number]) {
+    if (state.selectedDestination) return; // already fired once
+    set({ selectedDestination: d.id });
+    onDestinationChosen?.(d.id);
+  }
+
   return (
     <ScreenCard>
       <div style={{ position: "relative" }}>
@@ -769,6 +776,7 @@ export const PosCelebrate = ({ props, state, go }: ScreenCtx) => {
             href={destHref(preferred)}
             target={destTarget(preferred)}
             rel={destRel(preferred)}
+            onClick={() => handleDestClick(preferred)}
             style={{
               display: "flex",
               alignItems: "center",
@@ -827,6 +835,7 @@ export const PosCelebrate = ({ props, state, go }: ScreenCtx) => {
               href={destHref(d)}
               target={destTarget(d)}
               rel={destRel(d)}
+              onClick={() => handleDestClick(d)}
               style={{
                 display: "flex",
                 alignItems: "center",
