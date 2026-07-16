@@ -1118,6 +1118,7 @@ const script = `
               // Natural = true masonry: use CSS columns so cards have natural heights
               container.style.display = "block";
               container.style.gridTemplateColumns = "";
+              container.style.gap = "";
               if (gc === "3") {
                 container.style.columns = "3";
               } else if (gc === "2") {
@@ -1126,10 +1127,14 @@ const script = `
                 container.style.columns = "240px";
               }
               container.style.columnGap = "16px";
+              // Cards in CSS-columns masonry need bottom margin for row spacing
+              var masCards = container.querySelectorAll(".why-widget-card");
+              for (var mi = 0; mi < masCards.length; mi++) { masCards[mi].style.marginBottom = "16px"; }
             } else {
               // Equal = CSS grid with equal row heights
               container.style.display = "grid";
               container.style.columns = "";
+              container.style.gap = "16px";
               if (gc === "2") {
                 container.style.gridTemplateColumns = "repeat(2, 1fr)";
               } else if (gc === "3") {
