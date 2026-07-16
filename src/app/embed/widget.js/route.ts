@@ -1111,7 +1111,8 @@ const script = `
 
           container = mount.querySelector("." + layoutClass);
           // Apply dynamic grid columns and wall style to the grid container
-          if (container && (data.widget.layout === "grid" || data.widget.layout === "masonry" || data.widget.layout === "mixed-masonry")) {
+          // mixed-masonry uses its own CSS class (.why-widget-masonry) and must not be overridden here
+          if (container && (data.widget.layout === "grid" || data.widget.layout === "masonry")) {
             var gc = data.widget.gridColumns || "auto";
             var isNaturalHeights = data.widget.cardHeights === "natural";
             if (isNaturalHeights) {
@@ -1144,6 +1145,10 @@ const script = `
               }
               container.style.alignItems = "stretch";
             }
+          }
+          // For mixed-masonry (Wall of Love), just ensure gap is preserved
+          if (container && data.widget.layout === "mixed-masonry") {
+            container.style.gap = "16px";
           }
           footerActions = mount.querySelector(".why-widget-footer");
           writeReviewContainer = mount.querySelector(".why-widget-write-review");
