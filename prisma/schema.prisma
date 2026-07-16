@@ -182,6 +182,7 @@ model Organization {
   locations         Location[]
   automations       Automation[]
   googleConnections GoogleAccountConnection[]
+  facebookConnections FacebookPageConnection[]
   reviewWidgets     ReviewWidget[]
   reviewLinkEvents  ReviewLinkEvent[]
   reviewAssistantSessions ReviewAssistantSession[]
@@ -322,6 +323,7 @@ model Location {
 
   organization          Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   googleConnection      GoogleAccountConnection? @relation(fields: [googleConnectionId], references: [id], onDelete: SetNull)
+  facebookPage          FacebookPage?
   publicProfile         LocationPublicProfile?
   contacts              Contact[]
   campaigns             Campaign[]
@@ -648,6 +650,51 @@ model GoogleAccountConnection {
 
   @@index([organizationId])
   @@index([providerAccountId])
+}
+
+model FacebookPageConnection {
+  id              String    @id @default(cuid())
+  organizationId  String
+  userId          String?   // Facebook user ID who authorized
+  userName        String?   // Facebook user display name
+  userEmail       String?
+  accessToken     String    // Long-lived user access token (encrypted)
+  expiresAt       DateTime?
+  lastSyncedAt    DateTime?
+  lastSyncStatus  String?
+  lastSyncMessage String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  organization    Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  pages           FacebookPage[]
+
+  @@index([organizationId])
+}
+
+model FacebookPage {
+  id              String    @id @default(cuid())
+  connectionId    String
+  pageId          String    // Facebook Page ID
+  pageName        String
+  pageAccessToken String    // Page-specific access token (encrypted)
+  locationId      String?   @unique  // Linked WeHearYou location (one page per location)
+  isActive        Boolean   @default(true)
+  lastSyncedAt    DateTime?
+  lastSyncStatus  String?
+  lastSyncMessage String?
+  lastSyncImportedCount Int?
+  lastSyncUpdatedCount  Int?
+  lastSyncSkippedCount  Int?
+  lastSyncFetchedCount  Int?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  connection      FacebookPageConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  location        Location? @relation(fields: [locationId], references: [id], onDelete: SetNull)
+
+  @@unique([connectionId, pageId])
+  @@index([connectionId])
 }
 
 model ReviewWidget {

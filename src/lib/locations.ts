@@ -18,6 +18,7 @@ export function buildGoogleWriteReviewLink(googlePlaceId: string | null | undefi
 const locationInclude = {
   publicProfile: true,
   googleConnection: true,
+  facebookPage: true,
   contacts: {
     orderBy: {
       createdAt: "asc",
