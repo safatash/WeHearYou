@@ -1128,9 +1128,8 @@ const script = `
                 container.style.columns = "240px";
               }
               container.style.columnGap = "16px";
-              // Cards in CSS-columns masonry need bottom margin for row spacing
-              var masCards = container.querySelectorAll(".why-widget-card");
-              for (var mi = 0; mi < masCards.length; mi++) { masCards[mi].style.marginBottom = "16px"; }
+              // Mark container so post-insert step can apply row spacing to cards
+              container.setAttribute("data-natural-masonry", "1");
             } else {
               // Equal = CSS grid with equal row heights
               container.style.display = "grid";
@@ -1316,6 +1315,11 @@ const script = `
             }
           } else {
             container.insertAdjacentHTML("beforeend", cardsHtml);
+          }
+          // Apply row spacing for natural (CSS columns) masonry after cards are in the DOM
+          if (container.getAttribute("data-natural-masonry") === "1") {
+            var natCards = container.querySelectorAll(".why-widget-card");
+            for (var ni = 0; ni < natCards.length; ni++) { natCards[ni].style.marginBottom = "16px"; }
           }
           attachVideoCardHandlers(container);
         }
