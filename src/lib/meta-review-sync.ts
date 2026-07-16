@@ -18,13 +18,13 @@ export function hasMetaReviewChanged(
   );
 }
 
-export function normalizeMetaReviewerName(name?: string): string {
+export function normalizeMetaReviewerName(name?: string | null): string {
   if (!name) return "Facebook reviewer";
   const trimmed = name.trim();
   return trimmed.length > 0 ? trimmed : "Facebook reviewer";
 }
 
-export function normalizeMetaReviewText(text?: string): string {
+export function normalizeMetaReviewText(text?: string | null): string {
   if (!text) return "No written review provided.";
   const trimmed = text.trim();
   return trimmed.length > 0 ? trimmed : "No written review provided.";
