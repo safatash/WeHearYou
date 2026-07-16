@@ -248,7 +248,9 @@ const SiteFrame = ({ children }: { children: React.ReactNode }) => (
 const EmbedCode = ({ code, hint }: { code: string; hint: string }) => {
   const [copied, setCopied] = useState(false);
   const copy = () => {
-    navigator.clipboard?.writeText(code).catch(() => {});
+    // Collapse any whitespace/newlines that JSX or the pre element may inject
+    const clean = code.replace(/\s*\n\s*/g, "").trim();
+    navigator.clipboard?.writeText(clean).catch(() => {});
     setCopied(true);
     setTimeout(() => setCopied(false), 1600);
   };
