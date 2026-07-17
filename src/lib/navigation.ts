@@ -17,7 +17,6 @@ export type ScreenKey =
   | "gbp-photos"
   | "gbp-qa"
   | "funnel-preview"
-  | "review-links"
   | "customer-resolution"
   | "settings";
 
@@ -38,7 +37,6 @@ export const navItems: NavItem[] = [
   // Requests & Feedback
   { key: "contacts", label: "Contacts", icon: "search", href: "/contacts", group: "REQUESTS & FEEDBACK" },
   { key: "campaigns", label: "Review Requests", icon: "bell", href: "/campaigns", group: "REQUESTS & FEEDBACK" },
-  { key: "review-links", label: "Review Links", icon: "mail", href: "/review-links", group: "REQUESTS & FEEDBACK" },
   { key: "reviews", label: "Reviews Inbox", icon: "inbox", href: "/reviews", group: "REQUESTS & FEEDBACK" },
   { key: "customer-resolution", label: "Resolution Cases", icon: "shield", href: "/customer-resolution", group: "REQUESTS & FEEDBACK" },
 
