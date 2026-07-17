@@ -315,12 +315,6 @@ export default async function LocationDetailPage({
                 <code className="flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-mono text-slate-700 truncate">
                   {`${process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ?? ""}/review/${location.slug}`}
                 </code>
-                <Link
-                  href="/review-links"
-                  className="rounded-xl bg-indigo-600 px-4 py-2 text-xs font-semibold text-white hover:bg-indigo-700 transition whitespace-nowrap"
-                >
-                  Manage links →
-                </Link>
               </div>
               {!location.reviewLink && !location.googlePlaceId && (
                 <p className="mt-3 text-xs text-amber-600">
