@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 
-import React from "react";
 import Link from "next/link";
+import { GreetingHeading } from "./_components/greeting-heading";
 import { redirect } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { getDashboardData, type DashboardMetric } from "@/lib/dashboard";
@@ -196,20 +196,6 @@ export default async function DashboardPage({
       </div>
     </AppShell>
   );
-}
-
-function GreetingHeading({ name }: { name: string }) {
-  "use client";
-  const [greeting, setGreeting] = React.useState(`Good day, ${name}`);
-
-  React.useEffect(() => {
-    const hour = new Date().getHours();
-    if (hour < 12) setGreeting(`Good morning, ${name}`);
-    else if (hour < 18) setGreeting(`Good afternoon, ${name}`);
-    else setGreeting(`Good evening, ${name}`);
-  }, [name]);
-
-  return greeting;
 }
 
 function SectionHead({ title, sub, action }: { title: string; sub?: string; action?: React.ReactNode }) {
