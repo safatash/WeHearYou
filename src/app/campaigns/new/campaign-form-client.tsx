@@ -7,7 +7,6 @@ import { RCard } from "./components/rcard";
 import { OptionCard } from "./components/option-card";
 import { MessagePreview } from "./components/message-preview";
 import { SendSummary } from "./components/send-summary";
-import { RecipientPicker } from "./recipient-picker";
 
 type ContactItem = {
   id: string;

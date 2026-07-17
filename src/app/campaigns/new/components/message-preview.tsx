@@ -8,7 +8,6 @@ interface MessagePreviewProps {
 }
 
 export function MessagePreview({
-  type,
   channel,
   subject,
   sms,
@@ -18,6 +17,7 @@ export function MessagePreview({
   // Default values
   const defaultSubject = "How was your experience with [Location]?";
   const defaultSms = `Hi {first}, we'd love to hear about your experience at {location}. Click here to leave a review: {link}`;
+  const defaultEmailBody = `Hi {first}, thanks for choosing {location}. We'd really appreciate your feedback — it only takes a moment and helps us keep improving.\n\nPlease use the secure link below to rate your experience: {link}`;
 
   const finalSubject = subject || defaultSubject;
   const finalSms = sms || defaultSms;
@@ -26,12 +26,12 @@ export function MessagePreview({
   const substituteTokens = (text: string) => {
     return text
       .replace(/\{location\}/g, location || "[Location]")
-      .replace(/\{first\}/g, "John")
+      .replace(/\{first\}/g, sample || "John")
       .replace(/\{link\}/g, "review.link");
   };
 
   const previewText =
-    channel === "sms" ? substituteTokens(finalSms) : sample;
+    channel === "sms" ? substituteTokens(finalSms) : substituteTokens(defaultEmailBody);
   const previewSubject = channel === "email" ? substituteTokens(finalSubject) : "";
 
   return (
