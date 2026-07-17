@@ -10,14 +10,23 @@ interface EmailSigTabProps {
 
 type EmailStyle = "button" | "text" | "minimal";
 
+function htmlEscape(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
 function generateEmailSignatureHTML(url: string, style: EmailStyle): string {
+  const safeUrl = htmlEscape(url);
   if (style === "button") {
-    return `<table cellpadding="0" cellspacing="0" border="0"><tr><td><a href="${url}" style="display:inline-block; background-color:#4f46e5; color:white; padding:10px 20px; border-radius:6px; text-decoration:none; font-weight:600; font-size:14px;">Share Your Feedback</a></td></tr></table>`;
+    return `<table cellpadding="0" cellspacing="0" border="0"><tr><td><a href="${safeUrl}" style="display:inline-block; background-color:#4f46e5; color:white; padding:10px 20px; border-radius:6px; text-decoration:none; font-weight:600; font-size:14px;">Share Your Feedback</a></td></tr></table>`;
   } else if (style === "text") {
-    return `<p style="margin:0; font-size:14px; color:#333;">Have feedback? <a href="${url}" style="color:#4f46e5; text-decoration:underline;">Click here to share</a></p>`;
+    return `<p style="margin:0; font-size:14px; color:#333;">Have feedback? <a href="${safeUrl}" style="color:#4f46e5; text-decoration:underline;">Click here to share</a></p>`;
   } else {
     // minimal
-    return `<a href="${url}" style="color:#4f46e5; text-decoration:underline; font-size:13px;">Share Feedback</a>`;
+    return `<a href="${safeUrl}" style="color:#4f46e5; text-decoration:underline; font-size:13px;">Share Feedback</a>`;
   }
 }
 

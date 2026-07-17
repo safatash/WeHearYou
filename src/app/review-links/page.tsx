@@ -5,7 +5,6 @@ import { AppShell } from "@/components/app-shell";
 import { getCurrentMembership } from "@/lib/authz";
 import { prisma } from "@/lib/prisma";
 import { buildGoogleWriteReviewLink } from "@/lib/locations";
-import { buildEmailSignatureSnippet } from "@/lib/email-signature";
 import { getLocationAnalytics } from "@/lib/review-link-analytics";
 import { ReviewLinksClient } from "./review-links-client";
 
@@ -41,13 +40,6 @@ export default async function ReviewLinksPage() {
     reviewUrl: `${appUrl}/review/${loc.slug}`,
     hasGoogleUrl: Boolean(loc.reviewLink ?? buildGoogleWriteReviewLink(loc.googlePlaceId)),
   }));
-
-  const emailSnippets = Object.fromEntries(
-    locations.map((loc) => [
-      loc.slug,
-      buildEmailSignatureSnippet({ appUrl, slug: loc.slug }),
-    ]),
-  );
 
   return (
     <AppShell activeScreen="review-links">
@@ -95,7 +87,6 @@ export default async function ReviewLinksPage() {
           <ReviewLinksClient
             locations={locationData}
             appUrl={appUrl}
-            emailSnippets={emailSnippets}
           />
         )}
       </div>

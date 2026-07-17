@@ -18,18 +18,18 @@ type LocationData = {
 const TABS = ["Links", "Email Sig", "QR Code", "Analytics"] as const;
 type Tab = (typeof TABS)[number];
 
+import type { IconName } from "@/components/icon";
+
 type SourceDef = {
   id: string;
   label: string;
-  icon: string;
+  icon: IconName;
   color: string;
   param: string;
   tip: string;
-  views: number;
-  happy: number;
 };
 
-function buildSources(baseUrl: string): SourceDef[] {
+function buildSources(): SourceDef[] {
   return [
     {
       id: "email-sig",
@@ -38,8 +38,6 @@ function buildSources(baseUrl: string): SourceDef[] {
       color: "bg-teal-500",
       param: "src=email_signature&medium=email",
       tip: "Embed in your team's email footer to collect passive feedback with every message.",
-      views: 42,
-      happy: 36,
     },
     {
       id: "qr-print",
@@ -48,8 +46,6 @@ function buildSources(baseUrl: string): SourceDef[] {
       color: "bg-indigo-500",
       param: "src=qr_counter&medium=print",
       tip: "Print on receipts, table cards, or counter stands for in-person feedback.",
-      views: 18,
-      happy: 15,
     },
     {
       id: "invoice",
@@ -58,8 +54,6 @@ function buildSources(baseUrl: string): SourceDef[] {
       color: "bg-amber-500",
       param: "src=invoice&medium=print",
       tip: "Add to invoices and billing emails to follow up while the experience is fresh.",
-      views: 11,
-      happy: 9,
     },
     {
       id: "website",
@@ -68,8 +62,6 @@ function buildSources(baseUrl: string): SourceDef[] {
       color: "bg-blue-500",
       param: "src=website&medium=digital",
       tip: "Link from your site's footer or 'Thank you' page to turn visitors into reviewers.",
-      views: 29,
-      happy: 24,
     },
     {
       id: "sms",
@@ -78,8 +70,6 @@ function buildSources(baseUrl: string): SourceDef[] {
       color: "bg-green-500",
       param: "src=sms&medium=sms",
       tip: "Send via text campaigns for the highest open rate of any channel.",
-      views: 57,
-      happy: 50,
     },
     {
       id: "direct",
@@ -88,8 +78,6 @@ function buildSources(baseUrl: string): SourceDef[] {
       color: "bg-slate-500",
       param: "src=direct&medium=direct",
       tip: "Share manually or use as the default link when no tracking is needed.",
-      views: 8,
-      happy: 6,
     },
   ];
 }
@@ -108,12 +96,16 @@ function LocationCard({
   const defaultUrl = `${base}/review/${location.slug}`;
   const qrUrl = `${base}/review/${location.slug}?src=qr_counter&medium=print`;
   const emailUrl = `${base}/review/${location.slug}?src=email_signature&medium=email`;
-  const sources = buildSources(base);
+  const sources = buildSources();
 
-  function handleCopy(id: string, text: string) {
-    navigator.clipboard.writeText(text).catch(() => {});
-    setCopied((prev) => ({ ...prev, [id]: true }));
-    setTimeout(() => setCopied((prev) => ({ ...prev, [id]: false })), 1800);
+  async function handleCopy(id: string, text: string) {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied((prev) => ({ ...prev, [id]: true }));
+      setTimeout(() => setCopied((prev) => ({ ...prev, [id]: false })), 1800);
+    } catch {
+      // clipboard write failed — do not show "Copied!"
+    }
   }
 
   return (
@@ -189,12 +181,12 @@ function LocationCard({
                   return (
                     <SourceCard
                       key={src.id}
-                      icon={src.icon as any}
+                      icon={src.icon}
                       label={src.label}
                       color={src.color}
                       url={url}
-                      views={src.views}
-                      happy={src.happy}
+                      views={null}
+                      happy={null}
                       tip={src.tip}
                       onCopy={handleCopy}
                       copied={copied}
@@ -279,7 +271,6 @@ export function ReviewLinksClient({
 }: {
   locations: LocationData[];
   appUrl: string;
-  emailSnippets?: Record<string, string>; // kept for backward compat, unused
 }) {
   const [search, setSearch] = useState("");
 

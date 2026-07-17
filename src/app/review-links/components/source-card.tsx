@@ -1,14 +1,15 @@
 "use client";
 
 import { Icon } from "@/components/icon";
+import type { IconName } from "@/components/icon";
 
 interface SourceCardProps {
-  icon: string;
+  icon: IconName;
   label: string;
   color: string;
   url: string;
-  views: number;
-  happy: number;
+  views: number | null;
+  happy: number | null;
   tip: string;
   onCopy: (id: string, text: string) => void;
   copied: Record<string, boolean>;
@@ -26,7 +27,10 @@ export function SourceCard({
   copied,
 }: SourceCardProps) {
   const id = label.toLowerCase().replace(/\s+/g, "-");
-  const happyPercentage = views > 0 ? Math.round((happy / views) * 100) : 0;
+  const happyPercentage =
+    views != null && happy != null && views > 0
+      ? Math.round((happy / views) * 100)
+      : null;
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md transition">
@@ -35,7 +39,7 @@ export function SourceCard({
         <div
           className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${color}`}
         >
-          <Icon name={icon as any} size={24} style={{ color: "white" }} />
+          <Icon name={icon} size={24} style={{ color: "white" }} />
         </div>
 
         {/* Title and tip */}
@@ -64,16 +68,22 @@ export function SourceCard({
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 gap-3 text-center">
-        <div className="rounded-lg bg-slate-50 p-2">
-          <p className="text-lg font-bold text-slate-900">{views}</p>
-          <p className="text-xs text-slate-500">Views</p>
+      {views == null || happy == null ? (
+        <p className="text-xs text-slate-400 text-center py-2">No data yet</p>
+      ) : (
+        <div className="grid grid-cols-2 gap-3 text-center">
+          <div className="rounded-lg bg-slate-50 p-2">
+            <p className="text-lg font-bold text-slate-900">{views}</p>
+            <p className="text-xs text-slate-500">Views</p>
+          </div>
+          <div className="rounded-lg bg-slate-50 p-2">
+            <p className="text-lg font-bold text-slate-900">{happy}</p>
+            <p className="text-xs text-slate-500">
+              Happy{happyPercentage != null ? ` (${happyPercentage}%)` : ""}
+            </p>
+          </div>
         </div>
-        <div className="rounded-lg bg-slate-50 p-2">
-          <p className="text-lg font-bold text-slate-900">{happy}</p>
-          <p className="text-xs text-slate-500">Happy ({happyPercentage}%)</p>
-        </div>
-      </div>
+      )}
     </div>
   );
 }

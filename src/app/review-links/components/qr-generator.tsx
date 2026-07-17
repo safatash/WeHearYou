@@ -14,6 +14,7 @@ export function QRGenerator({ url, size = 200 }: QRGeneratorProps) {
   const [qrReady, setQrReady] = useState(false);
 
   useEffect(() => {
+    setQrReady(false);
     if (!canvasRef.current) return;
     QRCode.toCanvas(
       canvasRef.current,
@@ -24,6 +25,16 @@ export function QRGenerator({ url, size = 200 }: QRGeneratorProps) {
       }
     );
   }, [url, currentSize]);
+
+  function handleDownload() {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const dataUrl = canvas.toDataURL("image/png");
+    const a = document.createElement("a");
+    a.href = dataUrl;
+    a.download = "qr-code.png";
+    a.click();
+  }
 
   const sizes = [
     { label: "SM", value: 140 },
@@ -58,6 +69,23 @@ export function QRGenerator({ url, size = 200 }: QRGeneratorProps) {
         <p className="text-xs text-slate-500 font-mono text-center break-all max-w-xs">
           {url}
         </p>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            disabled={!qrReady}
+            onClick={handleDownload}
+            className="rounded-lg bg-indigo-600 px-4 py-2 text-xs font-semibold text-white hover:bg-indigo-700 transition disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            Download PNG
+          </button>
+          <button
+            type="button"
+            onClick={() => window.print()}
+            className="rounded-lg bg-slate-100 px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-200 transition"
+          >
+            Print
+          </button>
+        </div>
       </div>
     </div>
   );
