@@ -15,7 +15,6 @@ export type ScreenKey =
   | "gbp-manager"
   | "gbp-posts"
   | "gbp-photos"
-  | "gbp-qa"
   | "funnel-preview"
   | "customer-resolution"
   | "settings";
@@ -53,7 +52,6 @@ export const navItems: NavItem[] = [
   { key: "gbp-manager", label: "GBP Manager", icon: "map", href: "/gbp", group: "GOOGLE LOCAL SEO" },
   { key: "gbp-posts", label: "GBP Posts", icon: "megaphone", href: "/gbp/posts", group: "GOOGLE LOCAL SEO" },
   { key: "gbp-photos", label: "GBP Photos", icon: "upload", href: "/gbp/photos", group: "GOOGLE LOCAL SEO" },
-  { key: "gbp-qa", label: "Q&A", icon: "chat", href: "/gbp/qa", group: "GOOGLE LOCAL SEO" },
 
   // Settings
   { key: "automation", label: "Automation", icon: "sliders", href: "/automation", group: "SETTINGS" },
