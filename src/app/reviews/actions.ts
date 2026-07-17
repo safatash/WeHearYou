@@ -351,5 +351,37 @@ export async function generateAiReplyDraft(reviewId: string): Promise<{ success:
   }
 }
 
+export async function deleteReview(reviewId: string) {
+  if (!reviewId) {
+    throw new Error("Review ID is required");
+  }
+
+  const review = await prisma.review.findUnique({
+    where: { id: reviewId },
+    include: {
+      location: {
+        select: {
+          slug: true,
+        },
+      },
+    },
+  });
+
+  if (!review) {
+    throw new Error("Review not found");
+  }
+
+  await requireReviewReplyAccess(review.locationId);
+
+  await prisma.review.delete({
+    where: { id: reviewId },
+  });
+
+  revalidatePath("/reviews");
+  revalidatePath(`/b/${review.location.slug}`);
+
+  return { success: true };
+}
+
 // Re-export for use in server actions
 export { tryAutoSendGoogleReplyForReview as tryAutoSendGoogleReply };

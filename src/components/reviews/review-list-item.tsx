@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { formatReviewDate, stars, truncateReviewBody, type ReviewWithRelations } from "@/lib/reviews";
+import { deleteReview } from "@/app/reviews/actions";
 
 interface ReviewListItemProps {
   review: ReviewWithRelations;
@@ -16,9 +18,13 @@ export function ReviewListItem({
   filterHref,
   aiReplyEnabled,
 }: ReviewListItemProps) {
+  const router = useRouter();
   const [isExpanded, setIsExpanded] = useState(selected);
   const [selectedTone, setSelectedTone] = useState<string | null>(null);
   const [replyText, setReplyText] = useState(review.replyDraft || "");
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // Helper: Extract initials from reviewer name
   const getAvatarInitials = () => {
@@ -74,6 +80,47 @@ export function ReviewListItem({
 
   const statusBadge = getStatusBadge();
   const toneOptions = ["Warm", "Professional", "Concise", "Apologetic"];
+
+  // Handler: Delete review
+  const handleDelete = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!showDeleteDialog) {
+      setShowDeleteDialog(true);
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      await deleteReview(review.id);
+      setToastMessage("Review deleted successfully");
+      setTimeout(() => {
+        router.refresh();
+      }, 500);
+    } catch (error) {
+      setToastMessage(
+        error instanceof Error ? error.message : "Failed to delete review"
+      );
+      setShowDeleteDialog(false);
+      setIsDeleting(false);
+    }
+  };
+
+  // Handler: Flag review
+  const handleFlag = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setToastMessage("Review flagged for review");
+    console.log("Flag review:", review.id);
+  };
+
+  // Handler: Open on Google
+  const handleOpenOnGoogle = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (review.sourceReviewUrl) {
+      window.open(review.sourceReviewUrl, "_blank");
+    } else {
+      setToastMessage("No Google URL available for this review");
+    }
+  };
 
   return (
     <div
@@ -136,26 +183,78 @@ export function ReviewListItem({
           </button>
           <button
             className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition"
-            onClick={(e) => e.stopPropagation()}
+            onClick={handleFlag}
           >
             Flag
           </button>
           {review.source === "GOOGLE" && (
             <button
               className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition"
-              onClick={(e) => e.stopPropagation()}
+              onClick={handleOpenOnGoogle}
             >
               Open on Google
             </button>
           )}
           <button
-            className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-red-600 hover:bg-red-50 transition"
-            onClick={(e) => e.stopPropagation()}
+            className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-red-600 hover:bg-red-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            onClick={handleDelete}
+            disabled={isDeleting}
           >
-            Delete
+            {showDeleteDialog ? "Confirm Delete" : "Delete"}
           </button>
         </div>
       </div>
+
+      {/* Delete confirmation dialog */}
+      {showDeleteDialog && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+          onClick={(e) => {
+            e.stopPropagation();
+            setShowDeleteDialog(false);
+          }}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-xl p-6 max-w-sm mx-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="text-lg font-semibold text-slate-900 mb-3">Delete this review?</h2>
+
+            <div className="space-y-2 mb-6 text-sm text-slate-600">
+              <p>
+                <span className="font-semibold text-slate-900">{review.reviewerName}</span>
+                {review.location && ` • ${review.location.name}`}
+              </p>
+              <p className="text-slate-500">{stars(review.rating ?? 0)}</p>
+              <p className="italic text-slate-600">"{truncateReviewBody(review.body, 150)}"</p>
+            </div>
+
+            <p className="text-xs text-slate-500 mb-6">
+              This will permanently remove this review from your inbox.
+            </p>
+
+            <div className="flex gap-3 justify-end">
+              <button
+                className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition disabled:opacity-50"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowDeleteDialog(false);
+                }}
+                disabled={isDeleting}
+              >
+                Cancel
+              </button>
+              <button
+                className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                onClick={handleDelete}
+                disabled={isDeleting}
+              >
+                {isDeleting ? "Deleting..." : "Delete review"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Expanded section */}
       {isExpanded && aiReplyEnabled && (
@@ -223,6 +322,29 @@ export function ReviewListItem({
                 Post reply
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Toast notification */}
+      {toastMessage && (
+        <div
+          className={`fixed bottom-4 left-4 right-4 z-40 rounded-2xl border px-4 py-3 text-sm shadow-sm ${
+            toastMessage.includes("successfully") || toastMessage.includes("flagged")
+              ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+              : "border-amber-200 bg-amber-50 text-amber-800"
+          }`}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="flex items-start justify-between gap-3">
+            <p>{toastMessage}</p>
+            <button
+              type="button"
+              onClick={() => setToastMessage(null)}
+              className="font-semibold opacity-70 hover:opacity-100"
+            >
+              ×
+            </button>
           </div>
         </div>
       )}
