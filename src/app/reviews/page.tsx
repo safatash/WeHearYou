@@ -87,7 +87,7 @@ export default async function ReviewsPage({
               </svg>
               Export CSV
             </button>
-            <button className="inline-flex items-center gap-1.5 rounded-lg bg-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-700 transition">
+            <button className="inline-flex items-center gap-1.5 rounded-lg bg-[#37aeb7] px-4 py-2 text-sm font-semibold text-white hover:bg-[#2a8a92] transition">
               <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>
               </svg>
@@ -98,7 +98,7 @@ export default async function ReviewsPage({
 
         {/* Info banner */}
         <div className="flex items-center gap-2.5 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
-          <svg className="w-4 h-4 text-teal-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg className="w-4 h-4 text-[#37aeb7] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
           </svg>
           Replies are written to Google only after you review and confirm each one. AI never posts on its own.
@@ -121,7 +121,7 @@ export default async function ReviewsPage({
                 href={tab.href}
                 className={`rounded-full px-3.5 py-1.5 text-sm font-semibold transition whitespace-nowrap ${
                   tab.active
-                    ? "bg-teal-600 text-white"
+                    ? "bg-[#37aeb7] text-white"
                     : "text-slate-600 hover:bg-slate-100"
                 }`}
               >
@@ -135,7 +135,7 @@ export default async function ReviewsPage({
             <Link
               href={buildFilterHref({ locationId: "all" })}
               className={`rounded-full px-3.5 py-1.5 text-sm font-semibold transition whitespace-nowrap ${
-                allowedLocationId === "all" ? "text-slate-900 font-bold" : "text-slate-500 hover:text-slate-700"
+                allowedLocationId === "all" ? "bg-slate-900 text-white" : "text-slate-500 hover:text-slate-700"
               }`}
             >
               All locations
@@ -145,7 +145,7 @@ export default async function ReviewsPage({
                 key={loc.id}
                 href={buildFilterHref({ locationId: loc.id })}
                 className={`rounded-full px-3.5 py-1.5 text-sm font-semibold transition whitespace-nowrap ${
-                  allowedLocationId === loc.id ? "text-slate-900 font-bold" : "text-slate-500 hover:text-slate-700"
+                  allowedLocationId === loc.id ? "bg-slate-900 text-white" : "text-slate-500 hover:text-slate-700"
                 }`}
               >
                 {loc.name}

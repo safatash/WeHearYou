@@ -19,7 +19,7 @@ const AVATAR_COLORS = [
   { bg: "bg-emerald-100", text: "text-emerald-700" },
   { bg: "bg-blue-100", text: "text-blue-700" },
   { bg: "bg-orange-100", text: "text-orange-700" },
-  { bg: "bg-teal-100", text: "text-teal-700" },
+  { bg: "bg-[#e0f2f4]", text: "text-[#2a8a92]" },
 ];
 
 function avatarColor(name: string) {
@@ -181,7 +181,7 @@ export function ReviewListItem({ review, selected, aiReplyEnabled }: ReviewListI
           <div className="mt-3 flex items-center gap-1 flex-wrap">
             <button
               onClick={(e) => { e.stopPropagation(); setIsExpanded(true); }}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-teal-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-teal-700 transition"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-[#37aeb7] px-3 py-1.5 text-sm font-semibold text-white hover:bg-[#2a8a92] transition"
             >
               <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="9 14 4 9 9 4" /><path d="M20 20v-7a4 4 0 0 0-4-4H4" />
@@ -221,7 +221,7 @@ export function ReviewListItem({ review, selected, aiReplyEnabled }: ReviewListI
           {/* Owner reply section (for already-replied reviews) */}
           {hasReply && review.sourceReplyText && !isExpanded && (
             <div className="mt-3 rounded-lg bg-slate-50 border border-slate-100 px-3 py-2.5">
-              <p className="text-xs font-medium text-teal-600 mb-1 flex items-center gap-1">
+              <p className="text-xs font-medium text-[#37aeb7] mb-1 flex items-center gap-1">
                 <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <polyline points="9 14 4 9 9 4" /><path d="M20 20v-7a4 4 0 0 0-4-4H4" />
                 </svg>
@@ -241,7 +241,7 @@ export function ReviewListItem({ review, selected, aiReplyEnabled }: ReviewListI
             {/* AI suggestion header row */}
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-500">
-                <svg className="w-3.5 h-3.5 text-teal-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg className="w-3.5 h-3.5 text-[#37aeb7]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>
                 </svg>
                 AI suggestion
@@ -255,7 +255,7 @@ export function ReviewListItem({ review, selected, aiReplyEnabled }: ReviewListI
                       onClick={(e) => { e.stopPropagation(); setSelectedTone(tone); }}
                       className={`px-3 py-1.5 text-xs font-semibold border-r border-slate-200 last:border-r-0 transition ${
                         selectedTone === tone
-                          ? "bg-slate-900 text-white"
+                          ? "bg-[#37aeb7] text-white"
                           : "bg-white text-slate-700 hover:bg-slate-50"
                       }`}
                     >
@@ -267,7 +267,7 @@ export function ReviewListItem({ review, selected, aiReplyEnabled }: ReviewListI
                 <button
                   onClick={handleDraftReply}
                   disabled={isGenerating}
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-teal-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-teal-700 transition disabled:opacity-60"
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-[#37aeb7] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#2a8a92] transition disabled:opacity-60"
                 >
                   <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>
@@ -284,7 +284,7 @@ export function ReviewListItem({ review, selected, aiReplyEnabled }: ReviewListI
               onClick={(e) => e.stopPropagation()}
               placeholder="Write a reply, or generate a draft above…"
               rows={4}
-              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-400/30 focus:border-teal-400 transition resize-none"
+              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#37aeb7]/30 focus:border-[#37aeb7] transition resize-none"
             />
 
             {/* Footer row */}
@@ -305,7 +305,7 @@ export function ReviewListItem({ review, selected, aiReplyEnabled }: ReviewListI
                 <button
                   onClick={handlePostReply}
                   disabled={isSubmitting || !replyText.trim()}
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-teal-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-teal-700 transition disabled:opacity-50"
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-[#37aeb7] px-4 py-1.5 text-sm font-semibold text-white hover:bg-[#2a8a92] transition disabled:opacity-50"
                 >
                   <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                     <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
