@@ -59,6 +59,7 @@ export function ReviewListItem({ review, selected, aiReplyEnabled }: ReviewListI
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [postError, setPostError] = useState<string | null>(null);
 
   const hasReply = !!(review.replyPublishedAt || review.replySentAt || review.sourceReplyText);
   const color = avatarColor(review.reviewerName);
@@ -136,6 +137,7 @@ export function ReviewListItem({ review, selected, aiReplyEnabled }: ReviewListI
     e.stopPropagation();
     if (!replyText.trim()) return;
     setIsSubmitting(true);
+    setPostError(null);
     try {
       const fd = new FormData();
       fd.set("reviewId", review.id);
@@ -144,6 +146,8 @@ export function ReviewListItem({ review, selected, aiReplyEnabled }: ReviewListI
       if (result.success) {
         setIsExpanded(false);
         router.refresh();
+      } else {
+        setPostError(result.error ?? "Failed to post reply");
       }
     } finally {
       setIsSubmitting(false);
@@ -324,6 +328,9 @@ export function ReviewListItem({ review, selected, aiReplyEnabled }: ReviewListI
             />
 
             {/* Footer row */}
+            {postError && (
+              <p className="mt-2 text-xs text-red-600 font-medium">{postError}</p>
+            )}
             <div className="mt-3 flex items-center justify-between">
               <span className="inline-flex items-center gap-1.5 text-xs text-slate-400">
                 <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
