@@ -1,5 +1,6 @@
 export const dynamic = "force-dynamic";
 
+import React from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
@@ -59,7 +60,6 @@ export default async function DashboardPage({
   const filteredIds = selectedLocationId && locationIds.includes(selectedLocationId) ? [selectedLocationId] : locationIds;
   const dashboard = await getDashboardData(filteredIds);
   const userName = membership.user.name?.split(" ")[0] || "there";
-  const greeting = getGreeting(userName);
   const dateLabel = new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
 
   return (
@@ -89,7 +89,7 @@ export default async function DashboardPage({
             <div className="eyebrow" style={{ marginBottom: 6 }}>
               {dateLabel}
             </div>
-            <h1 style={{ fontSize: 26, fontWeight: 680, letterSpacing: "-.025em" }}>{greeting}</h1>
+            <h1 style={{ fontSize: 26, fontWeight: 680, letterSpacing: "-.025em" }}><GreetingHeading name={userName} /></h1>
             <p style={{ fontSize: 13.5, color: "var(--ink-500)", marginTop: 5 }}>
               You have{" "}
               <b style={{ color: "var(--ink-800)" }}>{dashboard.funnelOutcomes.awaitingResponse} reviews</b>{" "}
@@ -198,11 +198,18 @@ export default async function DashboardPage({
   );
 }
 
-function getGreeting(name: string): string {
-  const hour = new Date().getHours();
-  if (hour < 12) return `Good morning, ${name}`;
-  if (hour < 18) return `Good afternoon, ${name}`;
-  return `Good evening, ${name}`;
+function GreetingHeading({ name }: { name: string }) {
+  "use client";
+  const [greeting, setGreeting] = React.useState(`Good day, ${name}`);
+
+  React.useEffect(() => {
+    const hour = new Date().getHours();
+    if (hour < 12) setGreeting(`Good morning, ${name}`);
+    else if (hour < 18) setGreeting(`Good afternoon, ${name}`);
+    else setGreeting(`Good evening, ${name}`);
+  }, [name]);
+
+  return greeting;
 }
 
 function SectionHead({ title, sub, action }: { title: string; sub?: string; action?: React.ReactNode }) {
