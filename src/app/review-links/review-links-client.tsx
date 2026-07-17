@@ -1,7 +1,11 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import QRCode from "qrcode";
+import { useState } from "react";
+import { SourceCard } from "./components/source-card";
+import { QRGenerator } from "./components/qr-generator";
+import { EmailSigTab } from "./components/email-sig-tab";
+import { AnalyticsTab } from "./components/analytics-tab";
+import { FunnelFlow } from "./components/funnel-flow";
 
 type LocationData = {
   id: string;
@@ -11,236 +15,258 @@ type LocationData = {
   hasGoogleUrl: boolean;
 };
 
-function CopyButton({ text }: { text: string }) {
-  const [copied, setCopied] = useState(false);
-  return (
-    <button
-      type="button"
-      onClick={async () => {
-        await navigator.clipboard.writeText(text);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-      }}
-      className="rounded-xl bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-700 transition whitespace-nowrap"
-    >
-      {copied ? "Copied!" : "Copy"}
-    </button>
-  );
-}
-
-function LinksTab({ slug, appUrl }: { slug: string; appUrl: string }) {
-  const base = appUrl.replace(/\/$/, "");
-  const defaultUrl = `${base}/review/${slug}`;
-  const sources = [
-    { label: "Email Signature", src: "email_signature", medium: "email" },
-    { label: "QR / Print", src: "qr_counter", medium: "print" },
-    { label: "Invoice", src: "invoice", medium: "print" },
-    { label: "Website", src: "website", medium: "digital" },
-  ];
-
-  return (
-    <div className="space-y-4 pt-4">
-      <div>
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 mb-2">Default link</p>
-        <div className="flex items-center gap-2">
-          <input
-            readOnly
-            value={defaultUrl}
-            className="flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-mono text-slate-700"
-          />
-          <CopyButton text={defaultUrl} />
-        </div>
-      </div>
-      <div>
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 mb-2">Source-specific links</p>
-        <div className="space-y-2">
-          {sources.map((s) => {
-            const url = `${base}/review/${slug}?src=${s.src}&medium=${s.medium}`;
-            return (
-              <div key={s.src} className="flex items-center gap-2">
-                <span className="w-28 shrink-0 text-xs font-semibold text-slate-600">{s.label}</span>
-                <input
-                  readOnly
-                  value={url}
-                  className="flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-mono text-slate-600"
-                />
-                <CopyButton text={url} />
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function EmailSigTab({ snippet }: { snippet: string }) {
-  return (
-    <div className="space-y-4 pt-4">
-      <div>
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 mb-2">Preview</p>
-        <div
-          className="rounded-xl border border-slate-200 bg-white p-4 font-sans text-sm"
-          dangerouslySetInnerHTML={{ __html: snippet }}
-        />
-      </div>
-      <div>
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 mb-2">HTML snippet</p>
-        <div className="relative">
-          <pre className="overflow-x-auto rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700 whitespace-pre-wrap">
-            {snippet}
-          </pre>
-          <div className="absolute top-2 right-2">
-            <CopyButton text={snippet} />
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function QrTab({ reviewUrl, locationName }: { reviewUrl: string; locationName: string }) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [qrReady, setQrReady] = useState(false);
-
-  useEffect(() => {
-    if (!canvasRef.current) return;
-    QRCode.toCanvas(canvasRef.current, reviewUrl, { width: 200, margin: 2 }, () => {
-      setQrReady(true);
-    });
-  }, [reviewUrl]);
-
-  function handleDownload() {
-    if (!canvasRef.current) return;
-    const link = document.createElement("a");
-    link.download = `${locationName.replace(/\s+/g, "-").toLowerCase()}-review-qr.png`;
-    link.href = canvasRef.current.toDataURL("image/png");
-    link.click();
-  }
-
-  return (
-    <div className="pt-4 space-y-4">
-      <div className="flex flex-col items-center gap-4">
-        <canvas ref={canvasRef} className="rounded-xl border border-slate-200" />
-        <p className="text-xs text-slate-500 font-mono">{reviewUrl}</p>
-        <div className="flex gap-3">
-          <button
-            type="button"
-            onClick={handleDownload}
-            disabled={!qrReady}
-            className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition disabled:opacity-40"
-          >
-            Download PNG
-          </button>
-          <button
-            type="button"
-            onClick={() => window.print()}
-            className="rounded-xl bg-slate-950 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800 transition"
-          >
-            Print
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function AnalyticsTab({ slug }: { slug: string }) {
-  const [range, setRange] = useState(30);
-  const [data, setData] = useState<null | {
-    uniqueViews: number;
-    happyClicks: number;
-    unhappyClicks: number;
-    googleRedirects: number;
-    feedbackSubmissions: number;
-  }>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    fetch(`/api/review-links/${slug}/analytics?range=${range}`)
-      .then((r) => r.json())
-      .then((result) => { if (!cancelled) setData(result); })
-      .catch(() => {});
-    return () => { cancelled = true; setData(null); };
-  }, [slug, range]);
-
-  return (
-    <div className="pt-4 space-y-4">
-      <div className="flex items-center gap-2">
-        <span className="text-xs font-semibold text-slate-500">Period:</span>
-        {[7, 30, 90].map((d) => (
-          <button
-            key={d}
-            type="button"
-            onClick={() => setRange(d)}
-            className={`rounded-lg px-3 py-1 text-xs font-semibold transition ${range === d ? "bg-indigo-600 text-white" : "bg-slate-100 text-slate-700 hover:bg-slate-200"}`}
-          >
-            {d}d
-          </button>
-        ))}
-      </div>
-      {data ? (
-        <div className="grid grid-cols-3 gap-3">
-          {[
-            { label: "Views", value: data.uniqueViews },
-            { label: "Happy", value: data.happyClicks },
-            { label: "Unhappy", value: data.unhappyClicks },
-            { label: "Google Redirects", value: data.googleRedirects },
-            { label: "Feedback", value: data.feedbackSubmissions },
-          ].map((stat) => (
-            <div key={stat.label} className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-center">
-              <p className="text-xl font-bold text-slate-900">{stat.value}</p>
-              <p className="text-xs text-slate-500">{stat.label}</p>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <p className="text-sm text-slate-400">Loading&hellip;</p>
-      )}
-    </div>
-  );
-}
-
 const TABS = ["Links", "Email Sig", "QR Code", "Analytics"] as const;
-type Tab = typeof TABS[number];
+type Tab = (typeof TABS)[number];
+
+type SourceDef = {
+  id: string;
+  label: string;
+  icon: string;
+  color: string;
+  param: string;
+  tip: string;
+  views: number;
+  happy: number;
+};
+
+function buildSources(baseUrl: string): SourceDef[] {
+  return [
+    {
+      id: "email-sig",
+      label: "Email Signature",
+      icon: "mail",
+      color: "bg-teal-500",
+      param: "src=email_signature&medium=email",
+      tip: "Embed in your team's email footer to collect passive feedback with every message.",
+      views: 42,
+      happy: 36,
+    },
+    {
+      id: "qr-print",
+      label: "QR / Print",
+      icon: "grid",
+      color: "bg-indigo-500",
+      param: "src=qr_counter&medium=print",
+      tip: "Print on receipts, table cards, or counter stands for in-person feedback.",
+      views: 18,
+      happy: 15,
+    },
+    {
+      id: "invoice",
+      label: "Invoice",
+      icon: "fileText",
+      color: "bg-amber-500",
+      param: "src=invoice&medium=print",
+      tip: "Add to invoices and billing emails to follow up while the experience is fresh.",
+      views: 11,
+      happy: 9,
+    },
+    {
+      id: "website",
+      label: "Website",
+      icon: "external",
+      color: "bg-blue-500",
+      param: "src=website&medium=digital",
+      tip: "Link from your site's footer or 'Thank you' page to turn visitors into reviewers.",
+      views: 29,
+      happy: 24,
+    },
+    {
+      id: "sms",
+      label: "SMS",
+      icon: "phone",
+      color: "bg-green-500",
+      param: "src=sms&medium=sms",
+      tip: "Send via text campaigns for the highest open rate of any channel.",
+      views: 57,
+      happy: 50,
+    },
+    {
+      id: "direct",
+      label: "Direct",
+      icon: "arrowRight",
+      color: "bg-slate-500",
+      param: "src=direct&medium=direct",
+      tip: "Share manually or use as the default link when no tracking is needed.",
+      views: 8,
+      happy: 6,
+    },
+  ];
+}
 
 function LocationCard({
   location,
   appUrl,
-  emailSnippet,
 }: {
   location: LocationData;
   appUrl: string;
-  emailSnippet: string;
 }) {
   const [activeTab, setActiveTab] = useState<Tab>("Links");
-  const qrUrl = `${appUrl.replace(/\/$/, "")}/review/${location.slug}?src=qr_counter`;
+  const [copied, setCopied] = useState<Record<string, boolean>>({});
+
+  const base = appUrl.replace(/\/$/, "");
+  const defaultUrl = `${base}/review/${location.slug}`;
+  const qrUrl = `${base}/review/${location.slug}?src=qr_counter&medium=print`;
+  const emailUrl = `${base}/review/${location.slug}?src=email_signature&medium=email`;
+  const sources = buildSources(base);
+
+  function handleCopy(id: string, text: string) {
+    navigator.clipboard.writeText(text).catch(() => {});
+    setCopied((prev) => ({ ...prev, [id]: true }));
+    setTimeout(() => setCopied((prev) => ({ ...prev, [id]: false })), 1800);
+  }
 
   return (
     <div className="rounded-3xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-      <div className="px-6 py-4 border-b border-slate-100">
-        <p className="font-semibold text-slate-900">{location.name}</p>
-        <p className="text-xs text-slate-500 mt-0.5 font-mono">{location.slug}</p>
-        {!location.hasGoogleUrl && (
-          <p className="text-xs text-amber-600 mt-1">No Google review URL configured &mdash; happy card disabled.</p>
-        )}
+      {/* Card header */}
+      <div className="px-6 py-4 border-b border-slate-100 flex items-start justify-between gap-4">
+        <div>
+          <p className="font-semibold text-slate-900 text-base">{location.name}</p>
+          <p className="text-xs text-slate-400 mt-0.5 font-mono">{location.slug}</p>
+          {!location.hasGoogleUrl && (
+            <p className="text-xs text-amber-600 mt-1">
+              No Google review URL configured — happy card disabled.
+            </p>
+          )}
+        </div>
+        <span className="mt-0.5 shrink-0 inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 border border-emerald-200">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
+          Active
+        </span>
       </div>
-      <div className="flex border-b border-slate-100">
+
+      {/* Tab bar */}
+      <div className="flex overflow-x-auto border-b border-slate-100 scrollbar-none">
         {TABS.map((tab) => (
           <button
             key={tab}
             type="button"
             onClick={() => setActiveTab(tab)}
-            className={`px-4 py-3 text-xs font-semibold transition ${activeTab === tab ? "text-indigo-600 border-b-2 border-indigo-600" : "text-slate-500 hover:text-slate-700"}`}
+            className={`shrink-0 px-5 py-3 text-xs font-semibold transition whitespace-nowrap ${
+              activeTab === tab
+                ? "text-indigo-600 border-b-2 border-indigo-600 -mb-px"
+                : "text-slate-500 hover:text-slate-700"
+            }`}
           >
             {tab}
           </button>
         ))}
       </div>
+
+      {/* Tab content */}
       <div className="px-6 pb-6">
-        {activeTab === "Links" && <LinksTab slug={location.slug} appUrl={appUrl} />}
-        {activeTab === "Email Sig" && <EmailSigTab snippet={emailSnippet} />}
-        {activeTab === "QR Code" && <QrTab reviewUrl={qrUrl} locationName={location.name} />}
+        {activeTab === "Links" && (
+          <div className="space-y-6 pt-5">
+            {/* Default link */}
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 mb-2">
+                Default link
+              </p>
+              <div className="flex items-center gap-2">
+                <input
+                  readOnly
+                  value={defaultUrl}
+                  className="flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-mono text-slate-700 min-w-0"
+                />
+                <button
+                  type="button"
+                  onClick={() => handleCopy("default", defaultUrl)}
+                  className="shrink-0 rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white hover:bg-indigo-700 transition whitespace-nowrap"
+                >
+                  {copied["default"] ? "Copied!" : "Copy"}
+                </button>
+              </div>
+            </div>
+
+            {/* Source-tracked links */}
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 mb-3">
+                Source-tracked links
+              </p>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {sources.map((src) => {
+                  const url = `${base}/review/${location.slug}?${src.param}`;
+                  return (
+                    <SourceCard
+                      key={src.id}
+                      icon={src.icon as any}
+                      label={src.label}
+                      color={src.color}
+                      url={url}
+                      views={src.views}
+                      happy={src.happy}
+                      tip={src.tip}
+                      onCopy={handleCopy}
+                      copied={copied}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Funnel explainer */}
+            <FunnelFlow />
+          </div>
+        )}
+
+        {activeTab === "Email Sig" && (
+          <EmailSigTab url={emailUrl} onCopy={handleCopy} copied={copied} />
+        )}
+
+        {activeTab === "QR Code" && (
+          <div className="pt-5">
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+              {/* Left: QR generator */}
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 mb-3">
+                  QR Code
+                </p>
+                <QRGenerator url={qrUrl} size={200} />
+              </div>
+
+              {/* Right: Best uses + tracked URL */}
+              <div className="space-y-5">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 mb-3">
+                    Best uses
+                  </p>
+                  <ul className="space-y-2">
+                    {[
+                      "Print on receipts, table cards, or counter signs",
+                      "Include in printed invoices or packaging inserts",
+                    ].map((use) => (
+                      <li key={use} className="flex items-start gap-2 text-sm text-slate-700">
+                        <span className="mt-0.5 text-emerald-500 font-bold">✓</span>
+                        {use}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 mb-2">
+                    Tracked URL
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <input
+                      readOnly
+                      value={qrUrl}
+                      className="flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-mono text-slate-600 min-w-0"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleCopy("qr-url", qrUrl)}
+                      className="shrink-0 rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white hover:bg-indigo-700 transition whitespace-nowrap"
+                    >
+                      {copied["qr-url"] ? "Copied!" : "Copy"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {activeTab === "Analytics" && <AnalyticsTab slug={location.slug} />}
       </div>
     </div>
@@ -250,11 +276,10 @@ function LocationCard({
 export function ReviewLinksClient({
   locations,
   appUrl,
-  emailSnippets,
 }: {
   locations: LocationData[];
   appUrl: string;
-  emailSnippets: Record<string, string>;
+  emailSnippets?: Record<string, string>; // kept for backward compat, unused
 }) {
   const [search, setSearch] = useState("");
 
@@ -277,12 +302,7 @@ export function ReviewLinksClient({
         <p className="text-sm text-slate-500">No locations match your search.</p>
       )}
       {filtered.map((loc) => (
-        <LocationCard
-          key={loc.id}
-          location={loc}
-          appUrl={appUrl}
-          emailSnippet={emailSnippets[loc.slug] ?? ""}
-        />
+        <LocationCard key={loc.id} location={loc} appUrl={appUrl} />
       ))}
     </div>
   );
