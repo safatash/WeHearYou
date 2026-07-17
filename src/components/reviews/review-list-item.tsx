@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatReviewDate, stars, truncateReviewBody, type ReviewWithRelations } from "@/lib/reviews";
-import { deleteReview, saveReviewReply, generateAiReplyDraft } from "@/app/reviews/actions";
+import { deleteReview, saveReviewReplyInline, generateAiReplyDraft } from "@/app/reviews/actions";
 
 interface ReviewListItemProps {
   review: ReviewWithRelations;
@@ -91,7 +91,7 @@ export function ReviewListItem({ review, selected, aiReplyEnabled }: ReviewListI
     e.stopPropagation();
     setIsGenerating(true);
     try {
-      const result = await generateAiReplyDraft(review.id);
+      const result = await generateAiReplyDraft(review.id, selectedTone);
       if (result.success && result.draft) setReplyText(result.draft);
     } finally {
       setIsGenerating(false);
@@ -106,11 +106,11 @@ export function ReviewListItem({ review, selected, aiReplyEnabled }: ReviewListI
       const fd = new FormData();
       fd.set("reviewId", review.id);
       fd.set("replyDraft", replyText.trim());
-      fd.set("markSent", "true");
-      fd.set("sendToGoogle", "false");
-      await saveReviewReply(fd);
-      setIsExpanded(false);
-      router.refresh();
+      const result = await saveReviewReplyInline(fd);
+      if (result.success) {
+        setIsExpanded(false);
+        router.refresh();
+      }
     } finally {
       setIsSubmitting(false);
     }

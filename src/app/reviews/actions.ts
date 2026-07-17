@@ -290,7 +290,7 @@ export async function saveReviewReply(formData: FormData) {
   redirect(`/reviews/${reviewId}?flash=${flashMessage}&tone=success`);
 }
 
-export async function generateAiReplyDraft(reviewId: string): Promise<{ success: boolean; draft?: string; error?: string }> {
+export async function generateAiReplyDraft(reviewId: string, tone?: string): Promise<{ success: boolean; draft?: string; error?: string }> {
   if (!reviewId) {
     return { success: false, error: "Review ID is required" };
   }
@@ -324,6 +324,7 @@ export async function generateAiReplyDraft(reviewId: string): Promise<{ success:
       reviewerName: review.reviewerName,
       rating: review.rating,
       body: review.body,
+      tone,
     });
 
     // Log the draft generation
@@ -381,6 +382,51 @@ export async function deleteReview(reviewId: string) {
   revalidatePath(`/b/${review.location.slug}`);
 
   return { success: true };
+}
+
+export async function saveReviewReplyInline(formData: FormData): Promise<{ success: boolean; error?: string }> {
+  const reviewId = String(formData.get("reviewId") ?? "").trim();
+  const replyDraft = String(formData.get("replyDraft") ?? "").trim() || null;
+
+  if (!reviewId) return { success: false, error: "Review is required" };
+
+  const review = await prisma.review.findUnique({
+    where: { id: reviewId },
+    include: {
+      location: {
+        select: { slug: true, organizationId: true },
+      },
+    },
+  });
+
+  if (!review) return { success: false, error: "Review not found" };
+
+  await requireReviewReplyAccess(review.locationId);
+
+  const fallbackSender = await prisma.userMembership.findFirst({
+    where: { organizationId: review.location.organizationId, status: "ACTIVE" },
+    orderBy: [{ createdAt: "asc" }],
+    select: { id: true },
+  });
+
+  try {
+    await prisma.review.update({
+      where: { id: reviewId },
+      data: {
+        replyDraft,
+        replySentAt: new Date(),
+        replySentByMembershipId: fallbackSender?.id ?? null,
+      },
+    });
+
+    revalidatePath("/reviews");
+    revalidatePath(`/reviews/${reviewId}`);
+    revalidatePath(`/b/${review.location.slug}`);
+
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : "Failed to save reply" };
+  }
 }
 
 // Re-export for use in server actions
