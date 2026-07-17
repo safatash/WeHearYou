@@ -167,7 +167,7 @@ export function ReviewListItem({
 
   return (
     <div
-      className={`rounded-2xl border border-l-4 border-l-teal-600 bg-white shadow-sm transition-colors cursor-pointer ${
+      className={`rounded-2xl border bg-white shadow-sm transition-colors cursor-pointer ${
         isExpanded ? "border-slate-300" : "border-slate-200 hover:border-slate-300"
       }`}
       onClick={() => setIsExpanded(!isExpanded)}
