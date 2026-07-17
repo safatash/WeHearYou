@@ -74,90 +74,68 @@ export default async function ReviewsPage({
         {/* Header */}
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.22em] text-teal-600">REPUTATION</p>
-            <h1 className="mt-2 text-4xl font-semibold tracking-tight text-slate-950">Reviews</h1>
-            <p className="mt-2 text-sm text-slate-600">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">REPUTATION</p>
+            <h1 className="mt-1 text-3xl font-bold tracking-tight text-slate-950">Reviews</h1>
+            <p className="mt-1.5 text-sm text-slate-500 max-w-lg">
               Every Google review across your connected profiles. Replies post publicly as the business owner — always after you confirm.
             </p>
           </div>
-          <div className="flex gap-2 shrink-0">
-            <button className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition">
+          <div className="flex gap-2 shrink-0 mt-1">
+            <button className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition">
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+              </svg>
               Export CSV
             </button>
-            <button className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-700 transition">
+            <button className="inline-flex items-center gap-1.5 rounded-lg bg-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-700 transition">
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>
+              </svg>
               AI reply drafts
             </button>
           </div>
         </div>
 
+        {/* Info banner */}
+        <div className="flex items-center gap-2.5 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
+          <svg className="w-4 h-4 text-teal-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          </svg>
+          Replies are written to Google only after you review and confirm each one. AI never posts on its own.
+        </div>
 
-        {/* Filters */}
-        <section className="space-y-3">
-          {/* Status/Rating tabs */}
-          <div className="flex flex-wrap gap-2">
-            <Link
-              href={buildFilterHref({ status: "all" })}
-              className={`rounded-full px-4 py-1.5 text-sm font-semibold transition ${
-                status === "all"
-                  ? "bg-teal-600 text-white"
-                  : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
-              }`}
-            >
-              All
-            </Link>
-            <Link
-              href={buildFilterHref({ status: "needs-follow-up" })}
-              className={`rounded-full px-4 py-1.5 text-sm font-semibold transition ${
-                status === "needs-follow-up"
-                  ? "bg-teal-600 text-white"
-                  : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
-              }`}
-            >
-              Needs reply {needsReplyCount > 0 && <span className="ml-1 font-bold">{needsReplyCount}</span>}
-            </Link>
-            <Link
-              href={buildFilterHref({ rating: "five-star" })}
-              className={`rounded-full px-4 py-1.5 text-sm font-semibold transition ${
-                rating === "five-star"
-                  ? "bg-teal-600 text-white"
-                  : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
-              }`}
-            >
-              5★
-            </Link>
-            <Link
-              href={buildFilterHref({ rating: "four-star" })}
-              className={`rounded-full px-4 py-1.5 text-sm font-semibold transition ${
-                rating === "four-star" ? "bg-teal-600 text-white" : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
-              }`}
-            >
-              4★
-            </Link>
-            <Link href={buildFilterHref({ rating: "low-star" })} className={`rounded-full px-4 py-1.5 text-sm font-semibold transition ${
-                rating === "low-star" ? "bg-teal-600 text-white" : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
-              }`}>
-              1-3★
-            </Link>
-            <Link
-              href={buildFilterHref({ status: "published" })}
-              className={`rounded-full px-4 py-1.5 text-sm font-semibold transition ${
-                status === "published"
-                  ? "bg-teal-600 text-white"
-                  : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
-              }`}
-            >
-              Replied
-            </Link>
+        {/* Filters — single white card, tabs left / location right */}
+        <div className="flex items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white px-4 py-3">
+          {/* Rating/status tabs */}
+          <div className="flex items-center gap-1 flex-wrap">
+            {[
+              { label: "All", href: buildFilterHref({ status: "all", rating: "all" }), active: status === "all" && rating === "all" },
+              { label: <>Needs reply {needsReplyCount > 0 && <span className="ml-1 tabular-nums">{needsReplyCount}</span>}</>, href: buildFilterHref({ status: "needs-follow-up", rating: "all" }), active: status === "needs-follow-up" },
+              { label: "5★", href: buildFilterHref({ rating: "five-star", status: "all" }), active: rating === "five-star" },
+              { label: "4★", href: buildFilterHref({ rating: "four-star", status: "all" }), active: rating === "four-star" },
+              { label: "1–3★", href: buildFilterHref({ rating: "low-star", status: "all" }), active: rating === "low-star" },
+              { label: "Replied", href: buildFilterHref({ status: "published", rating: "all" }), active: status === "published" },
+            ].map((tab, i) => (
+              <Link
+                key={i}
+                href={tab.href}
+                className={`rounded-full px-3.5 py-1.5 text-sm font-semibold transition whitespace-nowrap ${
+                  tab.active
+                    ? "bg-teal-600 text-white"
+                    : "text-slate-600 hover:bg-slate-100"
+                }`}
+              >
+                {tab.label}
+              </Link>
+            ))}
           </div>
 
-          {/* Location filter */}
-          <div className="flex flex-wrap gap-2">
+          {/* Location pills */}
+          <div className="flex items-center gap-1 flex-wrap justify-end">
             <Link
               href={buildFilterHref({ locationId: "all" })}
-              className={`rounded-full px-4 py-1.5 text-sm font-semibold transition ${
-                allowedLocationId === "all"
-                  ? "bg-slate-950 text-white"
-                  : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+              className={`rounded-full px-3.5 py-1.5 text-sm font-semibold transition whitespace-nowrap ${
+                allowedLocationId === "all" ? "text-slate-900 font-bold" : "text-slate-500 hover:text-slate-700"
               }`}
             >
               All locations
@@ -166,17 +144,15 @@ export default async function ReviewsPage({
               <Link
                 key={loc.id}
                 href={buildFilterHref({ locationId: loc.id })}
-                className={`rounded-full px-4 py-1.5 text-sm font-semibold transition ${
-                  allowedLocationId === loc.id
-                    ? "bg-slate-950 text-white"
-                    : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                className={`rounded-full px-3.5 py-1.5 text-sm font-semibold transition whitespace-nowrap ${
+                  allowedLocationId === loc.id ? "text-slate-900 font-bold" : "text-slate-500 hover:text-slate-700"
                 }`}
               >
                 {loc.name}
               </Link>
             ))}
           </div>
-        </section>
+        </div>
 
         {/* Review list */}
         <div className="space-y-3">
