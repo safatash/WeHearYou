@@ -61,7 +61,7 @@ export function SourceCard({
           onClick={() => {
             onCopy(id, url);
           }}
-          className="shrink-0 rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white hover:bg-indigo-700 transition whitespace-nowrap"
+          className="shrink-0 rounded-lg bg-teal-600 px-3 py-2 text-xs font-semibold text-white hover:bg-teal-700 transition whitespace-nowrap"
         >
           {copied[id] ? "Copied!" : "Copy"}
         </button>

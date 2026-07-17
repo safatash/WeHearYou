@@ -51,7 +51,7 @@ export function AnalyticsTab({ slug }: AnalyticsTabProps) {
             onClick={() => setRange(d)}
             className={`rounded-lg px-3 py-1 text-xs font-semibold transition ${
               range === d
-                ? "bg-indigo-600 text-white"
+                ? "bg-teal-600 text-white"
                 : "bg-slate-100 text-slate-700 hover:bg-slate-200"
             }`}
           >

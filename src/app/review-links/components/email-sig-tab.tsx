@@ -59,7 +59,7 @@ export function EmailSigTab({
               onClick={() => setStyle(s.value)}
               className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
                 style === s.value
-                  ? "bg-indigo-600 text-white"
+                  ? "bg-teal-600 text-white"
                   : "bg-slate-100 text-slate-700 hover:bg-slate-200"
               }`}
             >
@@ -86,7 +86,7 @@ export function EmailSigTab({
             <button
               type="button"
               onClick={() => onCopy("email-sig-html", html)}
-              className="rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-700 transition whitespace-nowrap"
+              className="rounded-lg bg-teal-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-teal-700 transition whitespace-nowrap"
             >
               {copied["email-sig-html"] ? "Copied!" : "Copy"}
             </button>
@@ -121,7 +121,7 @@ export function EmailSigTab({
           <button
             type="button"
             onClick={() => onCopy("email-sig-url", url)}
-            className="shrink-0 rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white hover:bg-indigo-700 transition whitespace-nowrap"
+            className="shrink-0 rounded-lg bg-teal-600 px-3 py-2 text-xs font-semibold text-white hover:bg-teal-700 transition whitespace-nowrap"
           >
             {copied["email-sig-url"] ? "Copied!" : "Copy"}
           </button>

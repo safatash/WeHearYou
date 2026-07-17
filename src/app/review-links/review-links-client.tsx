@@ -43,7 +43,7 @@ function buildSources(): SourceDef[] {
       id: "qr-print",
       label: "QR / Print",
       icon: "grid",
-      color: "bg-indigo-500",
+      color: "bg-teal-500",
       param: "src=qr_counter&medium=print",
       tip: "Print on receipts, table cards, or counter stands for in-person feedback.",
     },
@@ -136,7 +136,7 @@ function LocationCard({
             onClick={() => setActiveTab(tab)}
             className={`shrink-0 px-5 py-3 text-xs font-semibold transition whitespace-nowrap ${
               activeTab === tab
-                ? "text-indigo-600 border-b-2 border-indigo-600 -mb-px"
+                ? "text-teal-600 border-b-2 border-teal-600 -mb-px"
                 : "text-slate-500 hover:text-slate-700"
             }`}
           >
@@ -163,7 +163,7 @@ function LocationCard({
                 <button
                   type="button"
                   onClick={() => handleCopy("default", defaultUrl)}
-                  className="shrink-0 rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white hover:bg-indigo-700 transition whitespace-nowrap"
+                  className="shrink-0 rounded-lg bg-teal-600 px-3 py-2 text-xs font-semibold text-white hover:bg-teal-700 transition whitespace-nowrap"
                 >
                   {copied["default"] ? "Copied!" : "Copy"}
                 </button>
@@ -248,7 +248,7 @@ function LocationCard({
                     <button
                       type="button"
                       onClick={() => handleCopy("qr-url", qrUrl)}
-                      className="shrink-0 rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white hover:bg-indigo-700 transition whitespace-nowrap"
+                      className="shrink-0 rounded-lg bg-teal-600 px-3 py-2 text-xs font-semibold text-white hover:bg-teal-700 transition whitespace-nowrap"
                     >
                       {copied["qr-url"] ? "Copied!" : "Copy"}
                     </button>
@@ -286,7 +286,7 @@ export function ReviewLinksClient({
           placeholder="Filter locations…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+          className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-100"
         />
       )}
       {filtered.length === 0 && (

@@ -25,8 +25,8 @@ export function OptionCard({
       onClick={onClick}
       className={`w-full cursor-pointer rounded-2xl border p-4 text-left transition-colors ${
         on
-          ? "border-indigo-300 bg-indigo-50"
-          : "border-slate-200 bg-slate-50 hover:border-indigo-200 hover:bg-indigo-50"
+          ? "border-teal-300 bg-teal-50"
+          : "border-slate-200 bg-slate-50 hover:border-teal-200 hover:bg-teal-50"
       }`}
     >
       <div className="flex items-start gap-3">
@@ -35,10 +35,10 @@ export function OptionCard({
           {on && (
             <>
               {isRadio ? (
-                <div className="h-2 w-2 rounded-full bg-indigo-600" />
+                <div className="h-2 w-2 rounded-full bg-teal-600" />
               ) : (
                 <svg
-                  className="h-3 w-3 text-indigo-600"
+                  className="h-3 w-3 text-teal-600"
                   fill="currentColor"
                   viewBox="0 0 20 20"
                 >
@@ -55,7 +55,7 @@ export function OptionCard({
         {/* Content */}
         <div className="flex-1">
           {icon && <div className="mb-2 text-2xl">{icon}</div>}
-          <p className={`text-sm font-semibold ${on ? "text-indigo-900" : "text-slate-900"}`}>
+          <p className={`text-sm font-semibold ${on ? "text-teal-900" : "text-slate-900"}`}>
             {title}
           </p>
           <p className="mt-1 text-sm text-slate-600">{desc}</p>

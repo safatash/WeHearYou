@@ -14,7 +14,7 @@ export function RCard({ step, title, sub, right, children }: RCardProps) {
       <div className="flex items-start justify-between gap-4">
         <div className="flex gap-4">
           {/* Step Circle */}
-          <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-indigo-600 text-base font-semibold text-white">
+          <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-teal-600 text-base font-semibold text-white">
             {step}
           </div>
           {/* Title and Subtitle */}

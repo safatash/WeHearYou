@@ -52,7 +52,7 @@ export function QRGenerator({ url, size = 200 }: QRGeneratorProps) {
             onClick={() => setCurrentSize(s.value)}
             className={`rounded-lg px-4 py-2 text-xs font-semibold transition ${
               currentSize === s.value
-                ? "bg-indigo-600 text-white"
+                ? "bg-teal-600 text-white"
                 : "bg-slate-100 text-slate-700 hover:bg-slate-200"
             }`}
           >
@@ -74,7 +74,7 @@ export function QRGenerator({ url, size = 200 }: QRGeneratorProps) {
             type="button"
             disabled={!qrReady}
             onClick={handleDownload}
-            className="rounded-lg bg-indigo-600 px-4 py-2 text-xs font-semibold text-white hover:bg-indigo-700 transition disabled:opacity-40 disabled:cursor-not-allowed"
+            className="rounded-lg bg-teal-600 px-4 py-2 text-xs font-semibold text-white hover:bg-teal-700 transition disabled:opacity-40 disabled:cursor-not-allowed"
           >
             Download PNG
           </button>

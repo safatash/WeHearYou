@@ -1,6 +1,6 @@
 export function FunnelFlow() {
   return (
-    <div className="rounded-2xl border border-teal-200 bg-gradient-to-br from-teal-50 to-indigo-50 p-6">
+    <div className="rounded-2xl border border-teal-200 bg-gradient-to-br from-teal-50 to-teal-50 p-6">
       <h3 className="text-lg font-semibold text-slate-900 mb-4">
         ⚡ How the funnel works
       </h3>
@@ -8,7 +8,7 @@ export function FunnelFlow() {
       <div className="space-y-4">
         {/* Step 1 */}
         <div className="flex items-center gap-3">
-          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center text-sm font-bold">
+          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-teal-600 text-white flex items-center justify-center text-sm font-bold">
             1
           </div>
           <div className="flex-1">
@@ -23,12 +23,12 @@ export function FunnelFlow() {
 
         {/* Arrow down */}
         <div className="flex justify-center">
-          <div className="text-indigo-400">↓</div>
+          <div className="text-teal-400">↓</div>
         </div>
 
         {/* Step 2 */}
         <div className="flex items-center gap-3">
-          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center text-sm font-bold">
+          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-teal-600 text-white flex items-center justify-center text-sm font-bold">
             2
           </div>
           <div className="flex-1">
@@ -43,7 +43,7 @@ export function FunnelFlow() {
 
         {/* Arrow down and fork */}
         <div className="flex justify-center my-2">
-          <div className="text-indigo-400">↓</div>
+          <div className="text-teal-400">↓</div>
         </div>
 
         {/* Fork into two paths */}

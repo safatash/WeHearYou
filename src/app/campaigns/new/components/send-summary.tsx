@@ -59,7 +59,7 @@ export function SendSummary({
         {/* Estimated Sends */}
         <div className="flex items-center justify-between">
           <p className="text-sm font-medium text-slate-600">Estimated sends</p>
-          <p className="text-base font-bold text-indigo-600">{estimatedSends}</p>
+          <p className="text-base font-bold text-teal-600">{estimatedSends}</p>
         </div>
       </div>
     </div>

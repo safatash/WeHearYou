@@ -113,7 +113,7 @@ export function CampaignFormClient({
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="e.g. June Follow-up"
-                className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-normal text-slate-700 focus:border-indigo-300 focus:outline-none"
+                className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-normal text-slate-700 focus:border-teal-300 focus:outline-none"
               />
             </label>
 
@@ -144,7 +144,7 @@ export function CampaignFormClient({
               <select
                 value={locationId}
                 onChange={(e) => setLocationId(e.target.value)}
-                className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-normal text-slate-700 focus:border-indigo-300 focus:outline-none"
+                className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-normal text-slate-700 focus:border-teal-300 focus:outline-none"
               >
                 {locations.map((loc) => (
                   <option key={loc.id} value={loc.id}>
@@ -185,7 +185,7 @@ export function CampaignFormClient({
                 <button
                   type="button"
                   onClick={() => setPreviewChannel(previewChannel === "sms" ? "email" : "sms")}
-                  className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700"
+                  className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:border-teal-200 hover:bg-teal-50 hover:text-teal-700"
                 >
                   Preview: {previewChannel.toUpperCase()}
                 </button>
@@ -202,7 +202,7 @@ export function CampaignFormClient({
                     placeholder="Hi {first}, we'd love to hear about your experience at {location}. Leave a review: {link}"
                     rows={3}
                     maxLength={480}
-                    className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-normal text-slate-700 focus:border-indigo-300 focus:outline-none"
+                    className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-normal text-slate-700 focus:border-teal-300 focus:outline-none"
                   />
                 </label>
                 <div className="flex items-center justify-between">
@@ -212,7 +212,7 @@ export function CampaignFormClient({
                         key={token}
                         type="button"
                         onClick={() => insertToken(token)}
-                        className="rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-mono font-semibold text-slate-600 hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700"
+                        className="rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-mono font-semibold text-slate-600 hover:border-teal-200 hover:bg-teal-50 hover:text-teal-700"
                       >
                         {token}
                       </button>
@@ -233,7 +233,7 @@ export function CampaignFormClient({
                   value={emailSubject}
                   onChange={(e) => setEmailSubject(e.target.value)}
                   placeholder={`How was your experience with ${currentLocation?.name ?? "[Location]"}?`}
-                  className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-normal text-slate-700 focus:border-indigo-300 focus:outline-none"
+                  className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-normal text-slate-700 focus:border-teal-300 focus:outline-none"
                 />
                 <span className="text-xs font-normal text-slate-500">
                   Leave blank to use the default subject line.
@@ -255,7 +255,7 @@ export function CampaignFormClient({
             sub="Select the contacts to include in this campaign."
             right={
               recipients.length > 0 ? (
-                <span className="rounded-full bg-indigo-100 px-3 py-1 text-xs font-bold text-indigo-700">
+                <span className="rounded-full bg-teal-100 px-3 py-1 text-xs font-bold text-teal-700">
                   {recipients.length} selected
                 </span>
               ) : undefined
@@ -283,14 +283,14 @@ export function CampaignFormClient({
                     <button
                       type="button"
                       onClick={() => setPreviewChannel("sms")}
-                      className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${previewChannel === "sms" ? "bg-indigo-600 text-white" : "text-slate-500 hover:text-slate-700"}`}
+                      className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${previewChannel === "sms" ? "bg-teal-600 text-white" : "text-slate-500 hover:text-slate-700"}`}
                     >
                       SMS
                     </button>
                     <button
                       type="button"
                       onClick={() => setPreviewChannel("email")}
-                      className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${previewChannel === "email" ? "bg-indigo-600 text-white" : "text-slate-500 hover:text-slate-700"}`}
+                      className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${previewChannel === "email" ? "bg-teal-600 text-white" : "text-slate-500 hover:text-slate-700"}`}
                     >
                       Email
                     </button>
@@ -334,7 +334,7 @@ export function CampaignFormClient({
             <button
               type="submit"
               disabled={!canSend || isPending}
-              className="rounded-2xl bg-indigo-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-40"
+              className="rounded-2xl bg-teal-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-40"
             >
               {isPending ? "Sending…" : "Send review request"}
             </button>
@@ -436,7 +436,7 @@ function RecipientPickerControlled({
         <button
           type="button"
           onClick={() => setShowPopup(true)}
-          className="text-sm font-semibold text-indigo-600 hover:text-indigo-700"
+          className="text-sm font-semibold text-teal-600 hover:text-teal-700"
         >
           + Add recipient
         </button>
@@ -448,7 +448,7 @@ function RecipientPickerControlled({
           <button
             type="button"
             onClick={() => setShowPopup(true)}
-            className="font-semibold text-indigo-600 hover:text-indigo-700"
+            className="font-semibold text-teal-600 hover:text-teal-700"
           >
             Add one →
           </button>
@@ -458,13 +458,13 @@ function RecipientPickerControlled({
           {visibleContacts.map((contact) => (
             <label
               key={contact.id}
-              className="flex cursor-pointer items-start gap-3 rounded-2xl border border-slate-200 p-4 hover:border-indigo-200 hover:bg-indigo-50 has-[:checked]:border-indigo-300 has-[:checked]:bg-indigo-50"
+              className="flex cursor-pointer items-start gap-3 rounded-2xl border border-slate-200 p-4 hover:border-teal-200 hover:bg-teal-50 has-[:checked]:border-teal-300 has-[:checked]:bg-teal-50"
             >
               <input
                 type="checkbox"
                 checked={selectedIds.has(contact.id)}
                 onChange={() => toggleContact(contact.id)}
-                className="mt-0.5 h-4 w-4 accent-indigo-600"
+                className="mt-0.5 h-4 w-4 accent-teal-600"
               />
               <div className="min-w-0 flex-1">
                 <p className="font-semibold text-slate-900">{contact.name}</p>
@@ -495,21 +495,21 @@ function RecipientPickerControlled({
                 value={quickName}
                 onChange={(e) => setQuickName(e.target.value)}
                 placeholder="Full name *"
-                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 placeholder:text-slate-400 focus:border-indigo-300 focus:outline-none"
+                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 placeholder:text-slate-400 focus:border-teal-300 focus:outline-none"
               />
               <input
                 type="email"
                 value={quickEmail}
                 onChange={(e) => setQuickEmail(e.target.value)}
                 placeholder="Email"
-                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 placeholder:text-slate-400 focus:border-indigo-300 focus:outline-none"
+                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 placeholder:text-slate-400 focus:border-teal-300 focus:outline-none"
               />
               <input
                 type="tel"
                 value={quickPhone}
                 onChange={(e) => setQuickPhone(e.target.value)}
                 placeholder="Phone"
-                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 placeholder:text-slate-400 focus:border-indigo-300 focus:outline-none"
+                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 placeholder:text-slate-400 focus:border-teal-300 focus:outline-none"
               />
               {addError ? (
                 <p className="text-sm text-red-600">{addError}</p>
@@ -529,7 +529,7 @@ function RecipientPickerControlled({
                 type="button"
                 onClick={handleQuickAdd}
                 disabled={isAdding}
-                className="flex-1 rounded-2xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-50"
+                className="flex-1 rounded-2xl bg-teal-600 px-4 py-3 text-sm font-semibold text-white hover:bg-teal-700 disabled:opacity-50"
               >
                 {isAdding ? "Adding…" : "Add & select"}
               </button>
