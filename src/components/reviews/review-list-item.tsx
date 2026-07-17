@@ -167,48 +167,52 @@ export function ReviewListItem({
 
   return (
     <div
-      className={`rounded-2xl border bg-white shadow-sm transition-colors cursor-pointer ${
+      className={`rounded-2xl border-l-4 border-l-orange-500 border bg-white shadow-sm transition-colors cursor-pointer ${
         isExpanded ? "border-slate-300" : "border-slate-200 hover:border-slate-300"
       }`}
       onClick={() => setIsExpanded(!isExpanded)}
     >
       {/* Header section */}
       <div className="p-4">
-        <div className="flex items-start justify-between gap-2">
-          {/* Avatar, name, and stars */}
+        {/* First line: Avatar, Name, Stars, Google badge, Status badge */}
+        <div className="flex items-center justify-between gap-3 mb-2">
           <div className="flex items-center gap-3 min-w-0 flex-1">
-            <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-teal-100 text-sm font-bold text-teal-700">
+            <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-orange-100 text-sm font-bold text-orange-600">
               {getAvatarInitials()}
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
                 <p className="truncate text-sm font-semibold text-slate-900">{review.reviewerName}</p>
+                <p className="text-xs text-amber-500 flex-shrink-0">{stars(review.rating ?? 0)}</p>
                 {review.source === "GOOGLE" && (
                   <span className="flex-shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600">
                     Google
                   </span>
                 )}
               </div>
-              <p className="text-xs text-amber-500 mt-0.5">{stars(review.rating ?? 0)}</p>
             </div>
           </div>
 
-          {/* Time and status badge */}
-          <div className="flex flex-shrink-0 flex-col items-end gap-2">
-            <p className="text-xs text-slate-400">{formatTimeAgo(review.reviewedAt)}</p>
-            <div
-              className={`inline-flex items-center gap-1 rounded-full ${statusBadge.color} px-2 py-1 text-[10px] font-semibold ${statusBadge.textColor}`}
-            >
-              <span className={`h-1.5 w-1.5 rounded-full ${statusBadge.dotColor}`}></span>
-              {statusBadge.label}
-            </div>
+          {/* Status badge on right */}
+          <div
+            className={`flex-shrink-0 inline-flex items-center gap-1 rounded-full ${statusBadge.color} px-2 py-1 text-[10px] font-semibold ${statusBadge.textColor}`}
+          >
+            <span className={`h-1.5 w-1.5 rounded-full ${statusBadge.dotColor}`}></span>
+            {statusBadge.label}
           </div>
         </div>
 
-        {/* Location and review date if available */}
-        {review.location && (
-          <p className="mt-2 text-xs text-slate-500">{review.location.name}</p>
-        )}
+        {/* Second line: Location and time */}
+        <div className="flex items-center gap-2 mb-3">
+          {review.location && (
+            <>
+              <span className="text-slate-400">📍</span>
+              <p className="text-xs text-slate-600">{review.location.name}</p>
+              <span className="text-slate-300">•</span>
+            </>
+          )}
+          <p className="text-xs text-slate-500">{formatTimeAgo(review.reviewedAt)}</p>
+        </div>
 
         {/* Review body */}
         <p className="mt-3 text-sm leading-5 text-slate-700">{truncateReviewBody(review.body, 220)}</p>
@@ -216,33 +220,37 @@ export function ReviewListItem({
         {/* Action buttons */}
         <div className="mt-4 flex flex-wrap gap-2">
           <button
-            className="rounded-lg bg-teal-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-teal-700 transition"
+            className="rounded-lg bg-teal-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-teal-700 transition flex items-center gap-1.5"
             onClick={(e) => {
               e.stopPropagation();
               setIsExpanded(true);
             }}
           >
+            <span>↩</span>
             Reply
           </button>
           <button
-            className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition"
+            className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition flex items-center gap-1.5"
             onClick={handleFlag}
           >
+            <span>🚩</span>
             Flag
           </button>
           {review.source === "GOOGLE" && (
             <button
-              className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition"
+              className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition flex items-center gap-1.5"
               onClick={handleOpenOnGoogle}
             >
+              <span>↗</span>
               Open on Google
             </button>
           )}
           <button
-            className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-red-600 hover:bg-red-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-red-600 hover:bg-red-50 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
             onClick={handleDelete}
             disabled={isDeleting}
           >
+            <span>🗑</span>
             {showDeleteDialog ? "Confirm Delete" : "Delete"}
           </button>
         </div>
@@ -302,36 +310,39 @@ export function ReviewListItem({
       {/* Expanded section */}
       {isExpanded && (
         <div className="border-t border-slate-200 p-4">
-          {/* AI Suggestion header */}
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-semibold text-slate-900">AI Suggestion</h3>
+          {/* AI Suggestion header with sparkle icon */}
+          <h3 className="text-sm font-semibold text-slate-900 mb-4 flex items-center gap-2">
+            <span>✨</span>
+            AI suggestion
+          </h3>
+
+          {/* Tone buttons and Draft reply button on same line */}
+          <div className="flex flex-wrap items-center gap-2 mb-4">
+            <div className="flex flex-wrap gap-2">
+              {toneOptions.map((tone) => (
+                <button
+                  key={tone}
+                  className={`rounded-lg border px-3 py-1.5 text-sm font-semibold transition ${
+                    selectedTone === tone
+                      ? "border-teal-600 bg-teal-50 text-teal-700"
+                      : "border-slate-200 bg-white text-slate-700 hover:bg-slate-100"
+                  }`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedTone(tone);
+                  }}
+                >
+                  {tone}
+                </button>
+              ))}
+            </div>
             <button
-              className="text-xs font-semibold text-teal-600 hover:text-teal-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              className="ml-auto rounded-lg bg-teal-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-teal-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
               onClick={handleRegenerate}
               disabled={isGenerating}
             >
-              {isGenerating ? "Regenerating..." : "Regenerate"}
+              {isGenerating ? "Regenerating..." : "Draft reply"}
             </button>
-          </div>
-
-          {/* Tone buttons */}
-          <div className="flex flex-wrap gap-2 mb-4">
-            {toneOptions.map((tone) => (
-              <button
-                key={tone}
-                className={`rounded-lg border px-3 py-1.5 text-sm font-semibold transition ${
-                  selectedTone === tone
-                    ? "border-teal-600 bg-teal-50 text-teal-700"
-                    : "border-slate-200 bg-white text-slate-700 hover:bg-slate-100"
-                }`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setSelectedTone(tone);
-                }}
-              >
-                {tone}
-              </button>
-            ))}
           </div>
 
           {/* Reply form */}
@@ -347,6 +358,16 @@ export function ReviewListItem({
               className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder-slate-500 focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-400/20 transition"
               rows={4}
             />
+
+            {/* Checkbox for posting publicly */}
+            <label className="flex items-center gap-2 text-sm text-slate-700">
+              <input
+                type="checkbox"
+                className="rounded border-slate-300"
+                defaultChecked={true}
+              />
+              Posts publicly as the owner
+            </label>
 
             {/* Cancel and Post buttons */}
             <div className="flex gap-2 justify-end">
