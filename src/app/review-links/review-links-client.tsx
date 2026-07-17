@@ -137,7 +137,7 @@ function LocationCard({
             className={`shrink-0 px-5 py-3 text-xs font-semibold transition whitespace-nowrap ${
               activeTab === tab
                 ? "text-teal-600 border-b-2 border-teal-600 -mb-px"
-                : "text-slate-500 hover:text-slate-700"
+                : "text-slate-400 hover:text-slate-600"
             }`}
           >
             {tab}
