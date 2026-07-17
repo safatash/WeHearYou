@@ -5,10 +5,12 @@ export function ReviewListItem({
   review,
   selected,
   filterHref,
+  aiReplyEnabled,
 }: {
   review: ReviewWithRelations;
   selected: boolean;
   filterHref: string;
+  aiReplyEnabled: boolean;
 }) {
   const href = `${filterHref}&selected=${review.id}`;
 

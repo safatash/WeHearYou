@@ -2,12 +2,9 @@ export const dynamic = "force-dynamic";
 
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
-import { StatCard } from "@/components/ui";
 import { getCurrentMembership } from "@/lib/authz";
 import {
   buildReviewPageStats,
-  buildReviewReplyDraft,
-  getReviewById,
   getReviewFilterOptions,
   getReviews,
   type ReviewSort,
@@ -16,7 +13,6 @@ import {
 } from "@/lib/reviews";
 import { getCurrentAccessibleLocationIds } from "@/lib/current-scope";
 import { ReviewListItem } from "@/components/reviews/review-list-item";
-import { ReviewReplyPanel } from "@/components/reviews/review-reply-panel";
 
 export default async function ReviewsPage({
   searchParams,
@@ -40,7 +36,7 @@ export default async function ReviewsPage({
   const locationIds = await getCurrentAccessibleLocationIds();
   const allowedLocationId = locationId !== "all" && locationIds.includes(locationId) ? locationId : "all";
 
-  const [{ locations }, reviews, membership, selectedReview] = await Promise.all([
+  const [{ locations }, reviews, membership] = await Promise.all([
     getReviewFilterOptions(locationIds),
     getReviews(sort, {
       status,
@@ -49,11 +45,13 @@ export default async function ReviewsPage({
       locationIds,
     }),
     getCurrentMembership(),
-    selectedId ? getReviewById(selectedId, locationIds) : Promise.resolve(null),
   ]);
 
   const stats = buildReviewPageStats(reviews);
   const aiReplyEnabled = membership?.organization.aiReplyEnabled ?? false;
+
+  // Calculate needsReply count from reviews
+  const needsReplyCount = reviews.filter((review) => !review.sourceReplyText && !review.replyPublishedAt && !review.replySentAt).length;
 
   const baseFilterHref = (() => {
     const params = new URLSearchParams();
@@ -78,144 +76,127 @@ export default async function ReviewsPage({
     <AppShell activeScreen="reviews" selectedLocationId={allowedLocationId !== "all" ? allowedLocationId : undefined}>
       <div className="flex flex-col gap-6">
         {/* Header */}
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.22em] text-indigo-600">Reviews Inbox</p>
-            <h2 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">All reviews, organized for action</h2>
+            <p className="text-sm font-semibold uppercase tracking-[0.22em] text-teal-600">REPUTATION</p>
+            <h1 className="mt-2 text-4xl font-semibold tracking-tight text-slate-950">Reviews</h1>
+            <p className="mt-2 text-sm text-slate-600">
+              Every Google review across your connected profiles. Replies post publicly as the business owner — always after you confirm.
+            </p>
           </div>
+          <div className="flex gap-2 shrink-0">
+            <button className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition">
+              Export CSV
+            </button>
+            <button className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-700 transition">
+              AI reply drafts
+            </button>
+          </div>
+        </div>
+
+
+        {/* Filters */}
+        <section className="space-y-3">
+          {/* Status/Rating tabs */}
           <div className="flex flex-wrap gap-2">
-            {[
-              { value: "newest", label: "Newest" },
-              { value: "highest", label: "Highest rating" },
-              { value: "lowest", label: "Lowest rating" },
-            ].map((option) => (
+            <Link
+              href={buildFilterHref({ status: "all" })}
+              className={`rounded-full px-4 py-1.5 text-sm font-semibold transition ${
+                status === "all"
+                  ? "bg-teal-600 text-white"
+                  : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+              }`}
+            >
+              All
+            </Link>
+            <Link
+              href={buildFilterHref({ status: "needs-follow-up" })}
+              className={`rounded-full px-4 py-1.5 text-sm font-semibold transition ${
+                status === "needs-follow-up"
+                  ? "bg-teal-600 text-white"
+                  : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+              }`}
+            >
+              Needs reply {needsReplyCount > 0 && <span className="ml-1 font-bold">{needsReplyCount}</span>}
+            </Link>
+            <Link
+              href={buildFilterHref({ sort: "highest" })}
+              className={`rounded-full px-4 py-1.5 text-sm font-semibold transition ${
+                sort === "highest"
+                  ? "bg-teal-600 text-white"
+                  : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+              }`}
+            >
+              5★
+            </Link>
+            <Link
+              href={buildFilterHref({ sort: "lowest" })}
+              className={`rounded-full px-4 py-1.5 text-sm font-semibold transition ${
+                sort === "lowest" ? "bg-teal-600 text-white" : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+              }`}
+            >
+              4★
+            </Link>
+            <Link href={buildFilterHref({ status: "all" })} className="rounded-full px-4 py-1.5 text-sm font-semibold border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition">
+              1-3★
+            </Link>
+            <Link
+              href={buildFilterHref({ status: "published" })}
+              className={`rounded-full px-4 py-1.5 text-sm font-semibold transition ${
+                status === "published"
+                  ? "bg-teal-600 text-white"
+                  : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+              }`}
+            >
+              Replied
+            </Link>
+          </div>
+
+          {/* Location filter */}
+          <div className="flex flex-wrap gap-2">
+            <Link
+              href={buildFilterHref({ locationId: "all" })}
+              className={`rounded-full px-4 py-1.5 text-sm font-semibold transition ${
+                allowedLocationId === "all"
+                  ? "bg-slate-950 text-white"
+                  : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+              }`}
+            >
+              All locations
+            </Link>
+            {locations.map((loc) => (
               <Link
-                key={option.value}
-                href={buildFilterHref({ sort: option.value })}
-                className={`rounded-2xl px-4 py-2 text-sm font-semibold shadow-sm ${
-                  sort === option.value
-                    ? "bg-slate-950 !text-white visited:!text-white hover:!text-white"
-                    : "border border-slate-200 bg-white text-slate-600"
+                key={loc.id}
+                href={buildFilterHref({ locationId: loc.id })}
+                className={`rounded-full px-4 py-1.5 text-sm font-semibold transition ${
+                  allowedLocationId === loc.id
+                    ? "bg-slate-950 text-white"
+                    : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
                 }`}
               >
-                {option.label}
+                {loc.name}
               </Link>
             ))}
           </div>
-        </div>
-
-        {/* Stats */}
-        <div className="grid gap-4 xl:grid-cols-4">
-          <StatCard title="Average Rating" value={stats.averageRating} meta="Across all stored reviews" />
-          <StatCard title="Published Reviews" value={stats.publishedReviews} meta={`${stats.googleReviews} from Google`} />
-          <StatCard title="Private Feedback" value={stats.privateFeedback} meta="Needs internal attention" />
-          <StatCard title="Testimonials" value={stats.testimonials} meta={`${stats.totalReviews} total records`} />
-        </div>
-
-        {/* Filters */}
-        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="grid gap-4 lg:grid-cols-3">
-            <div>
-              <p className="text-sm font-semibold text-slate-700">Status</p>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {[
-                  { value: "all", label: "All" },
-                  { value: "published", label: "Published" },
-                  { value: "private-feedback", label: "Private feedback" },
-                  { value: "needs-follow-up", label: "Needs follow-up" },
-                  { value: "testimonials", label: "Testimonials" },
-                ].map((option) => (
-                  <Link
-                    key={option.value}
-                    href={buildFilterHref({ status: option.value })}
-                    className={`rounded-2xl px-4 py-2 text-sm font-semibold ${status === option.value ? "bg-slate-950 !text-white" : "border border-slate-200 bg-slate-50 text-slate-700"}`}
-                  >
-                    {option.label}
-                  </Link>
-                ))}
-              </div>
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-slate-700">Source</p>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {[
-                  { value: "all", label: "All" },
-                  { value: "google", label: "Google" },
-                  { value: "facebook", label: "Facebook" },
-                  { value: "internal", label: "Internal" },
-                ].map((option) => (
-                  <Link
-                    key={option.value}
-                    href={buildFilterHref({ source: option.value })}
-                    className={`rounded-2xl px-4 py-2 text-sm font-semibold ${source === option.value ? "bg-slate-950 !text-white" : "border border-slate-200 bg-slate-50 text-slate-700"}`}
-                  >
-                    {option.label}
-                  </Link>
-                ))}
-              </div>
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-slate-700">Location</p>
-              <div className="mt-3 flex flex-wrap gap-2">
-                <Link
-                  href={buildFilterHref({ locationId: "all" })}
-                  className={`rounded-2xl px-4 py-2 text-sm font-semibold ${allowedLocationId === "all" ? "bg-slate-950 !text-white" : "border border-slate-200 bg-slate-50 text-slate-700"}`}
-                >
-                  All locations
-                </Link>
-                {locations.map((loc) => (
-                  <Link
-                    key={loc.id}
-                    href={buildFilterHref({ locationId: loc.id })}
-                    className={`rounded-2xl px-4 py-2 text-sm font-semibold ${allowedLocationId === loc.id ? "bg-slate-950 !text-white" : "border border-slate-200 bg-slate-50 text-slate-700"}`}
-                  >
-                    {loc.name}
-                  </Link>
-                ))}
-              </div>
-            </div>
-          </div>
         </section>
 
-        {/* Panel layout */}
-        <div className="flex gap-6 items-start">
-          {/* Left: review list */}
-          <div className={`flex flex-col gap-2 ${selectedReview ? "hidden xl:flex xl:w-2/5" : "w-full"}`}>
-            {reviews.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-sm text-slate-600">
-                No reviews yet. Sync Google or collect direct feedback to start populating the inbox.
-              </div>
-            ) : (
-              reviews.map((review) => (
-                <ReviewListItem
-                  key={review.id}
-                  review={review}
-                  selected={review.id === selectedId}
-                  filterHref={baseFilterHref}
-                />
-              ))
-            )}
-          </div>
-
-          {/* Right: reply panel */}
-          {selectedReview ? (
-            <div className="flex-1 rounded-3xl border border-slate-200 bg-white shadow-sm xl:w-3/5">
-              <div className="mb-2 border-b border-slate-100 px-6 pt-4 pb-3 xl:hidden">
-                <Link href={baseFilterHref} className="text-sm font-semibold text-indigo-600">
-                  ← Back to inbox
-                </Link>
-              </div>
-              <ReviewReplyPanel
-                key={selectedReview.id}
-                review={selectedReview}
-                aiReplyEnabled={aiReplyEnabled}
-                initialDraft={selectedReview.replyDraft ?? buildReviewReplyDraft(selectedReview.reviewerName, selectedReview.rating ?? 0)}
-              />
+        {/* Review list */}
+        <div className="space-y-3">
+          {reviews.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-slate-600">
+              <p className="font-semibold text-slate-700 mb-1">No reviews yet</p>
+              <p>Sync Google or collect direct feedback to start populating the inbox.</p>
             </div>
           ) : (
-            <div className="hidden xl:flex xl:w-3/5 h-48 items-center justify-center rounded-3xl border border-dashed border-slate-200 bg-slate-50 text-sm text-slate-400">
-              Select a review to reply
-            </div>
+            reviews.map((review) => (
+              <ReviewListItem
+                key={review.id}
+                review={review}
+                selected={review.id === selectedId}
+                filterHref={baseFilterHref}
+                aiReplyEnabled={aiReplyEnabled}
+              />
+            ))
           )}
         </div>
       </div>
