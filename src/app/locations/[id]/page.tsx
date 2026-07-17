@@ -112,12 +112,12 @@ export default async function LocationDetailPage({
     {
       key: "facebook",
       label: "Facebook",
-      connected: false,
-      lastSyncedLabel: null,
-      reviewsImported: null,
+      connected: Boolean(location.facebookPage?.locationId),
+      lastSyncedLabel: location.facebookPage?.lastSyncedAt ? formatRelativeSyncTime(location.facebookPage.lastSyncedAt) ?? null : null,
+      reviewsImported: location.facebookPage?.lastSyncImportedCount ?? null,
       rating: null,
-      syncStatus: null,
-      comingSoon: true,
+      syncStatus: location.facebookPage?.lastSyncStatus ?? null,
+      comingSoon: false,
     },
     {
       key: "trustpilot",

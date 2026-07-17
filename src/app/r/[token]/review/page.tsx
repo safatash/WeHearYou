@@ -14,6 +14,7 @@ export default async function CampaignPositiveReviewPage({
   const { token } = await params;
   const query = await searchParams;
   const rating = Number(typeof query.rating === "string" ? query.rating : "0");
+  const prefillBody = typeof query.body === "string" ? query.body : "";
   const hasError = query.error === "invalid_review";
   const recipient = await getRecipientByToken(token);
 
@@ -73,6 +74,7 @@ export default async function CampaignPositiveReviewPage({
               required
               className="mt-2 min-h-40 w-full rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-normal text-slate-700 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
               placeholder="What stood out? What would you tell a friend about this business?"
+              defaultValue={prefillBody}
             />
           </label>
 

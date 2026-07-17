@@ -33,6 +33,8 @@ export interface FunnelState {
   length: "short" | "medium" | "detailed";
   writingMode: "ai" | "manual";
   draftGenerated: boolean;
+  /** ID of the destination the customer clicked on the Copy & Post screen (e.g. "google", "wehearyou") */
+  selectedDestination: string;
 }
 
 export const INITIAL_STATE: FunnelState = {
@@ -56,6 +58,7 @@ export const INITIAL_STATE: FunnelState = {
   length: "detailed",
   writingMode: "ai",
   draftGenerated: false,
+  selectedDestination: "",
 };
 
 export function shouldAutoGenerate(state: Pick<FunnelState, "draftGenerated" | "writingMode">): boolean {

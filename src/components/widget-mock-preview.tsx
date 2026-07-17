@@ -37,12 +37,22 @@ export type PreviewSettings = {
   showPagination: boolean;
   showResponses: boolean;
   starColor: string;
+  starColorMode: "gold" | "accent" | "ink";
+  fontFamily: string;
+  cardStyle: "border" | "shadow" | "soft";
+  density: "cozy" | "compact";
+  gridColumns: string;
+  wallStyle: "varied" | "uniform";
+  cardHeights: "equal" | "natural";
   fontSizeBase: number;
   fontSizeNames: number;
   fontSizeHeader: number;
   fontSizeLabel: number;
   fontSizeSummary: number;
   bodyMaxChars: number;
+  // Spotlight & Pins
+  spotlightReviewId?: string;
+  reviewHighlights?: Array<{ reviewId: string; quote: string }>;
   // Badge
   badgeStyle: "rating" | "compact" | "review_cta" | "trust";
   // Collecting
@@ -84,6 +94,13 @@ export const PREVIEW_DEFAULTS: PreviewSettings = {
   showPagination: true,
   showResponses: false,
   starColor: "#fbbf24",
+  starColorMode: "gold",
+  fontFamily: "system",
+  cardStyle: "border",
+  density: "cozy",
+  gridColumns: "auto",
+  wallStyle: "varied",
+  cardHeights: "equal",
   fontSizeBase: 14,
   fontSizeNames: 13,
   fontSizeHeader: 20,
@@ -111,7 +128,7 @@ const SOURCE_META: Record<string, { color: string; letter: string }> = {
 
 const AV_COLORS = ["#6366f1", "#0ea5e9", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899", "#14b8a6"];
 
-type Review = { id: number; name: string; rating: number; text: string; time: string; source: string };
+type Review = { id: number; name: string; rating: number; text: string; time: string; source: string; realId?: string };
 type Video = { id: number; name: string; rating: number; quote: string; time: string; source: string; length: string };
 
 const REVIEWS: Review[] = [
@@ -130,9 +147,10 @@ const VIDEOS: Video[] = [
 ];
 
 
-const Stars = ({ value = 0, size = 14, gap = 1.5 }: { value?: number; size?: number; gap?: number }) => {
+const Stars = ({ value = 0, size = 14, gap = 1.5, color }: { value?: number; size?: number; gap?: number; color?: string }) => {
   const full = Math.floor(value);
   const frac = value - full;
+  const starFill = color || "var(--star)";
   return (
     <span style={st({ display: "inline-flex", gap })}>
       {[0, 1, 2, 3, 4].map((i) => {
@@ -144,7 +162,7 @@ const Stars = ({ value = 0, size = 14, gap = 1.5 }: { value?: number; size?: num
             </svg>
             <span style={st({ position: "absolute", inset: 0, width: `${fill * 100}%`, overflow: "hidden" })}>
               <svg viewBox="0 0 24 24" width={size} height={size} style={st({ display: "block" })}>
-                <path d="M12 3.6l2.6 5.3 5.8.85-4.2 4.1 1 5.78L12 17.9l-5.2 2.73 1-5.78-4.2-4.1 5.8-.85z" fill="var(--star)" />
+                <path d="M12 3.6l2.6 5.3 5.8.85-4.2 4.1 1 5.78L12 17.9l-5.2 2.73 1-5.78-4.2-4.1 5.8-.85z" fill={starFill} />
               </svg>
             </span>
           </span>
@@ -172,6 +190,30 @@ const Avatar = ({ name = "", size = 34 }: { name?: string; size?: number }) => {
     </span>
   );
 };
+
+const FONT_STACKS: Record<string, string> = {
+  system: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+  sans: "'Inter', 'Helvetica Neue', Arial, sans-serif",
+  serif: "'Georgia', 'Times New Roman', serif",
+  round: "'Nunito', 'Varela Round', sans-serif",
+  mono: "'JetBrains Mono', 'Fira Code', 'Courier New', monospace",
+};
+
+// Instrument Serif is used for review body text in the "varied" wall layout
+// to give the editorial testimonial feel seen in the mockup.
+const INSTRUMENT_SERIF = "'Instrument Serif', 'Georgia', serif";
+
+function resolveStarColor(s: PreviewSettings): string {
+  if (s.starColorMode === "accent") return s.accent;
+  if (s.starColorMode === "ink") return s.theme === "dark" ? "#f4f4f5" : "#18181b";
+  return s.starColor || "#fbbf24"; // gold
+}
+
+function resolveCardStyle(s: PreviewSettings, tk: { bg: string; card: string; line: string }) {
+  if (s.cardStyle === "shadow") return { background: tk.card, border: "1px solid transparent", boxShadow: s.theme === "dark" ? "0 4px 16px rgba(0,0,0,.45)" : "0 2px 12px rgba(0,0,0,.10)" };
+  if (s.cardStyle === "soft") return { background: s.theme === "dark" ? "rgba(255,255,255,.05)" : "rgba(0,0,0,.04)", border: "1px solid transparent" };
+  return { background: tk.card, border: `1px solid ${tk.line}` }; // border (default)
+}
 
 const wTokens = (s: PreviewSettings) =>
   s.theme === "dark"
@@ -202,20 +244,112 @@ const SourceBadge = ({ source, size = 18 }: { source: string; size?: number }) =
   </span>
 );
 
-const ReviewCardW = ({ r, s, tk }: { r: Review; s: PreviewSettings; tk: Tokens }) => (
-  <div style={st({ background: tk.card, border: `1px solid ${tk.line}`, borderRadius: s.radius, padding: 16, display: "flex", flexDirection: "column", gap: 9, minWidth: 0 })}>
-    <div style={st({ display: "flex", alignItems: "center", gap: 10 })}>
-      {s.showAvatars && <Avatar name={r.name} size={34} />}
-      <div style={st({ minWidth: 0, flex: 1 })}>
-        <div style={st({ fontSize: 13.5, fontWeight: 620, color: tk.text })}>{r.name}</div>
-        {s.showDates && <div style={st({ fontSize: 11.5, color: tk.muted })}>{r.time}</div>}
-      </div>
-      {s.showSources && <SourceBadge source={r.source} size={18} />}
+// FeaturedReviewCardW: accent-coloured card used for wallStyle="varied" featured slot
+const FeaturedReviewCardW = ({ r, s, tk, highlightQuote }: { r: Review; s: PreviewSettings; tk: Tokens; highlightQuote?: string }) => {
+  const starColor = "rgba(255,255,255,0.9)";
+  const fontStack = FONT_STACKS[s.fontFamily] || FONT_STACKS.system;
+  const pad = s.density === "compact" ? 16 : 22;
+  const bodyFontSize = (s.fontSizeBase || 14) + 4;
+  // Render body with highlight on white-on-accent background
+  const renderFeaturedBody = () => {
+    const text = r.text;
+    if (!highlightQuote || !highlightQuote.trim()) {
+      return <p style={st({ fontSize: bodyFontSize, lineHeight: 1.45, color: "#fff", margin: 0, fontWeight: 400, letterSpacing: "-.01em", fontFamily: INSTRUMENT_SERIF })}>&#8220;{text}&#8221;</p>;
+    }
+    const idx = text.indexOf(highlightQuote);
+    if (idx === -1) {
+      return <p style={st({ fontSize: bodyFontSize, lineHeight: 1.45, color: "#fff", margin: 0, fontWeight: 400, letterSpacing: "-.01em", fontFamily: INSTRUMENT_SERIF })}>&#8220;{text}&#8221;</p>;
+    }
+    return (
+      <p style={st({ fontSize: bodyFontSize, lineHeight: 1.45, color: "#fff", margin: 0, fontWeight: 400, letterSpacing: "-.01em", fontFamily: INSTRUMENT_SERIF })}>
+        &#8220;{text.slice(0, idx)}
+        <mark style={st({ background: "rgba(255,255,255,0.28)", color: "#fff", borderRadius: 3, padding: "0 3px", fontWeight: 700 })}>{highlightQuote}</mark>
+        {text.slice(idx + highlightQuote.length)}&#8221;
+      </p>
+    );
+  };
+  return (
+    <div style={st({ background: s.accent, borderRadius: s.radius, padding: pad, display: "flex", flexDirection: "column", gap: 12, minWidth: 0, fontFamily: fontStack, color: "#fff" })}>
+      {s.showRating && <Stars value={r.rating} size={s.density === "compact" ? 15 : 18} color={starColor} />}
+      {renderFeaturedBody()}
+      {s.showAvatars && (
+        <div style={st({ display: "flex", alignItems: "center", gap: 9, marginTop: 4 })}>
+          <Avatar name={r.name} size={32} />
+          <div>
+            <div style={st({ fontSize: s.fontSizeNames || 13, fontWeight: 640, color: "#fff" })}>{r.name}</div>
+            {s.showDates && <div style={st({ fontSize: s.fontSizeLabel || 11, color: "rgba(255,255,255,.7)" })}>{r.time}</div>}
+          </div>
+          {s.showSources && <span style={st({ marginLeft: "auto" })}><SourceBadge source={r.source} size={18} /></span>}
+        </div>
+      )}
     </div>
-    <Stars value={r.rating} size={15} />
-    <p style={st({ fontSize: 13, lineHeight: 1.55, color: tk.sub, margin: 0, display: "-webkit-box", WebkitLineClamp: 4, WebkitBoxOrient: "vertical", overflow: "hidden" })}>{r.text}</p>
-  </div>
-);
+  );
+};
+
+/* Renders review text with an optional highlighted phrase in accent color */
+function renderBodyWithHighlight(text: string, quote: string | undefined, accent: string, fontSize: number, color: string, font: string): React.ReactNode {
+  if (!quote || !quote.trim()) {
+    return <p style={st({ fontSize, lineHeight: 1.6, color, margin: 0, fontFamily: font })}>&#8220;{text}&#8221;</p>;
+  }
+  const idx = text.indexOf(quote);
+  if (idx === -1) {
+    return <p style={st({ fontSize, lineHeight: 1.6, color, margin: 0, fontFamily: font })}>&#8220;{text}&#8221;</p>;
+  }
+  const before = text.slice(0, idx);
+  const after = text.slice(idx + quote.length);
+  return (
+    <p style={st({ fontSize, lineHeight: 1.6, color, margin: 0, fontFamily: font })}>
+      &#8220;{before}
+      <mark style={st({ background: `color-mix(in srgb, ${accent} 18%, transparent)`, color: accent, borderRadius: 3, padding: "0 2px", fontWeight: 600 })}>{quote}</mark>
+      {after}&#8221;
+    </p>
+  );
+}
+
+const ReviewCardW = ({ r, s, tk, featured, accentFont, highlightQuote }: { r: Review; s: PreviewSettings; tk: Tokens; featured?: boolean; accentFont?: boolean; highlightQuote?: string }) => {
+  // Spotlight: featured in Varied = accent bg + serif; featured in Uniform = accent border
+  if (featured && s.wallStyle === "varied") return <FeaturedReviewCardW r={r} s={s} tk={tk} highlightQuote={highlightQuote} />;
+  const cardStyles = resolveCardStyle(s, tk);
+  // If spotlight in Uniform layout, add accent border
+  const spotlightBorder = featured && s.wallStyle === "uniform"
+    ? { border: `2px solid ${s.accent}`, boxShadow: `0 0 0 3px color-mix(in srgb, ${s.accent} 18%, transparent)` }
+    : {};
+  const starColor = resolveStarColor(s);
+  const fontStack = FONT_STACKS[s.fontFamily] || FONT_STACKS.system;
+  // In varied layout, only accent-font cards (roughly 1 in 3) use Instrument Serif
+  const bodyFont = (s.wallStyle === "varied" && accentFont) ? INSTRUMENT_SERIF : fontStack;
+  const pad = s.density === "compact" ? 12 : 16;
+  const truncLen = s.bodyMaxChars || 280;
+  const bodyText = r.text.length > truncLen ? r.text.slice(0, truncLen) + "…" : r.text;
+  // Fake owner response for preview
+  const ownerReply = "Thank you so much for your kind words! We really appreciate you taking the time to share your experience.";
+  return (
+    <div style={st({ ...cardStyles, ...spotlightBorder, borderRadius: s.radius, padding: pad, display: "flex", flexDirection: "column", gap: s.density === "compact" ? 7 : 9, minWidth: 0, fontFamily: fontStack })}>
+      {s.showAvatars && (
+        <div style={st({ display: "flex", alignItems: "center", gap: 10 })}>
+          <Avatar name={r.name} size={s.density === "compact" ? 28 : 34} />
+          <div style={st({ minWidth: 0, flex: 1 })}>
+            <div style={st({ fontSize: s.fontSizeNames || 13.5, fontWeight: 620, color: tk.text })}>{r.name}</div>
+            {s.showDates && <div style={st({ fontSize: s.fontSizeLabel || 11.5, color: tk.muted })}>{r.time}</div>}
+          </div>
+          {s.showSources && <SourceBadge source={r.source} size={18} />}
+        </div>
+      )}
+      {!s.showAvatars && s.showSources && (
+        <div style={st({ display: "flex", justifyContent: "flex-end" })}>
+          <SourceBadge source={r.source} size={18} />
+        </div>
+      )}
+      {s.showRating && <Stars value={r.rating} size={s.density === "compact" ? 13 : 15} color={starColor} />}
+      {renderBodyWithHighlight(bodyText, highlightQuote, s.accent, s.fontSizeBase || 13, tk.sub, bodyFont)}
+      {s.showResponses && (
+        <div style={st({ background: `color-mix(in srgb, ${s.accent} 8%, ${tk.bg})`, border: `1px solid color-mix(in srgb, ${s.accent} 20%, ${tk.line})`, borderRadius: Math.max(4, s.radius - 4), padding: "9px 11px", fontSize: (s.fontSizeBase || 13) - 1, color: tk.sub, lineHeight: 1.5 })}>
+          <span style={st({ fontWeight: 640, color: s.accent, fontSize: (s.fontSizeBase || 13) - 1 })}>Owner reply: </span>{ownerReply}
+        </div>
+      )}
+    </div>
+  );
+};
 
 const VideoCardW = ({ v, s, tk }: { v: Video; s: PreviewSettings; tk: Tokens }) => (
   <div style={st({ background: tk.card, border: `1px solid ${tk.line}`, borderRadius: s.radius, overflow: "hidden", display: "flex", flexDirection: "column", minWidth: 0 })}>
@@ -259,7 +393,7 @@ const AISummaryBox = ({ s, tk }: { s: PreviewSettings; tk: Tokens }) => {
           <span style={st({ marginLeft: "auto", fontSize: 11, color: tk.muted, whiteSpace: "nowrap" })}>Based on {s.aiSummaryCount} reviews</span>
         ) : null}
       </div>
-      <p style={st({ fontSize: 13, lineHeight: 1.6, color: tk.sub, margin: 0 })}>{text}</p>
+      <p style={st({ fontSize: s.fontSizeSummary || 13, lineHeight: 1.6, color: tk.sub, margin: 0 })}>{text}</p>
       <div style={st({ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 11 })}>
         {chips.map((h) => (
           <span key={h} style={st({ fontSize: 11.5, fontWeight: 540, padding: "3px 9px", borderRadius: 999, background: tk.card, border: `1px solid ${tk.line}`, color: tk.sub })}>{h}</span>
@@ -291,17 +425,25 @@ function cornerStyle(pos: string): React.CSSProperties {
 }
 
 function Header({ s, tk, avg, total }: { s: PreviewSettings; tk: ReturnType<typeof wTokens>; avg: number; total: string }) {
-  return s.showHeader ? (
-    <div style={st({ display: "flex", alignItems: "center", gap: 14, marginBottom: 18, flexWrap: "wrap" })}>
-      <div style={st({ display: "flex", alignItems: "baseline", gap: 8 })}>
-        <span style={st({ fontSize: 34, fontWeight: 720, letterSpacing: "-.03em", color: tk.text, fontFamily: "var(--font-mono)" })}>{avg}</span>
-        <Stars value={avg} size={18} />
-      </div>
-      <div style={st({ height: 30, width: 1, background: tk.line })} />
-      <div style={st({ fontSize: 13, color: tk.sub })}>Based on <b style={st({ color: tk.text })}>{total}</b> verified reviews</div>
+  const starColor = resolveStarColor(s);
+  const fontStack = FONT_STACKS[s.fontFamily] || FONT_STACKS.system;
+  if (!s.showHeader) return null;
+  const showAvg = s.showAvgRating !== false;
+  const showCount = s.showReviewCount !== false;
+  if (!showAvg && !showCount) return null;
+  return (
+    <div style={st({ display: "flex", alignItems: "center", gap: 14, marginBottom: 18, flexWrap: "wrap", fontFamily: fontStack })}>
+      {showAvg && (
+        <div style={st({ display: "flex", alignItems: "baseline", gap: 8 })}>
+          <span style={st({ fontSize: s.fontSizeHeader || 34, fontWeight: 720, letterSpacing: "-.03em", color: tk.text })}>{avg}</span>
+          <Stars value={avg} size={18} color={starColor} />
+        </div>
+      )}
+      {showAvg && showCount && <div style={st({ height: 30, width: 1, background: tk.line })} />}
+      {showCount && <div style={st({ fontSize: s.fontSizeLabel || 13, color: tk.sub })}>Based on <b style={st({ color: tk.text })}>{total}</b> verified reviews</div>}
       <div style={st({ marginLeft: "auto" })}><VerifiedTag s={s} tk={tk} /></div>
     </div>
-  ) : null;
+  );
 }
 
 type RealReview = {
@@ -342,6 +484,7 @@ function convertRealReviews(realReviews: RealReview[]): Review[] {
     };
     return {
       id: parseInt(r.id, 10) || Math.random() * 1000000,
+      realId: r.id,
       name: r.reviewerName || "Anonymous",
       rating: r.rating,
       text: r.body,
@@ -527,8 +670,17 @@ export function WidgetMockPreview({
   }
 
   // grid / carousel (Wall of Love)
-  const filteredReviews = reviews.filter((r) => s.sources[r.source] && r.rating >= s.minRating);
-  const videos = VIDEOS.filter((v) => s.sources[v.source]);
+  // Build a set of enabled sources from the gridColumns/wallStyle settings
+  // The `sources` field in PreviewSettings is a legacy Record<string,bool> — we also
+  // support the new string-based `enabledSources` CSV passed via previewSettings.
+  const enabledSourcesSet: Set<string> = (() => {
+    // Check if any source in the sources record is explicitly false
+    const hasExplicitFalse = Object.values(s.sources).some((v) => v === false);
+    if (!hasExplicitFalse) return new Set(["Google", "Facebook", "Yelp", "WeHearYou", "Trustpilot", "INTERNAL"]);
+    return new Set(Object.entries(s.sources).filter(([, v]) => v).map(([k]) => k));
+  })();
+  const filteredReviews = reviews.filter((r) => enabledSourcesSet.has(r.source) && r.rating >= s.minRating);
+  const videos = VIDEOS.filter((v) => enabledSourcesSet.has(v.source));
   let items: Array<{ kind: "review"; data: Review } | { kind: "video"; data: Video }>;
   if (s.content === "videos") items = videos.map((v) => ({ kind: "video" as const, data: v }));
   else if (s.content === "mixed") {
@@ -552,13 +704,67 @@ export function WidgetMockPreview({
       <Header s={s} tk={tk} avg={avg} total={total} />
       {showSummary && <AISummaryBox s={s} tk={tk} />}
       {s.type === "grid" ? (
-        <div style={st({ columns: s.device === "mobile" ? "1" : "240px", columnGap: 14 })}>
-          {items.map((it) => (
-            <div key={it.kind + it.data.id} style={st({ breakInside: "avoid", marginBottom: 14 })}>
-              {it.kind === "video" ? <VideoCardW v={it.data} s={s} tk={tk} /> : <ReviewCardW r={it.data} s={s} tk={tk} />}
+        (() => {
+          const gap = s.density === "compact" ? 10 : 14;
+          // Determine featured (spotlight) index:
+          // If spotlightReviewId is set, use that review; otherwise fall back to first review in varied layout
+          const spotlightId = s.spotlightReviewId;
+          const featuredIdx = (() => {
+            if (spotlightId) {
+              const idx = items.findIndex((it) => it.kind === "review" && it.data.realId === spotlightId);
+              return idx !== -1 ? idx : (s.wallStyle === "varied" ? items.findIndex((it) => it.kind === "review") : -1);
+            }
+            return s.wallStyle === "varied" ? items.findIndex((it) => it.kind === "review") : -1;
+          })();
+          // Build highlight lookup: realId -> quote
+          const highlightMap = new Map<string, string>(
+            (s.reviewHighlights || []).map((h) => [h.reviewId, h.quote])
+          );
+          // In varied layout, every 3rd non-featured review card gets Instrument Serif (accent font)
+          // Track non-featured review count to assign accent font to ~1 in 3
+          let nonFeaturedReviewCount = 0;
+          // Determine column layout
+          let gridStyle: React.CSSProperties;
+          if (s.device === "mobile") {
+            gridStyle = { columns: "1", columnGap: gap };
+          } else if (s.cardHeights === "natural") {
+            // Natural masonry: always use CSS columns regardless of gridColumns setting
+            const colCount = s.gridColumns === "3" ? 3 : s.gridColumns === "2" ? 2 : 2;
+            gridStyle = { columns: colCount, columnGap: gap };
+          } else if (s.gridColumns === "2") {
+            gridStyle = { display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap };
+          } else if (s.gridColumns === "3") {
+            gridStyle = { display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap };
+          } else {
+            // auto = masonry-style columns
+            gridStyle = { columns: "240px", columnGap: gap };
+          }
+          // cardHeights: "equal" = all cards same height; "natural" = masonry heights
+          const isNatural = s.cardHeights === "natural";
+          const uniformHeight = !isNatural ? 180 : undefined;
+          const cardWrap: React.CSSProperties = (s.gridColumns !== "auto" && !isNatural)
+            ? { display: "contents" }
+            : { breakInside: "avoid", marginBottom: gap };
+          return (
+            <div style={st(gridStyle)}>
+              {items.map((it, idx) => {
+                let accentFont = false;
+                if (it.kind === "review" && idx !== featuredIdx && s.wallStyle === "varied") {
+                  nonFeaturedReviewCount++;
+                  // Every 3rd non-featured review card gets Instrument Serif
+                  accentFont = nonFeaturedReviewCount % 3 === 0;
+                }
+                const reviewRealId = it.kind === "review" ? it.data.realId : undefined;
+                const highlightQuote = reviewRealId ? highlightMap.get(reviewRealId) : undefined;
+                return (
+                  <div key={it.kind + it.data.id} style={st({ ...cardWrap, ...(uniformHeight && s.gridColumns !== "auto" ? { height: uniformHeight, overflow: "hidden" } : {}) })}>
+                    {it.kind === "video" ? <VideoCardW v={it.data} s={s} tk={tk} /> : <ReviewCardW r={it.data} s={s} tk={tk} featured={idx === featuredIdx} accentFont={accentFont} highlightQuote={highlightQuote} />}
+                  </div>
+                );
+              })}
             </div>
-          ))}
-        </div>
+          );
+        })()
       ) : (
         <div style={st({ display: "flex", flexDirection: "column", gap: 14 })}>
           {([["l", marqueeRows[0]], ["r", marqueeRows[1]]] as Array<["l" | "r", typeof items]>).map(([dir, row], idx) =>
@@ -574,6 +780,26 @@ export function WidgetMockPreview({
               </div>
             ) : null,
           )}
+          {/* Nav arrows for carousel */}
+          {s.showNav && (
+            <div style={st({ display: "flex", justifyContent: "center", gap: 10, marginTop: 8 })}>
+              {["‹", "›"].map((arrow) => (
+                <button key={arrow} style={st({ width: 34, height: 34, borderRadius: "50%", border: `1px solid ${tk.line}`, background: tk.card, color: tk.text, fontSize: 18, cursor: "default", display: "grid", placeItems: "center" })}>{arrow}</button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+      {/* Write a review link */}
+      {s.showWriteReview && s.type === "grid" && (
+        <div style={st({ marginTop: 14, textAlign: "center" })}>
+          <a style={st({ fontSize: 13, color: s.accent, fontWeight: 580, textDecoration: "none", cursor: "default" })}>+ Write a review</a>
+        </div>
+      )}
+      {/* Pagination / load more */}
+      {s.showPagination && s.type === "grid" && (
+        <div style={st({ marginTop: 14, display: "flex", justifyContent: "center" })}>
+          <button style={st({ padding: "8px 22px", borderRadius: s.radius, border: `1px solid ${tk.line}`, background: tk.card, color: tk.sub, fontSize: 13, cursor: "default", fontWeight: 560 })}>Load more reviews</button>
         </div>
       )}
       {items.length === 0 && <div style={st({ textAlign: "center", padding: 30, color: tk.muted, fontSize: 13 })}>No content matches these filters.</div>}

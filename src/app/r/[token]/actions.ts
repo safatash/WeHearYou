@@ -193,15 +193,20 @@ export async function submitCampaignPositiveReview(formData: FormData) {
 }
 
 export async function recordCampaignPositiveReview(input: {
-  token: string; rating: number; body: string;
+  token: string; rating: number; body: string; destination?: string;
 }): Promise<{ ok: boolean }> {
   const token = (input.token ?? "").trim();
   const rating = Math.round(Number(input.rating));
   const body = (input.body ?? "").trim();
+  const destination = (input.destination ?? "").toUpperCase();
   if (!token || !Number.isInteger(rating) || rating < 1 || rating > 5 || !body) return { ok: false };
+  // Only save an internal review when the customer chose the WeHearYou path.
+  // For Google/external destinations the GBP sync will import the real review;
+  // saving here too would create a duplicate in the widget.
+  if (destination && destination !== "WEHEARYOU") return { ok: true };
   const recipient = await prisma.campaignRecipient.findUnique({
     where: { token },
-    include: { campaign: { include: { location: true } } },
+    include: { contact: true, campaign: { include: { location: true } } },
   });
   if (!recipient) return { ok: false };
   await prisma.review.create({
@@ -211,7 +216,8 @@ export async function recordCampaignPositiveReview(input: {
       status: ReviewStatus.PUBLISHED,
       sentiment: "positive",
       rating,
-      reviewerName: "Anonymous customer",
+      reviewerName: recipient.contact?.name ?? "Anonymous customer",
+      contactId: recipient.contactId ?? undefined,
       body,
       reviewedAt: new Date(),
       publishedExternally: false,

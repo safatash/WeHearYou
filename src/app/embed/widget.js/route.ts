@@ -4,8 +4,10 @@ const script = `
 (function () {
   var FONT_STACKS = {
     system: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
-    sans: "Inter, ui-sans-serif, system-ui, sans-serif",
-    serif: "Georgia, 'Times New Roman', serif"
+    sans: "'Inter', ui-sans-serif, system-ui, sans-serif",
+    serif: "'Georgia', 'Times New Roman', serif",
+    round: "'Nunito', 'Varela Round', sans-serif",
+    mono: "'JetBrains Mono', 'Fira Code', 'Courier New', monospace"
   };
 
   function fontStack(name) {
@@ -44,6 +46,14 @@ const script = `
 
   function ensureStyles() {
     if (document.getElementById("why-review-widget-styles")) return;
+    // Load Instrument Serif for varied wall layout
+    if (!document.getElementById("why-instrument-serif-font")) {
+      var fontLink = document.createElement("link");
+      fontLink.id = "why-instrument-serif-font";
+      fontLink.rel = "stylesheet";
+      fontLink.href = "https://fonts.googleapis.com/css2?family=Instrument+Serif&family=Inter:wght@400;500;600;700&family=Nunito:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap";
+      document.head.appendChild(fontLink);
+    }
     var style = document.createElement("style");
     style.id = "why-review-widget-styles";
     style.textContent =
@@ -59,6 +69,8 @@ const script = `
       ".why-widget-branding-wrap{margin-top:16px;padding-top:16px;border-top:1px solid rgba(0,0,0,.08);font-size:12px;font-weight:600}" +
       ".why-widget-branding-wrap a{text-decoration:none}" +
       ".why-widget-grid{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}" +
+      ".why-widget-card{break-inside:avoid;margin-bottom:0}" +
+      ".why-widget-masonry-col .why-widget-card{margin-bottom:16px}" +
       ".why-widget-list{display:flex;flex-direction:column;gap:12px}" +
       ".why-widget-slider{position:relative}" +
       ".why-widget-slider-track{display:flex;gap:16px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:8px;scrollbar-width:thin}" +
@@ -70,7 +82,7 @@ const script = `
       ".why-widget-slider-controls{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:8px;font-size:12px}" +
       ".why-widget-slider-btn{border:1px solid rgba(0,0,0,.1);background:#fff;border-radius:999px;width:28px;height:28px;cursor:pointer;font-weight:700}" +
       ".why-widget-slider-btn[disabled]{opacity:.4;cursor:not-allowed}" +
-      ".why-widget-card{display:flex;flex-direction:column;gap:8px;border:1px solid rgba(0,0,0,.08);border-radius:16px;padding:16px;background:#fff;height:100%}" +
+      ".why-widget-card{display:flex;flex-direction:column;gap:8px;height:100%}" +
       ".why-widget-stars{font-size:14px}" +
       ".why-widget-reviewer{display:flex;align-items:center;gap:10px}" +
       ".why-widget-avatar{width:32px;height:32px;border-radius:999px;object-fit:cover;background:#e2e8f0}" +
@@ -473,9 +485,11 @@ const script = `
 
     // Row 2: Large rating number + stars + review count
     if (data.widget.showAvgRating && rating) {
+      var headerStarColor = resolveStarColorEmbed(data.widget);
+      var headerFontSize = data.widget.fontSizeHeader || 34;
       headerHtml += '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">' +
-        '<span class="why-widget-meta-rating" style="color:' + escapeHtml(data.widget.primaryColor) + '">' + escapeHtml(rating) + '</span>' +
-        '<span style="color:' + escapeHtml(data.widget.starColor) + ';font-size:18px">' + escapeHtml(roundedStars) + '</span>' +
+        '<span class="why-widget-meta-rating" style="color:' + escapeHtml(data.widget.primaryColor) + ';font-size:' + headerFontSize + 'px">' + escapeHtml(rating) + '</span>' +
+        '<span style="color:' + escapeHtml(headerStarColor) + ';font-size:18px">' + escapeHtml(roundedStars) + '</span>' +
         (data.widget.showReviewCount && data.location.reviewCount ? '<span class="why-widget-meta-count">Based on ' + escapeHtml(String(data.location.reviewCount)) + ' review' + (data.location.reviewCount === 1 ? '' : 's') + '</span>' : '') +
       '</div>';
     }
@@ -496,12 +510,14 @@ const script = `
     var countHtml = data.location.aiReviewSummaryReviewCount
       ? '<p style="margin:0;font-size:10px;color:' + escapeHtml(primaryColor) + '80">Based on ' + escapeHtml(String(data.location.aiReviewSummaryReviewCount)) + ' reviews</p>'
       : '';
-    return '<div style="background:' + escapeHtml(softBg) + ';border:1px solid ' + escapeHtml(softBorder) + ';border-radius:10px;padding:10px 12px;margin-top:10px;margin-bottom:16px;text-align:left;font-family:' + fontStack(data.widget.fontFamily) + '">' +
+    var aiRadius = typeof data.widget.cornerRadius === "number" ? data.widget.cornerRadius : 10;
+    var aiSummaryFontSize = data.widget.fontSizeSummary || 12;
+    return '<div style="background:' + escapeHtml(softBg) + ';border:1px solid ' + escapeHtml(softBorder) + ';border-radius:' + aiRadius + 'px;padding:10px 12px;margin-top:10px;margin-bottom:16px;text-align:left;font-family:' + fontStack(data.widget.fontFamily) + ';font-size:' + aiSummaryFontSize + 'px">' +
       '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">' +
         '<p style="margin:0;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:' + escapeHtml(primaryColor) + '">✶ AI Summary</p>' +
         countHtml +
       '</div>' +
-      '<p style="margin:0;color:' + escapeHtml(data.widget.textColor) + ';font-size:12px;line-height:1.6;opacity:.85">' + escapeHtml(data.location.aiReviewSummary) + '</p>' +
+      '<p style="margin:0;color:' + escapeHtml(data.widget.textColor) + ';font-size:' + aiSummaryFontSize + 'px;line-height:1.6;opacity:.85">' + escapeHtml(data.location.aiReviewSummary) + '</p>' +
     '</div>';
   }
 
@@ -518,14 +534,37 @@ const script = `
     return '<span style="font-size:11px;color:rgba(0,0,0,.4)">✓</span>';
   }
 
+  function resolveStarColorEmbed(widget) {
+    var mode = widget.starColorMode || "gold";
+    if (mode === "accent") return widget.primaryColor || "#4338ca";
+    if (mode === "ink") return widget.theme === "dark" ? "#f4f4f5" : "#18181b";
+    return widget.starColor || "#f59e0b";
+  }
+
+  function resolveCardStyleEmbed(widget) {
+    var style = widget.cardStyle || "border";
+    var isDark = widget.theme === "dark";
+    // Use theme-aware card background token (matches wTokens in the preview)
+    var cardBg = isDark ? "#212126" : (widget.backgroundColor || "#ffffff");
+    var lineColor = isDark ? "rgba(255,255,255,.08)" : "rgba(0,0,0,.08)";
+    if (style === "shadow") return "background:" + cardBg + ";border:1px solid transparent;box-shadow:" + (isDark ? "0 4px 16px rgba(0,0,0,.45)" : "0 2px 12px rgba(0,0,0,.10)") + ";";
+    if (style === "soft") return "background:" + (isDark ? "rgba(255,255,255,.05)" : "rgba(0,0,0,.04)") + ";border:1px solid transparent;";
+    return "background:" + cardBg + ";border:1px solid " + lineColor + ";";
+  }
+
   function renderCard(review, widget) {
     var body = truncate(review.body || '', widget.bodyMaxChars || 280);
     var textColor = widget.textColor || "#0f172a";
-    var backgroundColor = widget.backgroundColor || "#ffffff";
-    var starColor = widget.starColor || "#f59e0b";
     var primaryColor = widget.primaryColor || "#4338ca";
+    var starColor = resolveStarColorEmbed(widget);
+    var cardStyleCss = resolveCardStyleEmbed(widget);
+    var radius = typeof widget.cornerRadius === "number" ? widget.cornerRadius : 12;
+    var pad = widget.density === "compact" ? "12px" : "16px";
+    var fontSizeBase = widget.fontSizeBase || 14;
+    var fontSizeNames = widget.fontSizeNames || 13;
+    var fontSizeLabel = widget.fontSizeLabel || 12;
 
-    var html = '<article class="why-widget-card" style="background:' + escapeHtml(backgroundColor) + ';color:' + escapeHtml(textColor) + '">';
+    var html = '<article class="why-widget-card" style="' + cardStyleCss + 'color:' + escapeHtml(textColor) + ';border-radius:' + radius + 'px;padding:' + pad + ';font-size:' + fontSizeBase + 'px;font-family:' + fontStack(widget.fontFamily) + '">';
 
     // 1. Reviewer info at TOP: avatar left, name + date stacked right, source mark far right
     if (widget.showReviewerName) {
@@ -540,8 +579,8 @@ const script = `
       html += '<div class="why-widget-reviewer">' +
         avatarHtml +
         '<div>' +
-          '<div class="why-widget-name">' + escapeHtml(review.reviewerName || 'Anonymous') + '</div>' +
-          (widget.showDate && review.reviewedAt ? '<div class="why-widget-date">' + escapeHtml(formatDate(review.reviewedAt)) + '</div>' : '') +
+          '<div class="why-widget-name" style="font-size:' + fontSizeNames + 'px">' + escapeHtml(review.reviewerName || 'Anonymous') + '</div>' +
+          (widget.showDate && review.reviewedAt ? '<div class="why-widget-date" style="font-size:' + fontSizeLabel + 'px">' + escapeHtml(formatDate(review.reviewedAt)) + '</div>' : '') +
         '</div>' +
         sourceMarkHtml +
       '</div>';
@@ -1051,7 +1090,17 @@ const script = `
 
           // The widget "name" is an internal admin label — never render it on the
           // public/embed site. Customer-facing heading comes from renderHeader.
-          mount.innerHTML = '<div class="why-widget" style="font-family:' + fontStack(data.widget.fontFamily) + ';background:' + escapeHtml(data.widget.backgroundColor) + ';color:' + escapeHtml(data.widget.textColor) + ';border-radius:18px;padding:24px 28px;border:1px solid rgba(0,0,0,.06)">' +
+          var wrapRadius = typeof data.widget.cornerRadius === "number" ? data.widget.cornerRadius + 4 : 18;
+          var wrapPad = data.widget.density === "compact" ? "16px 20px" : "24px 28px";
+          // Derive bg/text from theme field so dark mode always works regardless of stored raw colors
+          var isDarkTheme = data.widget.theme === "dark";
+          var wrapBg = isDarkTheme ? "#17171b" : (data.widget.backgroundColor || "#ffffff");
+          var wrapText = isDarkTheme ? "#f4f4f5" : (data.widget.textColor || "#18181b");
+          var wrapBorder = isDarkTheme ? "rgba(255,255,255,.07)" : "rgba(0,0,0,.06)";
+          // Patch widget colors so all downstream card renderers use the correct theme tokens
+          data.widget.backgroundColor = wrapBg;
+          data.widget.textColor = wrapText;
+          mount.innerHTML = '<div class="why-widget" style="font-family:' + fontStack(data.widget.fontFamily) + ';background:' + escapeHtml(wrapBg) + ';color:' + escapeHtml(wrapText) + ';border-radius:' + wrapRadius + 'px;padding:' + wrapPad + ';border:1px solid ' + wrapBorder + '">' +
             renderHeader(data) +
             renderAiSummary(data) +
             listWrapper +
@@ -1061,35 +1110,216 @@ const script = `
           '</div>';
 
           container = mount.querySelector("." + layoutClass);
+          // Apply dynamic grid columns and wall style to the grid container
+          // mixed-masonry uses its own CSS class (.why-widget-masonry) and must not be overridden here
+          if (container && (data.widget.layout === "grid" || data.widget.layout === "masonry")) {
+            var gc = data.widget.gridColumns || "auto";
+            var isNaturalHeights = data.widget.cardHeights === "natural";
+            if (isNaturalHeights) {
+              // Natural = true masonry: use CSS columns so cards have natural heights
+              container.style.display = "block";
+              container.style.gridTemplateColumns = "";
+              container.style.gap = "";
+              if (gc === "3") {
+                container.style.columns = "3";
+              } else if (gc === "2") {
+                container.style.columns = "2";
+              } else {
+                container.style.columns = "240px";
+              }
+              container.style.columnGap = "16px";
+              // Mark container so post-insert step can apply row spacing to cards
+              container.setAttribute("data-natural-masonry", "1");
+            } else {
+              // Equal = CSS grid with equal row heights
+              container.style.display = "grid";
+              container.style.columns = "";
+              container.style.gap = "16px";
+              if (gc === "2") {
+                container.style.gridTemplateColumns = "repeat(2, 1fr)";
+              } else if (gc === "3") {
+                container.style.gridTemplateColumns = "repeat(3, 1fr)";
+              } else {
+                container.style.gridTemplateColumns = "repeat(auto-fit, minmax(260px, 1fr))";
+              }
+              container.style.alignItems = "stretch";
+            }
+          }
+          // For mixed-masonry (Wall of Love), just ensure gap is preserved
+          if (container && data.widget.layout === "mixed-masonry") {
+            container.style.gap = "16px";
+          }
           footerActions = mount.querySelector(".why-widget-footer");
           writeReviewContainer = mount.querySelector(".why-widget-write-review");
           brandingContainer = mount.querySelector(".why-widget-branding-wrap");
         }
 
         if (container) {
-          var cardsHtml = items.map(function (item) {
-            return item.type === "video" ? renderVideoCard(item.data) : renderCard(item.data, data.widget);
+          // Filter items by enabledSources if set
+          var enabledSrcList = (data.widget.enabledSources || "").split(",").map(function(s) { return s.trim().toUpperCase(); }).filter(Boolean);
+          var filteredItems = enabledSrcList.length > 0
+            ? items.filter(function(item) { return !item.data || !item.data.source || enabledSrcList.indexOf(item.data.source.toUpperCase()) !== -1; })
+            : items;
+          var isVaried = data.widget.wallStyle === "varied" || !data.widget.wallStyle;
+          var accentColor = data.widget.primaryColor || "#4338ca";
+          var serif = "'Instrument Serif', Georgia, serif";
+          var nonFeaturedReviewCount = 0;
+
+          // Spotlight: use admin-selected review ID if set; otherwise fall back to first review in varied layout
+          var spotlightId = data.widget.spotlightReviewId || null;
+          var featuredIdx = (function() {
+            if (spotlightId) {
+              var idx = filteredItems.findIndex(function(it) { return it.type !== "video" && it.data && it.data.id === spotlightId; });
+              if (idx !== -1) return idx;
+            }
+            return isVaried ? filteredItems.findIndex(function(it) { return it.type !== "video"; }) : -1;
+          })();
+
+          // Build highlight map: reviewId -> quote
+          var highlightMap = {};
+          try {
+            var rawHighlights = data.widget.reviewHighlights || "";
+            var highlights = rawHighlights ? JSON.parse(rawHighlights) : [];
+            highlights.forEach(function(h) { if (h.reviewId && h.quote) highlightMap[h.reviewId] = h.quote; });
+          } catch(e) {}
+
+          // Helper: render body text with an optional highlighted phrase
+          function renderBodyWithHighlight(body, reviewId, textColor, fontFamily, fontSize, useQuotes) {
+            var quote = highlightMap[reviewId];
+            var escaped = escapeHtml(body);
+            if (!quote || !quote.trim()) {
+              return '<div style="font-family:' + fontFamily + ';font-size:' + fontSize + 'px;line-height:1.5;color:' + escapeHtml(textColor) + '">' + (useQuotes ? '\u201c' + escaped + '\u201d' : escaped) + '</div>';
+            }
+            var idx = body.indexOf(quote);
+            if (idx === -1) {
+              return '<div style="font-family:' + fontFamily + ';font-size:' + fontSize + 'px;line-height:1.5;color:' + escapeHtml(textColor) + '">' + (useQuotes ? '\u201c' + escaped + '\u201d' : escaped) + '</div>';
+            }
+            var before = escapeHtml(body.slice(0, idx));
+            var marked = escapeHtml(quote);
+            var after = escapeHtml(body.slice(idx + quote.length));
+            var markStyle = 'background:rgba(79,70,229,.14);color:' + escapeHtml(accentColor) + ';border-radius:3px;padding:0 2px;font-weight:600';
+            return '<div style="font-family:' + fontFamily + ';font-size:' + fontSize + 'px;line-height:1.5;color:' + escapeHtml(textColor) + '">' +
+              (useQuotes ? '\u201c' : '') + before +
+              '<mark style="' + markStyle + '">' + marked + '</mark>' +
+              after + (useQuotes ? '\u201d' : '') +
+            '</div>';
+          }
+
+          var cardsHtml = filteredItems.map(function (item, idx) {
+            if (item.type === "video") return renderVideoCard(item.data);
+            var isSpotlight = idx === featuredIdx;
+            var isGridLayout = data.widget.layout === "grid" || data.widget.layout === "masonry" || data.widget.layout === "mixed-masonry";
+            var reviewId = item.data && item.data.id ? String(item.data.id) : "";
+
+            // Spotlight card in Varied layout: accent background + Instrument Serif
+            if (isSpotlight && isVaried && isGridLayout) {
+              var w = data.widget;
+              var radius = typeof w.cornerRadius === "number" ? w.cornerRadius : 12;
+              var body = truncate(item.data.body || "", w.bodyMaxChars || 280);
+              var starColor = "#fff";
+              var starsHtml = w.showRating !== false ? '<div style="font-size:14px;color:' + starColor + ';margin-bottom:10px">' + escapeHtml(stars(item.data.rating)) + '</div>' : '';
+              var nameHtml = w.showAvatars !== false ? '<div style="font-size:13px;font-weight:600;color:rgba(255,255,255,.9)">' + escapeHtml(item.data.reviewerName || 'Anonymous') + '</div>' : '';
+              // Highlight on accent bg: white semi-transparent mark
+              var quote = highlightMap[reviewId];
+              var bodyHtml;
+              if (quote && body.indexOf(quote) !== -1) {
+                var qi = body.indexOf(quote);
+                bodyHtml = '<div style="font-family:' + serif + ';font-size:22px;line-height:1.35;font-weight:400;margin-bottom:16px;color:#fff">\u201c' +
+                  escapeHtml(body.slice(0, qi)) +
+                  '<mark style="background:rgba(255,255,255,.28);color:#fff;border-radius:3px;padding:0 3px;font-weight:700">' + escapeHtml(quote) + '</mark>' +
+                  escapeHtml(body.slice(qi + quote.length)) + '\u201d</div>';
+              } else {
+                bodyHtml = '<div style="font-family:' + serif + ';font-size:22px;line-height:1.35;font-weight:400;margin-bottom:16px;color:#fff">\u201c' + escapeHtml(body) + '\u201d</div>';
+              }
+              return '<article class="why-widget-card" style="background:' + escapeHtml(accentColor) + ';border:none;border-radius:' + radius + 'px;padding:20px;color:#fff">' +
+                starsHtml + bodyHtml +
+                (w.showAvatars !== false ? '<div style="display:flex;align-items:center;gap:10px;margin-top:auto">' +
+                  '<div style="width:36px;height:36px;border-radius:999px;background:rgba(255,255,255,.25);color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700">' + escapeHtml((item.data.reviewerName || '?').slice(0,1).toUpperCase()) + '</div>' +
+                  nameHtml +
+                '</div>' : '') +
+              '</article>';
+            }
+
+            // Spotlight card in Uniform layout: accent border highlight
+            if (isSpotlight && !isVaried && isGridLayout) {
+              var w = data.widget;
+              var radius = typeof w.cornerRadius === "number" ? w.cornerRadius : 12;
+              var pad = w.density === "compact" ? "12px" : "16px";
+              var cardStyleCss = resolveCardStyleEmbed(w);
+              var body = truncate(item.data.body || "", w.bodyMaxChars || 280);
+              var starColor = resolveStarColorEmbed(w);
+              var fontSizeBase = w.fontSizeBase || 14;
+              var fontSizeNames = w.fontSizeNames || 13;
+              var fontSizeLabel = w.fontSizeLabel || 12;
+              var html = '<article class="why-widget-card" style="' + cardStyleCss + 'border:2px solid ' + escapeHtml(accentColor) + ';box-shadow:0 0 0 3px ' + escapeHtml(accentColor) + '22;color:' + escapeHtml(w.textColor) + ';border-radius:' + radius + 'px;padding:' + pad + '">';
+              if (w.showAvatars !== false) {
+                var sourceMarkHtml = w.showSourceLogo && item.data.source ? '<span style="margin-left:auto;font-weight:700;color:#4285f4;font-size:11px">' + (item.data.source === 'GOOGLE' ? 'G' : item.data.source === 'FACEBOOK' ? 'f' : item.data.source === 'YELP' ? 'Y' : '\u2713') + '</span>' : '';
+                html += '<div class="why-widget-reviewer">' +
+                  '<div style="width:32px;height:32px;border-radius:999px;background:#e2e8f0;color:#475569;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700">' + escapeHtml((item.data.reviewerName || '?').slice(0,1).toUpperCase()) + '</div>' +
+                  '<div><div class="why-widget-name" style="font-size:' + fontSizeNames + 'px">' + escapeHtml(item.data.reviewerName || 'Anonymous') + '</div>' +
+                  (w.showDate && item.data.reviewedAt ? '<div class="why-widget-date" style="font-size:' + fontSizeLabel + 'px">' + escapeHtml(formatDate(item.data.reviewedAt)) + '</div>' : '') +
+                  '</div>' + sourceMarkHtml + '</div>';
+              }
+              if (w.showRating !== false) { html += '<div style="font-size:14px;color:' + escapeHtml(starColor) + ';margin:8px 0">' + escapeHtml(stars(item.data.rating)) + '</div>'; }
+              html += renderBodyWithHighlight(body, reviewId, w.textColor, fontStack(w.fontFamily), fontSizeBase, false);
+              html += '</article>';
+              return html;
+            }
+
+            // Varied layout: non-featured cards — every 3rd one gets Instrument Serif
+            if (isVaried && isGridLayout) {
+              nonFeaturedReviewCount++;
+              var useSerif = (nonFeaturedReviewCount % 3 === 0);
+              var w = data.widget;
+              var radius = typeof w.cornerRadius === "number" ? w.cornerRadius : 12;
+              var pad = w.density === "compact" ? "12px" : "16px";
+              var cardStyleCss = resolveCardStyleEmbed(w);
+              var body = truncate(item.data.body || "", w.bodyMaxChars || 280);
+              var starColor = resolveStarColorEmbed(w);
+              var fontSizeNames = w.fontSizeNames || 13;
+              var fontSizeLabel = w.fontSizeLabel || 12;
+              var bodyFontFamily = useSerif ? serif : fontStack(w.fontFamily);
+              var html = '<article class="why-widget-card" style="' + cardStyleCss + 'color:' + escapeHtml(w.textColor) + ';border-radius:' + radius + 'px;padding:' + pad + '">';
+              if (w.showAvatars !== false) {
+                var sourceMarkHtml = w.showSourceLogo && item.data.source ? '<span style="margin-left:auto;font-weight:700;color:#4285f4;font-size:11px">' + (item.data.source === 'GOOGLE' ? 'G' : item.data.source === 'FACEBOOK' ? 'f' : item.data.source === 'YELP' ? 'Y' : '\u2713') + '</span>' : '';
+                html += '<div class="why-widget-reviewer">' +
+                  '<div style="width:32px;height:32px;border-radius:999px;background:#e2e8f0;color:#475569;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700">' + escapeHtml((item.data.reviewerName || '?').slice(0,1).toUpperCase()) + '</div>' +
+                  '<div><div class="why-widget-name" style="font-size:' + fontSizeNames + 'px">' + escapeHtml(item.data.reviewerName || 'Anonymous') + '</div>' +
+                  (w.showDate && item.data.reviewedAt ? '<div class="why-widget-date" style="font-size:' + fontSizeLabel + 'px">' + escapeHtml(formatDate(item.data.reviewedAt)) + '</div>' : '') +
+                  '</div>' + sourceMarkHtml + '</div>';
+              }
+              if (w.showRating !== false) { html += '<div style="font-size:14px;color:' + escapeHtml(starColor) + ';margin:8px 0">' + escapeHtml(stars(item.data.rating)) + '</div>'; }
+              html += renderBodyWithHighlight(body, reviewId, w.textColor, bodyFontFamily, useSerif ? 16 : (w.fontSizeBase || 13), useSerif);
+              html += '</article>';
+              return html;
+            }
+            return renderCard(item.data, data.widget);
           }).join("");
           if (data.widget.layout === "slider") {
-            container.insertAdjacentHTML("beforeend", items.map(function (item) {
+            container.insertAdjacentHTML("beforeend", filteredItems.map(function (item) {
               var cardHtml = item.type === "video" ? renderVideoCard(item.data) : renderCard(item.data, data.widget);
               return '<div class="why-widget-slide">' + cardHtml + '</div>';
             }).join(""));
           } else if (data.widget.layout === "video" || data.widget.layout === "carousel") {
-            container.insertAdjacentHTML("beforeend", items.map(function (item, idx) {
+            container.insertAdjacentHTML("beforeend", filteredItems.map(function (item, idx) {
               var cardHtml = item.type === "video" ? renderVideoCard(item.data) : renderCard(item.data, data.widget);
               return '<div class="why-widget-carousel-item' + (idx === 0 ? ' active' : '') + '">' + cardHtml + '</div>';
             }).join(""));
             // Add pagination dots if pagination is enabled
             var paginationContainer = mount.querySelector(".why-widget-carousel-pagination");
             if (paginationContainer && data.widget.showPagination !== false) {
-              var dotsHtml = items.map(function (_, idx) {
+              var dotsHtml = filteredItems.map(function (_, idx) {
                 return '<div class="why-widget-carousel-dot' + (idx === 0 ? ' active' : '') + '"></div>';
               }).join("");
               paginationContainer.innerHTML = dotsHtml;
             }
           } else {
             container.insertAdjacentHTML("beforeend", cardsHtml);
+          }
+          // Apply row spacing for natural (CSS columns) masonry after cards are in the DOM
+          if (container.getAttribute("data-natural-masonry") === "1") {
+            var natCards = container.querySelectorAll(".why-widget-card");
+            for (var ni = 0; ni < natCards.length; ni++) { natCards[ni].style.marginBottom = "16px"; }
           }
           attachVideoCardHandlers(container);
         }

@@ -39,8 +39,10 @@ export default async function WidgetDetailPage({
       ? (query.tone as "success" | "error" | "info")
       : "success";
   const hdrs = await headers();
-  const host = hdrs.get("host") ?? "";
-  const proto = hdrs.get("x-forwarded-proto") ?? "https";
+  // Strip any newline/carriage-return characters that Vercel can inject into
+  // forwarded headers — these would break the embed code URL.
+  const host = (hdrs.get("host") ?? "").replace(/[\r\n]/g, "");
+  const proto = (hdrs.get("x-forwarded-proto") ?? "https").replace(/[\r\n]/g, "").split(",")[0].trim();
   // Prefer NEXT_PUBLIC_APP_URL so embed codes always reference the production
   // URL even when the customizer is opened in a local dev environment.
   const appUrl =
@@ -100,6 +102,18 @@ export default async function WidgetDetailPage({
       backgroundColor: widget.backgroundColor,
       textColor: widget.textColor,
       fontFamily: widget.fontFamily,
+      starColorMode: widget.starColorMode,
+      cornerRadius: widget.cornerRadius,
+      cardStyle: widget.cardStyle,
+      density: widget.density,
+      gridColumns: widget.gridColumns,
+      wallStyle: widget.wallStyle,
+      cardHeights: widget.cardHeights,
+      enabledSources: widget.enabledSources,
+      // Spotlight & Pins
+      spotlightReviewId: (widget as { spotlightReviewId?: string | null }).spotlightReviewId ?? null,
+      pinnedReviewIds: (widget as { pinnedReviewIds?: string }).pinnedReviewIds ?? "",
+      reviewHighlights: (widget as { reviewHighlights?: string }).reviewHighlights ?? "",
       showAvgRating: widget.showAvgRating,
       showReviewCount: widget.showReviewCount,
       showResponses: widget.showResponses,
@@ -115,9 +129,20 @@ export default async function WidgetDetailPage({
     const profile = widget.location.publicProfile;
     const aiSummaryText = profile?.showAiReviewSummary ? (profile.aiReviewSummary ?? null) : null;
     const aiSummaryCount = profile?.showAiReviewSummary ? (profile.aiReviewSummaryReviewCount ?? null) : null;
+    // Fetch available reviews for the Spotlight & Pins picker
+    const pickerData = await getWidgetPickerData(widget.locationId);
+    const availableReviews = pickerData.reviews.map((r) => ({
+      id: r.id,
+      reviewerName: r.reviewerName,
+      reviewerPhotoUrl: r.reviewerPhotoUrl,
+      rating: r.rating,
+      body: r.body,
+      reviewedAt: r.reviewedAt,
+      source: r.source,
+    }));
     return (
       <AppShell activeScreen="widgets" flash={flash ? { message: flash, tone } : null}>
-        <WidgetStudioEditor widget={studioWidget} embedScriptUrl={embedScriptUrl} locations={locationOptions} aiSummaryText={aiSummaryText} aiSummaryCount={aiSummaryCount} />
+        <WidgetStudioEditor widget={studioWidget} embedScriptUrl={embedScriptUrl} locations={locationOptions} aiSummaryText={aiSummaryText} aiSummaryCount={aiSummaryCount} availableReviews={availableReviews} />
       </AppShell>
     );
   }

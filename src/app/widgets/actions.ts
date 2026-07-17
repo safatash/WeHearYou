@@ -221,6 +221,23 @@ export async function updateReviewWidget(formData: FormData) {
   const rawLayout = String(formData.get("layout") ?? "grid");
   const rawAlign = String(formData.get("headerAlign") ?? "left");
   const rawFont = String(formData.get("fontFamily") ?? "system");
+  const rawStarColorMode = String(formData.get("starColorMode") ?? "gold");
+  const rawCornerRadius = parseInt(formData.get("cornerRadius") as string) || 12;
+  const rawCardStyle = String(formData.get("cardStyle") ?? "border");
+  const rawDensity = String(formData.get("density") ?? "cozy");
+  const rawGridColumns = String(formData.get("gridColumns") ?? "auto");
+  const rawWallStyle = String(formData.get("wallStyle") ?? "varied");
+  const rawCardHeights = String(formData.get("cardHeights") ?? "equal");
+  const rawEnabledSources = String(formData.get("enabledSources") ?? "").trim();
+  // Spotlight & Pins
+  const rawSpotlightReviewId = String(formData.get("spotlightReviewId") ?? "").trim() || null;
+  const rawPinnedReviewIds = String(formData.get("pinnedReviewIds") ?? "").trim();
+  // reviewHighlights is a JSON string [{reviewId, quote}] — validate it's parseable
+  const rawReviewHighlights = (() => {
+    const raw = String(formData.get("reviewHighlights") ?? "").trim();
+    if (!raw) return "";
+    try { JSON.parse(raw); return raw; } catch { return ""; }
+  })();
   const rawMinRating = Number(formData.get("minRating") ?? 1);
   const rawPageSize = Number(formData.get("pageSize") ?? 12);
   const rawBodyMaxChars = Number(formData.get("bodyMaxChars") ?? 280);
@@ -277,6 +294,18 @@ export async function updateReviewWidget(formData: FormData) {
       backgroundColor: hexColor(formData.get("backgroundColor"), "#ffffff"),
       textColor: hexColor(formData.get("textColor"), "#0f172a"),
       fontFamily: allowedFonts.has(rawFont) ? rawFont : "system",
+      starColorMode: ["gold", "accent", "ink"].includes(rawStarColorMode) ? rawStarColorMode : "gold",
+      cornerRadius: Math.max(0, Math.min(22, rawCornerRadius)),
+      cardStyle: ["border", "shadow", "soft"].includes(rawCardStyle) ? rawCardStyle : "border",
+      density: ["cozy", "compact"].includes(rawDensity) ? rawDensity : "cozy",
+      gridColumns: ["auto", "2", "3"].includes(rawGridColumns) ? rawGridColumns : "auto",
+      wallStyle: ["varied", "uniform"].includes(rawWallStyle) ? rawWallStyle : "varied",
+      cardHeights: ["equal", "natural"].includes(rawCardHeights) ? rawCardHeights : "equal",
+      enabledSources: rawEnabledSources, // empty string = all sources enabled
+      // Spotlight & Pins
+      spotlightReviewId: rawSpotlightReviewId,
+      pinnedReviewIds: rawPinnedReviewIds,
+      reviewHighlights: rawReviewHighlights,
       fontSizeBase: Math.max(11, Math.min(18, fontSizeBase)),
       fontSizeNames: Math.max(10, Math.min(16, fontSizeNames)),
       fontSizeHeader: Math.max(14, Math.min(28, fontSizeHeader)),
@@ -322,6 +351,64 @@ export async function deleteReviewWidget(formData: FormData) {
   await prisma.reviewWidget.delete({ where: { id: widgetId } });
 
   redirect("/widgets?flash=Widget+deleted&tone=success");
+}
+
+export async function bulkDeleteWidgets(formData: FormData) {
+  "use server";
+  const raw = String(formData.get("widgetIds") ?? "").trim();
+  const widgetIds = raw.split(",").map((s) => s.trim()).filter(Boolean);
+  if (!widgetIds.length) redirect("/widgets?flash=No+widgets+selected&tone=error");
+
+  // Verify all widgets belong to an org the caller can access
+  const widgets = await prisma.reviewWidget.findMany({
+    where: { id: { in: widgetIds } },
+    select: { id: true, organizationId: true },
+  });
+  if (!widgets.length) redirect("/widgets?flash=Widgets+not+found&tone=error");
+
+  // All widgets must belong to the same org (they always will from the UI)
+  const orgId = widgets[0].organizationId;
+  await requireOrganizationAccess(orgId);
+
+  // Only delete widgets that actually belong to this org
+  const ownedIds = widgets
+    .filter((w) => w.organizationId === orgId)
+    .map((w) => w.id);
+
+  await prisma.reviewWidget.deleteMany({ where: { id: { in: ownedIds } } });
+
+  const count = ownedIds.length;
+  redirect(`/widgets?flash=${count}+widget${count === 1 ? "" : "s"}+deleted&tone=success`);
+}
+
+export async function bulkToggleWidgetsActive(formData: FormData) {
+  "use server";
+  const raw = String(formData.get("widgetIds") ?? "").trim();
+  const widgetIds = raw.split(",").map((s) => s.trim()).filter(Boolean);
+  const targetActive = formData.get("isActive") === "true";
+  if (!widgetIds.length) redirect("/widgets?flash=No+widgets+selected&tone=error");
+
+  const widgets = await prisma.reviewWidget.findMany({
+    where: { id: { in: widgetIds } },
+    select: { id: true, organizationId: true },
+  });
+  if (!widgets.length) redirect("/widgets?flash=Widgets+not+found&tone=error");
+
+  const orgId = widgets[0].organizationId;
+  await requireOrganizationAccess(orgId);
+
+  const ownedIds = widgets
+    .filter((w) => w.organizationId === orgId)
+    .map((w) => w.id);
+
+  await prisma.reviewWidget.updateMany({
+    where: { id: { in: ownedIds } },
+    data: { isActive: targetActive },
+  });
+
+  const count = ownedIds.length;
+  const label = targetActive ? "activated" : "deactivated";
+  redirect(`/widgets?flash=${count}+widget${count === 1 ? "" : "s"}+${label}&tone=success`);
 }
 
 export async function duplicateReviewWidget(formData: FormData) {

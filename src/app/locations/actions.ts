@@ -2198,3 +2198,294 @@ export async function setReviewHiddenFromMiniSite(formData: FormData): Promise<v
 export async function setReviewWidgetVisible(formData: FormData): Promise<void> {
   await setReviewFlag(String(formData.get("reviewId")), { isWidgetVisible: formData.get("visible") === "true" });
 }
+
+// ─── Facebook Integration Actions ────────────────────────────────────────────
+
+import {
+  fetchFacebookPageRatings,
+  getDecryptedFacebookToken,
+} from "@/lib/facebook-oauth";
+
+/**
+ * Link a FacebookPage to a WeHearYou location, then immediately sync reviews.
+ * Called from the integrations page page-picker UI.
+ */
+export async function linkFacebookPageToLocation(formData: FormData) {
+  "use server";
+  const facebookPageId = String(formData.get("facebookPageId") ?? "").trim();
+  const locationId = String(formData.get("locationId") ?? "").trim();
+
+  if (!facebookPageId || !locationId) {
+    throw new Error("Facebook page and location are required");
+  }
+
+  const membership = await requireLocationAccess(locationId);
+
+  // Verify the FacebookPage belongs to this organization.
+  const fbPage = await prisma.facebookPage.findFirst({
+    where: {
+      id: facebookPageId,
+      connection: { organizationId: membership.organizationId },
+    },
+    include: { connection: true },
+  });
+
+  if (!fbPage) {
+    throw new Error("Facebook page not found");
+  }
+
+  // Unlink any existing page that was previously linked to this location.
+  await prisma.facebookPage.updateMany({
+    where: { locationId },
+    data: { locationId: null },
+  });
+
+  // Link the selected page to the location.
+  await prisma.facebookPage.update({
+    where: { id: facebookPageId },
+    data: { locationId },
+  });
+
+  revalidatePath("/integrations");
+  revalidatePath(`/locations/${locationId}`);
+
+  // Kick off an immediate sync.
+  try {
+    const result = await performFacebookReviewSync(locationId);
+    redirect(`/integrations?facebook=sync-success&created=${result.createdCount}&updated=${result.updatedCount}&skipped=${result.skippedCount}&total=${result.totalCount}`);
+  } catch {
+    redirect(`/integrations?facebook=linked`);
+  }
+}
+
+/**
+ * Unlink a FacebookPage from its location (does not delete the page row).
+ */
+export async function unlinkFacebookPage(formData: FormData) {
+  "use server";
+  const facebookPageId = String(formData.get("facebookPageId") ?? "").trim();
+
+  if (!facebookPageId) {
+    throw new Error("Facebook page ID is required");
+  }
+
+  const membership = await requireTeamManagement();
+
+  const fbPage = await prisma.facebookPage.findFirst({
+    where: {
+      id: facebookPageId,
+      connection: { organizationId: membership.organizationId },
+    },
+  });
+
+  if (!fbPage) {
+    throw new Error("Facebook page not found");
+  }
+
+  await prisma.facebookPage.update({
+    where: { id: facebookPageId },
+    data: { locationId: null },
+  });
+
+  revalidatePath("/integrations");
+  if (fbPage.locationId) {
+    revalidatePath(`/locations/${fbPage.locationId}`);
+  }
+
+  redirect("/integrations?facebook=unlinked");
+}
+
+/**
+ * Sync Facebook reviews for a single location.
+ * The location must have a linked FacebookPage.
+ */
+export async function performFacebookReviewSync(locationId: string) {
+  const location = await prisma.location.findUnique({
+    where: { id: locationId },
+    include: {
+      facebookPage: {
+        include: { connection: true },
+      },
+    },
+  });
+
+  if (!location?.facebookPage) {
+    throw new Error("No Facebook page linked to this location");
+  }
+
+  const fbPage = location.facebookPage;
+  const pageAccessToken = getDecryptedFacebookToken({ accessToken: fbPage.pageAccessToken });
+
+  if (!pageAccessToken) {
+    await prisma.facebookPage.update({
+      where: { id: fbPage.id },
+      data: {
+        lastSyncStatus: "error",
+        lastSyncMessage: "Page access token is missing or could not be decrypted",
+        lastSyncedAt: new Date(),
+      },
+    });
+    throw new Error("Facebook page access token is missing");
+  }
+
+  let ratings;
+  try {
+    ratings = await fetchFacebookPageRatings(fbPage.pageId, pageAccessToken);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Facebook review sync failed";
+    await prisma.facebookPage.update({
+      where: { id: fbPage.id },
+      data: {
+        lastSyncStatus: "error",
+        lastSyncMessage: message,
+        lastSyncedAt: new Date(),
+      },
+    });
+    throw error;
+  }
+
+  let createdCount = 0;
+  let updatedCount = 0;
+  let skippedCount = 0;
+
+  for (const rating of ratings) {
+    // Skip entries that have no rating and no review text.
+    if (!rating.has_rating && !rating.has_review) {
+      skippedCount += 1;
+      continue;
+    }
+
+    const storyId = rating.open_graph_story?.id;
+    const externalId = storyId ?? `${fbPage.pageId}_${rating.reviewer?.id ?? "anon"}_${rating.created_time ?? ""}`;
+    const reviewedAt = rating.created_time ? new Date(rating.created_time) : null;
+    const reviewerName = rating.reviewer?.name?.trim() || "Facebook reviewer";
+
+    // Normalize rating: Facebook uses 1-5 numeric, or recommendation_type positive/negative.
+    let normalizedRating: number;
+    if (rating.rating != null && rating.rating >= 1 && rating.rating <= 5) {
+      normalizedRating = rating.rating;
+    } else if (rating.recommendation_type === "positive") {
+      normalizedRating = 5;
+    } else if (rating.recommendation_type === "negative") {
+      normalizedRating = 1;
+    } else {
+      normalizedRating = 5; // default
+    }
+
+    const normalizedBody = rating.review_text?.trim() || "No written review provided.";
+
+    const existing = await prisma.review.findFirst({
+      where: {
+        locationId: location.id,
+        externalId,
+        source: ReviewSource.FACEBOOK,
+      },
+      select: { id: true, reviewerName: true, rating: true, body: true, reviewedAt: true },
+    });
+
+    if (existing) {
+      const changed =
+        existing.reviewerName !== reviewerName ||
+        existing.rating !== normalizedRating ||
+        existing.body !== normalizedBody;
+
+      if (changed) {
+        await prisma.review.update({
+          where: { id: existing.id },
+          data: {
+            reviewerName,
+            rating: normalizedRating,
+            body: normalizedBody,
+            status: ReviewStatus.PUBLISHED,
+            reviewedAt,
+            publishedExternally: true,
+            lastImportedAt: new Date(),
+          },
+        });
+        updatedCount += 1;
+      } else {
+        skippedCount += 1;
+      }
+    } else {
+      await prisma.review.create({
+        data: {
+          locationId: location.id,
+          source: ReviewSource.FACEBOOK,
+          externalId,
+          reviewerName,
+          rating: normalizedRating,
+          status: ReviewStatus.PUBLISHED,
+          body: normalizedBody,
+          reviewedAt,
+          publishedExternally: true,
+          lastImportedAt: new Date(),
+        },
+      });
+      createdCount += 1;
+    }
+  }
+
+  // Update avg rating across all published reviews.
+  const publishedReviews = await prisma.review.findMany({
+    where: {
+      locationId: location.id,
+      status: ReviewStatus.PUBLISHED,
+    },
+    select: { rating: true },
+  });
+
+  const avgRating = publishedReviews.length
+    ? publishedReviews.reduce((sum, r) => sum + (r.rating ?? 0), 0) / publishedReviews.length
+    : null;
+
+  await prisma.location.update({
+    where: { id: location.id },
+    data: { avgRating },
+  });
+
+  await prisma.facebookPage.update({
+    where: { id: fbPage.id },
+    data: {
+      lastSyncStatus: "success",
+      lastSyncMessage: null,
+      lastSyncImportedCount: createdCount,
+      lastSyncUpdatedCount: updatedCount,
+      lastSyncSkippedCount: skippedCount,
+      lastSyncFetchedCount: ratings.length,
+      lastSyncedAt: new Date(),
+    },
+  });
+
+  await prisma.facebookPageConnection.update({
+    where: { id: fbPage.connectionId },
+    data: { lastSyncedAt: new Date(), lastSyncStatus: "success", lastSyncMessage: null },
+  });
+
+  revalidatePath("/");
+  revalidatePath("/reviews");
+  revalidatePath("/integrations");
+  revalidatePath(`/locations/${location.id}`);
+  if (location.slug) revalidatePath(`/b/${location.slug}`);
+
+  return { location, createdCount, updatedCount, skippedCount, totalCount: ratings.length };
+}
+
+/**
+ * Server action wrapper for syncing Facebook reviews (called from a form).
+ */
+export async function syncFacebookReviews(formData: FormData) {
+  "use server";
+  const locationId = String(formData.get("locationId") ?? "").trim();
+  if (!locationId) throw new Error("Location is required");
+
+  await requireLocationAccess(locationId);
+
+  try {
+    const result = await performFacebookReviewSync(locationId);
+    redirect(`/integrations?facebook=sync-success&created=${result.createdCount}&updated=${result.updatedCount}&skipped=${result.skippedCount}&total=${result.totalCount}`);
+  } catch (error) {
+    if (isRedirectError(error)) throw error;
+    const message = error instanceof Error ? error.message : "Facebook sync failed";
+    redirect(`/integrations?facebook=sync-error&reason=${encodeURIComponent(message)}`);
+  }
+}

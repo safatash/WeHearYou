@@ -1698,8 +1698,8 @@ export function WidgetCustomizer({
                   <button
                     type="button"
                     onClick={() => {
-                      // Strip any newlines that may have crept into attribute values
-                      const clean = embedCode.replace(/([a-z"'])(\s*\n\s*)([^\s<])/g, "$1$3");
+                      // Strip any whitespace/newlines between or within HTML tags
+                      const clean = embedCode.replace(/\s*\n\s*/g, "").trim();
                       navigator.clipboard.writeText(clean);
                       setCopySuccess(true);
                       setTimeout(() => setCopySuccess(false), 2000);

@@ -63,6 +63,18 @@ export type PublicWidgetPayload = {
     backgroundColor: string;
     textColor: string;
     fontFamily: string;
+    starColorMode: string;
+    cornerRadius: number;
+    cardStyle: string;
+    density: string;
+    gridColumns: string;
+    wallStyle: string;
+    cardHeights: string;
+    enabledSources: string;
+    // Spotlight & Pins
+    spotlightReviewId: string | null;
+    pinnedReviewIds: string;
+    reviewHighlights: string;
     // Collecting Widget
     collectDisplayFreq: string | null;
     collectButtonColor: string | null;
@@ -275,6 +287,18 @@ export async function getPublicReviewWidgetPayload(publicToken: string, page = 1
     backgroundColor: widget.backgroundColor,
     textColor: widget.textColor,
     fontFamily: widget.fontFamily,
+    starColorMode: (widget as { starColorMode?: string }).starColorMode ?? "gold",
+    cornerRadius: (widget as { cornerRadius?: number }).cornerRadius ?? 12,
+    cardStyle: (widget as { cardStyle?: string }).cardStyle ?? "border",
+    density: (widget as { density?: string }).density ?? "cozy",
+    gridColumns: (widget as { gridColumns?: string }).gridColumns ?? "auto",
+    wallStyle: (widget as { wallStyle?: string }).wallStyle ?? "varied",
+    cardHeights: (widget as { cardHeights?: string }).cardHeights ?? "equal",
+    enabledSources: (widget as { enabledSources?: string }).enabledSources ?? "",
+    // Spotlight & Pins
+    spotlightReviewId: (widget as { spotlightReviewId?: string | null }).spotlightReviewId ?? null,
+    pinnedReviewIds: (widget as { pinnedReviewIds?: string }).pinnedReviewIds ?? "",
+    reviewHighlights: (widget as { reviewHighlights?: string }).reviewHighlights ?? "",
     fontSizeBase: widget.fontSizeBase ?? 14,
     fontSizeNames: widget.fontSizeNames ?? 13,
     fontSizeHeader: widget.fontSizeHeader ?? 20,
@@ -433,29 +457,75 @@ export async function getPublicReviewWidgetPayload(publicToken: string, page = 1
     },
   };
 
+  // Parse pinned review IDs (CSV) — only relevant on page 1
+  const widgetWithPins = widget as { pinnedReviewIds?: string; spotlightReviewId?: string | null };
+  const pinnedIds = (widgetWithPins.pinnedReviewIds ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const spotlightId = widgetWithPins.spotlightReviewId ?? null;
+
+  // Collect all IDs that need to be fetched separately (pinned + spotlight)
+  const priorityIds = Array.from(new Set([...(spotlightId ? [spotlightId] : []), ...pinnedIds]));
+
+  const reviewSelect = {
+    id: true,
+    reviewerName: true,
+    reviewerPhotoUrl: true,
+    sourceReviewUrl: true,
+    sourceReplyText: true,
+    replyDraft: true,
+    replyPublishedAt: true,
+    replySentAt: true,
+    rating: true,
+    body: true,
+    reviewedAt: true,
+    source: true,
+  };
+
+  // Fetch priority reviews (spotlight + pinned) separately so they're always included
+  const priorityReviews = priorityIds.length > 0 && safePage === 1
+    ? await prisma.review.findMany({
+        where: { id: { in: priorityIds }, status: ReviewStatus.PUBLISHED },
+        select: reviewSelect,
+      })
+    : [];
+  const priorityIdSet = new Set(priorityReviews.map((r) => r.id));
+
   const [reviews, total] = await Promise.all([
     prisma.review.findMany({
-      where,
+      where: { ...where, id: { notIn: priorityIds.length > 0 ? priorityIds : undefined } },
       orderBy: buildOrderBy(widget.sort),
-      skip,
-      take: pageSize,
-      select: {
-        id: true,
-        reviewerName: true,
-        reviewerPhotoUrl: true,
-        sourceReviewUrl: true,
-        sourceReplyText: true,
-        replyDraft: true,
-        replyPublishedAt: true,
-        replySentAt: true,
-        rating: true,
-        body: true,
-        reviewedAt: true,
-        source: true,
-      },
+      skip: safePage === 1 ? 0 : skip - priorityIds.length,
+      take: safePage === 1 ? Math.max(1, pageSize - priorityReviews.length) : pageSize,
+      select: reviewSelect,
     }),
     prisma.review.count({ where }),
   ]);
+
+  // On page 1: scatter pinned reviews into the list at semi-random positions
+  // Spotlight always goes first; pinned reviews are inserted at deterministic
+  // but spread-out positions so they don't all cluster at the top.
+  const buildReviewList = () => {
+    if (priorityReviews.length === 0) return reviews;
+    const spotlight = spotlightId ? priorityReviews.find((r) => r.id === spotlightId) : null;
+    const pinned = pinnedIds
+      .map((id) => priorityReviews.find((r) => r.id === id))
+      .filter((r): r is NonNullable<typeof r> => r !== undefined && r.id !== spotlightId);
+    const rest = reviews.filter((r) => !priorityIdSet.has(r.id));
+    // Insert pinned reviews at evenly-spaced positions throughout the rest list
+    const result = [...rest];
+    const step = Math.max(1, Math.floor(result.length / (pinned.length + 1)));
+    pinned.forEach((r, i) => {
+      const pos = Math.min(step * (i + 1), result.length);
+      result.splice(pos, 0, r);
+    });
+    // Spotlight goes at position 0
+    if (spotlight) result.unshift(spotlight);
+    return result;
+  };
+
+  const mergedReviews = safePage === 1 ? buildReviewList() : reviews;
 
   const videoTestimonials: PublicWidgetVideoTestimonial[] = [];
   if (widget.contentType === "VIDEO" || widget.contentType === "MIXED") {
@@ -500,7 +570,7 @@ export async function getPublicReviewWidgetPayload(publicToken: string, page = 1
   return {
     widget: buildWidgetObj(pageSize),
     location: buildLocationObj(total),
-    reviews: reviews.map((review) => ({
+    reviews: mergedReviews.map((review) => ({
       id: review.id,
       reviewerName: review.reviewerName,
       reviewerPhotoUrl: review.reviewerPhotoUrl ?? null,

@@ -48,6 +48,7 @@ interface ScreenCtx {
   state: FunnelState;
   set: (patch: Partial<FunnelState>) => void;
   go: (screen: ScreenId) => void;
+  onDestinationChosen?: (destinationId: string) => void;
 }
 
 /* ── RatingScreen ────────────────────────────────────────────────────────── */
@@ -697,7 +698,7 @@ export const PosConfirm = ({ props, state, set, go }: ScreenCtx) => {
 
 /* ── PosCelebrate ────────────────────────────────────────────────────────── */
 
-export const PosCelebrate = ({ props, state, go }: ScreenCtx) => {
+export const PosCelebrate = ({ props, state, set, go, onDestinationChosen }: ScreenCtx) => {
   const [copied, setCopied] = useState(false);
   const [fired, setFired] = useState(false);
 
@@ -733,7 +734,11 @@ export const PosCelebrate = ({ props, state, go }: ScreenCtx) => {
 
   function destHref(d: (typeof props.destinations)[number]): string {
     if (d.isInternal) {
-      return `${props.internalReviewBase}/review?rating=${state.rating}${props.embed ? "&embed=1" : ""}`;
+      const body = state.selectedVersion === "short" ? state.reviewShort : state.reviewLong;
+      const params = new URLSearchParams({ rating: String(state.rating) });
+      if (body) params.set("body", body);
+      if (props.embed) params.set("embed", "1");
+      return `${props.internalReviewBase}/review?${params.toString()}`;
     }
     return d.url ?? "#";
   }
@@ -744,6 +749,12 @@ export const PosCelebrate = ({ props, state, go }: ScreenCtx) => {
 
   function destRel(d: (typeof props.destinations)[number]): string | undefined {
     return d.isInternal ? undefined : "noopener noreferrer";
+  }
+
+  function handleDestClick(d: (typeof props.destinations)[number]) {
+    if (state.selectedDestination) return; // already fired once
+    set({ selectedDestination: d.id });
+    onDestinationChosen?.(d.id);
   }
 
   return (
@@ -769,6 +780,7 @@ export const PosCelebrate = ({ props, state, go }: ScreenCtx) => {
             href={destHref(preferred)}
             target={destTarget(preferred)}
             rel={destRel(preferred)}
+            onClick={() => handleDestClick(preferred)}
             style={{
               display: "flex",
               alignItems: "center",
@@ -827,6 +839,7 @@ export const PosCelebrate = ({ props, state, go }: ScreenCtx) => {
               href={destHref(d)}
               target={destTarget(d)}
               rel={destRel(d)}
+              onClick={() => handleDestClick(d)}
               style={{
                 display: "flex",
                 alignItems: "center",
