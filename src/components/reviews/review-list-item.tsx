@@ -82,15 +82,44 @@ export function ReviewListItem({ review, selected, aiReplyEnabled }: ReviewListI
     }
   };
 
-  const handleOpenOnGoogle = (e: React.MouseEvent) => {
+  const handleOpenExternal = (e: React.MouseEvent) => {
     e.stopPropagation();
-    const url =
-      review.sourceReviewUrl ??
-      (review.location?.googlePlaceId
-        ? `https://www.google.com/maps/place/?q=place_id:${encodeURIComponent(review.location.googlePlaceId)}`
-        : null);
-    if (url) window.open(url, "_blank");
+    let url: string | null = null;
+    if (review.source === "GOOGLE") {
+      url =
+        review.sourceReviewUrl ??
+        (review.location?.googlePlaceId
+          ? `https://search.google.com/local/reviews?placeid=${encodeURIComponent(review.location.googlePlaceId)}`
+          : null);
+    } else if (review.source === "INTERNAL") {
+      url = review.location?.slug ? `/b/${review.location.slug}` : null;
+    } else {
+      url = review.sourceReviewUrl ?? null;
+    }
+    if (url) {
+      if (url.startsWith("/")) {
+        window.open(url, "_blank");
+      } else {
+        window.open(url, "_blank");
+      }
+    }
   };
+
+  const externalButtonLabel =
+    review.source === "GOOGLE"
+      ? "Open on Google"
+      : review.source === "INTERNAL"
+      ? "View on WeHearYou"
+      : review.sourceReviewUrl
+      ? "View original"
+      : null;
+
+  const hasExternalUrl =
+    review.source === "GOOGLE"
+      ? !!(review.sourceReviewUrl || review.location?.googlePlaceId)
+      : review.source === "INTERNAL"
+      ? !!review.location?.slug
+      : !!review.sourceReviewUrl;
 
   const handleDraftReply = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -202,15 +231,15 @@ export function ReviewListItem({ review, selected, aiReplyEnabled }: ReviewListI
               </svg>
               Flag
             </button>
-            {(review.sourceReviewUrl || review.location?.googlePlaceId) && (
+            {hasExternalUrl && externalButtonLabel && (
               <button
-                onClick={handleOpenOnGoogle}
+                onClick={handleOpenExternal}
                 className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition"
               >
                 <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
                 </svg>
-                Open on Google
+                {externalButtonLabel}
               </button>
             )}
             <button

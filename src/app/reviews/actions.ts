@@ -389,6 +389,7 @@ export async function saveReviewReplyInline(formData: FormData): Promise<{ succe
   const replyDraft = String(formData.get("replyDraft") ?? "").trim() || null;
 
   if (!reviewId) return { success: false, error: "Review is required" };
+  if (!replyDraft) return { success: false, error: "Reply text is required" };
 
   const review = await prisma.review.findUnique({
     where: { id: reviewId },
@@ -410,14 +411,40 @@ export async function saveReviewReplyInline(formData: FormData): Promise<{ succe
   });
 
   try {
-    await prisma.review.update({
-      where: { id: reviewId },
-      data: {
-        replyDraft,
-        replySentAt: new Date(),
-        replySentByMembershipId: fallbackSender?.id ?? null,
-      },
-    });
+    if (review.source === "GOOGLE") {
+      const safety = classifyReviewSafety(replyDraft);
+      if (safety.isRisky) {
+        await logReplyAudit({ reviewId, locationId: review.locationId, action: "SAFETY_BLOCKED", resultStatus: "BLOCKED", draftText: replyDraft, safetyClassification: safety });
+        return { success: false, error: `Safety check failed: ${safety.reason}` };
+      }
+
+      const sendResult = await sendGoogleReviewReply(reviewId, replyDraft);
+      if (!sendResult.success) {
+        await logReplyAudit({ reviewId, locationId: review.locationId, action: "FAILED", resultStatus: "FAILED", draftText: replyDraft, errorMessage: sendResult.error });
+        return { success: false, error: sendResult.error || "Failed to send reply to Google" };
+      }
+
+      await logReplyAudit({ reviewId, locationId: review.locationId, action: "SENT_TO_GOOGLE", resultStatus: "SUCCESS", draftText: replyDraft });
+
+      await prisma.review.update({
+        where: { id: reviewId },
+        data: {
+          replyDraft,
+          sourceReplyText: replyDraft,
+          replySentAt: sendResult.publishedAt,
+          replySentByMembershipId: fallbackSender?.id ?? null,
+        },
+      });
+    } else {
+      await prisma.review.update({
+        where: { id: reviewId },
+        data: {
+          replyDraft,
+          replySentAt: new Date(),
+          replySentByMembershipId: fallbackSender?.id ?? null,
+        },
+      });
+    }
 
     revalidatePath("/reviews");
     revalidatePath(`/reviews/${reviewId}`);
