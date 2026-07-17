@@ -86,7 +86,6 @@ export function ReviewListItem({ review, selected, aiReplyEnabled }: ReviewListI
     e.stopPropagation();
     const url =
       review.sourceReviewUrl ??
-      review.location?.reviewLink ??
       (review.location?.googlePlaceId
         ? `https://www.google.com/maps/place/?q=place_id:${encodeURIComponent(review.location.googlePlaceId)}`
         : null);
@@ -203,7 +202,7 @@ export function ReviewListItem({ review, selected, aiReplyEnabled }: ReviewListI
               </svg>
               Flag
             </button>
-            {(review.sourceReviewUrl || review.location?.reviewLink || review.location?.googlePlaceId) && (
+            {(review.sourceReviewUrl || review.location?.googlePlaceId) && (
               <button
                 onClick={handleOpenOnGoogle}
                 className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition"
