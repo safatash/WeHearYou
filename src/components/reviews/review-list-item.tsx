@@ -300,7 +300,7 @@ export function ReviewListItem({
       )}
 
       {/* Expanded section */}
-      {isExpanded && aiReplyEnabled && (
+      {isExpanded && (
         <div className="border-t border-slate-200 p-4">
           {/* AI Suggestion header */}
           <div className="flex items-center justify-between mb-3">
