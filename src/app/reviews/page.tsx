@@ -121,7 +121,7 @@ export default async function ReviewsPage({
                 href={tab.href}
                 className={`rounded-full px-3.5 py-1.5 text-sm font-semibold transition whitespace-nowrap ${
                   tab.active
-                    ? "bg-[#37aeb7] text-white"
+                    ? "bg-[#37aeb7] !text-white"
                     : "text-slate-600 hover:bg-slate-100"
                 }`}
               >
@@ -135,7 +135,7 @@ export default async function ReviewsPage({
             <Link
               href={buildFilterHref({ locationId: "all" })}
               className={`rounded-full px-3.5 py-1.5 text-sm font-semibold transition whitespace-nowrap ${
-                allowedLocationId === "all" ? "bg-slate-900 text-white" : "text-slate-500 hover:text-slate-700"
+                allowedLocationId === "all" ? "bg-slate-900 !text-white" : "text-slate-500 hover:text-slate-700"
               }`}
             >
               All locations
@@ -145,7 +145,7 @@ export default async function ReviewsPage({
                 key={loc.id}
                 href={buildFilterHref({ locationId: loc.id })}
                 className={`rounded-full px-3.5 py-1.5 text-sm font-semibold transition whitespace-nowrap ${
-                  allowedLocationId === loc.id ? "bg-slate-900 text-white" : "text-slate-500 hover:text-slate-700"
+                  allowedLocationId === loc.id ? "bg-slate-900 !text-white" : "text-slate-500 hover:text-slate-700"
                 }`}
               >
                 {loc.name}
