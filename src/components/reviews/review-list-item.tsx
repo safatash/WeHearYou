@@ -35,6 +35,30 @@ export function ReviewListItem({
     return review.reviewerName.charAt(0).toUpperCase();
   };
 
+  // Helper: Generate consistent color based on reviewer name
+  const getAvatarColor = () => {
+    const colors = [
+      { bg: "bg-orange-100", text: "text-orange-600" },
+      { bg: "bg-cyan-100", text: "text-cyan-600" },
+      { bg: "bg-pink-100", text: "text-pink-600" },
+      { bg: "bg-purple-100", text: "text-purple-600" },
+      { bg: "bg-green-100", text: "text-green-600" },
+      { bg: "bg-blue-100", text: "text-blue-600" },
+      { bg: "bg-red-100", text: "text-red-600" },
+      { bg: "bg-indigo-100", text: "text-indigo-600" },
+    ];
+
+    // Hash the reviewer name to get a consistent color index
+    let hash = 0;
+    for (let i = 0; i < review.reviewerName.length; i++) {
+      hash = ((hash << 5) - hash) + review.reviewerName.charCodeAt(i);
+      hash = hash & hash; // Convert to 32bit integer
+    }
+
+    const colorIndex = Math.abs(hash) % colors.length;
+    return colors[colorIndex];
+  };
+
   // Helper: Determine status badge
   const getStatusBadge = () => {
     if (review.replyPublishedAt || review.replySentAt) {
@@ -177,7 +201,7 @@ export function ReviewListItem({
         {/* First line: Avatar, Name, Stars, Google badge, Status badge */}
         <div className="flex items-center justify-between gap-3 mb-2">
           <div className="flex items-center gap-3 min-w-0 flex-1">
-            <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-orange-100 text-sm font-bold text-orange-600">
+            <div className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full text-sm font-bold ${getAvatarColor().bg} ${getAvatarColor().text}`}>
               {getAvatarInitials()}
             </div>
             <div className="min-w-0 flex-1">
