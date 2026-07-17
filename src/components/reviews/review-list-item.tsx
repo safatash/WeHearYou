@@ -84,7 +84,13 @@ export function ReviewListItem({ review, selected, aiReplyEnabled }: ReviewListI
 
   const handleOpenOnGoogle = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (review.sourceReviewUrl) window.open(review.sourceReviewUrl, "_blank");
+    const url =
+      review.sourceReviewUrl ??
+      review.location?.reviewLink ??
+      (review.location?.googlePlaceId
+        ? `https://www.google.com/maps/place/?q=place_id:${encodeURIComponent(review.location.googlePlaceId)}`
+        : null);
+    if (url) window.open(url, "_blank");
   };
 
   const handleDraftReply = async (e: React.MouseEvent) => {
@@ -197,15 +203,17 @@ export function ReviewListItem({ review, selected, aiReplyEnabled }: ReviewListI
               </svg>
               Flag
             </button>
-            <button
-              onClick={handleOpenOnGoogle}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition"
-            >
-              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
-              </svg>
-              Open on Google
-            </button>
+            {(review.sourceReviewUrl || review.location?.reviewLink || review.location?.googlePlaceId) && (
+              <button
+                onClick={handleOpenOnGoogle}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition"
+              >
+                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+                </svg>
+                Open on Google
+              </button>
+            )}
             <button
               onClick={handleDelete}
               disabled={isDeleting}
