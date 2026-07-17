@@ -2,20 +2,18 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { formatReviewDate, stars, truncateReviewBody, type ReviewWithRelations } from "@/lib/reviews";
-import { deleteReview } from "@/app/reviews/actions";
+import { buildReviewReplyDraft, formatReviewDate, stars, truncateReviewBody, type ReviewWithRelations } from "@/lib/reviews";
+import { deleteReview, saveReviewReply, generateAiReplyDraft } from "@/app/reviews/actions";
 
 interface ReviewListItemProps {
   review: ReviewWithRelations;
   selected: boolean;
-  filterHref: string;
   aiReplyEnabled: boolean;
 }
 
 export function ReviewListItem({
   review,
   selected,
-  filterHref,
   aiReplyEnabled,
 }: ReviewListItemProps) {
   const router = useRouter();
@@ -25,6 +23,8 @@ export function ReviewListItem({
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Helper: Extract initials from reviewer name
   const getAvatarInitials = () => {
@@ -119,6 +119,49 @@ export function ReviewListItem({
       window.open(review.sourceReviewUrl, "_blank");
     } else {
       setToastMessage("No Google URL available for this review");
+    }
+  };
+
+  // Handler: Regenerate AI draft
+  const handleRegenerate = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsGenerating(true);
+    try {
+      const result = await generateAiReplyDraft(review.id);
+      if (result.success && result.draft) {
+        setReplyText(result.draft);
+        setToastMessage("AI draft regenerated successfully");
+      } else {
+        setToastMessage(result.error || "Failed to regenerate draft");
+      }
+    } catch (error) {
+      setToastMessage(error instanceof Error ? error.message : "Failed to regenerate draft");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  // Handler: Post reply
+  const handlePostReply = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!replyText.trim()) return;
+
+    setIsSubmitting(true);
+    try {
+      const formData = new FormData();
+      formData.set("reviewId", review.id);
+      formData.set("replyDraft", replyText.trim());
+      formData.set("markSent", "true");
+      formData.set("sendToGoogle", review.source === "GOOGLE" ? "false" : "false");
+
+      await saveReviewReply(formData);
+      setToastMessage("Reply saved successfully");
+      setIsExpanded(false);
+      router.refresh();
+    } catch (error) {
+      setToastMessage(error instanceof Error ? error.message : "Failed to save reply");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -263,10 +306,11 @@ export function ReviewListItem({
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-sm font-semibold text-slate-900">AI Suggestion</h3>
             <button
-              className="text-xs font-semibold text-teal-600 hover:text-teal-700 transition"
-              onClick={(e) => e.stopPropagation()}
+              className="text-xs font-semibold text-teal-600 hover:text-teal-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={handleRegenerate}
+              disabled={isGenerating}
             >
-              Regenerate
+              {isGenerating ? "Regenerating..." : "Regenerate"}
             </button>
           </div>
 
@@ -307,19 +351,21 @@ export function ReviewListItem({
             {/* Cancel and Post buttons */}
             <div className="flex gap-2 justify-end">
               <button
-                className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition"
+                className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
                 onClick={(e) => {
                   e.stopPropagation();
                   setIsExpanded(false);
                 }}
+                disabled={isSubmitting}
               >
                 Cancel
               </button>
               <button
-                className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-700 transition"
-                onClick={(e) => e.stopPropagation()}
+                className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                onClick={handlePostReply}
+                disabled={isSubmitting || !replyText.trim()}
               >
-                Post reply
+                {isSubmitting ? "Saving..." : "Post reply"}
               </button>
             </div>
           </div>

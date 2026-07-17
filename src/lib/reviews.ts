@@ -2,6 +2,7 @@ import { ReviewSource, ReviewStatus, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 
 export type ReviewSort = "newest" | "highest" | "lowest";
+export type ReviewRatingFilter = "all" | "five-star" | "four-star" | "low-star";
 export type ReviewStatusFilter = "all" | "published" | "private-feedback" | "needs-follow-up" | "testimonials";
 export type ReviewSourceFilter = "all" | "google" | "facebook" | "internal";
 
@@ -29,6 +30,7 @@ export async function getReviews(
   filters?: {
     status?: ReviewStatusFilter;
     source?: ReviewSourceFilter;
+    rating?: ReviewRatingFilter;
     locationId?: string | null;
     locationIds?: string[];
   },
@@ -52,6 +54,14 @@ export async function getReviews(
 
   if (filters?.source && filters.source !== "all") {
     where.source = filters.source.toUpperCase() as ReviewSource;
+  }
+
+  if (filters?.rating === "five-star") {
+    where.rating = 5;
+  } else if (filters?.rating === "four-star") {
+    where.rating = 4;
+  } else if (filters?.rating === "low-star") {
+    where.rating = { in: [1, 2, 3] };
   }
 
   if (filters?.status === "published") {

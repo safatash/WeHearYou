@@ -4,12 +4,12 @@ import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { getCurrentMembership } from "@/lib/authz";
 import {
-  buildReviewPageStats,
   getReviewFilterOptions,
   getReviews,
   type ReviewSort,
   type ReviewSourceFilter,
   type ReviewStatusFilter,
+  type ReviewRatingFilter,
 } from "@/lib/reviews";
 import { getCurrentAccessibleLocationIds } from "@/lib/current-scope";
 import { ReviewListItem } from "@/components/reviews/review-list-item";
@@ -30,6 +30,10 @@ export default async function ReviewsPage({
   const source: ReviewSourceFilter = ["google", "facebook", "internal"].includes(requestedSource)
     ? (requestedSource as ReviewSourceFilter)
     : "all";
+  const requestedRating = typeof query.rating === "string" ? query.rating : "all";
+  const rating: ReviewRatingFilter = ["five-star", "four-star", "low-star"].includes(requestedRating)
+    ? (requestedRating as ReviewRatingFilter)
+    : "all";
   const locationId = typeof query.location === "string" ? query.location : "all";
   const selectedId = typeof query.selected === "string" ? query.selected : null;
 
@@ -41,32 +45,24 @@ export default async function ReviewsPage({
     getReviews(sort, {
       status,
       source,
+      rating,
       locationId: allowedLocationId !== "all" ? allowedLocationId : null,
       locationIds,
     }),
     getCurrentMembership(),
   ]);
 
-  const stats = buildReviewPageStats(reviews);
   const aiReplyEnabled = membership?.organization.aiReplyEnabled ?? false;
 
   // Calculate needsReply count from reviews
   const needsReplyCount = reviews.filter((review) => !review.sourceReplyText && !review.replyPublishedAt && !review.replySentAt).length;
 
-  const baseFilterHref = (() => {
-    const params = new URLSearchParams();
-    params.set("sort", sort);
-    params.set("status", status);
-    params.set("source", source);
-    params.set("location", allowedLocationId);
-    return `/reviews?${params.toString()}`;
-  })();
-
-  const buildFilterHref = (next: { sort?: string; status?: string; source?: string; locationId?: string }) => {
+  const buildFilterHref = (next: { sort?: string; status?: string; source?: string; rating?: string; locationId?: string }) => {
     const params = new URLSearchParams();
     params.set("sort", next.sort ?? sort);
     params.set("status", next.status ?? status);
     params.set("source", next.source ?? source);
+    params.set("rating", next.rating ?? rating);
     params.set("location", next.locationId ?? allowedLocationId);
     if (selectedId) params.set("selected", selectedId);
     return `/reviews?${params.toString()}`;
@@ -120,9 +116,9 @@ export default async function ReviewsPage({
               Needs reply {needsReplyCount > 0 && <span className="ml-1 font-bold">{needsReplyCount}</span>}
             </Link>
             <Link
-              href={buildFilterHref({ sort: "highest" })}
+              href={buildFilterHref({ rating: "five-star" })}
               className={`rounded-full px-4 py-1.5 text-sm font-semibold transition ${
-                sort === "highest"
+                rating === "five-star"
                   ? "bg-teal-600 text-white"
                   : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
               }`}
@@ -130,14 +126,16 @@ export default async function ReviewsPage({
               5★
             </Link>
             <Link
-              href={buildFilterHref({ sort: "lowest" })}
+              href={buildFilterHref({ rating: "four-star" })}
               className={`rounded-full px-4 py-1.5 text-sm font-semibold transition ${
-                sort === "lowest" ? "bg-teal-600 text-white" : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                rating === "four-star" ? "bg-teal-600 text-white" : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
               }`}
             >
               4★
             </Link>
-            <Link href={buildFilterHref({ status: "all" })} className="rounded-full px-4 py-1.5 text-sm font-semibold border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition">
+            <Link href={buildFilterHref({ rating: "low-star" })} className={`rounded-full px-4 py-1.5 text-sm font-semibold transition ${
+                rating === "low-star" ? "bg-teal-600 text-white" : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+              }`}>
               1-3★
             </Link>
             <Link
@@ -193,7 +191,6 @@ export default async function ReviewsPage({
                 key={review.id}
                 review={review}
                 selected={review.id === selectedId}
-                filterHref={baseFilterHref}
                 aiReplyEnabled={aiReplyEnabled}
               />
             ))
