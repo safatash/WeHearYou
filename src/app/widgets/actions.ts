@@ -302,10 +302,10 @@ export async function updateReviewWidget(formData: FormData) {
       wallStyle: ["varied", "uniform"].includes(rawWallStyle) ? rawWallStyle : "varied",
       // cardHeights: ["equal", "natural"].includes(rawCardHeights) ? rawCardHeights : "equal", // field not in schema
       enabledSources: rawEnabledSources, // empty string = all sources enabled
-      // Spotlight & Pins
-      spotlightReviewId: rawSpotlightReviewId,
-      pinnedReviewIds: rawPinnedReviewIds,
-      reviewHighlights: rawReviewHighlights,
+      // Spotlight & Pins (using singleTestimonialReviewId instead)
+      // spotlightReviewId: rawSpotlightReviewId, // field not in schema
+      // pinnedReviewIds: rawPinnedReviewIds, // field not in schema
+      // reviewHighlights: rawReviewHighlights, // field not in schema
       fontSizeBase: Math.max(11, Math.min(18, fontSizeBase)),
       fontSizeNames: Math.max(10, Math.min(16, fontSizeNames)),
       fontSizeHeader: Math.max(14, Math.min(28, fontSizeHeader)),
