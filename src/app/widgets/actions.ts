@@ -300,7 +300,7 @@ export async function updateReviewWidget(formData: FormData) {
       density: ["cozy", "compact"].includes(rawDensity) ? rawDensity : "cozy",
       gridColumns: ["auto", "2", "3"].includes(rawGridColumns) ? rawGridColumns : "auto",
       wallStyle: ["varied", "uniform"].includes(rawWallStyle) ? rawWallStyle : "varied",
-      cardHeights: ["equal", "natural"].includes(rawCardHeights) ? rawCardHeights : "equal",
+      // cardHeights: ["equal", "natural"].includes(rawCardHeights) ? rawCardHeights : "equal", // field not in schema
       enabledSources: rawEnabledSources, // empty string = all sources enabled
       // Spotlight & Pins
       spotlightReviewId: rawSpotlightReviewId,
