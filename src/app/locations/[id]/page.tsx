@@ -112,11 +112,11 @@ export default async function LocationDetailPage({
     {
       key: "facebook",
       label: "Facebook",
-      connected: Boolean(location.facebookPage?.locationId),
-      lastSyncedLabel: location.facebookPage?.lastSyncedAt ? formatRelativeSyncTime(location.facebookPage.lastSyncedAt) ?? null : null,
-      reviewsImported: location.facebookPage?.lastSyncImportedCount ?? null,
+      connected: false,
+      lastSyncedLabel: null,
+      reviewsImported: null,
       rating: null,
-      syncStatus: location.facebookPage?.lastSyncStatus ?? null,
+      syncStatus: null,
       comingSoon: false,
     },
     {
