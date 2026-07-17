@@ -108,7 +108,7 @@ export default async function WidgetDetailPage({
       density: widget.density,
       gridColumns: widget.gridColumns,
       wallStyle: widget.wallStyle,
-      cardHeights: widget.cardHeights,
+      cardHeights: (widget as { cardHeights?: string }).cardHeights ?? "auto",
       enabledSources: widget.enabledSources,
       // Spotlight & Pins
       spotlightReviewId: (widget as { spotlightReviewId?: string | null }).spotlightReviewId ?? null,
