@@ -130,10 +130,10 @@ function PostCard({
   };
 
   return (
-    <div className="card flex flex-col overflow-hidden p-0">
+    <div className="card flex flex-col p-0">
       {/* Image area */}
       <div
-        className="relative flex h-[110px] items-center justify-center text-white/50"
+        className="relative flex h-[110px] items-center justify-center overflow-hidden rounded-t-[inherit] text-white/50"
         style={{ background: post.imageUrl ? `url(${post.imageUrl}) center/cover` : TYPE_GRADIENT[post.postType] }}
       >
         {!post.imageUrl && (
