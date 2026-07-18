@@ -48,6 +48,18 @@ function extractPostFields(formData: FormData) {
   return { ctaForApi, callToActionJson, eventTitle, offerCouponCode, offerRedeemUrl, offerTerms, offerStartDate, offerStartTime, offerEndDate, offerEndTime };
 }
 
+function validateOfferDates(postType: GbpPostType, fields: ReturnType<typeof extractPostFields>): string | null {
+  if (postType !== GbpPostType.OFFER) return null;
+  const { offerStartDate, offerEndDate } = fields;
+  if (offerStartDate && offerEndDate && offerEndDate < offerStartDate) {
+    return "Offer end date must be on or after the start date.";
+  }
+  if ((offerStartDate && !offerEndDate) || (!offerStartDate && offerEndDate)) {
+    return "Both start date and end date are required when specifying an offer period.";
+  }
+  return null;
+}
+
 async function resolveFullLocationName(accessToken: string, googleLocationName: string) {
   const googleLocations = await fetchGoogleBusinessLocations(accessToken);
   const matched = googleLocations.find((l) => l.name === googleLocationName);
@@ -99,7 +111,11 @@ export async function createGbpPostInline(formData: FormData): Promise<{ success
 
   if (!location) return { success: false, error: "Location not found" };
 
-  const { ctaForApi, callToActionJson, eventTitle, offerCouponCode, offerRedeemUrl, offerTerms, offerStartDate, offerStartTime, offerEndDate, offerEndTime } = extractPostFields(formData);
+  const offerFields = extractPostFields(formData);
+  const dateError = validateOfferDates(postType, offerFields);
+  if (dateError) return { success: false, error: dateError };
+
+  const { ctaForApi, callToActionJson, eventTitle, offerCouponCode, offerRedeemUrl, offerTerms, offerStartDate, offerStartTime, offerEndDate, offerEndTime } = offerFields;
 
   if (publishNow && location.googleConnection && location.googleLocationName) {
     try {
@@ -152,7 +168,11 @@ export async function updateGbpPostInline(formData: FormData): Promise<{ success
     GbpPostType.WHATS_NEW;
 
   const scheduledAt = !publishNow && scheduledAtRaw ? new Date(scheduledAtRaw) : null;
-  const { ctaForApi, callToActionJson, eventTitle, offerCouponCode, offerRedeemUrl, offerTerms, offerStartDate, offerStartTime, offerEndDate, offerEndTime } = extractPostFields(formData);
+  const offerFields = extractPostFields(formData);
+  const dateError = validateOfferDates(postType, offerFields);
+  if (dateError) return { success: false, error: dateError };
+
+  const { ctaForApi, callToActionJson, eventTitle, offerCouponCode, offerRedeemUrl, offerTerms, offerStartDate, offerStartTime, offerEndDate, offerEndTime } = offerFields;
 
   const locationIds = await getCurrentAccessibleLocationIds();
   const post = await prisma.gbpPost.findFirst({

@@ -55,6 +55,13 @@ export function PostComposer({ locations, onClose, editPost }: PostComposerProps
   const isEditing = !!editPost;
   const valid = body.trim().length > 5;
   const canSchedule = mode === "schedule" ? !!scheduledAt : true;
+
+  const offerDateError =
+    postType === "OFFER" && offerStartDate && offerEndDate && offerEndDate < offerStartDate
+      ? "End date must be on or after start date."
+      : postType === "OFFER" && ((offerStartDate && !offerEndDate) || (!offerStartDate && offerEndDate))
+      ? "Both start and end date are required."
+      : null;
   const locationName = locations.find((l) => l.id === locationId)?.name ?? "All locations";
 
   const buildFormData = (publishNow: boolean) => {
@@ -259,6 +266,13 @@ export function PostComposer({ locations, onClose, editPost }: PostComposerProps
                   </label>
                 </div>
 
+                {offerDateError && (
+                  <p className="flex items-center gap-1.5 text-[12px] font-medium text-red-600">
+                    <svg className="h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                    {offerDateError}
+                  </p>
+                )}
+
                 {/* Coupon */}
                 <label className="flex flex-col gap-1.5">
                   <span className="text-[11.5px] font-semibold text-slate-500">Coupon code <span className="font-normal text-slate-400">(optional)</span></span>
@@ -423,14 +437,14 @@ export function PostComposer({ locations, onClose, editPost }: PostComposerProps
           <button onClick={onClose} className="ml-auto rounded-lg px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 transition">Cancel</button>
           <button
             onClick={handleSaveDraft}
-            disabled={!valid || isSubmitting}
+            disabled={!valid || !!offerDateError || isSubmitting}
             className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition disabled:opacity-50"
           >
             Save draft
           </button>
           <button
             onClick={() => setConfirm(true)}
-            disabled={!valid || !canSchedule || isSubmitting}
+            disabled={!valid || !canSchedule || !!offerDateError || isSubmitting}
             className="inline-flex items-center gap-1.5 rounded-lg bg-[#37aeb7] px-4 py-2 text-sm font-semibold text-white hover:bg-[#2a8a92] transition disabled:opacity-50"
           >
             {mode === "schedule" ? (

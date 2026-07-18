@@ -81,28 +81,31 @@ export async function createGbpPost(
     body.media = [{ mediaFormat: "PHOTO", sourceUrl: post.imageUrl }];
   }
 
-  // Event/Offer: title + schedule dates
+  // Event/Offer: event object (title required for OFFER, schedule only when BOTH dates present)
   if (post.postType === "EVENT" || post.postType === "OFFER") {
-    const schedule: Record<string, unknown> = {};
-    if (post.offerStartDate) {
-      const [y, m, d] = post.offerStartDate.split("-").map(Number);
-      schedule.startDate = { year: y, month: m, day: d };
+    const eventObj: Record<string, unknown> = {};
+    if (post.eventTitle) eventObj.title = post.eventTitle;
+
+    // Only build schedule when both start AND end date are provided
+    if (post.offerStartDate && post.offerEndDate) {
+      const [sy, sm, sd] = post.offerStartDate.split("-").map(Number);
+      const [ey, em, ed] = post.offerEndDate.split("-").map(Number);
+      const schedule: Record<string, unknown> = {
+        startDate: { year: sy, month: sm, day: sd },
+        endDate: { year: ey, month: em, day: ed },
+      };
+      if (post.offerStartTime) {
+        const [h, min] = post.offerStartTime.split(":").map(Number);
+        schedule.startTime = { hours: h, minutes: min };
+      }
+      if (post.offerEndTime) {
+        const [h, min] = post.offerEndTime.split(":").map(Number);
+        schedule.endTime = { hours: h, minutes: min };
+      }
+      eventObj.schedule = schedule;
     }
-    if (post.offerEndDate) {
-      const [y, m, d] = post.offerEndDate.split("-").map(Number);
-      schedule.endDate = { year: y, month: m, day: d };
-    }
-    if (post.offerStartTime) {
-      const [h, min] = post.offerStartTime.split(":").map(Number);
-      schedule.startTime = { hours: h, minutes: min };
-    }
-    if (post.offerEndTime) {
-      const [h, min] = post.offerEndTime.split(":").map(Number);
-      schedule.endTime = { hours: h, minutes: min };
-    }
-    if (post.eventTitle || Object.keys(schedule).length > 0) {
-      body.event = { ...(post.eventTitle ? { title: post.eventTitle } : {}), ...(Object.keys(schedule).length > 0 ? { schedule } : {}) };
-    }
+
+    if (Object.keys(eventObj).length > 0) body.event = eventObj;
   }
 
   // Offer-specific fields
