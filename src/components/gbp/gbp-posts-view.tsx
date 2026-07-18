@@ -83,9 +83,11 @@ function PostCard({
   const sm = STATUS_META[post.status];
   const tm = TYPE_META[post.postType];
   const [menuOpen, setMenuOpen] = useState(false);
+  const [menuPos, setMenuPos] = useState<{ top: number; right: number } | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [busy, setBusy] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const dropRef = useRef<HTMLDivElement>(null);
 
   const lines = post.content.split("\n").filter(Boolean);
   const title = lines[0]?.length > 70 ? lines[0].slice(0, 68) + "…" : (lines[0] ?? "");
@@ -103,7 +105,11 @@ function PostCard({
   useEffect(() => {
     if (!menuOpen) return;
     const handler = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+      const t = e.target as Node;
+      if (
+        (!btnRef.current || !btnRef.current.contains(t)) &&
+        (!dropRef.current || !dropRef.current.contains(t))
+      ) {
         setMenuOpen(false);
         setDeleteConfirm(false);
       }
@@ -111,6 +117,15 @@ function PostCard({
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, [menuOpen]);
+
+  const openMenu = () => {
+    if (btnRef.current) {
+      const r = btnRef.current.getBoundingClientRect();
+      setMenuPos({ top: r.bottom + 4, right: window.innerWidth - r.right });
+    }
+    setMenuOpen(true);
+    setDeleteConfirm(false);
+  };
 
   const handleDuplicate = async () => {
     setBusy(true);
@@ -172,9 +187,10 @@ function PostCard({
           </button>
 
           {/* 3-dots menu */}
-          <div className="relative" ref={menuRef}>
+          <div className="relative">
             <button
-              onClick={() => { setMenuOpen((o) => !o); setDeleteConfirm(false); }}
+              ref={btnRef}
+              onClick={() => (menuOpen ? setMenuOpen(false) : openMenu())}
               disabled={busy}
               className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition disabled:opacity-40"
               title="More"
@@ -184,8 +200,11 @@ function PostCard({
               </svg>
             </button>
 
-            {menuOpen && (
-              <div className="absolute right-0 top-full z-50 mt-1 w-44 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl">
+            {menuOpen && menuPos && (
+              <div
+                ref={dropRef}
+                style={{ position: "fixed", top: menuPos.top, right: menuPos.right, zIndex: 9999 }}
+                className="w-44 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl">
                 {!deleteConfirm ? (
                   <>
                     <button
