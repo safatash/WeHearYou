@@ -5,6 +5,15 @@ export type GbpPostPayload = {
   content: string;
   callToAction?: { actionType: string; url: string } | null;
   imageUrl?: string | null;
+  eventTitle?: string;
+  // Offer-specific
+  offerCouponCode?: string;
+  offerRedeemUrl?: string;
+  offerTerms?: string;
+  offerStartDate?: string;
+  offerStartTime?: string;
+  offerEndDate?: string;
+  offerEndTime?: string;
 };
 
 export type GbpApiError = { code: number; message: string };
@@ -70,6 +79,39 @@ export async function createGbpPost(
   }
   if (post.imageUrl) {
     body.media = [{ mediaFormat: "PHOTO", sourceUrl: post.imageUrl }];
+  }
+
+  // Event/Offer: title + schedule dates
+  if (post.postType === "EVENT" || post.postType === "OFFER") {
+    const schedule: Record<string, unknown> = {};
+    if (post.offerStartDate) {
+      const [y, m, d] = post.offerStartDate.split("-").map(Number);
+      schedule.startDate = { year: y, month: m, day: d };
+    }
+    if (post.offerEndDate) {
+      const [y, m, d] = post.offerEndDate.split("-").map(Number);
+      schedule.endDate = { year: y, month: m, day: d };
+    }
+    if (post.offerStartTime) {
+      const [h, min] = post.offerStartTime.split(":").map(Number);
+      schedule.startTime = { hours: h, minutes: min };
+    }
+    if (post.offerEndTime) {
+      const [h, min] = post.offerEndTime.split(":").map(Number);
+      schedule.endTime = { hours: h, minutes: min };
+    }
+    if (post.eventTitle || Object.keys(schedule).length > 0) {
+      body.event = { ...(post.eventTitle ? { title: post.eventTitle } : {}), ...(Object.keys(schedule).length > 0 ? { schedule } : {}) };
+    }
+  }
+
+  // Offer-specific fields
+  if (post.postType === "OFFER") {
+    const offer: Record<string, unknown> = {};
+    if (post.offerCouponCode) offer.couponCode = post.offerCouponCode;
+    if (post.offerRedeemUrl) offer.redeemOnlineUrl = post.offerRedeemUrl;
+    if (post.offerTerms) offer.termsConditions = post.offerTerms;
+    if (Object.keys(offer).length > 0) body.offer = offer;
   }
 
   const res = await gbpFetch(`${GBP_V4}/${locationName}/localPosts`, accessToken, {

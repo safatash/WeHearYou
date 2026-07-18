@@ -12,17 +12,59 @@ const GOOGLE_CONNECTION_SELECT = {
   id: true, accessToken: true, refreshToken: true, expiresAt: true, scope: true, tokenType: true,
 } as const;
 
+function str(fd: FormData, key: string) {
+  return String(fd.get(key) ?? "").trim();
+}
+
+function extractPostFields(formData: FormData) {
+  const ctaUrl = str(formData, "ctaUrl");
+  const ctaType = str(formData, "ctaType") || "LEARN_MORE";
+  const eventTitle = str(formData, "title");
+  const offerCouponCode = str(formData, "offerCouponCode");
+  const offerRedeemUrl = str(formData, "offerRedeemUrl");
+  const offerTerms = str(formData, "offerTerms");
+  const offerStartDate = str(formData, "offerStartDate");
+  const offerStartTime = str(formData, "offerStartTime");
+  const offerEndDate = str(formData, "offerEndDate");
+  const offerEndTime = str(formData, "offerEndTime");
+
+  const ctaForApi = ctaUrl ? { actionType: ctaType, url: ctaUrl } : null;
+
+  // Store everything in the callToAction JSON blob (no migration needed)
+  const stored: Record<string, unknown> = {};
+  if (ctaUrl) { stored.actionType = ctaType; stored.url = ctaUrl; }
+  if (eventTitle) stored.eventTitle = eventTitle;
+  if (offerCouponCode) stored.offerCouponCode = offerCouponCode;
+  if (offerRedeemUrl) stored.offerRedeemUrl = offerRedeemUrl;
+  if (offerTerms) stored.offerTerms = offerTerms;
+  if (offerStartDate) stored.offerStartDate = offerStartDate;
+  if (offerStartTime) stored.offerStartTime = offerStartTime;
+  if (offerEndDate) stored.offerEndDate = offerEndDate;
+  if (offerEndTime) stored.offerEndTime = offerEndTime;
+
+  const callToActionJson: Prisma.InputJsonValue | typeof Prisma.DbNull =
+    Object.keys(stored).length > 0 ? (stored as Prisma.InputJsonValue) : Prisma.DbNull;
+
+  return { ctaForApi, callToActionJson, eventTitle, offerCouponCode, offerRedeemUrl, offerTerms, offerStartDate, offerStartTime, offerEndDate, offerEndTime };
+}
+
+async function resolveFullLocationName(accessToken: string, googleLocationName: string) {
+  const googleLocations = await fetchGoogleBusinessLocations(accessToken);
+  const matched = googleLocations.find((l) => l.name === googleLocationName);
+  return matched?.accountResourceName
+    ? `${matched.accountResourceName}/${googleLocationName}`
+    : googleLocationName;
+}
+
 export async function createGbpPostInline(formData: FormData): Promise<{ success: boolean; error?: string }> {
   const membership = await getCurrentMembership();
   if (!membership) return { success: false, error: "Not authenticated" };
 
-  const locationId = String(formData.get("locationId") ?? "").trim();
-  const content = String(formData.get("content") ?? "").trim();
-  const postTypeRaw = String(formData.get("postType") ?? "WHATS_NEW").trim().toUpperCase();
-  const ctaUrl = String(formData.get("ctaUrl") ?? "").trim();
-  const ctaType = String(formData.get("ctaType") ?? "LEARN_MORE").trim();
-  const imageUrl = String(formData.get("imageUrl") ?? "").trim() || null;
-  const scheduledAtRaw = String(formData.get("scheduledAt") ?? "").trim();
+  const locationId = str(formData, "locationId");
+  const content = str(formData, "content");
+  const postTypeRaw = str(formData, "postType").toUpperCase() || "WHATS_NEW";
+  const imageUrl = str(formData, "imageUrl") || null;
+  const scheduledAtRaw = str(formData, "scheduledAt");
   const publishNow = formData.get("publishNow") === "true";
 
   if (!locationId || !content) return { success: false, error: "Location and content are required" };
@@ -57,24 +99,17 @@ export async function createGbpPostInline(formData: FormData): Promise<{ success
 
   if (!location) return { success: false, error: "Location not found" };
 
-  const callToAction = ctaUrl ? { actionType: ctaType, url: ctaUrl } : null;
-  const callToActionJson: Prisma.InputJsonValue | typeof Prisma.DbNull = ctaUrl
-    ? { actionType: ctaType, url: ctaUrl }
-    : Prisma.DbNull;
+  const { ctaForApi, callToActionJson, eventTitle, offerCouponCode, offerRedeemUrl, offerTerms, offerStartDate, offerStartTime, offerEndDate, offerEndTime } = extractPostFields(formData);
 
   if (publishNow && location.googleConnection && location.googleLocationName) {
     try {
       const accessToken = await getValidGoogleAccessToken(location.googleConnection);
-
-      // googleLocationName is stored as "locations/xxx" — API needs "accounts/xxx/locations/xxx"
-      const googleLocations = await fetchGoogleBusinessLocations(accessToken);
-      const matched = googleLocations.find((l) => l.name === location.googleLocationName);
-      const fullLocationName = matched?.accountResourceName
-        ? `${matched.accountResourceName}/${location.googleLocationName}`
-        : location.googleLocationName;
+      const fullLocationName = await resolveFullLocationName(accessToken, location.googleLocationName);
 
       const gbpPostId = await createGbpPost(accessToken, fullLocationName, {
-        postType, content, callToAction, imageUrl,
+        postType, content, callToAction: ctaForApi, imageUrl,
+        eventTitle, offerCouponCode, offerRedeemUrl, offerTerms,
+        offerStartDate, offerStartTime, offerEndDate, offerEndTime,
       });
       await prisma.gbpPost.create({
         data: { locationId, postType, content, callToAction: callToActionJson, imageUrl, status: GbpPublishStatus.PUBLISHED, publishedAt: new Date(), gbpPostId },
@@ -101,14 +136,12 @@ export async function updateGbpPostInline(formData: FormData): Promise<{ success
   const membership = await getCurrentMembership();
   if (!membership) return { success: false, error: "Not authenticated" };
 
-  const postId = String(formData.get("postId") ?? "").trim();
-  const locationId = String(formData.get("locationId") ?? "").trim();
-  const content = String(formData.get("content") ?? "").trim();
-  const postTypeRaw = String(formData.get("postType") ?? "WHATS_NEW").trim().toUpperCase();
-  const ctaUrl = String(formData.get("ctaUrl") ?? "").trim();
-  const ctaType = String(formData.get("ctaType") ?? "LEARN_MORE").trim();
-  const imageUrl = String(formData.get("imageUrl") ?? "").trim() || null;
-  const scheduledAtRaw = String(formData.get("scheduledAt") ?? "").trim();
+  const postId = str(formData, "postId");
+  const locationId = str(formData, "locationId");
+  const content = str(formData, "content");
+  const postTypeRaw = str(formData, "postType").toUpperCase() || "WHATS_NEW";
+  const imageUrl = str(formData, "imageUrl") || null;
+  const scheduledAtRaw = str(formData, "scheduledAt");
   const publishNow = formData.get("publishNow") === "true";
 
   if (!postId || !content) return { success: false, error: "Post ID and content are required" };
@@ -119,9 +152,7 @@ export async function updateGbpPostInline(formData: FormData): Promise<{ success
     GbpPostType.WHATS_NEW;
 
   const scheduledAt = !publishNow && scheduledAtRaw ? new Date(scheduledAtRaw) : null;
-  const callToActionJson: Prisma.InputJsonValue | typeof Prisma.DbNull = ctaUrl
-    ? { actionType: ctaType, url: ctaUrl }
-    : Prisma.DbNull;
+  const { ctaForApi, callToActionJson, eventTitle, offerCouponCode, offerRedeemUrl, offerTerms, offerStartDate, offerStartTime, offerEndDate, offerEndTime } = extractPostFields(formData);
 
   const locationIds = await getCurrentAccessibleLocationIds();
   const post = await prisma.gbpPost.findFirst({
@@ -137,19 +168,16 @@ export async function updateGbpPostInline(formData: FormData): Promise<{ success
   if (publishNow && post.location.googleConnection && post.location.googleLocationName) {
     try {
       const accessToken = await getValidGoogleAccessToken(post.location.googleConnection);
-      const googleLocations = await fetchGoogleBusinessLocations(accessToken);
-      const matched = googleLocations.find((l) => l.name === post.location.googleLocationName);
-      const fullLocationName = matched?.accountResourceName
-        ? `${matched.accountResourceName}/${post.location.googleLocationName}`
-        : post.location.googleLocationName;
+      const fullLocationName = await resolveFullLocationName(accessToken, post.location.googleLocationName);
 
       if (post.gbpPostId) {
         try { await deleteGbpPost(accessToken, post.gbpPostId); } catch {}
       }
 
-      const callToAction = ctaUrl ? { actionType: ctaType, url: ctaUrl } : null;
       const gbpPostId = await createGbpPost(accessToken, fullLocationName, {
-        postType, content, callToAction, imageUrl,
+        postType, content, callToAction: ctaForApi, imageUrl,
+        eventTitle, offerCouponCode, offerRedeemUrl, offerTerms,
+        offerStartDate, offerStartTime, offerEndDate, offerEndTime,
       });
       await prisma.gbpPost.update({
         where: { id: post.id },

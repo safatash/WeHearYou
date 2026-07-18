@@ -39,7 +39,13 @@ export function PostComposer({ locations, onClose, editPost }: PostComposerProps
   const [body, setBody] = useState(editPost?.content ?? "");
   const [cta, setCta] = useState("Learn more");
   const [ctaUrl, setCtaUrl] = useState("");
-  const [coupon, setCoupon] = useState("");
+  const [offerStartDate, setOfferStartDate] = useState("");
+  const [offerStartTime, setOfferStartTime] = useState("");
+  const [offerEndDate, setOfferEndDate] = useState("");
+  const [offerEndTime, setOfferEndTime] = useState("");
+  const [offerCoupon, setOfferCoupon] = useState("");
+  const [offerRedeemUrl, setOfferRedeemUrl] = useState("");
+  const [offerTerms, setOfferTerms] = useState("");
   const [mode, setMode] = useState<"publish" | "schedule">("publish");
   const [scheduledAt, setScheduledAt] = useState("");
   const [confirm, setConfirm] = useState(false);
@@ -59,8 +65,16 @@ export function PostComposer({ locations, onClose, editPost }: PostComposerProps
     fd.set("content", body.trim());
     fd.set("ctaType", cta.toUpperCase().replace(/\s+/g, "_"));
     if (ctaUrl) fd.set("ctaUrl", ctaUrl);
-    if (coupon) fd.set("couponCode", coupon);
     if (title) fd.set("title", title);
+    if (postType === "OFFER") {
+      if (offerStartDate) fd.set("offerStartDate", offerStartDate);
+      if (offerStartTime) fd.set("offerStartTime", offerStartTime);
+      if (offerEndDate) fd.set("offerEndDate", offerEndDate);
+      if (offerEndTime) fd.set("offerEndTime", offerEndTime);
+      if (offerCoupon) fd.set("offerCouponCode", offerCoupon);
+      if (offerRedeemUrl) fd.set("offerRedeemUrl", offerRedeemUrl);
+      if (offerTerms) fd.set("offerTerms", offerTerms);
+    }
     fd.set("publishNow", publishNow ? "true" : "false");
     if (!publishNow && scheduledAt) fd.set("scheduledAt", scheduledAt);
     return fd;
@@ -200,30 +214,99 @@ export function PostComposer({ locations, onClose, editPost }: PostComposerProps
               />
             </label>
 
-            {/* CTA + Coupon */}
-            <div className={`grid gap-3.5 ${postType === "OFFER" ? "grid-cols-2" : "grid-cols-1"}`}>
-              <label className="flex flex-col gap-2">
-                <span className="text-[11.5px] font-semibold text-slate-500">Button (call to action)</span>
-                <select
-                  value={cta}
-                  onChange={(e) => setCta(e.target.value)}
-                  className="rounded-lg border border-slate-200 px-3 py-2.5 text-sm text-slate-900 focus:border-[#37aeb7] focus:outline-none"
-                >
-                  {CTA_OPTIONS.map((c) => <option key={c} value={c}>{c}</option>)}
-                </select>
-              </label>
-              {postType === "OFFER" && (
-                <label className="flex flex-col gap-2">
-                  <span className="text-[11.5px] font-semibold text-slate-500">Coupon code</span>
+            {/* Offer details */}
+            {postType === "OFFER" && (
+              <div className="flex flex-col gap-3.5 rounded-xl border border-amber-200 bg-amber-50/60 p-4">
+                <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-amber-700">Offer details</p>
+
+                {/* Dates */}
+                <div className="grid grid-cols-2 gap-3">
+                  <label className="flex flex-col gap-1.5">
+                    <span className="text-[11.5px] font-semibold text-slate-500">Start date</span>
+                    <input
+                      type="date"
+                      value={offerStartDate}
+                      onChange={(e) => setOfferStartDate(e.target.value)}
+                      className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-[#37aeb7] focus:outline-none focus:ring-2 focus:ring-[#37aeb7]/20"
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1.5">
+                    <span className="text-[11.5px] font-semibold text-slate-500">Start time <span className="font-normal text-slate-400">(optional)</span></span>
+                    <input
+                      type="time"
+                      value={offerStartTime}
+                      onChange={(e) => setOfferStartTime(e.target.value)}
+                      className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-[#37aeb7] focus:outline-none focus:ring-2 focus:ring-[#37aeb7]/20"
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1.5">
+                    <span className="text-[11.5px] font-semibold text-slate-500">End date</span>
+                    <input
+                      type="date"
+                      value={offerEndDate}
+                      onChange={(e) => setOfferEndDate(e.target.value)}
+                      className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-[#37aeb7] focus:outline-none focus:ring-2 focus:ring-[#37aeb7]/20"
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1.5">
+                    <span className="text-[11.5px] font-semibold text-slate-500">End time <span className="font-normal text-slate-400">(optional)</span></span>
+                    <input
+                      type="time"
+                      value={offerEndTime}
+                      onChange={(e) => setOfferEndTime(e.target.value)}
+                      className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-[#37aeb7] focus:outline-none focus:ring-2 focus:ring-[#37aeb7]/20"
+                    />
+                  </label>
+                </div>
+
+                {/* Coupon */}
+                <label className="flex flex-col gap-1.5">
+                  <span className="text-[11.5px] font-semibold text-slate-500">Coupon code <span className="font-normal text-slate-400">(optional)</span></span>
                   <input
-                    value={coupon}
-                    onChange={(e) => setCoupon(e.target.value)}
-                    className="rounded-lg border border-slate-200 px-3 py-2.5 font-mono text-sm text-slate-900 focus:border-[#37aeb7] focus:outline-none focus:ring-2 focus:ring-[#37aeb7]/20"
+                    value={offerCoupon}
+                    onChange={(e) => setOfferCoupon(e.target.value)}
+                    className="rounded-lg border border-slate-200 bg-white px-3 py-2.5 font-mono text-sm text-slate-900 focus:border-[#37aeb7] focus:outline-none focus:ring-2 focus:ring-[#37aeb7]/20"
                     placeholder="SMILE99"
                   />
                 </label>
-              )}
-            </div>
+
+                {/* Redeem URL */}
+                <label className="flex flex-col gap-1.5">
+                  <span className="text-[11.5px] font-semibold text-slate-500">Link to redeem offer <span className="font-normal text-slate-400">(optional)</span></span>
+                  <input
+                    type="url"
+                    value={offerRedeemUrl}
+                    onChange={(e) => setOfferRedeemUrl(e.target.value)}
+                    className="rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 focus:border-[#37aeb7] focus:outline-none focus:ring-2 focus:ring-[#37aeb7]/20"
+                    placeholder="https://example.com/redeem"
+                  />
+                </label>
+
+                {/* Terms */}
+                <label className="flex flex-col gap-1.5">
+                  <span className="text-[11.5px] font-semibold text-slate-500">Terms and conditions <span className="font-normal text-slate-400">(optional)</span></span>
+                  <textarea
+                    value={offerTerms}
+                    onChange={(e) => setOfferTerms(e.target.value)}
+                    rows={2}
+                    placeholder="e.g. Valid for new patients only. Cannot be combined with other offers."
+                    className="rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm leading-relaxed text-slate-900 focus:border-[#37aeb7] focus:outline-none focus:ring-2 focus:ring-[#37aeb7]/20 resize-none"
+                  />
+                </label>
+              </div>
+            )}
+
+            {/* CTA */}
+            <label className="flex flex-col gap-2">
+              <span className="text-[11.5px] font-semibold text-slate-500">Button (call to action)</span>
+              <select
+                value={cta}
+                onChange={(e) => setCta(e.target.value)}
+                className="rounded-lg border border-slate-200 px-3 py-2.5 text-sm text-slate-900 focus:border-[#37aeb7] focus:outline-none"
+              >
+                {CTA_OPTIONS.map((c) => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </label>
 
             {/* CTA URL */}
             <label className="flex flex-col gap-2">
@@ -300,9 +383,16 @@ export function PostComposer({ locations, onClose, editPost }: PostComposerProps
                   <p className="mb-1.5 text-[14px] font-[680] text-slate-900">{title}</p>
                 )}
                 {postType === "OFFER" && (
-                  <span className="mb-2 inline-flex items-center gap-1 rounded-md bg-[#e0f2f4] px-2 py-0.5 text-[11px] font-semibold text-[#2a8a92]">
-                    🏷️ Offer{coupon ? ` · ${coupon}` : ""}
-                  </span>
+                  <div className="mb-2 flex flex-col gap-1">
+                    <span className="inline-flex items-center gap-1 rounded-md bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800">
+                      🏷️ Offer{offerCoupon ? ` · ${offerCoupon}` : ""}
+                    </span>
+                    {(offerStartDate || offerEndDate) && (
+                      <span className="text-[11px] text-slate-400">
+                        {offerStartDate || "?"} {offerStartTime ? `${offerStartTime} ` : ""}– {offerEndDate || "?"}{offerEndTime ? ` ${offerEndTime}` : ""}
+                      </span>
+                    )}
+                  </div>
                 )}
                 {postType === "EVENT" && (
                   <span className="mb-2 inline-flex items-center gap-1 rounded-md bg-[#e0f2f4] px-2 py-0.5 text-[11px] font-semibold text-[#2a8a92]">
