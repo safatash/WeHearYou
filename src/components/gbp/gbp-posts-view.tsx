@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { GbpPublishStatus, GbpPostType } from "@prisma/client";
-import { PostComposer } from "./post-composer";
+import { PostComposer, EditPost } from "./post-composer";
+import { deleteGbpPostInline, duplicateGbpPostInline } from "@/app/gbp/posts/actions";
 
 interface Location {
   id: string;
@@ -68,9 +70,22 @@ function timeAgo(date: Date): string {
   return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
-function PostCard({ post }: { post: Post }) {
+function PostCard({
+  post,
+  onEdit,
+  onViewDetails,
+}: {
+  post: Post;
+  onEdit: () => void;
+  onViewDetails: () => void;
+}) {
+  const router = useRouter();
   const sm = STATUS_META[post.status];
   const tm = TYPE_META[post.postType];
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   const lines = post.content.split("\n").filter(Boolean);
   const title = lines[0]?.length > 70 ? lines[0].slice(0, 68) + "…" : (lines[0] ?? "");
@@ -85,6 +100,35 @@ function PostCard({ post }: { post: Post }) {
       ? `Draft · ${timeAgo(post.createdAt)}`
       : post.failureReason ?? "Failed";
 
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+        setDeleteConfirm(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [menuOpen]);
+
+  const handleDuplicate = async () => {
+    setBusy(true);
+    setMenuOpen(false);
+    await duplicateGbpPostInline(post.id);
+    router.refresh();
+    setBusy(false);
+  };
+
+  const handleDelete = async () => {
+    setBusy(true);
+    setMenuOpen(false);
+    setDeleteConfirm(false);
+    await deleteGbpPostInline(post.id);
+    router.refresh();
+    setBusy(false);
+  };
+
   return (
     <div className="card flex flex-col overflow-hidden p-0">
       {/* Image area */}
@@ -97,12 +141,10 @@ function PostCard({ post }: { post: Post }) {
             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
           </svg>
         )}
-        {/* Status badge top-left */}
         <span className={`absolute left-2.5 top-2.5 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold backdrop-blur-sm ${sm.pill}`}>
           <span className={`h-1.5 w-1.5 rounded-full ${sm.dot}`} />
           {sm.label}
         </span>
-        {/* Type badge top-right */}
         <span className="absolute right-2.5 top-2.5 inline-flex items-center gap-1 rounded-full bg-white/90 px-2 py-0.5 text-[11px] font-semibold text-slate-700 backdrop-blur-sm">
           {tm.icon} {tm.label}
         </span>
@@ -110,7 +152,6 @@ function PostCard({ post }: { post: Post }) {
 
       {/* Body */}
       <div className="flex flex-1 flex-col p-3.5">
-        {/* Location */}
         <div className="mb-2 flex items-center gap-1.5">
           <svg className="h-3 w-3 shrink-0 text-slate-400" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
           <span className="text-[12px] font-medium text-slate-500">{post.location.name}</span>
@@ -122,12 +163,83 @@ function PostCard({ post }: { post: Post }) {
         {/* Footer */}
         <div className="mt-3 flex items-center gap-2 border-t border-slate-100 pt-3">
           <span className="flex-1 text-[11.5px] text-slate-400 truncate">{timeLabel}</span>
-          <button className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition" title="Edit">
+          <button
+            onClick={onEdit}
+            className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition"
+            title="Edit"
+          >
             <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
           </button>
-          <button className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition" title="More">
-            <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>
-          </button>
+
+          {/* 3-dots menu */}
+          <div className="relative" ref={menuRef}>
+            <button
+              onClick={() => { setMenuOpen((o) => !o); setDeleteConfirm(false); }}
+              disabled={busy}
+              className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition disabled:opacity-40"
+              title="More"
+            >
+              <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor">
+                <circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/>
+              </svg>
+            </button>
+
+            {menuOpen && (
+              <div className="absolute right-0 top-full z-50 mt-1 w-44 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl">
+                {!deleteConfirm ? (
+                  <>
+                    <button
+                      onClick={() => { setMenuOpen(false); onViewDetails(); }}
+                      className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-[13px] font-medium text-slate-700 hover:bg-slate-50 transition"
+                    >
+                      <svg className="h-3.5 w-3.5 shrink-0 text-slate-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                      View details
+                    </button>
+                    <button
+                      onClick={() => { setMenuOpen(false); onEdit(); }}
+                      className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-[13px] font-medium text-slate-700 hover:bg-slate-50 transition"
+                    >
+                      <svg className="h-3.5 w-3.5 shrink-0 text-slate-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                      Edit
+                    </button>
+                    <button
+                      onClick={handleDuplicate}
+                      className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-[13px] font-medium text-slate-700 hover:bg-slate-50 transition"
+                    >
+                      <svg className="h-3.5 w-3.5 shrink-0 text-slate-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                      Duplicate
+                    </button>
+                    <div className="mx-3 border-t border-slate-100" />
+                    <button
+                      onClick={() => setDeleteConfirm(true)}
+                      className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-[13px] font-medium text-red-600 hover:bg-red-50 transition"
+                    >
+                      <svg className="h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                      Delete
+                    </button>
+                  </>
+                ) : (
+                  <div className="p-3.5">
+                    <p className="mb-3 text-[12.5px] font-medium text-slate-700">Delete this post?</p>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setDeleteConfirm(false)}
+                        className="flex-1 rounded-lg border border-slate-200 py-1.5 text-[12px] font-semibold text-slate-600 hover:bg-slate-50 transition"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={handleDelete}
+                        className="flex-1 rounded-lg bg-red-600 py-1.5 text-[12px] font-semibold text-white hover:bg-red-700 transition"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
@@ -137,6 +249,8 @@ function PostCard({ post }: { post: Post }) {
 export function GbpPostsView({ posts, locations, stats }: GbpPostsViewProps) {
   const [filter, setFilter] = useState<Filter>("All");
   const [composerOpen, setComposerOpen] = useState(false);
+  const [editPost, setEditPost] = useState<EditPost | null>(null);
+  const [detailPost, setDetailPost] = useState<Post | null>(null);
 
   const STATUS_MAP: Partial<Record<Filter, GbpPublishStatus>> = {
     Live: "PUBLISHED",
@@ -146,6 +260,16 @@ export function GbpPostsView({ posts, locations, stats }: GbpPostsViewProps) {
   };
 
   const filtered = filter === "All" ? posts : posts.filter((p) => p.status === STATUS_MAP[filter]);
+
+  const openEdit = useCallback((post: Post) => {
+    setEditPost({ id: post.id, postType: post.postType, content: post.content, locationId: post.location.id, imageUrl: post.imageUrl });
+    setComposerOpen(true);
+  }, []);
+
+  const closeComposer = useCallback(() => {
+    setComposerOpen(false);
+    setEditPost(null);
+  }, []);
 
   return (
     <>
@@ -168,7 +292,7 @@ export function GbpPostsView({ posts, locations, stats }: GbpPostsViewProps) {
               Scheduler
             </a>
             <button
-              onClick={() => setComposerOpen(true)}
+              onClick={() => { setComposerOpen(true); setEditPost(null); }}
               className="inline-flex items-center gap-1.5 rounded-lg bg-[#37aeb7] px-4 py-2 text-sm font-semibold text-white hover:bg-[#2a8a92] transition"
             >
               <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -221,7 +345,7 @@ export function GbpPostsView({ posts, locations, stats }: GbpPostsViewProps) {
             <p className="text-sm font-semibold text-slate-700">No posts yet</p>
             <p className="mt-1 text-sm text-slate-400">Create your first Google post to get started.</p>
             <button
-              onClick={() => setComposerOpen(true)}
+              onClick={() => { setComposerOpen(true); setEditPost(null); }}
               className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-[#37aeb7] px-4 py-2 text-sm font-semibold text-white hover:bg-[#2a8a92] transition"
             >
               + New post
@@ -229,13 +353,85 @@ export function GbpPostsView({ posts, locations, stats }: GbpPostsViewProps) {
           </div>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {filtered.map((post) => <PostCard key={post.id} post={post} />)}
+            {filtered.map((post) => (
+              <PostCard
+                key={post.id}
+                post={post}
+                onEdit={() => openEdit(post)}
+                onViewDetails={() => setDetailPost(post)}
+              />
+            ))}
           </div>
         )}
       </div>
 
       {composerOpen && (
-        <PostComposer locations={locations} onClose={() => setComposerOpen(false)} />
+        <PostComposer
+          locations={locations}
+          onClose={closeComposer}
+          editPost={editPost ?? undefined}
+        />
+      )}
+
+      {/* View Details modal */}
+      {detailPost && (
+        <div
+          className="fixed inset-0 z-[300] flex items-center justify-center"
+          style={{ background: "rgba(12,12,16,.5)", backdropFilter: "blur(3px)", animation: "fadeIn .16s ease both" }}
+          onClick={() => setDetailPost(null)}
+        >
+          <div
+            className="w-full max-w-lg rounded-2xl bg-white shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal header image */}
+            <div
+              className="flex h-24 items-center justify-center rounded-t-2xl text-white/40"
+              style={{ background: detailPost.imageUrl ? `url(${detailPost.imageUrl}) center/cover` : TYPE_GRADIENT[detailPost.postType] }}
+            >
+              <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[12px] font-semibold backdrop-blur-sm ${STATUS_META[detailPost.status].pill}`}>
+                <span className={`h-1.5 w-1.5 rounded-full ${STATUS_META[detailPost.status].dot}`} />
+                {STATUS_META[detailPost.status].label}
+              </span>
+            </div>
+
+            <div className="p-6">
+              <div className="mb-1 flex items-center gap-2">
+                <span className="text-[13px]">{TYPE_META[detailPost.postType].icon}</span>
+                <span className="text-[12px] font-semibold text-slate-500">{TYPE_META[detailPost.postType].label}</span>
+                <span className="mx-1 text-slate-300">·</span>
+                <svg className="h-3 w-3 text-slate-400" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+                <span className="text-[12px] text-slate-500">{detailPost.location.name}</span>
+              </div>
+
+              <p className="mt-3 whitespace-pre-wrap text-[14px] leading-[1.6] text-slate-800">{detailPost.content}</p>
+
+              <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-4">
+                <span className="text-[12px] text-slate-400">
+                  {detailPost.status === "PUBLISHED" && detailPost.publishedAt
+                    ? `Published ${new Date(detailPost.publishedAt).toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" })}`
+                    : detailPost.status === "SCHEDULED" && detailPost.scheduledAt
+                    ? `Scheduled for ${new Date(detailPost.scheduledAt).toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" })}`
+                    : `Created ${new Date(detailPost.createdAt).toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric" })}`}
+                </span>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setDetailPost(null)}
+                    className="rounded-lg border border-slate-200 px-4 py-1.5 text-[13px] font-semibold text-slate-600 hover:bg-slate-50 transition"
+                  >
+                    Close
+                  </button>
+                  <button
+                    onClick={() => { setDetailPost(null); openEdit(detailPost); }}
+                    className="rounded-lg bg-[#37aeb7] px-4 py-1.5 text-[13px] font-semibold text-white hover:bg-[#2a8a92] transition"
+                  >
+                    Edit
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </>
   );

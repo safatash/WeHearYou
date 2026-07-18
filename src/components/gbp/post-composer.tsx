@@ -2,16 +2,25 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { createGbpPostInline } from "@/app/gbp/posts/actions";
+import { createGbpPostInline, updateGbpPostInline } from "@/app/gbp/posts/actions";
 
 interface Location {
   id: string;
   name: string;
 }
 
+export interface EditPost {
+  id: string;
+  postType: "WHATS_NEW" | "EVENT" | "OFFER";
+  content: string;
+  locationId: string;
+  imageUrl?: string | null;
+}
+
 interface PostComposerProps {
   locations: Location[];
   onClose: () => void;
+  editPost?: EditPost;
 }
 
 const POST_TYPES = [
@@ -22,12 +31,12 @@ const POST_TYPES = [
 
 const CTA_OPTIONS = ["Learn more", "Book", "Order online", "Shop", "Sign up", "Call now"];
 
-export function PostComposer({ locations, onClose }: PostComposerProps) {
+export function PostComposer({ locations, onClose, editPost }: PostComposerProps) {
   const router = useRouter();
-  const [postType, setPostType] = useState<"WHATS_NEW" | "EVENT" | "OFFER">("WHATS_NEW");
-  const [locationId, setLocationId] = useState(locations[0]?.id ?? "");
+  const [postType, setPostType] = useState<"WHATS_NEW" | "EVENT" | "OFFER">(editPost?.postType ?? "WHATS_NEW");
+  const [locationId, setLocationId] = useState(editPost?.locationId ?? locations[0]?.id ?? "");
   const [title, setTitle] = useState("");
-  const [body, setBody] = useState("");
+  const [body, setBody] = useState(editPost?.content ?? "");
   const [cta, setCta] = useState("Learn more");
   const [ctaUrl, setCtaUrl] = useState("");
   const [coupon, setCoupon] = useState("");
@@ -37,14 +46,14 @@ export function PostComposer({ locations, onClose }: PostComposerProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const isEditing = !!editPost;
   const valid = body.trim().length > 5;
   const canSchedule = mode === "schedule" ? !!scheduledAt : true;
   const locationName = locations.find((l) => l.id === locationId)?.name ?? "All locations";
 
-  const handleSaveDraft = async () => {
-    setIsSubmitting(true);
-    setError(null);
+  const buildFormData = (publishNow: boolean) => {
     const fd = new FormData();
+    if (isEditing) fd.set("postId", editPost.id);
     fd.set("locationId", locationId);
     fd.set("postType", postType);
     fd.set("content", body.trim());
@@ -52,9 +61,19 @@ export function PostComposer({ locations, onClose }: PostComposerProps) {
     if (ctaUrl) fd.set("ctaUrl", ctaUrl);
     if (coupon) fd.set("couponCode", coupon);
     if (title) fd.set("title", title);
-    fd.set("publishNow", "false");
+    fd.set("publishNow", publishNow ? "true" : "false");
+    if (!publishNow && scheduledAt) fd.set("scheduledAt", scheduledAt);
+    return fd;
+  };
+
+  const handleSaveDraft = async () => {
+    setIsSubmitting(true);
+    setError(null);
     try {
-      const result = await createGbpPostInline(fd);
+      const fd = buildFormData(false);
+      const result = isEditing
+        ? await updateGbpPostInline(fd)
+        : await createGbpPostInline(fd);
       if (result.success) { router.refresh(); onClose(); }
       else setError(result.error ?? "Failed to save");
     } finally {
@@ -65,18 +84,11 @@ export function PostComposer({ locations, onClose }: PostComposerProps) {
   const handlePublish = async () => {
     setIsSubmitting(true);
     setError(null);
-    const fd = new FormData();
-    fd.set("locationId", locationId);
-    fd.set("postType", postType);
-    fd.set("content", body.trim());
-    fd.set("ctaType", cta.toUpperCase().replace(/\s+/g, "_"));
-    if (ctaUrl) fd.set("ctaUrl", ctaUrl);
-    if (coupon) fd.set("couponCode", coupon);
-    if (title) fd.set("title", title);
-    fd.set("publishNow", mode === "publish" ? "true" : "false");
-    if (mode === "schedule" && scheduledAt) fd.set("scheduledAt", scheduledAt);
     try {
-      const result = await createGbpPostInline(fd);
+      const fd = buildFormData(mode === "publish");
+      const result = isEditing
+        ? await updateGbpPostInline(fd)
+        : await createGbpPostInline(fd);
       if (result.success) { router.refresh(); onClose(); }
       else setError(result.error ?? "Failed to publish");
     } finally {
@@ -101,7 +113,7 @@ export function PostComposer({ locations, onClose }: PostComposerProps) {
           <svg className="h-4.5 w-4.5 text-[#37aeb7]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M3 11l19-9-9 19-2-8-8-2z"/>
           </svg>
-          <h2 className="text-[16.5px] font-[660] tracking-tight text-slate-950">New Google post</h2>
+          <h2 className="text-[16.5px] font-[660] tracking-tight text-slate-950">{isEditing ? "Edit post" : "New Google post"}</h2>
           <button
             className="ml-auto rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition"
             onClick={onClose}
