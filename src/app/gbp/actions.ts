@@ -6,7 +6,7 @@ import { GbpPublishStatus, GbpPostType, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getCurrentMembership } from "@/lib/authz";
 import { getCurrentAccessibleLocationIds } from "@/lib/current-scope";
-import { getValidGoogleAccessToken } from "@/lib/google-oauth";
+import { getValidGoogleAccessToken, fetchGoogleBusinessLocations } from "@/lib/google-oauth";
 import { publishGbpReply, createGbpPost, deleteGbpPost, uploadGbpPhoto, deleteGbpPhoto, answerGbpQuestion } from "@/lib/gbp-api";
 
 async function getLocationWithConnection(locationId: string, allowedIds: string[]) {
@@ -98,7 +98,15 @@ export async function createGbpPostAction(formData: FormData) {
   if (publishNow && location.googleConnection && location.googleLocationName) {
     try {
       const accessToken = await getValidGoogleAccessToken(location.googleConnection);
-      const gbpPostId = await createGbpPost(accessToken, location.googleLocationName, {
+
+      // googleLocationName is stored as "locations/xxx" — API needs "accounts/xxx/locations/xxx"
+      const googleLocations = await fetchGoogleBusinessLocations(accessToken);
+      const matched = googleLocations.find((l) => l.name === location.googleLocationName);
+      const fullLocationName = matched?.accountResourceName
+        ? `${matched.accountResourceName}/${location.googleLocationName}`
+        : location.googleLocationName;
+
+      const gbpPostId = await createGbpPost(accessToken, fullLocationName, {
         postType, content, callToAction, imageUrl,
       });
       await prisma.gbpPost.create({
