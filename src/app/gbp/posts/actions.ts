@@ -48,9 +48,15 @@ function extractPostFields(formData: FormData) {
   return { ctaForApi, callToActionJson, eventTitle, offerCouponCode, offerRedeemUrl, offerTerms, offerStartDate, offerStartTime, offerEndDate, offerEndTime };
 }
 
-function validateOfferDates(postType: GbpPostType, fields: ReturnType<typeof extractPostFields>): string | null {
+function validateOfferFields(postType: GbpPostType, fields: ReturnType<typeof extractPostFields>, publishNow: boolean): string | null {
   if (postType !== GbpPostType.OFFER) return null;
-  const { offerStartDate, offerEndDate } = fields;
+  const { eventTitle, offerStartDate, offerEndDate } = fields;
+  if (publishNow && !eventTitle) {
+    return "Offer title is required to publish an offer post.";
+  }
+  if (publishNow && (!offerStartDate || !offerEndDate)) {
+    return "Start date and end date are required to publish an offer post.";
+  }
   if (offerStartDate && offerEndDate && offerEndDate < offerStartDate) {
     return "Offer end date must be on or after the start date.";
   }
@@ -112,7 +118,7 @@ export async function createGbpPostInline(formData: FormData): Promise<{ success
   if (!location) return { success: false, error: "Location not found" };
 
   const offerFields = extractPostFields(formData);
-  const dateError = validateOfferDates(postType, offerFields);
+  const dateError = validateOfferFields(postType, offerFields, publishNow);
   if (dateError) return { success: false, error: dateError };
 
   const { ctaForApi, callToActionJson, eventTitle, offerCouponCode, offerRedeemUrl, offerTerms, offerStartDate, offerStartTime, offerEndDate, offerEndTime } = offerFields;
@@ -169,7 +175,7 @@ export async function updateGbpPostInline(formData: FormData): Promise<{ success
 
   const scheduledAt = !publishNow && scheduledAtRaw ? new Date(scheduledAtRaw) : null;
   const offerFields = extractPostFields(formData);
-  const dateError = validateOfferDates(postType, offerFields);
+  const dateError = validateOfferFields(postType, offerFields, publishNow);
   if (dateError) return { success: false, error: dateError };
 
   const { ctaForApi, callToActionJson, eventTitle, offerCouponCode, offerRedeemUrl, offerTerms, offerStartDate, offerStartTime, offerEndDate, offerEndTime } = offerFields;

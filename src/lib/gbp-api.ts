@@ -37,8 +37,19 @@ async function gbpFetch(
 
 function extractErrorMessage(text: string): string {
   try {
-    const json = JSON.parse(text) as { error?: { message?: string } };
-    return json.error?.message ?? text;
+    type GbpError = {
+      error?: {
+        message?: string;
+        details?: Array<{ fieldViolations?: Array<{ field?: string; description?: string }> }>;
+      };
+    };
+    const json = JSON.parse(text) as GbpError;
+    let msg = json.error?.message ?? text;
+    const violations = json.error?.details?.flatMap((d) => d.fieldViolations ?? []) ?? [];
+    if (violations.length) {
+      msg += " — " + violations.map((v) => `${v.field ?? "?"}: ${v.description ?? "?"}`).join("; ");
+    }
+    return msg;
   } catch {
     return text;
   }
@@ -117,12 +128,14 @@ export async function createGbpPost(
     if (Object.keys(offer).length > 0) body.offer = offer;
   }
 
+  console.log("[GBP createPost] body:", JSON.stringify(body, null, 2));
   const res = await gbpFetch(`${GBP_V4}/${locationName}/localPosts`, accessToken, {
     method: "POST",
     body: JSON.stringify(body),
   });
   if (!res.ok) {
     const text = await res.text();
+    console.error("[GBP createPost] error response:", text);
     throw new Error(`GBP createPost failed (${res.status}): ${extractErrorMessage(text)}`);
   }
   const json = (await res.json()) as { name?: string };

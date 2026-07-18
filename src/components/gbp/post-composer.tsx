@@ -62,6 +62,10 @@ export function PostComposer({ locations, onClose, editPost }: PostComposerProps
       : postType === "OFFER" && ((offerStartDate && !offerEndDate) || (!offerStartDate && offerEndDate))
       ? "Both start and end date are required."
       : null;
+
+  // Extra checks only block publish (not draft)
+  const offerPublishBlocked =
+    postType === "OFFER" && (!title || !offerStartDate || !offerEndDate);
   const locationName = locations.find((l) => l.id === locationId)?.name ?? "All locations";
 
   const buildFormData = (publishNow: boolean) => {
@@ -444,7 +448,8 @@ export function PostComposer({ locations, onClose, editPost }: PostComposerProps
           </button>
           <button
             onClick={() => setConfirm(true)}
-            disabled={!valid || !canSchedule || !!offerDateError || isSubmitting}
+            disabled={!valid || !canSchedule || !!offerDateError || offerPublishBlocked || isSubmitting}
+            title={offerPublishBlocked ? "Offer title, start date, and end date are required to publish" : undefined}
             className="inline-flex items-center gap-1.5 rounded-lg bg-[#37aeb7] px-4 py-2 text-sm font-semibold text-white hover:bg-[#2a8a92] transition disabled:opacity-50"
           >
             {mode === "schedule" ? (
