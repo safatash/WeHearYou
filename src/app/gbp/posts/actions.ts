@@ -295,3 +295,23 @@ export async function duplicateGbpPostInline(postId: string): Promise<{ success:
   revalidatePath("/gbp/posts");
   return { success: true };
 }
+
+export async function uploadGbpPostImage(formData: FormData): Promise<{ url: string }> {
+  const membership = await getCurrentMembership();
+  if (!membership) throw new Error("Not authenticated");
+
+  const file = formData.get("file") as File | null;
+  if (!file || file.size === 0) throw new Error("No file provided");
+  if (file.size > 10 * 1024 * 1024) throw new Error("Image must be smaller than 10 MB");
+
+  const { put } = await import("@vercel/blob");
+  const ext = file.name.includes(".") ? (file.name.split(".").pop()?.toLowerCase() ?? "jpg") : "jpg";
+  const safeExt = /^[a-z0-9]+$/.test(ext) ? ext : "jpg";
+  const blobPath = `gbp-posts/${membership.organizationId}/${Date.now()}.${safeExt}`;
+  const blob = await put(blobPath, file, {
+    access: "public",
+    contentType: file.type || "image/jpeg",
+    token: process.env.BLOB_Public_READ_WRITE_TOKEN,
+  });
+  return { url: blob.url };
+}
