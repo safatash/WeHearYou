@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { runGbpScheduler } from "@/lib/gbp-scheduler";
-import { runGbpSync } from "@/lib/gbp-sync";
+import { runGbpSync, runGoogleReviewSync } from "@/lib/gbp-sync";
 
 export const maxDuration = 60;
 
@@ -15,8 +15,9 @@ export async function GET(request: NextRequest) {
 
   try {
     const schedulerResult = await runGbpScheduler();
-    const syncResult = doSync ? await runGbpSync() : null;
-    return NextResponse.json({ ok: true, schedulerResult, syncResult });
+    const questionsResult = doSync ? await runGbpSync() : null;
+    const reviewsResult = doSync ? await runGoogleReviewSync() : null;
+    return NextResponse.json({ ok: true, schedulerResult, questionsResult, reviewsResult });
   } catch (error) {
     const message = error instanceof Error ? error.message : "GBP cron failed";
     return NextResponse.json({ ok: false, error: message }, { status: 500 });
