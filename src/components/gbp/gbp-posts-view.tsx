@@ -21,6 +21,8 @@ interface Post {
   publishedAt: Date | null;
   failureReason: string | null;
   createdAt: Date;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  callToAction: any;
   location: { id: string; name: string };
 }
 
@@ -281,7 +283,25 @@ export function GbpPostsView({ posts, locations, stats }: GbpPostsViewProps) {
   const filtered = filter === "All" ? posts : posts.filter((p) => p.status === STATUS_MAP[filter]);
 
   const openEdit = useCallback((post: Post) => {
-    setEditPost({ id: post.id, postType: post.postType, content: post.content, locationId: post.location.id, imageUrl: post.imageUrl });
+    const cta = post.callToAction as { actionType?: string; url?: string; eventTitle?: string; offerStartDate?: string; offerStartTime?: string; offerEndDate?: string; offerEndTime?: string; offerCouponCode?: string; offerRedeemUrl?: string; offerTerms?: string } | null;
+    setEditPost({
+      id: post.id,
+      postType: post.postType,
+      content: post.content,
+      locationId: post.location.id,
+      imageUrl: post.imageUrl,
+      scheduledAt: post.scheduledAt,
+      ctaType: cta?.actionType ?? null,
+      ctaUrl: cta?.url ?? null,
+      eventTitle: cta?.eventTitle ?? null,
+      offerStartDate: cta?.offerStartDate ?? null,
+      offerStartTime: cta?.offerStartTime ?? null,
+      offerEndDate: cta?.offerEndDate ?? null,
+      offerEndTime: cta?.offerEndTime ?? null,
+      offerCouponCode: cta?.offerCouponCode ?? null,
+      offerRedeemUrl: cta?.offerRedeemUrl ?? null,
+      offerTerms: cta?.offerTerms ?? null,
+    });
     setComposerOpen(true);
   }, []);
 

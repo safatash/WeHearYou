@@ -15,6 +15,21 @@ export interface EditPost {
   content: string;
   locationId: string;
   imageUrl?: string | null;
+  // CTA
+  ctaType?: string | null;
+  ctaUrl?: string | null;
+  // Event / Offer title
+  eventTitle?: string | null;
+  // Offer dates & times
+  offerStartDate?: string | null;
+  offerStartTime?: string | null;
+  offerEndDate?: string | null;
+  offerEndTime?: string | null;
+  offerCouponCode?: string | null;
+  offerRedeemUrl?: string | null;
+  offerTerms?: string | null;
+  // Schedule
+  scheduledAt?: Date | null;
 }
 
 interface PostComposerProps {
@@ -35,19 +50,19 @@ export function PostComposer({ locations, onClose, editPost }: PostComposerProps
   const router = useRouter();
   const [postType, setPostType] = useState<"WHATS_NEW" | "EVENT" | "OFFER">(editPost?.postType ?? "WHATS_NEW");
   const [locationId, setLocationId] = useState(editPost?.locationId ?? locations[0]?.id ?? "");
-  const [title, setTitle] = useState("");
+  const [title, setTitle] = useState(editPost?.eventTitle ?? "");
   const [body, setBody] = useState(editPost?.content ?? "");
-  const [cta, setCta] = useState("Learn more");
-  const [ctaUrl, setCtaUrl] = useState("");
-  const [offerStartDate, setOfferStartDate] = useState("");
-  const [offerStartTime, setOfferStartTime] = useState("");
-  const [offerEndDate, setOfferEndDate] = useState("");
-  const [offerEndTime, setOfferEndTime] = useState("");
-  const [offerCoupon, setOfferCoupon] = useState("");
-  const [offerRedeemUrl, setOfferRedeemUrl] = useState("");
-  const [offerTerms, setOfferTerms] = useState("");
-  const [mode, setMode] = useState<"publish" | "schedule">("publish");
-  const [scheduledAt, setScheduledAt] = useState("");
+  const [cta, setCta] = useState(editPost?.ctaType ? CTA_OPTIONS.find((o) => o.toUpperCase().replace(/\s+/g, "_") === editPost.ctaType) ?? "Learn more" : "Learn more");
+  const [ctaUrl, setCtaUrl] = useState(editPost?.ctaUrl ?? "");
+  const [offerStartDate, setOfferStartDate] = useState(editPost?.offerStartDate ?? "");
+  const [offerStartTime, setOfferStartTime] = useState(editPost?.offerStartTime ?? "");
+  const [offerEndDate, setOfferEndDate] = useState(editPost?.offerEndDate ?? "");
+  const [offerEndTime, setOfferEndTime] = useState(editPost?.offerEndTime ?? "");
+  const [offerCoupon, setOfferCoupon] = useState(editPost?.offerCouponCode ?? "");
+  const [offerRedeemUrl, setOfferRedeemUrl] = useState(editPost?.offerRedeemUrl ?? "");
+  const [offerTerms, setOfferTerms] = useState(editPost?.offerTerms ?? "");
+  const [mode, setMode] = useState<"publish" | "schedule">(editPost?.scheduledAt ? "schedule" : "publish");
+  const [scheduledAt, setScheduledAt] = useState(editPost?.scheduledAt ? new Date(editPost.scheduledAt).toISOString().slice(0, 16) : "");
   const [confirm, setConfirm] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
