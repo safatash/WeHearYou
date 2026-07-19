@@ -344,6 +344,7 @@ function SingleTextPreview({
   textColor,
   mutedColor,
   bodyMaxChars,
+  fontSizeBase = 14,
 }: {
   review: ReviewItem | undefined;
   showRating: boolean;
@@ -354,6 +355,7 @@ function SingleTextPreview({
   textColor: string;
   mutedColor: string;
   bodyMaxChars: number;
+  fontSizeBase?: number;
 }) {
   if (!review) {
     return (
@@ -379,7 +381,7 @@ function SingleTextPreview({
           ))}
         </div>
       )}
-      <p className="text-base leading-relaxed mb-4" style={{ color: textColor }}>
+      <p className="leading-relaxed mb-4" style={{ color: textColor, fontSize: `${fontSizeBase}px` }}>
         &ldquo;{truncated}&rdquo;
       </p>
       <div className="flex flex-col gap-1" style={{ color: mutedColor, fontSize: 13 }}>
@@ -1300,6 +1302,7 @@ export function ReviewWidgetPreview({
               textColor={textColor}
               mutedColor={mutedColor}
               bodyMaxChars={bodyMaxChars}
+              fontSizeBase={fontSizeBase}
             />
           )}
           {showBranding && (
