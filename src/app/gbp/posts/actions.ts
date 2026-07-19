@@ -145,6 +145,12 @@ export async function createGbpPostInline(formData: FormData): Promise<{ success
       return { success: false, error: `Published to DB but Google rejected: ${msg}` };
     }
   } else {
+    if (publishNow) {
+      return {
+        success: false,
+        error: "This location is not connected to Google Business Profile. Go to Integrations to connect it before publishing.",
+      };
+    }
     await prisma.gbpPost.create({
       data: { locationId, postType, content, callToAction: callToActionJson, imageUrl, status, scheduledAt },
     });
@@ -219,6 +225,12 @@ export async function updateGbpPostInline(formData: FormData): Promise<{ success
       return { success: false, error: `Saved but Google rejected: ${msg}` };
     }
   } else {
+    if (publishNow) {
+      return {
+        success: false,
+        error: "This location is not connected to Google Business Profile. Go to Integrations to connect it before publishing.",
+      };
+    }
     const status = scheduledAt ? GbpPublishStatus.SCHEDULED : GbpPublishStatus.DRAFT;
     await prisma.gbpPost.update({
       where: { id: post.id },
