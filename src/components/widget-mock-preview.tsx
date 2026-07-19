@@ -250,9 +250,11 @@ const FeaturedReviewCardW = ({ r, s, tk, highlightQuote }: { r: Review; s: Previ
   const fontStack = FONT_STACKS[s.fontFamily] || FONT_STACKS.system;
   const pad = s.density === "compact" ? 16 : 22;
   const bodyFontSize = (s.fontSizeBase || 14) + 4;
+  const truncLen = s.bodyMaxChars || 280;
+  const displayText = r.text.length > truncLen ? r.text.slice(0, truncLen) + "…" : r.text;
   // Render body with highlight on white-on-accent background
   const renderFeaturedBody = () => {
-    const text = r.text;
+    const text = displayText;
     if (!highlightQuote || !highlightQuote.trim()) {
       return <p style={st({ fontSize: bodyFontSize, lineHeight: 1.45, color: "#fff", margin: 0, fontWeight: 400, letterSpacing: "-.01em", fontFamily: INSTRUMENT_SERIF })}>&#8220;{text}&#8221;</p>;
     }

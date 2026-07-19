@@ -1,9 +1,12 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { ReviewSource, ReviewStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { generateReviewWidgetToken } from "@/lib/review-widgets";
 import { getCurrentMembership, requireOrganizationAccess } from "@/lib/authz";
+import { generateAiReviewSummary } from "@/lib/ai-summary";
 
 export async function createReviewWidget(formData: FormData) {
   const membership = await getCurrentMembership();
@@ -533,4 +536,61 @@ export async function getOrCreateWidgetForLocation(
   });
 
   return { widgetId: newWidget.id };
+}
+
+export async function generateWidgetAiSummary(formData: FormData): Promise<void> {
+  const widgetId = String(formData.get("widgetId") ?? "").trim();
+  if (!widgetId) throw new Error("Widget ID required");
+
+  const widget = await prisma.reviewWidget.findUnique({
+    where: { id: widgetId },
+    select: { id: true, organizationId: true, locationId: true },
+  });
+  if (!widget) throw new Error("Widget not found");
+
+  await requireOrganizationAccess(widget.organizationId);
+
+  if (!process.env.GEMINI_API_KEY) {
+    throw new Error("AI summary not configured — set GEMINI_API_KEY");
+  }
+
+  const reviews = await prisma.review.findMany({
+    where: {
+      locationId: widget.locationId,
+      OR: [
+        { source: ReviewSource.GOOGLE, status: ReviewStatus.PUBLISHED },
+        { source: ReviewSource.FACEBOOK, status: ReviewStatus.PUBLISHED },
+      ],
+      body: { not: "" },
+    },
+    orderBy: [{ reviewedAt: "desc" }, { createdAt: "desc" }],
+    take: 50,
+    select: { rating: true, body: true },
+  });
+
+  const nonEmpty = reviews.filter((r) => r.body.trim().length > 0);
+  if (nonEmpty.length < 3) {
+    throw new Error("Not enough reviews to summarize (need at least 3)");
+  }
+
+  const result = await generateAiReviewSummary(nonEmpty.map((r) => ({ ...r, rating: r.rating ?? 0 })));
+
+  await prisma.locationPublicProfile.upsert({
+    where: { locationId: widget.locationId },
+    update: {
+      aiReviewSummary: result.summary,
+      aiReviewSummaryAt: new Date(),
+      aiReviewSummaryReviewCount: nonEmpty.length,
+      reviewHighlights: result.highlights,
+    },
+    create: {
+      locationId: widget.locationId,
+      aiReviewSummary: result.summary,
+      aiReviewSummaryAt: new Date(),
+      aiReviewSummaryReviewCount: nonEmpty.length,
+      reviewHighlights: result.highlights,
+    },
+  });
+
+  revalidatePath(`/widgets/${widgetId}`);
 }

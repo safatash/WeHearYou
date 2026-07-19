@@ -6,7 +6,8 @@ import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { Icon, type IconName } from "@/components/icon";
 import { WidgetMockPreview, type PreviewSettings } from "@/components/widget-mock-preview";
-import { updateReviewWidget, getOrCreateWidgetForLocation } from "@/app/widgets/actions";
+import { updateReviewWidget, getOrCreateWidgetForLocation, generateWidgetAiSummary } from "@/app/widgets/actions";
+import { FormSubmitButton } from "@/components/form-submit-button";
 
 const st = (s: React.CSSProperties): React.CSSProperties => s;
 
@@ -850,6 +851,15 @@ export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [], aiS
                   <Toggle checked={showResponses} onChange={setShowResponses} label="Owner responses" />
                   {isReviewWall && <Toggle checked={showWriteReview} onChange={setShowWriteReview} label="Write a review link" />}
                   {isReviewWall && content !== "videos" && <Toggle checked={showAiSummary} onChange={setShowAiSummary} label="AI summary" />}
+                  {isReviewWall && content !== "videos" && showAiSummary && (
+                    <form action={generateWidgetAiSummary} style={st({ marginLeft: 36 })}>
+                      <input type="hidden" name="widgetId" value={widget.id} />
+                      <FormSubmitButton idleLabel="Generate AI summary" pendingLabel="Generating…" className="btn btn-sm btn-secondary" />
+                      <p style={st({ marginTop: 5, fontSize: 11.5, color: "var(--ink-400)" })}>
+                        {aiSummaryText ? `Last generated: ${aiSummaryCount ?? "?"} reviews` : "No summary yet"}
+                      </p>
+                    </form>
+                  )}
                   {isReviewWall && <Toggle checked={showNav} onChange={setShowNav} label="Navigation arrows" />}
                   {isReviewWall && <Toggle checked={showPagination} onChange={setShowPagination} label="Pagination / load more" />}
                   <Toggle checked={showBranding} onChange={setShowBranding} label="WeHearYou branding" />
