@@ -244,6 +244,56 @@ export function PostComposer({ locations, onClose, editPost }: PostComposerProps
               />
             </label>
 
+            {/* Event dates (EVENT only) */}
+            {postType === "EVENT" && (
+              <div className="flex flex-col gap-3.5 rounded-xl border border-emerald-200 bg-emerald-50/60 p-4">
+                <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-emerald-700">Event dates</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <label className="flex flex-col gap-1.5">
+                    <span className="text-[11.5px] font-semibold text-slate-500">Start date</span>
+                    <input
+                      type="date"
+                      value={offerStartDate}
+                      onChange={(e) => setOfferStartDate(e.target.value)}
+                      className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-[#37aeb7] focus:outline-none focus:ring-2 focus:ring-[#37aeb7]/20"
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1.5">
+                    <span className="text-[11.5px] font-semibold text-slate-500">Start time <span className="font-normal text-slate-400">(optional)</span></span>
+                    <input
+                      type="time"
+                      value={offerStartTime}
+                      onChange={(e) => setOfferStartTime(e.target.value)}
+                      className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-[#37aeb7] focus:outline-none focus:ring-2 focus:ring-[#37aeb7]/20"
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1.5">
+                    <span className="text-[11.5px] font-semibold text-slate-500">End date</span>
+                    <input
+                      type="date"
+                      value={offerEndDate}
+                      onChange={(e) => setOfferEndDate(e.target.value)}
+                      className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-[#37aeb7] focus:outline-none focus:ring-2 focus:ring-[#37aeb7]/20"
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1.5">
+                    <span className="text-[11.5px] font-semibold text-slate-500">End time <span className="font-normal text-slate-400">(optional)</span></span>
+                    <input
+                      type="time"
+                      value={offerEndTime}
+                      onChange={(e) => setOfferEndTime(e.target.value)}
+                      className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-[#37aeb7] focus:outline-none focus:ring-2 focus:ring-[#37aeb7]/20"
+                    />
+                  </label>
+                </div>
+                {offerDateError && (
+                  <p className="flex items-center gap-1.5 text-[12px] font-medium text-red-600">
+                    <svg className="h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                    {offerDateError}
+                  </p>
+                )}
+              </div>
+            )}
             {/* Offer details */}
             {postType === "OFFER" && (
               <div className="flex flex-col gap-3.5 rounded-xl border border-amber-200 bg-amber-50/60 p-4">
@@ -333,29 +383,31 @@ export function PostComposer({ locations, onClose, editPost }: PostComposerProps
               </div>
             )}
 
-            {/* CTA */}
-            <label className="flex flex-col gap-2">
-              <span className="text-[11.5px] font-semibold text-slate-500">Button (call to action)</span>
-              <select
-                value={cta}
-                onChange={(e) => setCta(e.target.value)}
-                className="rounded-lg border border-slate-200 px-3 py-2.5 text-sm text-slate-900 focus:border-[#37aeb7] focus:outline-none"
-              >
-                {CTA_OPTIONS.map((c) => <option key={c} value={c}>{c}</option>)}
-              </select>
-            </label>
-
-            {/* CTA URL */}
-            <label className="flex flex-col gap-2">
-              <span className="text-[11.5px] font-semibold text-slate-500">Button URL <span className="font-normal text-slate-400">(optional)</span></span>
-              <input
-                type="url"
-                value={ctaUrl}
-                onChange={(e) => setCtaUrl(e.target.value)}
-                className="rounded-lg border border-slate-200 px-3 py-2.5 text-sm text-slate-900 focus:border-[#37aeb7] focus:outline-none focus:ring-2 focus:ring-[#37aeb7]/20"
-                placeholder="https://example.com/book"
-              />
-            </label>
+            {/* CTA — not supported by Google for Offer posts */}
+            {postType !== "OFFER" && (
+              <>
+                <label className="flex flex-col gap-2">
+                  <span className="text-[11.5px] font-semibold text-slate-500">Button (call to action)</span>
+                  <select
+                    value={cta}
+                    onChange={(e) => setCta(e.target.value)}
+                    className="rounded-lg border border-slate-200 px-3 py-2.5 text-sm text-slate-900 focus:border-[#37aeb7] focus:outline-none"
+                  >
+                    {CTA_OPTIONS.map((c) => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </label>
+                <label className="flex flex-col gap-2">
+                  <span className="text-[11.5px] font-semibold text-slate-500">Button URL <span className="font-normal text-slate-400">(optional)</span></span>
+                  <input
+                    type="url"
+                    value={ctaUrl}
+                    onChange={(e) => setCtaUrl(e.target.value)}
+                    className="rounded-lg border border-slate-200 px-3 py-2.5 text-sm text-slate-900 focus:border-[#37aeb7] focus:outline-none focus:ring-2 focus:ring-[#37aeb7]/20"
+                    placeholder="https://example.com/book"
+                  />
+                </label>
+              </>
+            )}
 
             {/* Photo */}
             <div>
