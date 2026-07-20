@@ -110,6 +110,8 @@ export default async function WidgetDetailPage({
       wallStyle: widget.wallStyle,
       cardHeights: (widget as { cardHeights?: string }).cardHeights ?? "auto",
       enabledSources: widget.enabledSources,
+      // Single Testimonial
+      singleTestimonialReviewId: (widget as { singleTestimonialReviewId?: string | null }).singleTestimonialReviewId ?? null,
       // Spotlight & Pins
       spotlightReviewId: (widget as { spotlightReviewId?: string | null }).spotlightReviewId ?? null,
       pinnedReviewIds: (widget as { pinnedReviewIds?: string }).pinnedReviewIds ?? "",

@@ -114,6 +114,8 @@ export type StudioWidget = {
   wallStyle: string;
   cardHeights: string;
   enabledSources: string;
+  // Single Testimonial
+  singleTestimonialReviewId: string | null;
   // Spotlight & Pins
   spotlightReviewId: string | null;
   pinnedReviewIds: string;
@@ -325,6 +327,10 @@ export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [], aiS
   };
   const [enabledSourcesSet, setEnabledSourcesSet] = useState<Set<string>>(() => parseEnabledSources(widget.enabledSources || ""));
   const [isActive, setIsActive] = useState(widget.isActive);
+  // Single Testimonial review picker
+  const [singleTestimonialReviewId, setSingleTestimonialReviewId] = useState<string | null>(
+    (widget as { singleTestimonialReviewId?: string | null }).singleTestimonialReviewId ?? null
+  );
   // Spotlight & Pins
   const [spotlightReviewId, setSpotlightReviewId] = useState<string | null>(widget.spotlightReviewId ?? null);
   const [pinnedReviewIds, setPinnedReviewIds] = useState<string[]>(() =>
@@ -507,6 +513,8 @@ export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [], aiS
     // Sources: serialize Set back to CSV (empty string = all enabled)
     const allEnabled = ALL_SOURCES.every((s) => enabledSourcesSet.has(s));
     fd.append("enabledSources", allEnabled ? "" : Array.from(enabledSourcesSet).join(","));
+    // Single Testimonial review picker
+    fd.append("singleTestimonialReviewId", singleTestimonialReviewId ?? "");
     // Spotlight & Pins
     fd.append("spotlightReviewId", spotlightReviewId ?? "");
     fd.append("pinnedReviewIds", pinnedReviewIds.join(","));
@@ -620,6 +628,36 @@ export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [], aiS
                 onChange={setContent}
                 options={[{ value: "reviews", label: "Text" }, { value: "videos", label: "Video" }]}
               />
+            </Field>
+          )}
+          {isSingle && content !== "videos" && availableReviews.length > 0 && (
+            <Field label="Choose review" hint={singleTestimonialReviewId ? "1 selected" : "Auto (best match)"}>
+              <div style={st({ display: "flex", flexDirection: "column", gap: 6, maxHeight: 220, overflowY: "auto" })}>
+                <button
+                  type="button"
+                  onClick={() => setSingleTestimonialReviewId(null)}
+                  style={st({ borderRadius: 8, padding: "7px 10px", fontSize: 12.5, fontWeight: 560, cursor: "pointer", textAlign: "left", border: singleTestimonialReviewId === null ? "1px solid var(--accent)" : "1px solid var(--ink-200)", background: singleTestimonialReviewId === null ? "var(--accent-softer)" : "var(--white)", color: singleTestimonialReviewId === null ? "var(--accent-strong)" : "var(--ink-600)" })}
+                >
+                  Auto (best match)
+                </button>
+                {availableReviews.map((r) => (
+                  <button
+                    key={r.id}
+                    type="button"
+                    onClick={() => setSingleTestimonialReviewId(r.id)}
+                    style={st({ borderRadius: 8, padding: "8px 10px", fontSize: 12.5, cursor: "pointer", textAlign: "left", border: singleTestimonialReviewId === r.id ? "1px solid var(--accent)" : "1px solid var(--ink-200)", background: singleTestimonialReviewId === r.id ? "var(--accent-softer)" : "var(--white)" })}
+                  >
+                    <div style={st({ display: "flex", alignItems: "center", gap: 6, marginBottom: 3 })}>
+                      <span style={st({ color: "#f59e0b", fontSize: 11 })}>{'★'.repeat(r.rating)}</span>
+                      {singleTestimonialReviewId === r.id && (
+                        <span style={st({ fontSize: 10.5, fontWeight: 660, color: "var(--accent-strong)", background: "var(--accent-softer)", borderRadius: 4, padding: "1px 5px" })}>Selected</span>
+                      )}
+                    </div>
+                    <p style={st({ margin: 0, fontSize: 12, color: "var(--ink-700)", lineHeight: 1.4, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" })}>{r.body}</p>
+                    <p style={st({ margin: "3px 0 0", fontSize: 11.5, fontWeight: 600, color: "var(--ink-800)" })}>{r.reviewerName}</p>
+                  </button>
+                ))}
+              </div>
             </Field>
           )}
 
