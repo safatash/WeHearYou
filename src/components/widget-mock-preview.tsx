@@ -249,7 +249,7 @@ const FeaturedReviewCardW = ({ r, s, tk, highlightQuote }: { r: Review; s: Previ
   const starColor = "rgba(255,255,255,0.9)";
   const fontStack = FONT_STACKS[s.fontFamily] || FONT_STACKS.system;
   const pad = s.density === "compact" ? 16 : 22;
-  const bodyFontSize = (s.fontSizeBase || 14) + 4;
+  const bodyFontSize = s.fontSizeBase || 14;
   const truncLen = s.bodyMaxChars || 280;
   const displayText = r.text.length > truncLen ? r.text.slice(0, truncLen) + "…" : r.text;
   // Render body with highlight on white-on-accent background
@@ -319,7 +319,7 @@ const ReviewCardW = ({ r, s, tk, featured, accentFont, highlightQuote }: { r: Re
   const starColor = resolveStarColor(s);
   const fontStack = FONT_STACKS[s.fontFamily] || FONT_STACKS.system;
   // In varied layout, only accent-font cards (roughly 1 in 3) use Instrument Serif
-  const bodyFont = (s.wallStyle === "varied" && accentFont) ? INSTRUMENT_SERIF : fontStack;
+  const bodyFont = fontStack;
   const pad = s.density === "compact" ? 12 : 16;
   const truncLen = s.bodyMaxChars || 280;
   const bodyText = r.text.length > truncLen ? r.text.slice(0, truncLen) + "…" : r.text;
@@ -343,7 +343,7 @@ const ReviewCardW = ({ r, s, tk, featured, accentFont, highlightQuote }: { r: Re
         </div>
       )}
       {s.showRating && <Stars value={r.rating} size={s.density === "compact" ? 13 : 15} color={starColor} />}
-      {renderBodyWithHighlight(bodyText, highlightQuote, s.accent, s.fontSizeBase || 13, tk.sub, bodyFont)}
+      {renderBodyWithHighlight(bodyText, highlightQuote, s.accent, s.fontSizeBase || 14, tk.sub, bodyFont)}
       {s.showResponses && (
         <div style={st({ background: `color-mix(in srgb, ${s.accent} 8%, ${tk.bg})`, border: `1px solid color-mix(in srgb, ${s.accent} 20%, ${tk.line})`, borderRadius: Math.max(4, s.radius - 4), padding: "9px 11px", fontSize: (s.fontSizeBase || 13) - 1, color: tk.sub, lineHeight: 1.5 })}>
           <span style={st({ fontWeight: 640, color: s.accent, fontSize: (s.fontSizeBase || 13) - 1 })}>Owner reply: </span>{ownerReply}

@@ -1220,16 +1220,17 @@ const script = `
               var starsHtml = w.showRating !== false ? '<div style="font-size:14px;color:' + starColor + ';margin-bottom:10px">' + escapeHtml(stars(item.data.rating)) + '</div>' : '';
               var nameHtml = w.showAvatars !== false ? '<div style="font-size:13px;font-weight:600;color:rgba(255,255,255,.9)">' + escapeHtml(item.data.reviewerName || 'Anonymous') + '</div>' : '';
               // Highlight on accent bg: white semi-transparent mark
+              var spotlightFontSize = w.fontSizeBase || 14;
               var quote = highlightMap[reviewId];
               var bodyHtml;
               if (quote && body.indexOf(quote) !== -1) {
                 var qi = body.indexOf(quote);
-                bodyHtml = '<div style="font-family:' + serif + ';font-size:22px;line-height:1.35;font-weight:400;margin-bottom:16px;color:#fff">\u201c' +
+                bodyHtml = '<div style="font-family:' + fontStack(w.fontFamily) + ';font-size:' + spotlightFontSize + 'px;line-height:1.55;font-weight:400;margin-bottom:16px;color:#fff">\u201c' +
                   escapeHtml(body.slice(0, qi)) +
                   '<mark style="background:rgba(255,255,255,.28);color:#fff;border-radius:3px;padding:0 3px;font-weight:700">' + escapeHtml(quote) + '</mark>' +
                   escapeHtml(body.slice(qi + quote.length)) + '\u201d</div>';
               } else {
-                bodyHtml = '<div style="font-family:' + serif + ';font-size:22px;line-height:1.35;font-weight:400;margin-bottom:16px;color:#fff">\u201c' + escapeHtml(body) + '\u201d</div>';
+                bodyHtml = '<div style="font-family:' + fontStack(w.fontFamily) + ';font-size:' + spotlightFontSize + 'px;line-height:1.55;font-weight:400;margin-bottom:16px;color:#fff">\u201c' + escapeHtml(body) + '\u201d</div>';
               }
               return '<article class="why-widget-card" style="background:' + escapeHtml(accentColor) + ';border:none;border-radius:' + radius + 'px;padding:20px;color:#fff">' +
                 starsHtml + bodyHtml +
@@ -1278,7 +1279,7 @@ const script = `
               var starColor = resolveStarColorEmbed(w);
               var fontSizeNames = w.fontSizeNames || 13;
               var fontSizeLabel = w.fontSizeLabel || 12;
-              var bodyFontFamily = useSerif ? serif : fontStack(w.fontFamily);
+              var bodyFontFamily = fontStack(w.fontFamily);
               var html = '<article class="why-widget-card" style="' + cardStyleCss + 'color:' + escapeHtml(w.textColor) + ';border-radius:' + radius + 'px;padding:' + pad + '">';
               if (w.showAvatars !== false) {
                 var sourceMarkHtml = w.showSourceLogo && item.data.source ? '<span style="margin-left:auto;font-weight:700;color:#4285f4;font-size:11px">' + (item.data.source === 'GOOGLE' ? 'G' : item.data.source === 'FACEBOOK' ? 'f' : item.data.source === 'YELP' ? 'Y' : '\u2713') + '</span>' : '';
@@ -1289,7 +1290,7 @@ const script = `
                   '</div>' + sourceMarkHtml + '</div>';
               }
               if (w.showRating !== false) { html += '<div style="font-size:14px;color:' + escapeHtml(starColor) + ';margin:8px 0">' + escapeHtml(stars(item.data.rating)) + '</div>'; }
-              html += renderBodyWithHighlight(body, reviewId, w.textColor, bodyFontFamily, useSerif ? 16 : (w.fontSizeBase || 13), useSerif);
+              html += renderBodyWithHighlight(body, reviewId, w.textColor, bodyFontFamily, w.fontSizeBase || 14, false);
               html += '</article>';
               return html;
             }
