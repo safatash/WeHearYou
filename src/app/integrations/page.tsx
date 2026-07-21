@@ -127,22 +127,12 @@ export default async function IntegrationsPage({ searchParams }: { searchParams?
                 <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-600">Not Connected</span>
               </div>
               <div className="mt-6">
-                <form action={async () => {
-                  "use server";
-                  const { buildMetaOAuthUrl } = await import("@/lib/meta-oauth");
-                  const state = crypto.randomUUID();
-                  const cookies = (await import("next/headers")).cookies();
-                  (await cookies).set("meta_oauth_state", state, { httpOnly: true, sameSite: "lax", maxAge: 600 });
-                  const url = buildMetaOAuthUrl(state);
-                  (await import("next/navigation")).redirect(url);
-                }}>
-                  <button
-                    type="submit"
-                    className="rounded-2xl border border-blue-600 bg-blue-600 px-4 py-3 text-sm font-semibold !text-white visited:!text-white hover:!text-white"
-                  >
-                    Connect Facebook
-                  </button>
-                </form>
+                <Link
+                  href="/api/integrations/meta/auth"
+                  className="inline-block rounded-2xl border border-blue-600 bg-blue-600 px-4 py-3 text-sm font-semibold !text-white visited:!text-white hover:!text-white"
+                >
+                  Connect Facebook
+                </Link>
               </div>
             </div>
           )}
