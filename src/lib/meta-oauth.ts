@@ -11,7 +11,7 @@ export function getMetaOAuthConfig() {
 
 export function buildMetaOAuthUrl(state: string): string {
   const config = getMetaOAuthConfig();
-  const scopes = ["pages_read_engagement", "pages_manage_metadata"];
+  const scopes = ["pages_show_list", "pages_read_engagement", "pages_read_user_content"];
   const params = new URLSearchParams({
     client_id: config.clientId,
     redirect_uri: config.redirectUri,
