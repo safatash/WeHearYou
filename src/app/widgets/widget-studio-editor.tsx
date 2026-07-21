@@ -207,14 +207,21 @@ const Toggle = ({ checked, onChange, label }: { checked: boolean; onChange: (v: 
   </button>
 );
 
-const Swatches = ({ value, options, onChange }: { value: string; options: string[]; onChange: (v: string) => void }) => (
-  <div style={st({ display: "flex", gap: 8 })}>
-    {options.map((c) => (
-      <button key={c} type="button" onClick={() => onChange(c)} aria-label={c}
-        style={st({ width: 26, height: 26, borderRadius: 8, cursor: "pointer", background: c, border: value === c ? "2px solid var(--ink-900)" : "2px solid transparent", boxShadow: value === c ? "0 0 0 2px #fff inset" : "inset 0 0 0 1px rgba(0,0,0,.08)", transition: "all .12s" })} />
-    ))}
-  </div>
-);
+const Swatches = ({ value, options, onChange }: { value: string; options: string[]; onChange: (v: string) => void }) => {
+  const isCustom = !options.includes(value);
+  return (
+    <div style={st({ display: "flex", gap: 8, alignItems: "center" })}>
+      {options.map((c) => (
+        <button key={c} type="button" onClick={() => onChange(c)} aria-label={c}
+          style={st({ width: 26, height: 26, borderRadius: 8, cursor: "pointer", background: c, border: value === c ? "2px solid var(--ink-900)" : "2px solid transparent", boxShadow: value === c ? "0 0 0 2px #fff inset" : "inset 0 0 0 1px rgba(0,0,0,.08)", transition: "all .12s", flexShrink: 0 })} />
+      ))}
+      <label aria-label="Custom color" style={st({ position: "relative", width: 26, height: 26, borderRadius: 8, cursor: "pointer", flexShrink: 0, overflow: "hidden", border: isCustom ? "2px solid var(--ink-900)" : "2px solid transparent", boxShadow: isCustom ? `0 0 0 2px #fff inset, 0 0 0 3px ${value}` : "inset 0 0 0 1px rgba(0,0,0,.15)", background: isCustom ? value : "conic-gradient(red, yellow, lime, aqua, blue, magenta, red)", transition: "all .12s" })}>
+        <input type="color" value={value} onChange={(e) => onChange(e.target.value)}
+          style={st({ position: "absolute", inset: 0, opacity: 0, cursor: "pointer", width: "100%", height: "100%", border: "none", padding: 0 })} />
+      </label>
+    </div>
+  );
+};
 
 /* ── font size slider ────────────────────────────────────────────────────── */
 const FontSlider = ({ label, value, min, max, onChange }: { label: string; value: number; min: number; max: number; onChange: (v: number) => void }) => (
