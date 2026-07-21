@@ -215,9 +215,32 @@ const Swatches = ({ value, options, onChange }: { value: string; options: string
         <button key={c} type="button" onClick={() => onChange(c)} aria-label={c}
           style={st({ width: 26, height: 26, borderRadius: 8, cursor: "pointer", background: c, border: value === c ? "2px solid var(--ink-900)" : "2px solid transparent", boxShadow: value === c ? "0 0 0 2px #fff inset" : "inset 0 0 0 1px rgba(0,0,0,.08)", transition: "all .12s", flexShrink: 0 })} />
       ))}
-      <label aria-label="Custom color" style={st({ position: "relative", width: 26, height: 26, borderRadius: 8, cursor: "pointer", flexShrink: 0, overflow: "hidden", border: isCustom ? "2px solid var(--ink-900)" : "2px solid transparent", boxShadow: isCustom ? `0 0 0 2px #fff inset, 0 0 0 3px ${value}` : "inset 0 0 0 1px rgba(0,0,0,.15)", background: isCustom ? value : "conic-gradient(red, yellow, lime, aqua, blue, magenta, red)", transition: "all .12s" })}>
-        <input type="color" value={value} onChange={(e) => onChange(e.target.value)}
-          style={st({ position: "absolute", inset: 0, opacity: 0, cursor: "pointer", width: "100%", height: "100%", border: "none", padding: 0 })} />
+      {/* Custom color picker */}
+      <label
+        aria-label="Custom color"
+        title={isCustom ? value : "Custom color"}
+        style={st({
+          position: "relative", width: 26, height: 26, borderRadius: 8, cursor: "pointer", flexShrink: 0,
+          border: isCustom ? "2px solid var(--ink-900)" : "2px solid transparent",
+          boxShadow: isCustom ? "0 0 0 2px #fff inset" : "inset 0 0 0 1px rgba(0,0,0,.12)",
+          background: isCustom ? value : "linear-gradient(135deg, #f43f5e 0%, #f97316 20%, #eab308 40%, #22c55e 60%, #3b82f6 80%, #a855f7 100%)",
+          transition: "all .12s",
+          display: "flex", alignItems: "center", justifyContent: "center",
+        })}
+      >
+        {!isCustom && (
+          <svg width="13" height="13" viewBox="0 0 13 13" fill="none" style={{ pointerEvents: "none", filter: "drop-shadow(0 0 1px rgba(0,0,0,.4))" }}>
+            <circle cx="6.5" cy="6.5" r="5" stroke="white" strokeWidth="1.5" fill="none"/>
+            <line x1="6.5" y1="2" x2="6.5" y2="11" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
+            <line x1="2" y1="6.5" x2="11" y2="6.5" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
+          </svg>
+        )}
+        <input
+          type="color"
+          value={isCustom ? value : "#000000"}
+          onChange={(e) => onChange(e.target.value)}
+          style={st({ position: "absolute", inset: 0, opacity: 0, cursor: "pointer", width: "100%", height: "100%", border: "none", padding: 0 })}
+        />
       </label>
     </div>
   );
