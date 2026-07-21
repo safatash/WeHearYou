@@ -1,7 +1,7 @@
-import { GbpPublishStatus } from "@prisma/client";
+import { GbpPostType, GbpPublishStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getValidGoogleAccessToken } from "@/lib/google-oauth";
-import { createGbpPost, uploadGbpPhoto } from "@/lib/gbp-api";
+import { createGbpPost, deleteGbpPost, uploadGbpPhoto } from "@/lib/gbp-api";
 
 type SchedulerResult = {
   processed: number;
@@ -115,6 +115,46 @@ export async function runGbpScheduler(): Promise<SchedulerResult> {
       });
       failed++;
     }
+  }
+
+  // --- Expire offer posts past their end date ---
+  const publishedOffers = await prisma.gbpPost.findMany({
+    where: { status: GbpPublishStatus.PUBLISHED, postType: GbpPostType.OFFER },
+    include: {
+      location: {
+        select: { googleLocationName: true, googleConnectionId: true, id: true },
+      },
+    },
+    take: 100,
+  });
+
+  const todayStr = now.toISOString().slice(0, 10); // "YYYY-MM-DD"
+
+  for (const post of publishedOffers) {
+    const cta = post.callToAction as Record<string, unknown> | null;
+    const endDate = typeof cta?.offerEndDate === "string" ? cta.offerEndDate : null;
+    if (!endDate || endDate >= todayStr) continue;
+
+    // Try to delete from Google; ignore errors (post may already be gone)
+    if (post.gbpPostId && post.location.googleConnectionId) {
+      try {
+        const conn = await prisma.googleAccountConnection.findUnique({
+          where: { id: post.location.googleConnectionId },
+          select: { id: true, accessToken: true, refreshToken: true, expiresAt: true, scope: true, tokenType: true },
+        });
+        if (conn) {
+          const accessToken = await getValidGoogleAccessToken(conn);
+          await deleteGbpPost(accessToken, post.gbpPostId);
+        }
+      } catch {
+        // Best-effort; mark expired regardless
+      }
+    }
+
+    await prisma.gbpPost.update({
+      where: { id: post.id },
+      data: { status: GbpPublishStatus.EXPIRED },
+    });
   }
 
   return { processed: duePosts.length + duePhotos.length, succeeded, failed };

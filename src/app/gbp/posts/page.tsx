@@ -35,6 +35,7 @@ export default async function GbpPostsPage() {
     scheduled: posts.filter((p) => p.status === GbpPublishStatus.SCHEDULED).length,
     drafts: posts.filter((p) => p.status === GbpPublishStatus.DRAFT).length,
     failed: posts.filter((p) => p.status === GbpPublishStatus.FAILED).length,
+    expired: posts.filter((p) => p.status === GbpPublishStatus.EXPIRED).length,
   };
 
   return (

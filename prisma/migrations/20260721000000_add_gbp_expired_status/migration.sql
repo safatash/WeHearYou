@@ -1,0 +1,2 @@
+-- AlterEnum
+ALTER TYPE "GbpPublishStatus" ADD VALUE IF NOT EXISTS 'EXPIRED';

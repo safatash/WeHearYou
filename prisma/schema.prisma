@@ -101,6 +101,7 @@ enum GbpPublishStatus {
   SCHEDULED
   PUBLISHED
   FAILED
+  EXPIRED
 }
 
 enum ReviewLinkEventType {
