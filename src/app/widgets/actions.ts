@@ -138,6 +138,69 @@ export async function createDraftReviewWidget() {
   redirect(`/widgets/${widget.id}`);
 }
 
+// Create a draft widget with a specific type chosen upfront by the user.
+export async function createDraftReviewWidgetWithType(formData: FormData) {
+  const membership = await getCurrentMembership();
+  if (!membership) throw new Error("Organization is required");
+  const organizationId = membership.organizationId;
+  await requireOrganizationAccess(organizationId);
+
+  const typeKey = String(formData.get("typeKey") ?? "").trim();
+  const TYPE_TO_FIELDS: Record<string, { widgetType: string; layout: string }> = {
+    grid:       { widgetType: "WALL_OF_LOVE",       layout: "masonry"  },
+    carousel:   { widgetType: "WALL_OF_LOVE",       layout: "carousel" },
+    single:     { widgetType: "SINGLE_TESTIMONIAL", layout: "grid"     },
+    badge:      { widgetType: "BADGE",              layout: "badge"    },
+    collecting: { widgetType: "COLLECTING",         layout: "grid"     },
+    floating:   { widgetType: "FLOATING",           layout: "floating" },
+  };
+  const fields = TYPE_TO_FIELDS[typeKey] ?? TYPE_TO_FIELDS["grid"];
+
+  const locations = await prisma.location.findMany({
+    where: { organizationId },
+    select: { id: true, googleLocationName: true },
+    orderBy: { name: "asc" },
+  });
+  let chosenLocationId: string | null = null;
+  for (const loc of locations) {
+    if (!loc.googleLocationName) continue;
+    const reviewCount = await prisma.review.count({
+      where: { locationId: loc.id, source: "GOOGLE", status: "PUBLISHED" },
+    });
+    if (reviewCount > 0) { chosenLocationId = loc.id; break; }
+  }
+  if (!chosenLocationId) {
+    redirect(`/widgets?flash=${encodeURIComponent("Sync Google reviews for a location before creating a widget")}&tone=error`);
+  }
+
+  const floatingDefaults = fields.widgetType === "FLOATING" ? {
+    floatingCardStyle: "dark_solid_pill",
+    floatingVariation: "standard",
+    floatingPosition: "bottom-right",
+    floatingRotationEnabled: true,
+    floatingRotationIntervalSec: 8,
+    floatingAccentColorMode: "inherit",
+    floatingMobileBehavior: "show",
+    floatingApprovedOnly: true,
+    floatingMinRating: 4,
+    floatingDisplayFrequency: "always",
+  } : {};
+
+  const widget = await prisma.reviewWidget.create({
+    data: {
+      organizationId,
+      locationId: chosenLocationId,
+      name: "Untitled widget",
+      layout: fields.layout,
+      widgetType: fields.widgetType,
+      contentType: "TEXT",
+      publicToken: generateReviewWidgetToken(),
+      ...floatingDefaults,
+    },
+  });
+  redirect(`/widgets/${widget.id}`);
+}
+
 export async function updateReviewWidget(formData: FormData) {
   const widgetId = String(formData.get("widgetId") ?? "").trim();
 
