@@ -664,18 +664,21 @@ export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [], aiS
                 onClick={clickable ? () => setTypeKey(w.id) : undefined}
                 onKeyDown={clickable ? (e) => { if (e.key === "Enter" || e.key === " ") setTypeKey(w.id); } : undefined}
                 style={st({ textAlign: "left", padding: 15, borderRadius: "var(--r-lg)",
-                  border: active ? "1.5px solid var(--accent)" : "1px solid var(--ink-200)",
-                  background: active ? "var(--accent-softer)" : "var(--ink-50)",
-                  boxShadow: active ? "0 0 0 3px var(--accent-ring)" : "none",
+                  border: active ? "1.5px solid var(--accent)" : (clickable ? "1px solid var(--ink-300)" : "1px solid var(--ink-200)"),
+                  background: active ? "var(--accent-softer)" : "var(--white)",
+                  boxShadow: active ? "0 0 0 3px var(--accent-ring)" : (clickable && !active ? "var(--shadow-xs)" : "none"),
                   opacity: active ? 1 : (clickable ? 1 : 0.4),
                   cursor: clickable ? "pointer" : "default",
-                  transition: "border-color .12s, background .12s, opacity .12s",
+                  transition: "border-color .12s, background .12s, box-shadow .12s",
                 })}>
-                <span style={st({ width: 34, height: 34, borderRadius: 9, display: "grid", placeItems: "center", marginBottom: 11, background: active ? "var(--accent)" : "var(--ink-100)", color: active ? "#fff" : "var(--ink-500)" })}>
+                <span style={st({ width: 34, height: 34, borderRadius: 9, display: "grid", placeItems: "center", marginBottom: 11,
+                  background: active ? "var(--accent)" : (clickable ? "var(--ink-100)" : "var(--ink-100)"),
+                  color: active ? "#fff" : (clickable ? "var(--ink-600)" : "var(--ink-400)"),
+                })}>
                   <Icon name={w.icon} size={18} />
                 </span>
-                <div style={st({ fontSize: 13.5, fontWeight: 620, color: active ? "var(--accent-strong)" : "var(--ink-400)" })}>{w.label}</div>
-                <div style={st({ fontSize: 11.5, color: active ? "var(--ink-500)" : "var(--ink-300)", marginTop: 2 })}>{w.desc}</div>
+                <div style={st({ fontSize: 13.5, fontWeight: 620, color: active ? "var(--accent-strong)" : (clickable ? "var(--ink-800)" : "var(--ink-400)") })}>{w.label}</div>
+                <div style={st({ fontSize: 11.5, color: active ? "var(--ink-500)" : (clickable ? "var(--ink-500)" : "var(--ink-300)"), marginTop: 2 })}>{w.desc}</div>
               </div>
             );
           })}
