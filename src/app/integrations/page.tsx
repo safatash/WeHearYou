@@ -42,6 +42,8 @@ export default async function IntegrationsPage({ searchParams }: { searchParams?
   const failedLocations = typeof params.failed === "string" ? Number(params.failed) : 0;
   const failedLocationNames = typeof params.failedNames === "string" && params.failedNames.length > 0 ? params.failedNames.split("|") : [];
   const syncMessage = typeof params.message === "string" ? params.message : typeof params.reason === "string" ? params.reason : undefined;
+  const facebookState = typeof params.facebook === "string" ? params.facebook : undefined;
+  const facebookPage = typeof params.page === "string" ? params.page : undefined;
   const membership = await requireActiveMembershipPage();
   const googleConnections = await getGoogleConnections(membership.organizationId);
   const metaConnections = await getMetaConnections(membership.organizationId);
@@ -68,6 +70,16 @@ export default async function IntegrationsPage({ searchParams }: { searchParams?
           failedLocationNames={failedLocationNames}
           syncMessage={syncMessage}
         />
+
+        {facebookState === "connected" ? (
+          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+            Facebook Page{facebookPage ? ` "${facebookPage}"` : ""} connected. Sync its reviews below to bring them into your inbox and widgets.
+          </div>
+        ) : facebookState === "auth-error" ? (
+          <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
+            Facebook connection failed{syncMessage ? `: ${syncMessage}` : "."}
+          </div>
+        ) : null}
 
         <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
           <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">

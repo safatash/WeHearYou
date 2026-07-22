@@ -1,5 +1,8 @@
 import crypto from "node:crypto";
 import { metaGraphGet, getMetaGraphApiVersion, type MetaGraphConnection } from "@/lib/meta-graph";
+import { normalizeMetaPages, type MetaPage } from "@/lib/meta-pages";
+
+export type { MetaPage } from "@/lib/meta-pages";
 
 export function getMetaOAuthConfig() {
   return {
@@ -66,6 +69,62 @@ export async function exchangeMetaCodeForToken(
   }
 
   return json as MetaTokenExchangeResponse;
+}
+
+/**
+ * Exchange a short-lived user token for a long-lived one. Page tokens derived
+ * from a long-lived user token do not expire, so this keeps synced connections
+ * healthy. On any failure we fall back to the original token (still valid for
+ * ~1 hour — long enough to complete page selection).
+ */
+export async function exchangeForLongLivedUserToken(shortLivedToken: string): Promise<string> {
+  const config = getMetaOAuthConfig();
+  if (!config.clientId || !config.clientSecret) return shortLivedToken;
+
+  const params = new URLSearchParams({
+    grant_type: "fb_exchange_token",
+    client_id: config.clientId,
+    client_secret: config.clientSecret,
+    fb_exchange_token: shortLivedToken,
+  });
+
+  try {
+    const res = await fetch(
+      `https://graph.facebook.com/v${getMetaGraphApiVersion().slice(1)}/oauth/access_token?${params.toString()}`,
+      { method: "GET", cache: "no-store" },
+    );
+    const json: unknown = await res.json().catch(() => null);
+    if (res.ok && json && typeof json === "object" && "access_token" in json) {
+      const token = (json as { access_token?: unknown }).access_token;
+      if (typeof token === "string" && token.length > 0) return token;
+    }
+  } catch {
+    // fall through to the short-lived token
+  }
+
+  return shortLivedToken;
+}
+
+/**
+ * List the Facebook Pages a user manages, each with its own page access token.
+ * The ratings/reviews edges live on the Page node and require the page token —
+ * the user token cannot read them.
+ */
+export async function fetchMetaUserPages(userAccessToken: string): Promise<MetaPage[]> {
+  const pages: MetaPage[] = [];
+  let afterCursor: string | undefined;
+
+  do {
+    const result = await metaGraphGet<MetaGraphConnection<Record<string, unknown>>>(
+      "me/accounts",
+      { fields: "id,name,access_token", limit: "100", after: afterCursor ?? "" },
+      userAccessToken,
+    );
+    pages.push(...normalizeMetaPages(result.data));
+    afterCursor = result.paging?.next ? result.paging?.cursors?.after : undefined;
+  } while (afterCursor);
+
+  return pages;
 }
 
 export type MetaPageInfo = {

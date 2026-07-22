@@ -1,9 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { exchangeMetaCodeForToken, fetchMetaPageInfo } from "@/lib/meta-oauth";
+import {
+  exchangeMetaCodeForToken,
+  exchangeForLongLivedUserToken,
+  fetchMetaUserPages,
+} from "@/lib/meta-oauth";
+import { categorizeMetaPageSelection } from "@/lib/meta-pages";
+import { storeMetaPageConnection } from "@/lib/meta-connection";
 import { encryptToken } from "@/lib/token-encryption";
-import { prisma } from "@/lib/prisma";
 import { requireTeamManagement } from "@/lib/authz";
+
+/** Short-lived cookie carrying the (encrypted) user token to the page picker. */
+const USER_TOKEN_COOKIE = "meta_user_token";
+
+function errorRedirect(request: NextRequest, message: string) {
+  const url = new URL("/integrations", request.url);
+  url.searchParams.set("facebook", "auth-error");
+  url.searchParams.set("message", message);
+  const response = NextResponse.redirect(url);
+  response.cookies.delete("meta_oauth_state");
+  return response;
+}
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
@@ -11,9 +28,7 @@ export async function GET(request: NextRequest) {
   const state = searchParams.get("state");
 
   if (!code || !state) {
-    return NextResponse.redirect(
-      new URL("/integrations?facebook=auth-error&message=Missing+code+or+state", request.url),
-    );
+    return errorRedirect(request, "Missing code or state");
   }
 
   // Verify state token from cookies
@@ -21,76 +36,53 @@ export async function GET(request: NextRequest) {
   const storedState = cookieStore.get("meta_oauth_state")?.value;
 
   if (!storedState || storedState !== state) {
-    return NextResponse.redirect(
-      new URL("/integrations?facebook=auth-error&message=Invalid+state+token", request.url),
-    );
+    return errorRedirect(request, "Invalid state token");
   }
 
   try {
     const membership = await requireTeamManagement();
 
-    // Exchange code for token
+    // Exchange code for a user token, then upgrade to a long-lived one so the
+    // page tokens we derive from it do not expire.
     const tokenResponse = await exchangeMetaCodeForToken(code, state);
+    const userToken = await exchangeForLongLivedUserToken(tokenResponse.access_token);
 
-    // Fetch page info
-    const pageInfo = await fetchMetaPageInfo(tokenResponse.access_token);
+    // List the pages this user manages. Reviews live on the Page node and need
+    // a page token — the user token cannot read them.
+    const pages = await fetchMetaUserPages(userToken);
+    const selection = categorizeMetaPageSelection(pages);
 
-    // Encrypt token before storing
-    const encryptedToken = encryptToken(tokenResponse.access_token);
-
-    // Check if connection already exists and update or create
-    const existingConnection = await prisma.metaAccountConnection.findFirst({
-      where: {
-        organizationId: membership.organizationId,
-        pageId: pageInfo.id,
-      },
-    });
-
-    if (existingConnection) {
-      await prisma.metaAccountConnection.update({
-        where: { id: existingConnection.id },
-        data: {
-          accessToken: encryptedToken,
-          expiresAt: tokenResponse.expires_in
-            ? new Date(Date.now() + tokenResponse.expires_in * 1000)
-            : null,
-          pageName: pageInfo.name,
-        },
-      });
-    } else {
-      await prisma.metaAccountConnection.create({
-        data: {
-          organizationId: membership.organizationId,
-          pageId: pageInfo.id,
-          pageName: pageInfo.name,
-          accessToken: encryptedToken,
-          tokenType: tokenResponse.token_type,
-          expiresAt: tokenResponse.expires_in
-            ? new Date(Date.now() + tokenResponse.expires_in * 1000)
-            : null,
-          connectedAt: new Date(),
-        },
-      });
+    if (selection.kind === "none") {
+      return errorRedirect(
+        request,
+        "No Facebook Pages found for this account. Make sure you granted access to at least one Page.",
+      );
     }
 
-    const redirectUrl = new URL("/integrations", request.url);
-    redirectUrl.searchParams.set("facebook", "connected");
-    redirectUrl.searchParams.set("page", pageInfo.name);
+    if (selection.kind === "single") {
+      await storeMetaPageConnection(membership.organizationId, selection.page);
+      const url = new URL("/integrations", request.url);
+      url.searchParams.set("facebook", "connected");
+      url.searchParams.set("page", selection.page.name);
+      const response = NextResponse.redirect(url);
+      response.cookies.delete("meta_oauth_state");
+      return response;
+    }
 
-    const response = NextResponse.redirect(redirectUrl);
+    // Multiple pages — stash the user token and let the user pick one.
+    const url = new URL("/integrations/facebook/select-page", request.url);
+    const response = NextResponse.redirect(url);
     response.cookies.delete("meta_oauth_state");
-
+    response.cookies.set(USER_TOKEN_COOKIE, encryptToken(userToken) ?? "", {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: true,
+      maxAge: 600,
+      path: "/",
+    });
     return response;
   } catch (error) {
     const message = error instanceof Error ? error.message : "Connection failed";
-
-    const redirectUrl = new URL("/integrations", request.url);
-    redirectUrl.searchParams.set("facebook", "auth-error");
-    redirectUrl.searchParams.set("message", message);
-
-    const response = NextResponse.redirect(redirectUrl);
-    response.cookies.delete("meta_oauth_state");
-
-    return response;
+    return errorRedirect(request, message);
   }
 }
