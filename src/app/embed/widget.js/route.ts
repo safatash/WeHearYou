@@ -477,13 +477,7 @@ const script = `
     // Header layout matching admin preview exactly
     var headerHtml = '<div class="why-widget-header' + alignClass + '">';
 
-    // Row 1: Google G icon + "Google Reviews" label
-    headerHtml += '<div class="why-widget-header-google-row">' +
-      '<span style="font-weight:700;color:#4285f4;font-size:14px">G</span>' +
-      '<span style="font-weight:700;font-size:13px">Google Reviews</span>' +
-    '</div>';
-
-    // Row 2: Large rating number + stars + review count
+    // Row 1: Large rating number + stars + review count
     if (data.widget.showAvgRating && rating) {
       var headerStarColor = resolveStarColorEmbed(data.widget);
       var headerFontSize = data.widget.fontSizeHeader || 34;

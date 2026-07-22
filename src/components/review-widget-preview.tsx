@@ -153,12 +153,6 @@ function ReviewHeader({
     <div style={{ textAlign: (headerAlign as "left" | "center" | undefined) || "left" }}>
       {showAvgRating && (
         <>
-          <div className="mb-3 mt-0 flex items-center gap-2" style={{ justifyContent: align }}>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden>
-              <text x="2" y="18" fontSize="14" fontWeight="bold" fill="#1f2937">G</text>
-            </svg>
-            <p className="text-sm font-bold" style={{ color: textColor, margin: 0 }}>Google Reviews</p>
-          </div>
           <p className="mb-3 mt-0 flex flex-row items-center gap-2" style={{ justifyContent: align }}>
             <span style={{ fontSize: `${fontSizeHeader}px`, fontWeight: "bold" }}>{avgRating?.toFixed(1) || "0"}</span>
             <span style={{ color: starColor }}>{"★".repeat(Math.round(avgRating || 0))}</span>
@@ -601,12 +595,6 @@ function BadgeLayout({
   // Default: "rating"
   return (
     <div className="rounded-2xl border border-slate-300 p-5 text-center max-w-xs">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" style={{ margin: "0 auto 4px" }} aria-hidden>
-        <text x="1" y="17" fontSize="16" fontWeight="bold" fill="#4285f4">G</text>
-      </svg>
-      <p style={{ fontSize: 11, fontWeight: 700, color: mutedColor, textTransform: "uppercase", letterSpacing: ".1em", margin: "0 0 4px" }}>
-        Google Reviews
-      </p>
       <p style={{ fontSize: 36, fontWeight: 900, color: textColor, margin: "0 0 4px", lineHeight: 1 }}>
         {avgRating?.toFixed(1)}
       </p>
