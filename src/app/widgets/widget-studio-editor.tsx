@@ -597,21 +597,24 @@ export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [], aiS
         </div>
       </div>
 
-      {/* type selector */}
-      <div style={st({ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12, marginBottom: "var(--gutter)" })} className="wtype-grid">
-        {STUDIO_TYPES.map((w) => {
-          const active = typeKey === w.id;
-          return (
-            <button key={w.id} type="button" onClick={() => setTypeKey(w.id)} className="tap focus-ring"
-              style={st({ textAlign: "left", cursor: "pointer", padding: 15, borderRadius: "var(--r-lg)", border: active ? "1.5px solid var(--accent)" : "1px solid var(--ink-200)", background: active ? "var(--accent-softer)" : "var(--white)", boxShadow: active ? "0 0 0 3px var(--accent-ring)" : "var(--shadow-xs)" })}>
-              <span style={st({ width: 34, height: 34, borderRadius: 9, display: "grid", placeItems: "center", marginBottom: 11, background: active ? "var(--accent)" : "var(--ink-100)", color: active ? "#fff" : "var(--ink-500)" })}>
-                <Icon name={w.icon} size={18} />
-              </span>
-              <div style={st({ fontSize: 13.5, fontWeight: 620 })}>{w.label}</div>
-              <div style={st({ fontSize: 11.5, color: "var(--ink-400)", marginTop: 2 })}>{w.desc}</div>
-            </button>
-          );
-        })}
+      {/* type selector — locked after creation */}
+      <div style={st({ marginBottom: "var(--gutter)" })}>
+        <div style={st({ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12 })} className="wtype-grid">
+          {STUDIO_TYPES.map((w) => {
+            const active = typeKey === w.id;
+            return (
+              <div key={w.id}
+                style={st({ textAlign: "left", padding: 15, borderRadius: "var(--r-lg)", border: active ? "1.5px solid var(--accent)" : "1px solid var(--ink-200)", background: active ? "var(--accent-softer)" : "var(--ink-50)", boxShadow: active ? "0 0 0 3px var(--accent-ring)" : "none", opacity: active ? 1 : 0.4, cursor: "default" })}>
+                <span style={st({ width: 34, height: 34, borderRadius: 9, display: "grid", placeItems: "center", marginBottom: 11, background: active ? "var(--accent)" : "var(--ink-100)", color: active ? "#fff" : "var(--ink-500)" })}>
+                  <Icon name={w.icon} size={18} />
+                </span>
+                <div style={st({ fontSize: 13.5, fontWeight: 620, color: active ? "var(--accent-strong)" : "var(--ink-400)" })}>{w.label}</div>
+                <div style={st({ fontSize: 11.5, color: active ? "var(--ink-500)" : "var(--ink-300)", marginTop: 2 })}>{w.desc}</div>
+              </div>
+            );
+          })}
+        </div>
+        <p style={st({ fontSize: 11.5, color: "var(--ink-400)", marginTop: 8 })}>Widget type is locked. To use a different type, <a href="/widgets" style={st({ color: "var(--accent)", textDecoration: "none", fontWeight: 580 })}>create a new widget</a>.</p>
       </div>
 
       {/* main: controls + preview */}

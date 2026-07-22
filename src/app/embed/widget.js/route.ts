@@ -296,12 +296,12 @@ const script = `
       '.why-float-dismiss{position:absolute;top:7px;right:9px;background:none;border:none;color:rgba(0,0,0,.35);cursor:pointer;font-size:13px;line-height:1;padding:2px;z-index:1}' +
       '.why-float-avatar{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:12px;flex-shrink:0}' +
       '.why-float-name{font-size:12px;font-weight:700;color:#0f172a;line-height:1.3}' +
-      '.why-float-stars{font-size:12px;color:#f59e0b}' +
+      '.why-float-stars{font-size:12px}' +
       '.why-float-source{font-size:10px;color:#64748b;font-weight:500}' +
       '.why-float-meta{display:flex;align-items:center;gap:6px;margin-top:2px}' +
       '.why-float-action{font-size:11px;color:#64748b;line-height:1.3}' +
       '.why-float-compact-row{display:flex;align-items:center;gap:8px}' +
-      '.why-float-stars-row{font-size:12px;color:#f59e0b;margin-bottom:5px}' +
+      '.why-float-stars-row{font-size:12px;margin-bottom:5px}' +
       '.why-float-quote{font-size:11px;color:#475569;line-height:1.5;padding-left:7px;margin-bottom:7px;border-left-width:2px;border-left-style:solid;border-left-color:#e2e8f0}' +
       '.why-float-pill{display:inline-flex;align-items:center;gap:7px;border-radius:999px;padding:4px 10px 4px 4px}' +
       '.why-float-pill-dark{background:#0f172a}' +
@@ -332,6 +332,7 @@ const script = `
   }
 
   function buildFloatingCard(review, widget, accentColor) {
+    var floatStarColor = resolveStarColorEmbed(widget);
     var cardStyle = widget.floatingCardStyle || 'dark_solid_pill';
     var variation = widget.floatingVariation || 'standard';
     var initial = escapeHtml((review.reviewerName || '?').slice(0, 1).toUpperCase());
@@ -351,7 +352,7 @@ const script = `
             '<div class="why-float-name">' + name + '</div>' +
             '<div class="why-float-action">just left a ' + escapeHtml(String(ratingNum)) + '-star review</div>' +
             '<div class="why-float-meta">' +
-              '<span class="why-float-stars">' + ratingStr + '</span>' +
+              '<span class="why-float-stars" style="color:' + floatStarColor + '">' + ratingStr + '</span>' +
               '<span class="why-float-source">' + escapeHtml(source) + '</span>' +
             '</div>' +
           '</div>' +
@@ -363,7 +364,7 @@ const script = `
 
     if (cardStyle === 'below_card') {
       return '<div class="why-float-card">' +
-        '<div class="why-float-stars-row">' + ratingStr + '</div>' +
+        '<div class="why-float-stars-row" style="color:' + floatStarColor + '">' + ratingStr + '</div>' +
         (showQuote ? '<div class="why-float-quote" style="border-left-color:' + accentColor + '">' + escapeHtml(quoteBody) + '</div>' : '') +
         '<div class="why-float-below-row">' +
           '<div class="why-float-avatar" style="' + avatarStyle + '">' + initial + '</div>' +
@@ -377,7 +378,7 @@ const script = `
 
     // dark_solid_pill and frosted_glass_pill
     return '<div class="why-float-card">' +
-      '<div class="why-float-stars-row">' + ratingStr + '</div>' +
+      '<div class="why-float-stars-row" style="color:' + floatStarColor + '">' + ratingStr + '</div>' +
       (showQuote ? '<div class="why-float-quote" style="border-left-color:' + accentColor + '">' + escapeHtml(quoteBody) + '</div>' : '') +
       '<div class="' + pillClass + '">' +
         '<div class="why-float-avatar" style="' + avatarStyle + '">' + initial + '</div>' +
@@ -601,6 +602,7 @@ const script = `
     var rating = typeof data.location.avgRating === "number" ? Number(data.location.avgRating).toFixed(1) : "—";
     var roundedStars = data.location.avgRating ? stars(Math.round(data.location.avgRating)) : stars(0);
     var badgeStyle = data.widget.badgeStyle || "rating";
+    var badgeStarColor = resolveStarColorEmbed(data.widget);
     var countSuffix = data.location.reviewCount ? ' ' + escapeHtml(String(data.location.reviewCount)) + ' review' + (data.location.reviewCount === 1 ? '' : 's') : '';
 
     // rating: Score + stars + review count in horizontal badge
@@ -609,7 +611,7 @@ const script = `
       var hrefAttr = data.location.reviewLink ? ' href="' + escapeHtml(data.location.reviewLink) + '" target="_blank" rel="noopener noreferrer"' : '';
       return '<' + tag + ' class="why-widget-badge"' + hrefAttr + ' style="color:' + escapeHtml(data.widget.textColor) + ';border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:10px 16px;display:inline-flex;align-items:center;gap:10px;box-shadow:0 1px 2px rgba(0,0,0,.04)">' +
         '<span style="font-size:18px;font-weight:700;color:' + escapeHtml(data.widget.primaryColor) + '">' + escapeHtml(rating) + '</span>' +
-        '<span style="font-size:16px;color:' + escapeHtml(data.widget.starColor) + '">' + escapeHtml(roundedStars) + '</span>' +
+        '<span style="font-size:16px;color:' + escapeHtml(badgeStarColor) + '">' + escapeHtml(roundedStars) + '</span>' +
         '<span style="font-size:12px;opacity:.75">' + countSuffix + '</span>' +
       '</' + tag + '>';
     }
@@ -620,7 +622,7 @@ const script = `
       var hrefAttr = data.location.reviewLink ? ' href="' + escapeHtml(data.location.reviewLink) + '" target="_blank" rel="noopener noreferrer"' : '';
       return '<' + tag + '' + hrefAttr + ' style="display:inline-flex;align-items:center;gap:6px;font-size:13px;text-decoration:none;color:inherit">' +
         '<span style="font-weight:700;color:' + escapeHtml(data.widget.primaryColor) + '">' + escapeHtml(rating) + '</span>' +
-        '<span style="color:' + escapeHtml(data.widget.starColor) + '">' + escapeHtml(roundedStars) + '</span>' +
+        '<span style="color:' + escapeHtml(badgeStarColor) + '">' + escapeHtml(roundedStars) + '</span>' +
       '</' + tag + '>';
     }
 
@@ -629,7 +631,7 @@ const script = `
       return '<div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">' +
         '<div style="display:flex;align-items:center;gap:8px">' +
           '<span style="font-size:20px;font-weight:700;color:' + escapeHtml(data.widget.primaryColor) + '">' + escapeHtml(rating) + '</span>' +
-          '<span style="font-size:16px;color:' + escapeHtml(data.widget.starColor) + '">' + escapeHtml(roundedStars) + '</span>' +
+          '<span style="font-size:16px;color:' + escapeHtml(badgeStarColor) + '">' + escapeHtml(roundedStars) + '</span>' +
           '<span style="font-size:12px;opacity:.7">' + countSuffix + '</span>' +
         '</div>' +
         (data.location.reviewLink ? '<a href="' + escapeHtml(data.location.reviewLink) + '" target="_blank" rel="noopener noreferrer" style="display:inline-block;padding:8px 16px;background:' + escapeHtml(data.widget.primaryColor) + ';color:#fff;border-radius:8px;text-decoration:none;font-weight:600;font-size:13px">Write a Review</a>' : '') +
@@ -645,7 +647,7 @@ const script = `
         '</div>' +
         '<div style="text-align:right">' +
           '<div style="font-size:18px;font-weight:700;color:' + escapeHtml(data.widget.primaryColor) + '">' + escapeHtml(rating) + '</div>' +
-          '<div style="font-size:12px;color:' + escapeHtml(data.widget.starColor) + '">' + escapeHtml(roundedStars) + '</div>' +
+          '<div style="font-size:12px;color:' + escapeHtml(badgeStarColor) + '">' + escapeHtml(roundedStars) + '</div>' +
         '</div>' +
       '</div>';
     }
@@ -655,7 +657,7 @@ const script = `
     var hrefAttr = data.location.reviewLink ? ' href="' + escapeHtml(data.location.reviewLink) + '" target="_blank" rel="noopener noreferrer"' : '';
     return '<' + tag + ' class="why-widget-badge"' + hrefAttr + ' style="color:' + escapeHtml(data.widget.textColor) + ';border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:10px 16px;display:inline-flex;align-items:center;gap:10px;box-shadow:0 1px 2px rgba(0,0,0,.04)">' +
       '<span style="font-size:18px;font-weight:700;color:' + escapeHtml(data.widget.primaryColor) + '">' + escapeHtml(rating) + '</span>' +
-      '<span style="font-size:16px;color:' + escapeHtml(data.widget.starColor) + '">' + escapeHtml(roundedStars) + '</span>' +
+      '<span style="font-size:16px;color:' + escapeHtml(badgeStarColor) + '">' + escapeHtml(roundedStars) + '</span>' +
       '<span style="font-size:12px;opacity:.75">' + countSuffix + '</span>' +
     '</' + tag + '>';
   }
@@ -690,8 +692,9 @@ const script = `
         (w.showDate !== false && r.reviewedAt ? '<div style="font-size:12px;color:#64748b">' + escapeHtml(formatDate(r.reviewedAt)) + (r.source ? ' · ' + escapeHtml(String(r.source)) : '') + '</div>' : '') +
         '</div></div>';
     }
+    var singleStarColor = resolveStarColorEmbed(w);
     return wrapOpen +
-      (w.showRating !== false ? '<div style="color:' + escapeHtml(w.starColor) + ';font-size:18px;margin-bottom:12px">' + escapeHtml(stars(r.rating)) + '</div>' : '') +
+      (w.showRating !== false ? '<div style="color:' + escapeHtml(singleStarColor) + ';font-size:18px;margin-bottom:12px">' + escapeHtml(stars(r.rating)) + '</div>' : '') +
       '<p style="font-size:18px;line-height:1.55;font-weight:500;margin:0 0 18px">' + escapeHtml(r.body || '') + '</p>' +
       reviewerHtml +
     '</div>';

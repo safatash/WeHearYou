@@ -1597,7 +1597,14 @@ export function WidgetCustomizer({
                 showAiSummary={showAiSummary}
                 bodyMaxChars={widget.bodyMaxChars ?? 280}
                 primaryColor={widget.primaryColor ?? "#4338ca"}
-                starColor={widget.starColor ?? "#f59e0b"}
+                starColor={
+                  (() => {
+                    const mode = (widget as { starColorMode?: string }).starColorMode ?? "gold";
+                    if (mode === "accent") return widget.primaryColor ?? "#4338ca";
+                    if (mode === "ink") return darkTheme ? "#f4f4f5" : "#18181b";
+                    return widget.starColor ?? "#f59e0b";
+                  })()
+                }
                 backgroundColor={darkTheme ? "#1e293b" : (widget.backgroundColor ?? "#ffffff")}
                 textColor={darkTheme ? "#f1f5f9" : (widget.textColor ?? "#0f172a")}
                 fontFamily={widget.fontFamily ?? "system"}
