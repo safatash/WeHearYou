@@ -4,6 +4,7 @@ import crypto from "node:crypto";
 import { CampaignStatus, ContactSource, PreferredChannel } from "@prisma/client";
 import { redirect } from "next/navigation";
 import { sendReviewRequestEmail } from "@/lib/email";
+import { sendReviewRequestSMS, sendVideoTestimonialRequestSMS, isSMSSendingConfigured } from "@/lib/sms";
 import { prisma } from "@/lib/prisma";
 import { requireContactManagement } from "@/lib/authz";
 import { getCurrentAccessibleLocationIds } from "@/lib/current-scope";
@@ -114,6 +115,7 @@ export async function createCampaign(formData: FormData) {
       id: true,
       name: true,
       email: true,
+      phone: true,
     },
   });
 
@@ -166,6 +168,28 @@ export async function createCampaign(formData: FormData) {
         })),
         destination,
       });
+    } else if (channel === PreferredChannel.SMS && isSMSSendingConfigured()) {
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+      for (const recipient of recipientTokens) {
+        const contact = contacts.find((entry) => entry.id === recipient.contactId)!;
+        if (!contact.phone) continue;
+        if (destination === "VIDEO_TESTIMONIAL") {
+          await sendVideoTestimonialRequestSMS({
+            to: contact.phone,
+            recipientName: contact.name,
+            locationName: location.name,
+            recorderUrl: `${appUrl}/vt/${recipient.token}`,
+          });
+        } else {
+          await sendReviewRequestSMS({
+            to: contact.phone,
+            recipientName: contact.name,
+            locationName: location.name,
+            reviewUrl: `${appUrl}/r/${recipient.token}`,
+            messageBody,
+          });
+        }
+      }
     }
   }
 
