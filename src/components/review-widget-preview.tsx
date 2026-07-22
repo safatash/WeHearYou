@@ -197,8 +197,6 @@ function ReviewCard({
   fontSizeNames?: number;
   fontSizeLabel?: number;
 }) {
-  const truncatedBody =
-    review.body.length > bodyMaxChars ? `${review.body.substring(0, bodyMaxChars)}...` : review.body;
   const reviewDate = review.reviewedAt ? new Date(review.reviewedAt).toLocaleDateString() : null;
 
   return (
@@ -212,8 +210,8 @@ function ReviewCard({
           ))}
         </p>
       )}
-      <p className="mb-2 mt-0 text-sm" style={{ color: textColor, fontSize: `${fontSizeBase}px` }}>
-        {truncatedBody}
+      <p className="mb-2 mt-0 text-sm overflow-y-auto" style={{ color: textColor, fontSize: `${fontSizeBase}px`, maxHeight: 112, scrollbarWidth: "thin" as const }}>
+        {review.body}
       </p>
       <div className="flex flex-col gap-1 text-xs" style={{ color: mutedColor }}>
         {showReviewerName && (
@@ -361,8 +359,6 @@ function SingleTextPreview({
       </div>
     );
   }
-  const truncated =
-    review.body.length > bodyMaxChars ? `${review.body.substring(0, bodyMaxChars)}...` : review.body;
   const date = review.reviewedAt ? new Date(review.reviewedAt).toLocaleDateString() : null;
   return (
     <div className="rounded-2xl border border-slate-200 p-6 max-w-lg mx-auto">
@@ -375,8 +371,8 @@ function SingleTextPreview({
           ))}
         </div>
       )}
-      <p className="leading-relaxed mb-4" style={{ color: textColor, fontSize: `${fontSizeBase}px` }}>
-        &ldquo;{truncated}&rdquo;
+      <p className="leading-relaxed mb-4 overflow-y-auto" style={{ color: textColor, fontSize: `${fontSizeBase}px`, maxHeight: 112, scrollbarWidth: "thin" as const }}>
+        &ldquo;{review.body}&rdquo;
       </p>
       <div className="flex flex-col gap-1" style={{ color: mutedColor, fontSize: 13 }}>
         {showReviewerName && (

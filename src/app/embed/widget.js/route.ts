@@ -88,7 +88,7 @@ const script = `
       ".why-widget-avatar{width:32px;height:32px;border-radius:999px;object-fit:cover;background:#e2e8f0}" +
       ".why-widget-avatar-fallback{width:32px;height:32px;border-radius:999px;background:#e2e8f0;color:#475569;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700}" +
       ".why-widget-name{font-weight:600;font-size:13px}" +
-      ".why-widget-body{font-size:14px;line-height:1.5;display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;overflow:hidden}" +
+      ".why-widget-body{font-size:14px;line-height:1.5;max-height:112px;overflow-y:auto;scrollbar-width:thin}" +
       ".why-widget-owner-reply{margin-top:4px;padding:12px;border-radius:14px;background:rgba(0,0,0,.04);font-size:12px;line-height:1.5}" +
       ".why-widget-meta-row{margin-top:auto;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding-top:6px}" +
       ".why-widget-date{font-size:12px;opacity:.7}" +
@@ -547,7 +547,7 @@ const script = `
   }
 
   function renderCard(review, widget) {
-    var body = truncate(review.body || '', widget.bodyMaxChars || 280);
+    var body = review.body || '';
     var textColor = widget.textColor || "#0f172a";
     var primaryColor = widget.primaryColor || "#4338ca";
     var starColor = resolveStarColorEmbed(widget);
@@ -1209,7 +1209,7 @@ const script = `
             if (isSpotlight && isVaried && isGridLayout) {
               var w = data.widget;
               var radius = typeof w.cornerRadius === "number" ? w.cornerRadius : 12;
-              var body = truncate(item.data.body || "", w.bodyMaxChars || 280);
+              var body = item.data.body || "";
               var starColor = "#fff";
               var starsHtml = w.showRating !== false ? '<div style="font-size:14px;color:' + starColor + ';margin-bottom:10px">' + escapeHtml(stars(item.data.rating)) + '</div>' : '';
               var nameHtml = w.showAvatars !== false ? '<div style="font-size:13px;font-weight:600;color:rgba(255,255,255,.9)">' + escapeHtml(item.data.reviewerName || 'Anonymous') + '</div>' : '';
@@ -1241,7 +1241,7 @@ const script = `
               var radius = typeof w.cornerRadius === "number" ? w.cornerRadius : 12;
               var pad = w.density === "compact" ? "12px" : "16px";
               var cardStyleCss = resolveCardStyleEmbed(w);
-              var body = truncate(item.data.body || "", w.bodyMaxChars || 280);
+              var body = item.data.body || "";
               var starColor = resolveStarColorEmbed(w);
               var fontSizeBase = w.fontSizeBase || 14;
               var fontSizeNames = w.fontSizeNames || 13;
@@ -1269,7 +1269,7 @@ const script = `
               var radius = typeof w.cornerRadius === "number" ? w.cornerRadius : 12;
               var pad = w.density === "compact" ? "12px" : "16px";
               var cardStyleCss = resolveCardStyleEmbed(w);
-              var body = truncate(item.data.body || "", w.bodyMaxChars || 280);
+              var body = item.data.body || "";
               var starColor = resolveStarColorEmbed(w);
               var fontSizeNames = w.fontSizeNames || 13;
               var fontSizeLabel = w.fontSizeLabel || 12;
