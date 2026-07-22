@@ -662,15 +662,19 @@ export function WidgetMockPreview({
     const useVideo = s.content === "videos";
     const v = VIDEOS[0];
     const r = reviews.find((x) => s.sources[x.source] && x.rating >= 5) || reviews[0];
+    const fontStack = FONT_STACKS[s.fontFamily] || FONT_STACKS.system;
+    const cardStyles = resolveCardStyle(s, tk);
+    const starColor = resolveStarColor(s);
+    const singleReply = "Thank you so much for your kind words! We really appreciate you taking the time to share your experience.";
     return (
       <div style={st({ maxWidth: 540, margin: "0 auto" })}>
         {useVideo ? (
           <VideoCardW v={v} s={s} tk={tk} />
         ) : (
-          <div style={st({ background: tk.card, border: `1px solid ${tk.line}`, borderRadius: s.radius, padding: 28, display: "flex", flexDirection: "column", gap: 16 })}>
+          <div style={st({ ...cardStyles, borderRadius: s.radius, padding: s.density === "compact" ? 20 : 28, display: "flex", flexDirection: "column", gap: s.density === "compact" ? 12 : 16, fontFamily: fontStack })}>
             <svg width="30" height="30" viewBox="0 0 24 24" fill="none" style={st({ opacity: 0.25 })}><path d="M10 11H6a1 1 0 0 1-1-1V7a3 3 0 0 1 3-3M19 11h-4a1 1 0 0 1-1-1V7a3 3 0 0 1 3-3" stroke={s.accent} strokeWidth="2" /><path d="M10 11v3a4 4 0 0 1-4 4M19 11v3a4 4 0 0 1-4 4" stroke={s.accent} strokeWidth="2" /></svg>
             <p style={st({ fontSize: 18, lineHeight: 1.5, color: tk.text, margin: 0, fontWeight: 500, letterSpacing: "-.01em" })}>{r.text}</p>
-            <Stars value={r.rating} size={18} />
+            {s.showRating && <Stars value={r.rating} size={18} color={starColor} />}
             <div style={st({ display: "flex", alignItems: "center", gap: 11, borderTop: `1px solid ${tk.line}`, paddingTop: 16 })}>
               {s.showAvatars && <Avatar name={r.name} size={40} />}
               <div style={st({ flex: 1 })}>
@@ -679,6 +683,11 @@ export function WidgetMockPreview({
               </div>
               {s.showSources && <SourceBadge source={r.source} size={22} />}
             </div>
+            {s.showResponses && (
+              <div style={st({ background: `color-mix(in srgb, ${s.accent} 8%, ${tk.bg})`, border: `1px solid color-mix(in srgb, ${s.accent} 20%, ${tk.line})`, borderRadius: Math.max(4, s.radius - 4), padding: "9px 11px", fontSize: 13, color: tk.sub, lineHeight: 1.5 })}>
+                <span style={st({ fontWeight: 640, color: s.accent, fontSize: 13 })}>Owner reply: </span>{singleReply}
+              </div>
+            )}
             {s.showBranding && <VerifiedTag s={s} tk={tk} />}
           </div>
         )}

@@ -686,7 +686,10 @@ const script = `
 
   function renderSingleTestimonial(data) {
     var w = data.widget;
-    var wrapOpen = '<div class="why-widget" style="font-family:' + fontStack(w.fontFamily) + ';background:' + escapeHtml(w.backgroundColor) + ';color:' + escapeHtml(w.textColor) + ';border-radius:18px;padding:24px;border:1px solid rgba(0,0,0,.06);max-width:560px;margin:0 auto">';
+    var radius = typeof w.cornerRadius === "number" ? w.cornerRadius : 12;
+    var pad = w.density === "compact" ? "18px" : "24px";
+    var cardStyleCss = resolveCardStyleEmbed(w);
+    var wrapOpen = '<div class="why-widget" style="' + cardStyleCss + 'font-family:' + fontStack(w.fontFamily) + ';color:' + escapeHtml(w.textColor) + ';border-radius:' + radius + 'px;padding:' + pad + ';max-width:560px;margin:0 auto">';
     var vids = data.videoTestimonials || [];
     if (w.contentType === "VIDEO" && vids.length) {
       return wrapOpen + renderVideoCard(vids[0]) + '</div>';
@@ -696,21 +699,34 @@ const script = `
       return wrapOpen + '<div style="font-size:14px;color:#64748b">This testimonial is currently unavailable.</div></div>';
     }
     var r = reviews[0];
+    var accentColor = w.primaryColor || "#4338ca";
+    // Decorative opening quote in the accent color.
+    var quoteMark = '<div style="font-family:Georgia,serif;font-size:44px;line-height:.5;color:' + escapeHtml(accentColor) + ';opacity:.28;margin-bottom:4px">“</div>';
     var reviewerHtml = '';
     if (w.showReviewerName !== false) {
       var avatarHtml = r.reviewerPhotoUrl
         ? '<img class="why-widget-avatar" src="' + escapeHtml(r.reviewerPhotoUrl) + '" alt="' + escapeHtml(r.reviewerName || '') + '" />'
         : '<div class="why-widget-avatar-fallback">' + escapeHtml((r.reviewerName || '?').slice(0, 1).toUpperCase()) + '</div>';
+      var sourceMarkHtml = w.showSourceLogo ? sourceMarkHtmlFor(r.source) : '';
       reviewerHtml = '<div style="display:flex;align-items:center;gap:11px">' + avatarHtml +
-        '<div><div style="font-weight:700;font-size:14px">' + escapeHtml(r.reviewerName || 'Anonymous') + '</div>' +
-        (w.showDate !== false && r.reviewedAt ? '<div style="font-size:12px;color:#64748b">' + escapeHtml(formatDate(r.reviewedAt)) + (r.source ? ' · ' + escapeHtml(String(r.source)) : '') + '</div>' : '') +
-        '</div></div>';
+        '<div style="flex:1"><div style="font-weight:700;font-size:14px">' + escapeHtml(r.reviewerName || 'Anonymous') + '</div>' +
+        (w.showDate !== false && r.reviewedAt ? '<div style="font-size:12px;color:#64748b">' + escapeHtml(formatDate(r.reviewedAt)) + '</div>' : '') +
+        '</div>' + sourceMarkHtml + '</div>';
     }
     var singleStarColor = resolveStarColorEmbed(w);
+    var ownerReplyHtml = (w.showResponses && r.sourceReplyText)
+      ? '<div class="why-widget-owner-reply" style="margin-top:14px"><strong>Owner reply:</strong> ' + escapeHtml(r.sourceReplyText) + '</div>'
+      : '';
+    var brandingHtml = (w.showBranding !== false)
+      ? '<div class="why-widget-branding" style="margin-top:16px">Powered by <a href="https://www.wehearyou.io" target="_blank" rel="noopener noreferrer">WeHearYou</a></div>'
+      : '';
     return wrapOpen +
+      quoteMark +
       (w.showRating !== false ? '<div style="color:' + escapeHtml(singleStarColor) + ';font-size:18px;margin-bottom:12px">' + escapeHtml(stars(r.rating)) + '</div>' : '') +
       '<p style="font-size:18px;line-height:1.55;font-weight:500;margin:0 0 18px">' + escapeHtml(r.body || '') + '</p>' +
       reviewerHtml +
+      ownerReplyHtml +
+      brandingHtml +
     '</div>';
   }
 

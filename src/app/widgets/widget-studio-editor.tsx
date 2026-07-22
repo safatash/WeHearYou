@@ -991,9 +991,9 @@ export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [], aiS
               <div className="hr" />
               <Field label="Display">
                 <div style={st({ display: "flex", flexDirection: "column", gap: 12 })}>
-                  <Toggle checked={showHeader} onChange={setShowHeader} label="Summary header" />
-                  {showHeader && <Toggle checked={showAvgRating} onChange={setShowAvgRating} label="Average rating" />}
-                  {showHeader && <Toggle checked={showReviewCount} onChange={setShowReviewCount} label="Review count" />}
+                  {isReviewWall && <Toggle checked={showHeader} onChange={setShowHeader} label="Summary header" />}
+                  {isReviewWall && showHeader && <Toggle checked={showAvgRating} onChange={setShowAvgRating} label="Average rating" />}
+                  {isReviewWall && showHeader && <Toggle checked={showReviewCount} onChange={setShowReviewCount} label="Review count" />}
                   <Toggle checked={showReviewerName} onChange={setShowReviewerName} label="Reviewer avatars" />
                   <Toggle checked={showRating} onChange={setShowRating} label="Star ratings" />
                   <Toggle checked={showDate} onChange={setShowDate} label="Review dates" />

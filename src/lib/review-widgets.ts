@@ -358,15 +358,19 @@ export async function getPublicReviewWidgetPayload(publicToken: string, page = 1
     let singleVideos: PublicWidgetVideoTestimonial[] = [];
     let singleItemUnavailable = false;
 
-    if (widget.contentType === "VIDEO" && widget.singleTestimonialVideoId) {
-      const vt = await prisma.videoTestimonial.findFirst({
-        where: {
-          id: widget.singleTestimonialVideoId,
-          status: "APPROVED",
-          videoUrl: { not: null },
-        },
-        select: { id: true, submitterName: true, videoUrl: true, durationSeconds: true, caption: true, publishedAt: true, customThumbnailUrl: true, capturedFrameUrl: true, capturedFrameTimestamp: true, thumbnailSource: true },
-      });
+    if (widget.contentType === "VIDEO") {
+      const videoSelect = { id: true, submitterName: true, videoUrl: true, durationSeconds: true, caption: true, publishedAt: true, customThumbnailUrl: true, capturedFrameUrl: true, capturedFrameTimestamp: true, thumbnailSource: true } as const;
+      // Explicitly chosen video, or auto-select the most recent approved one.
+      const vt = widget.singleTestimonialVideoId
+        ? await prisma.videoTestimonial.findFirst({
+            where: { id: widget.singleTestimonialVideoId, status: "APPROVED", videoUrl: { not: null } },
+            select: videoSelect,
+          })
+        : await prisma.videoTestimonial.findFirst({
+            where: { locationId: widget.locationId, status: "APPROVED", videoUrl: { not: null } },
+            orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
+            select: videoSelect,
+          });
       if (vt?.videoUrl) {
         singleVideos = [{
           id: vt.id,
@@ -383,15 +387,29 @@ export async function getPublicReviewWidgetPayload(publicToken: string, page = 1
       } else {
         singleItemUnavailable = true;
       }
-    } else if (widget.singleTestimonialReviewId) {
-      const rev = await prisma.review.findFirst({
-        where: { id: widget.singleTestimonialReviewId, status: ReviewStatus.PUBLISHED },
-        select: {
-          id: true, reviewerName: true, reviewerPhotoUrl: true, sourceReviewUrl: true,
-          sourceReplyText: true, replyDraft: true, replyPublishedAt: true, replySentAt: true,
-          rating: true, body: true, reviewedAt: true, source: true,
-        },
-      });
+    } else {
+      const reviewSelect = {
+        id: true, reviewerName: true, reviewerPhotoUrl: true, sourceReviewUrl: true,
+        sourceReplyText: true, rating: true, body: true, reviewedAt: true, source: true,
+      } as const;
+      // Explicitly chosen review, or auto-select the "best match": the
+      // highest-rated, most recent published review from the widget's enabled
+      // sources at/above its minimum rating.
+      const rev = widget.singleTestimonialReviewId
+        ? await prisma.review.findFirst({
+            where: { id: widget.singleTestimonialReviewId, status: ReviewStatus.PUBLISHED },
+            select: reviewSelect,
+          })
+        : await prisma.review.findFirst({
+            where: {
+              locationId: widget.locationId,
+              source: { in: resolveEnabledSources(widget.enabledSources) },
+              status: ReviewStatus.PUBLISHED,
+              rating: { gte: widget.minRating },
+            },
+            orderBy: [{ rating: "desc" }, { reviewedAt: "desc" }, { createdAt: "desc" }],
+            select: reviewSelect,
+          });
       if (rev) {
         singleReviews = [{
           id: rev.id,
