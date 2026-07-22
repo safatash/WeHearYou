@@ -93,7 +93,7 @@ export async function createReviewWidget(formData: FormData) {
 }
 
 // Create a blank draft for the first eligible location and open it in the
-// editor. Replaces the standalone /widgets/new layout picker.
+// editor. Opens with ?new=1 so the editor knows to allow type selection.
 export async function createDraftReviewWidget() {
   const membership = await getCurrentMembership();
   if (!membership) {
@@ -135,7 +135,7 @@ export async function createDraftReviewWidget() {
     },
   });
 
-  redirect(`/widgets/${widget.id}`);
+  redirect(`/widgets/${widget.id}?new=1`);
 }
 
 // Create a draft widget with a specific type chosen upfront by the user.
@@ -198,7 +198,7 @@ export async function createDraftReviewWidgetWithType(formData: FormData) {
       ...floatingDefaults,
     },
   });
-  redirect(`/widgets/${widget.id}`);
+  redirect(`/widgets/${widget.id}?new=1`);
 }
 
 export async function updateReviewWidget(formData: FormData) {

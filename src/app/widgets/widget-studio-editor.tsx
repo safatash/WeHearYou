@@ -6,7 +6,7 @@ import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { Icon, type IconName } from "@/components/icon";
 import { WidgetMockPreview, type PreviewSettings } from "@/components/widget-mock-preview";
-import { updateReviewWidget, getOrCreateWidgetForLocation, generateWidgetAiSummary } from "@/app/widgets/actions";
+import { updateReviewWidget, getOrCreateWidgetForLocation, generateWidgetAiSummary, deleteReviewWidget } from "@/app/widgets/actions";
 import { FormSubmitButton } from "@/components/form-submit-button";
 
 const st = (s: React.CSSProperties): React.CSSProperties => s;
@@ -402,6 +402,40 @@ export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [], aiS
   const [floatingMinRating, setFloatingMinRating] = useState(widget.floatingMinRating ?? 4);
   const [realPayload, setRealPayload] = useState<any>(null);
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  // isNewDraft: true when widget was just created and never saved (?new=1 in URL)
+  const [isNewDraft, setIsNewDraft] = useState(() => searchParams.get("new") === "1");
+  // isDirty: true when local state has changed since last save
+  const [isDirty, setIsDirty] = useState(false);
+
+  // Mark dirty on any user-facing state change after mount
+  const mountedRef = React.useRef(false);
+  useEffect(() => {
+    if (!mountedRef.current) { mountedRef.current = true; return; }
+    setIsDirty(true);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [typeKey, name, dark, accent, minRating, pageSize, marqueeSpeed, showHeader, showAvgRating,
+      showReviewCount, showReviewerName, showDate, showSourceLogo, showRating, showWriteReview,
+      showAiSummary, showResponses, showNav, showPagination, showBranding, starColor, fontSizeBase,
+      fontSizeNames, fontSizeHeader, fontSizeLabel, fontSizeSummary, bodyMaxChars, fontFamily,
+      starColorMode, cornerRadius, cardStyle, density, gridColumns, wallStyle, cardHeights,
+      badgeStyle, collectPosition, collectTheme, collectColorMode, collectColor, collectMobile,
+      floatingCardStyle, floatingVariation, floatingPosition, floatingRotation, floatingInterval,
+      floatingAccentMode, floatingAccentColor, floatingMobile, floatingApprovedOnly, floatingMinRating,
+      isActive, singleTestimonialReviewId, enabledSourcesSet]);
+
+  // Navigate-away cleanup: delete the unsaved draft if user leaves without saving
+  useEffect(() => {
+    if (!isNewDraft) return;
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      // Best-effort fire-and-forget delete on tab/window close
+      const fd = new FormData();
+      fd.append("widgetId", widget.id);
+      navigator.sendBeacon("/api/widgets/delete-draft", fd);
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [isNewDraft, widget.id]);
 
   // Fetch real widget data for live preview
   useEffect(() => {
@@ -567,10 +601,18 @@ export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [], aiS
     try {
       await updateReviewWidget(fd);
       setSaveState("saved");
+      setIsNewDraft(false);
+      setIsDirty(false);
+      // Remove ?new=1 from URL without triggering a navigation
+      if (searchParams.get("new") === "1") {
+        router.replace(pathname);
+      }
       setTimeout(() => setSaveState("idle"), 1600);
     } catch (e) {
       if (isRedirectError(e)) {
         setSaveState("saved");
+        setIsNewDraft(false);
+        setIsDirty(false);
         return;
       }
       setSaveState("error");
@@ -590,21 +632,45 @@ export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [], aiS
             style={st({ display: "block", border: "1px solid transparent", background: "transparent", outline: "none", fontSize: 26, fontWeight: 680, letterSpacing: "-.025em", color: "var(--ink-900)", padding: "2px 8px", margin: "0 0 0 -8px", borderRadius: "var(--r-sm)", width: "min(440px, 80vw)" })} />
           <p style={st({ fontSize: 13.5, color: "var(--ink-500)", marginTop: 6 })}>Design your review widget, then copy the embed code. Changes preview live.</p>
         </div>
-        <div style={st({ display: "flex", gap: 10 })}>
+        <div style={st({ display: "flex", alignItems: "center", gap: 10 })}>
+          {isDirty && saveState === "idle" && (
+            <span style={st({ fontSize: 12, color: "var(--ink-400)", display: "flex", alignItems: "center", gap: 5 })}>
+              <span style={st({ width: 7, height: 7, borderRadius: "50%", background: "#f59e0b", display: "inline-block", flexShrink: 0 })} />
+              Unsaved changes
+            </span>
+          )}
           <button type="button" className={`btn ${saveState === "saved" ? "btn-soft" : "btn-primary"}`} onClick={handleSave} disabled={saveState === "saving"}>
             <Icon name="check" size={16} />{saveState === "saving" ? "Saving…" : saveState === "saved" ? "Saved" : "Save changes"}
           </button>
         </div>
       </div>
 
-      {/* type selector — locked after creation */}
+      {/* type selector — selectable for new drafts, locked after first save */}
       <div style={st({ marginBottom: "var(--gutter)" })}>
+        {isNewDraft && (
+          <div style={st({ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 })}>
+            <span style={st({ fontSize: 13, fontWeight: 600, color: "var(--ink-700)" })}>Choose a widget type</span>
+            <span style={st({ fontSize: 12, color: "var(--ink-400)", background: "var(--ink-100)", borderRadius: 999, padding: "2px 9px" })}>Click to preview — save to lock</span>
+          </div>
+        )}
         <div style={st({ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12 })} className="wtype-grid">
           {STUDIO_TYPES.map((w) => {
             const active = typeKey === w.id;
+            const clickable = isNewDraft;
             return (
               <div key={w.id}
-                style={st({ textAlign: "left", padding: 15, borderRadius: "var(--r-lg)", border: active ? "1.5px solid var(--accent)" : "1px solid var(--ink-200)", background: active ? "var(--accent-softer)" : "var(--ink-50)", boxShadow: active ? "0 0 0 3px var(--accent-ring)" : "none", opacity: active ? 1 : 0.4, cursor: "default" })}>
+                role={clickable ? "button" : undefined}
+                tabIndex={clickable ? 0 : undefined}
+                onClick={clickable ? () => setTypeKey(w.id) : undefined}
+                onKeyDown={clickable ? (e) => { if (e.key === "Enter" || e.key === " ") setTypeKey(w.id); } : undefined}
+                style={st({ textAlign: "left", padding: 15, borderRadius: "var(--r-lg)",
+                  border: active ? "1.5px solid var(--accent)" : "1px solid var(--ink-200)",
+                  background: active ? "var(--accent-softer)" : "var(--ink-50)",
+                  boxShadow: active ? "0 0 0 3px var(--accent-ring)" : "none",
+                  opacity: active ? 1 : (clickable ? 0.75 : 0.4),
+                  cursor: clickable ? "pointer" : "default",
+                  transition: "border-color .12s, background .12s, opacity .12s",
+                })}>
                 <span style={st({ width: 34, height: 34, borderRadius: 9, display: "grid", placeItems: "center", marginBottom: 11, background: active ? "var(--accent)" : "var(--ink-100)", color: active ? "#fff" : "var(--ink-500)" })}>
                   <Icon name={w.icon} size={18} />
                 </span>
@@ -614,7 +680,10 @@ export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [], aiS
             );
           })}
         </div>
-        <p style={st({ fontSize: 11.5, color: "var(--ink-400)", marginTop: 8 })}>Widget type is locked. To use a different type, <a href="/widgets" style={st({ color: "var(--accent)", textDecoration: "none", fontWeight: 580 })}>create a new widget</a>.</p>
+        {isNewDraft
+          ? <p style={st({ fontSize: 11.5, color: "var(--ink-400)", marginTop: 8 })}>Select a type above to preview it, then click <strong>Save changes</strong> to lock it in.</p>
+          : <p style={st({ fontSize: 11.5, color: "var(--ink-400)", marginTop: 8 })}>Widget type is locked. To use a different type, <a href="/widgets" style={st({ color: "var(--accent)", textDecoration: "none", fontWeight: 580 })}>create a new widget</a>.</p>
+        }
       </div>
 
       {/* main: controls + preview */}

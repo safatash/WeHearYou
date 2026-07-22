@@ -6,7 +6,6 @@ import { Icon, type IconName } from "@/components/icon";
 import { WidgetMockPreview, mapWidgetToPreviewSettings } from "@/components/widget-mock-preview";
 import {
   createDraftReviewWidget,
-  createDraftReviewWidgetWithType,
   deleteReviewWidget,
   duplicateReviewWidget,
   bulkDeleteWidgets,
@@ -54,81 +53,6 @@ const TYPE_HINTS: Array<{ label: string; icon: IconName }> = [
   { label: "Collect reviews", icon: "send" },
 ];
 
-const WIDGET_TYPE_OPTIONS: Array<{ id: string; label: string; icon: IconName; desc: string }> = [
-  { id: "grid",       label: "Wall of Love",       icon: "grid",   desc: "Masonry grid of reviews" },
-  { id: "carousel",  label: "Review marquee",     icon: "layers", desc: "Auto-scrolling rows" },
-  { id: "single",    label: "Single testimonial", icon: "film",   desc: "One standout quote" },
-  { id: "badge",     label: "Rating badge",       icon: "star",   desc: "Compact score + stars" },
-  { id: "collecting",label: "Collect reviews",    icon: "send",   desc: "Floating feedback button" },
-  { id: "floating",  label: "Floating badge",     icon: "chat",   desc: "Sticky social-proof card" },
-];
-
-function TypePickerModal({ onClose }: { onClose: () => void }) {
-  const [selected, setSelected] = useState<string>("grid");
-  const overlayRef = useRef<HTMLDivElement>(null);
-  // Close on backdrop click
-  const handleOverlayClick = (e: React.MouseEvent) => {
-    if (e.target === overlayRef.current) onClose();
-  };
-  // Close on Escape
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
-    document.addEventListener("keydown", handler);
-    return () => document.removeEventListener("keydown", handler);
-  }, [onClose]);
-  return (
-    <div
-      ref={overlayRef}
-      onClick={handleOverlayClick}
-      style={st({ position: "fixed", inset: 0, zIndex: 9999, background: "rgba(15,23,42,.45)", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 })}
-    >
-      <div style={st({ background: "var(--white)", borderRadius: "var(--r-xl)", boxShadow: "var(--shadow-xl)", width: "100%", maxWidth: 640, padding: 32, position: "relative" })}>
-        <button
-          onClick={onClose}
-          style={st({ position: "absolute", top: 16, right: 16, background: "none", border: "none", cursor: "pointer", color: "var(--ink-400)", padding: 4, borderRadius: 6, lineHeight: 1 })}
-          aria-label="Close"
-        >
-          <Icon name="close" size={18} />
-        </button>
-        <h2 style={st({ fontSize: 20, fontWeight: 680, letterSpacing: "-.02em", color: "var(--ink-900)", marginBottom: 6 })}>Choose a widget type</h2>
-        <p style={st({ fontSize: 13.5, color: "var(--ink-500)", marginBottom: 24 })}>Pick a style — you can customize everything after creation.</p>
-        <div style={st({ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginBottom: 28 })}>
-          {WIDGET_TYPE_OPTIONS.map((t) => {
-            const isActive = selected === t.id;
-            return (
-              <button
-                key={t.id}
-                type="button"
-                onClick={() => setSelected(t.id)}
-                style={st({
-                  display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 8,
-                  padding: "14px 16px", borderRadius: "var(--r-md)", cursor: "pointer",
-                  border: isActive ? "2px solid var(--accent)" : "1.5px solid var(--ink-200)",
-                  background: isActive ? "var(--accent-soft)" : "var(--white)",
-                  color: isActive ? "var(--accent-strong)" : "var(--ink-700)",
-                  textAlign: "left", transition: "border-color .12s, background .12s",
-                })}
-              >
-                <span style={st({ width: 34, height: 34, borderRadius: 9, display: "grid", placeItems: "center", background: isActive ? "var(--accent)" : "var(--ink-100)", color: isActive ? "#fff" : "var(--ink-500)" })}>
-                  <Icon name={t.icon} size={17} />
-                </span>
-                <span>
-                  <span style={st({ display: "block", fontSize: 13.5, fontWeight: 620, lineHeight: 1.3 })}>{t.label}</span>
-                  <span style={st({ display: "block", fontSize: 12, color: isActive ? "var(--accent)" : "var(--ink-400)", marginTop: 2, lineHeight: 1.4 })}>{t.desc}</span>
-                </span>
-              </button>
-            );
-          })}
-        </div>
-        <form action={createDraftReviewWidgetWithType} style={st({ display: "flex", justifyContent: "flex-end", gap: 10 })}>
-          <input type="hidden" name="typeKey" value={selected} />
-          <button type="button" onClick={onClose} className="btn btn-ghost">Cancel</button>
-          <button type="submit" className="btn btn-primary"><Icon name="plus" size={15} />Create widget</button>
-        </form>
-      </div>
-    </div>
-  );
-}
 
 function previewType(w: IndexWidget): string {
   return (mapWidgetToPreviewSettings(w).type as string) || "grid";
@@ -435,7 +359,7 @@ function BulkActionBar({
   );
 }
 
-function WidgetsEmpty({ onNewWidget }: { onNewWidget: () => void }) {
+function WidgetsEmpty() {
   return (
     <div style={st({ display: "grid", placeItems: "center", minHeight: "62vh" })}>
       <div style={st({ textAlign: "center", maxWidth: 460 })}>
@@ -447,7 +371,9 @@ function WidgetsEmpty({ onNewWidget }: { onNewWidget: () => void }) {
           Widgets embed your reviews, ratings, and video testimonials anywhere on your site. Create your first one — pick a style, customize it, and copy the embed code.
         </p>
         <div style={st({ display: "flex", justifyContent: "center", marginTop: 22 })}>
-          <button type="button" onClick={onNewWidget} className="btn btn-primary"><Icon name="plus" size={16} />Create a widget</button>
+          <form action={createDraftReviewWidget}>
+            <button type="submit" className="btn btn-primary"><Icon name="plus" size={16} />Create a widget</button>
+          </form>
         </div>
         <div style={st({ display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "center", marginTop: 28 })}>
           {TYPE_HINTS.map((t) => (
@@ -463,7 +389,6 @@ function WidgetsEmpty({ onNewWidget }: { onNewWidget: () => void }) {
 
 export function WidgetsIndex({ widgets }: { widgets: IndexWidget[] }) {
   const count = widgets.length;
-  const [showTypePicker, setShowTypePicker] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   const toggleSelect = (id: string) => {
@@ -488,13 +413,14 @@ export function WidgetsIndex({ widgets }: { widgets: IndexWidget[] }) {
           </p>
         </div>
         {count > 0 && (
-          <button type="button" onClick={() => setShowTypePicker(true)} className="btn btn-primary"><Icon name="plus" size={16} />New widget</button>
+          <form action={createDraftReviewWidget}>
+            <button type="submit" className="btn btn-primary"><Icon name="plus" size={16} />New widget</button>
+          </form>
         )}
       </div>
 
-      {showTypePicker && <TypePickerModal onClose={() => setShowTypePicker(false)} />}
       {count === 0 ? (
-        <WidgetsEmpty onNewWidget={() => setShowTypePicker(true)} />
+        <WidgetsEmpty />
       ) : (
         <>
           <div style={st({ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(290px, 1fr))", gap: "var(--gutter)" })}>
@@ -506,12 +432,14 @@ export function WidgetsIndex({ widgets }: { widgets: IndexWidget[] }) {
                 onToggleSelect={toggleSelect}
               />
             ))}
-            <button type="button" onClick={() => setShowTypePicker(true)} className="tap focus-ring" style={st({ width: "100%", minHeight: 240, border: "1.5px dashed var(--ink-300)", borderRadius: "var(--r-lg)", background: "var(--white)", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, color: "var(--ink-500)" })}>
+            <form action={createDraftReviewWidget} style={st({ width: "100%", minHeight: 240, display: "contents" })}>
+            <button type="submit" className="tap focus-ring" style={st({ width: "100%", minHeight: 240, border: "1.5px dashed var(--ink-300)", borderRadius: "var(--r-lg)", background: "var(--white)", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, color: "var(--ink-500)" })}>
               <span style={st({ width: 46, height: 46, borderRadius: 13, display: "grid", placeItems: "center", background: "var(--accent-soft)", color: "var(--accent-strong)" })}>
                 <Icon name="plus" size={22} />
               </span>
               <span style={st({ fontSize: 13.5, fontWeight: 580 })}>New widget</span>
             </button>
+            </form>
           </div>
 
           <BulkActionBar
