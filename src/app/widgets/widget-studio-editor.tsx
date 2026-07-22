@@ -667,7 +667,7 @@ export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [], aiS
                   border: active ? "1.5px solid var(--accent)" : "1px solid var(--ink-200)",
                   background: active ? "var(--accent-softer)" : "var(--ink-50)",
                   boxShadow: active ? "0 0 0 3px var(--accent-ring)" : "none",
-                  opacity: active ? 1 : (clickable ? 0.75 : 0.4),
+                  opacity: active ? 1 : (clickable ? 1 : 0.4),
                   cursor: clickable ? "pointer" : "default",
                   transition: "border-color .12s, background .12s, opacity .12s",
                 })}>
