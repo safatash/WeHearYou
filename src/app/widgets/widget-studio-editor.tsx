@@ -215,26 +215,33 @@ const Swatches = ({ value, options, onChange }: { value: string; options: string
         <button key={c} type="button" onClick={() => onChange(c)} aria-label={c}
           style={st({ width: 26, height: 26, borderRadius: 8, cursor: "pointer", background: c, border: value === c ? "2px solid var(--ink-900)" : "2px solid transparent", boxShadow: value === c ? "0 0 0 2px #fff inset" : "inset 0 0 0 1px rgba(0,0,0,.08)", transition: "all .12s", flexShrink: 0 })} />
       ))}
-      {/* Custom color picker */}
+      {/* Custom color picker — always rainbow so it's clearly a picker */}
       <label
         aria-label="Custom color"
-        title={isCustom ? value : "Custom color"}
+        title={isCustom ? `Custom: ${value}` : "Custom color"}
         style={st({
           position: "relative", width: 26, height: 26, borderRadius: 8, cursor: "pointer", flexShrink: 0,
+          background: "linear-gradient(135deg, #f43f5e 0%, #f97316 20%, #eab308 40%, #22c55e 60%, #3b82f6 80%, #a855f7 100%)",
           border: isCustom ? "2px solid var(--ink-900)" : "2px solid transparent",
           boxShadow: isCustom ? "0 0 0 2px #fff inset" : "inset 0 0 0 1px rgba(0,0,0,.12)",
-          background: isCustom ? value : "linear-gradient(135deg, #f43f5e 0%, #f97316 20%, #eab308 40%, #22c55e 60%, #3b82f6 80%, #a855f7 100%)",
           transition: "all .12s",
           display: "flex", alignItems: "center", justifyContent: "center",
         })}
       >
-        {!isCustom && (
-          <svg width="13" height="13" viewBox="0 0 13 13" fill="none" style={{ pointerEvents: "none", filter: "drop-shadow(0 0 1px rgba(0,0,0,.4))" }}>
-            <circle cx="6.5" cy="6.5" r="5" stroke="white" strokeWidth="1.5" fill="none"/>
-            <line x1="6.5" y1="2" x2="6.5" y2="11" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
-            <line x1="2" y1="6.5" x2="11" y2="6.5" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
-          </svg>
-        )}
+        {/* Center chip: shows selected custom color, or white + icon */}
+        <span style={st({
+          width: 12, height: 12, borderRadius: 4, pointerEvents: "none",
+          background: isCustom ? value : "rgba(255,255,255,0.92)",
+          border: "1.5px solid rgba(255,255,255,0.7)",
+          display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+        })}>
+          {!isCustom && (
+            <svg width="7" height="7" viewBox="0 0 7 7" fill="none">
+              <line x1="3.5" y1="1" x2="3.5" y2="6" stroke="#555" strokeWidth="1.5" strokeLinecap="round"/>
+              <line x1="1" y1="3.5" x2="6" y2="3.5" stroke="#555" strokeWidth="1.5" strokeLinecap="round"/>
+            </svg>
+          )}
+        </span>
         <input
           type="color"
           value={isCustom ? value : "#000000"}
