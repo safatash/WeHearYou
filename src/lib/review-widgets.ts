@@ -4,6 +4,22 @@ import { prisma } from "@/lib/prisma";
 import { requireOrganizationAccess } from "@/lib/authz";
 import { resolveEmbedRenderKind, isKnownWidgetType, normalizeMarqueeSpeed, type EmbedRenderKind } from "@/lib/widget-embed";
 
+// ─── Source filter helper ─────────────────────────────────────────────────────
+// Parses the widget's enabledSources CSV (e.g. "GOOGLE,FACEBOOK,INTERNAL") into
+// a Prisma-ready ReviewSource array. Empty string = historical default set
+// (Google + Internal + Facebook). Yelp is only included when explicitly listed.
+const ALL_REVIEW_SOURCES = [ReviewSource.GOOGLE, ReviewSource.FACEBOOK, ReviewSource.YELP, ReviewSource.INTERNAL] as const;
+const DEFAULT_SOURCES = [ReviewSource.GOOGLE, ReviewSource.FACEBOOK, ReviewSource.INTERNAL] as ReviewSource[];
+function resolveEnabledSources(enabledSourcesCsv: string | null | undefined): ReviewSource[] {
+  const csv = (enabledSourcesCsv ?? "").trim();
+  if (!csv) return DEFAULT_SOURCES;
+  const parsed = csv
+    .split(",")
+    .map((s) => s.trim().toUpperCase())
+    .filter((s): s is ReviewSource => (ALL_REVIEW_SOURCES as readonly string[]).includes(s));
+  return parsed.length > 0 ? parsed : DEFAULT_SOURCES;
+}
+
 export type PublicWidgetReview = {
   id: string;
   reviewerName: string;
@@ -215,7 +231,7 @@ export async function getReviewWidgetById(id: string) {
   const reviewCount = await prisma.review.count({
     where: {
       locationId: widget.locationId,
-      source: { in: [ReviewSource.GOOGLE, ReviewSource.INTERNAL] },
+      source: { in: resolveEnabledSources(widget.enabledSources) },
       status: ReviewStatus.PUBLISHED,
     },
   });
@@ -409,7 +425,7 @@ export async function getPublicReviewWidgetPayload(publicToken: string, page = 1
     const floatingReviews = await prisma.review.findMany({
       where: {
         locationId: widget.locationId,
-        source: { in: [ReviewSource.GOOGLE, ReviewSource.INTERNAL] },
+        source: { in: resolveEnabledSources(widget.enabledSources) },
         status: ReviewStatus.PUBLISHED,
         rating: { gte: minRating },
       },
@@ -450,7 +466,7 @@ export async function getPublicReviewWidgetPayload(publicToken: string, page = 1
 
   const where = {
     locationId: widget.locationId,
-    source: { in: [ReviewSource.GOOGLE, ReviewSource.INTERNAL] },
+    source: { in: resolveEnabledSources(widget.enabledSources) },
     status: ReviewStatus.PUBLISHED,
     rating: {
       gte: widget.minRating,
@@ -605,15 +621,14 @@ export async function getOrganizationReviewWidgets(organizationId: string) {
   });
 
   return Promise.all(
-    widgets.map(async (widget) => {
+        widgets.map(async (widget) => {
       const reviewCount = await prisma.review.count({
         where: {
           locationId: widget.locationId,
-          source: { in: [ReviewSource.GOOGLE, ReviewSource.INTERNAL] },
+          source: { in: resolveEnabledSources(widget.enabledSources) },
           status: ReviewStatus.PUBLISHED,
         },
       });
-
       return {
         ...widget,
         health: buildWidgetHealth({
@@ -641,15 +656,14 @@ export async function getWidgetEligibleLocations(organizationId: string) {
   });
 
   return Promise.all(
-    locations.map(async (location) => {
+        locations.map(async (location) => {
       const reviewCount = await prisma.review.count({
         where: {
           locationId: location.id,
-          source: { in: [ReviewSource.GOOGLE, ReviewSource.INTERNAL] },
+          source: { in: DEFAULT_SOURCES },
           status: ReviewStatus.PUBLISHED,
         },
       });
-
       const videoTestimonialCount = await prisma.videoTestimonial.count({
         where: { locationId: location.id, status: "APPROVED" },
       });
@@ -678,7 +692,7 @@ export async function getWidgetPickerData(locationId: string) {
     prisma.review.findMany({
       where: {
         locationId,
-        source: { in: [ReviewSource.GOOGLE, ReviewSource.INTERNAL] },
+        source: { in: DEFAULT_SOURCES },
         status: ReviewStatus.PUBLISHED,
       },
       orderBy: [{ reviewedAt: "desc" }, { createdAt: "desc" }],
