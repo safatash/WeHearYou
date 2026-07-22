@@ -339,7 +339,7 @@ const script = `
     var name = escapeHtml(review.reviewerName || 'Anonymous');
     var ratingNum = review.rating || 5;
     var ratingStr = escapeHtml(stars(ratingNum));
-    var source = review.source === 'GOOGLE' ? 'On Google' : 'On WeHearYou';
+    var source = review.source === 'GOOGLE' ? 'On Google' : review.source === 'FACEBOOK' ? 'On Facebook' : review.source === 'YELP' ? 'On Yelp' : 'On WeHearYou';
     var avatarStyle = 'background:' + accentColor + ';';
     var quoteBody = truncate(review.body || '', variation === 'compact' ? 60 : 110);
     var showQuote = variation !== 'compact' && quoteBody;
