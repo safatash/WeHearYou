@@ -50,3 +50,30 @@ export function AcceptInviteForm({ inviteToken }: { inviteToken: string }) {
     </form>
   );
 }
+
+export function AcceptExistingInviteForm({ inviteToken, email }: { inviteToken: string; email: string | null }) {
+  const [state, formAction, pending] = useActionState(acceptInvite, initialState);
+
+  return (
+    <form action={formAction} className="space-y-5">
+      <input type="hidden" name="inviteToken" value={inviteToken} />
+
+      <p className="text-sm leading-6 text-slate-600">
+        You already have a WeHearYou account{email ? <> (<span className="font-semibold text-slate-900">{email}</span>)</> : null}. Accepting adds this
+        access to your existing account — no new password needed. Sign in with your current password.
+      </p>
+
+      {state.error ? (
+        <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{state.error}</div>
+      ) : null}
+
+      <button
+        type="submit"
+        disabled={pending}
+        className="w-full rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-sm disabled:opacity-60"
+      >
+        {pending ? "Accepting..." : "Accept invitation"}
+      </button>
+    </form>
+  );
+}

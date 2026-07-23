@@ -128,19 +128,31 @@ export async function acceptInvite(
   _prevState: AcceptInviteState,
   formData: FormData,
 ): Promise<AcceptInviteState> {
-  const inviteToken      = normalize(formData.get("inviteToken"));
-  const password         = String(formData.get("password") ?? "");
-  const confirmPassword  = String(formData.get("confirmPassword") ?? "");
-
-  if (!inviteToken)          return { error: "Invite token is required." };
-  if (password.length < 8)   return { error: "Password must be at least 8 characters." };
-  if (password !== confirmPassword) return { error: "Passwords do not match." };
+  const inviteToken = normalize(formData.get("inviteToken"));
+  if (!inviteToken) return { error: "Invite token is required." };
 
   const membership = await prisma.userMembership.findFirst({
     where: { inviteToken, status: MembershipStatus.INVITED },
     include: { user: true },
   });
   if (!membership) return { error: "Invite not found or already used." };
+
+  // Existing accounts already have a password. Accepting a new-location/org invite
+  // only needs to activate the membership — never re-prompt for or overwrite the
+  // user's existing password.
+  if (membership.user.passwordHash) {
+    await prisma.userMembership.update({
+      where: { id: membership.id },
+      data: { status: MembershipStatus.ACTIVE, inviteToken: null },
+    });
+    redirect("/login?flash=Invitation+accepted.+Access+added+to+your+account.&tone=success");
+  }
+
+  // Brand-new account: require the user to set a password before activating.
+  const password        = String(formData.get("password") ?? "");
+  const confirmPassword = String(formData.get("confirmPassword") ?? "");
+  if (password.length < 8)          return { error: "Password must be at least 8 characters." };
+  if (password !== confirmPassword) return { error: "Passwords do not match." };
 
   const passwordHash = await bcrypt.hash(password, 10);
 

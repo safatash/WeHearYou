@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { AcceptInviteForm } from "@/app/accept-invite/setup-form";
+import { AcceptInviteForm, AcceptExistingInviteForm } from "@/app/accept-invite/setup-form";
 
 export default async function AcceptInvitePage({
   searchParams,
@@ -36,11 +36,15 @@ export default async function AcceptInvitePage({
     notFound();
   }
 
+  // Existing accounts already have a password — accepting only adds this access,
+  // so skip the password-setup step entirely.
+  const hasAccount = Boolean(membership.user.passwordHash);
+
   return (
     <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-10">
       <div className="w-full max-w-2xl rounded-[32px] border border-slate-200 bg-white p-8 shadow-[0_16px_50px_rgba(15,23,42,0.08)]">
         <p className="text-sm font-semibold uppercase tracking-[0.22em] text-indigo-600">WeHearYou Invite</p>
-        <h1 className="mt-3 text-3xl font-semibold tracking-tight text-slate-950">Set your password</h1>
+        <h1 className="mt-3 text-3xl font-semibold tracking-tight text-slate-950">{hasAccount ? "Accept invitation" : "Set your password"}</h1>
         <p className="mt-3 text-sm leading-6 text-slate-600">
           You&apos;ve been invited to join <span className="font-semibold text-slate-900">{membership.organization.name}</span> as <span className="font-semibold text-slate-900">{membership.role}</span>.
         </p>
@@ -52,7 +56,11 @@ export default async function AcceptInvitePage({
         </div>
 
         <div className="mt-8">
-          <AcceptInviteForm inviteToken={token} />
+          {hasAccount ? (
+            <AcceptExistingInviteForm inviteToken={token} email={membership.user.email} />
+          ) : (
+            <AcceptInviteForm inviteToken={token} />
+          )}
         </div>
       </div>
     </main>
