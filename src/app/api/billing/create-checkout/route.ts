@@ -58,13 +58,18 @@ export async function POST(req: Request) {
         metadata: { organizationId: org.id, planId: plan.id },
       });
 
+      // The Stripe v22 SDK returns a LastResponse wrapper; access the raw object fields safely.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const sub = updated as any;
+      const periodEnd: number | undefined = sub.current_period_end;
+
       // Update DB immediately (webhook will also fire)
       await prisma.organization.update({
         where: { id: org.id },
         data: {
           planId: plan.id,
           stripeSubscriptionStatus: updated.status,
-          currentPeriodEnd: new Date(updated.current_period_end * 1000),
+          ...(periodEnd ? { currentPeriodEnd: new Date(periodEnd * 1000) } : {}),
           suspendedAt: null,
         },
       });
