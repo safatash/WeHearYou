@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentMembership, requireReviewReplyAccess } from "@/lib/authz";
 import { getReviewById } from "@/lib/reviews";
 import { generateReplyDraft } from "@/lib/ai-reply";
+import { featureEnabledForOrg } from "@/lib/plan-features";
 
 export async function POST(request: NextRequest) {
   const membership = await getCurrentMembership();
@@ -9,8 +10,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  if (!featureEnabledForOrg(membership.organization.planId, "aiReplyAssistant")) {
+    return NextResponse.json({ error: "Upgrade to Growth or Pro to use AI replies" }, { status: 403 });
+  }
+
   if (!membership.organization.aiReplyEnabled) {
-    return NextResponse.json({ error: "Pro feature — upgrade to use AI replies" }, { status: 403 });
+    return NextResponse.json({ error: "AI replies are turned off for this organization" }, { status: 403 });
   }
 
   if (!process.env.OPENAI_API_KEY) {

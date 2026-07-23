@@ -387,7 +387,7 @@ function WidgetsEmpty() {
   );
 }
 
-export function WidgetsIndex({ widgets }: { widgets: IndexWidget[] }) {
+export function WidgetsIndex({ widgets, atWidgetLimit = false }: { widgets: IndexWidget[]; atWidgetLimit?: boolean }) {
   const count = widgets.length;
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
@@ -413,9 +413,13 @@ export function WidgetsIndex({ widgets }: { widgets: IndexWidget[] }) {
           </p>
         </div>
         {count > 0 && (
-          <form action={createDraftReviewWidget}>
-            <button type="submit" className="btn btn-primary"><Icon name="plus" size={16} />New widget</button>
-          </form>
+          atWidgetLimit ? (
+            <a href="/billing" title="You've reached your plan's widget limit. Upgrade to add more." className="btn btn-secondary" style={st({ opacity: 0.6 })}><Icon name="plus" size={16} />New widget</a>
+          ) : (
+            <form action={createDraftReviewWidget}>
+              <button type="submit" className="btn btn-primary"><Icon name="plus" size={16} />New widget</button>
+            </form>
+          )
         )}
       </div>
 
@@ -432,6 +436,14 @@ export function WidgetsIndex({ widgets }: { widgets: IndexWidget[] }) {
                 onToggleSelect={toggleSelect}
               />
             ))}
+            {atWidgetLimit ? (
+              <a href="/billing" title="You've reached your plan's widget limit. Upgrade to add more." className="tap focus-ring" style={st({ width: "100%", minHeight: 240, border: "1.5px dashed var(--ink-300)", borderRadius: "var(--r-lg)", background: "var(--white)", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, color: "var(--ink-400)", textDecoration: "none", opacity: 0.7 })}>
+                <span style={st({ width: 46, height: 46, borderRadius: 13, display: "grid", placeItems: "center", background: "var(--ink-100)", color: "var(--ink-400)" })}>
+                  <Icon name="lock" size={20} />
+                </span>
+                <span style={st({ fontSize: 13.5, fontWeight: 580 })}>Upgrade to add more</span>
+              </a>
+            ) : (
             <form action={createDraftReviewWidget} style={st({ width: "100%", minHeight: 240, display: "contents" })}>
             <button type="submit" className="tap focus-ring" style={st({ width: "100%", minHeight: 240, border: "1.5px dashed var(--ink-300)", borderRadius: "var(--r-lg)", background: "var(--white)", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, color: "var(--ink-500)" })}>
               <span style={st({ width: 46, height: 46, borderRadius: 13, display: "grid", placeItems: "center", background: "var(--accent-soft)", color: "var(--accent-strong)" })}>
@@ -440,6 +452,7 @@ export function WidgetsIndex({ widgets }: { widgets: IndexWidget[] }) {
               <span style={st({ fontSize: 13.5, fontWeight: 580 })}>New widget</span>
             </button>
             </form>
+            )}
           </div>
 
           <BulkActionBar

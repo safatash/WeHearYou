@@ -8,6 +8,8 @@ import { buildGoogleSyncSummary, buildLocationSyncErrorMessage } from "@/lib/goo
 import { getLocationPortfolioStats, getLocations } from "@/lib/locations";
 import { buildLocationReputation } from "@/lib/location-reputation";
 import { getCurrentAccessibleLocationIds } from "@/lib/current-scope";
+import { getCurrentMembership } from "@/lib/authz";
+import { limitReached } from "@/lib/plan-features";
 
 export default async function LocationsPage({ searchParams }: { searchParams?: Promise<Record<string, string | string[] | undefined>> }) {
   const params = (await searchParams) ?? {};
@@ -19,6 +21,8 @@ export default async function LocationsPage({ searchParams }: { searchParams?: P
   const totalCount = typeof params.total === "string" ? Number(params.total) : 0;
   const locationIds = await getCurrentAccessibleLocationIds();
   const locations = await getLocations(locationIds);
+  const membership = await getCurrentMembership();
+  const atLocationLimit = limitReached(membership?.organization.planId, "locations", locations.length);
   const portfolio = getLocationPortfolioStats(locations);
   const cards = locations.map((location) => ({ location, reputation: buildLocationReputation(location) }));
   const attentionCount = cards.filter((c) => c.reputation.health === "attention").length;
@@ -60,9 +64,15 @@ export default async function LocationsPage({ searchParams }: { searchParams?: P
           </div>
           <div className="flex gap-3">
             <button className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm">Invite Manager</button>
-            <Link href="/locations/new" className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold !text-white shadow-sm visited:!text-white hover:!text-white">
-              Add Location
-            </Link>
+            {atLocationLimit ? (
+              <Link href="/billing" title="You've reached your plan's location limit. Upgrade to add more." className="rounded-2xl border border-slate-200 bg-slate-100 px-5 py-3 text-sm font-semibold text-slate-400 shadow-sm">
+                Add Location
+              </Link>
+            ) : (
+              <Link href="/locations/new" className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold !text-white shadow-sm visited:!text-white hover:!text-white">
+                Add Location
+              </Link>
+            )}
           </div>
         </div>
 

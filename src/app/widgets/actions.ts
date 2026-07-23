@@ -7,6 +7,9 @@ import { prisma } from "@/lib/prisma";
 import { generateReviewWidgetToken } from "@/lib/review-widgets";
 import { getCurrentMembership, requireOrganizationAccess } from "@/lib/authz";
 import { generateAiReviewSummary } from "@/lib/ai-summary";
+import { limitReached } from "@/lib/plan-features";
+
+const WIDGET_LIMIT_FLASH = "You've reached your plan's widget limit. Upgrade to add more.";
 
 export async function createReviewWidget(formData: FormData) {
   const membership = await getCurrentMembership();
@@ -102,6 +105,10 @@ export async function createDraftReviewWidget() {
   const organizationId = membership.organizationId;
   await requireOrganizationAccess(organizationId);
 
+  if (limitReached(membership.organization.planId, "widgets", await prisma.reviewWidget.count({ where: { organizationId } }))) {
+    redirect(`/widgets?flash=${encodeURIComponent(WIDGET_LIMIT_FLASH)}&tone=error`);
+  }
+
   const locations = await prisma.location.findMany({
     where: { organizationId },
     select: { id: true, googleLocationName: true },
@@ -144,6 +151,10 @@ export async function createDraftReviewWidgetWithType(formData: FormData) {
   if (!membership) throw new Error("Organization is required");
   const organizationId = membership.organizationId;
   await requireOrganizationAccess(organizationId);
+
+  if (limitReached(membership.organization.planId, "widgets", await prisma.reviewWidget.count({ where: { organizationId } }))) {
+    redirect(`/widgets?flash=${encodeURIComponent(WIDGET_LIMIT_FLASH)}&tone=error`);
+  }
 
   const typeKey = String(formData.get("typeKey") ?? "").trim();
   const TYPE_TO_FIELDS: Record<string, { widgetType: string; layout: string }> = {

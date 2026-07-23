@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 import { AppShell } from "@/components/app-shell";
 import { requireActiveMembershipPage } from "@/lib/page-guards";
 import { getOrganizationReviewWidgets } from "@/lib/review-widgets";
+import { limitReached } from "@/lib/plan-features";
 import { WidgetsIndex, type IndexWidget } from "@/app/widgets/widgets-index";
 
 export default async function WidgetsPage({
@@ -20,6 +21,7 @@ export default async function WidgetsPage({
   const selectedLocationId = typeof query.location === "string" ? query.location : null;
 
   const widgets = await getOrganizationReviewWidgets(membership.organization.id);
+  const atWidgetLimit = limitReached(membership.organization.planId, "widgets", widgets.length);
 
   // Filter widgets by selected location if specified
   const filteredWidgets = selectedLocationId
@@ -48,7 +50,7 @@ export default async function WidgetsPage({
 
   return (
     <AppShell activeScreen="widgets" flash={flashMessage ? { message: flashMessage, tone: flashTone } : null} selectedLocationId={selectedLocationId ?? undefined}>
-      <WidgetsIndex widgets={indexWidgets} />
+      <WidgetsIndex widgets={indexWidgets} atWidgetLimit={atWidgetLimit} />
     </AppShell>
   );
 }
