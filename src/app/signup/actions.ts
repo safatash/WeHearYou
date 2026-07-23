@@ -4,6 +4,9 @@ import bcrypt from "bcryptjs";
 import { MembershipRole, MembershipStatus } from "@prisma/client";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { DEFAULT_PLAN_ID } from "@/lib/plans";
+
+const TRIAL_DAYS = 14;
 
 export type SignUpState = {
   error?: string;
@@ -83,6 +86,8 @@ export async function signUp(_prevState: SignUpState, formData: FormData): Promi
         name: organizationName,
         slug,
         website,
+        planId: DEFAULT_PLAN_ID,
+        trialEndsAt: new Date(Date.now() + TRIAL_DAYS * 24 * 60 * 60 * 1000),
       },
     });
 

@@ -176,6 +176,16 @@ model Organization {
   aiReplyEnabled    Boolean                 @default(false)
   suspendedAt       DateTime?
   onboardingDismissedAt DateTime?
+
+  // Subscription / billing (see src/lib/plans.ts). Nullable Stripe fields are
+  // populated once an org subscribes; planId defaults to the entry-level plan.
+  planId                   String    @default("starter")
+  trialEndsAt              DateTime?
+  stripeCustomerId         String?   @unique
+  stripeSubscriptionId     String?   @unique
+  stripeSubscriptionStatus String?
+  currentPeriodEnd         DateTime?
+
   createdAt         DateTime                @default(now())
   updatedAt         DateTime                @updatedAt
 

@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { billingEnforced } from "@/lib/plan-features";
 import {
   canManageAutomations,
   canManageBilling,
@@ -66,7 +67,22 @@ async function requireMembership() {
     throw new Error("No active membership found");
   }
 
-  if (membership.organization.suspendedAt) {
+  const org = membership.organization;
+
+  // Trial-expiry enforcement — gated behind BILLING_ENFORCEMENT so it is dormant
+  // until billing is live. When enforced, an org whose trial has ended with no
+  // active/trialing subscription is suspended (persisted so the check below and
+  // every other surface stay consistent).
+  if (billingEnforced() && !org.suspendedAt) {
+    const trialExpired = org.trialEndsAt != null && org.trialEndsAt < new Date();
+    const subActive = org.stripeSubscriptionStatus === "active" || org.stripeSubscriptionStatus === "trialing";
+    if (trialExpired && !subActive) {
+      await prisma.organization.update({ where: { id: org.id }, data: { suspendedAt: new Date() } });
+      redirect("/suspended");
+    }
+  }
+
+  if (org.suspendedAt) {
     redirect("/suspended");
   }
 
