@@ -11,6 +11,15 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: path.resolve(__dirname),
   },
+  // "Team & Access" is temporarily dropped from the product. These redirects
+  // make /team (and its sub-routes) unreachable; the nav item is hidden in
+  // src/lib/navigation.ts. Remove both to bring the feature back.
+  async redirects() {
+    return [
+      { source: "/team", destination: "/", permanent: false },
+      { source: "/team/:path*", destination: "/", permanent: false },
+    ];
+  },
   async headers() {
     return [
       {

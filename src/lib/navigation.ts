@@ -56,6 +56,8 @@ export const navItems: NavItem[] = [
   // Settings
   { key: "automation", label: "Automation", icon: "sliders", href: "/automation", group: "SETTINGS" },
   { key: "integrations", label: "Integrations", icon: "plug", href: "/integrations", group: "SETTINGS" },
-  { key: "team", label: "Team & Access", icon: "phone", href: "/team", group: "SETTINGS" },
+  // "Team & Access" is temporarily dropped from the product. The /team routes
+  // redirect to the dashboard and this nav item is hidden. Restore this line to
+  // bring the feature back. (Route guards live in src/app/team/*.)
   { key: "analytics", label: "Analytics", icon: "monitor", href: "/analytics", group: "SETTINGS" },
 ];
