@@ -28,10 +28,37 @@ async function findOrgId(customerId: string | null, metaOrgId: string | null): P
   return null;
 }
 
+/** Stripe statuses that mean the subscription no longer grants access. */
+function isEndedStatus(status: Stripe.Subscription.Status): boolean {
+  return status === "canceled" || status === "incomplete_expired";
+}
+
+/** Clear subscription + plan so the org reads as "no active plan". */
+async function endSubscription(orgId: string) {
+  const org = await prisma.organization.findUnique({ where: { id: orgId }, select: { trialEndsAt: true } });
+  const trialExpired = org?.trialEndsAt != null && org.trialEndsAt < new Date();
+  await prisma.organization.update({
+    where: { id: orgId },
+    data: {
+      stripeSubscriptionStatus: "canceled",
+      stripeSubscriptionId: null,
+      planId: null,
+      ...(trialExpired ? { suspendedAt: new Date() } : {}),
+    },
+  });
+}
+
 async function applySubscription(sub: Stripe.Subscription) {
   const customerId = typeof sub.customer === "string" ? sub.customer : sub.customer.id;
   const orgId = await findOrgId(customerId, sub.metadata?.organizationId ?? null);
   if (!orgId) return;
+
+  // A subscription that has ended (e.g. an `updated` event that flips status to
+  // canceled) clears the plan rather than leaving a stale paid plan in place.
+  if (isEndedStatus(sub.status)) {
+    await endSubscription(orgId);
+    return;
+  }
 
   const priceId = sub.items?.data?.[0]?.price?.id ?? null;
   const planId = planIdForPriceId(priceId);
@@ -44,6 +71,8 @@ async function applySubscription(sub: Stripe.Subscription) {
       stripeCustomerId: customerId,
       stripeSubscriptionId: sub.id,
       stripeSubscriptionStatus: status,
+      // Keep the existing plan when the price can't be mapped — never silently
+      // downgrade to starter on an unknown price.
       ...(planId ? { planId } : {}),
       currentPeriodEnd: periodEnd(sub) ?? undefined,
       ...(active ? { suspendedAt: null } : {}),
@@ -90,17 +119,7 @@ export async function POST(req: Request) {
         const sub = event.data.object as Stripe.Subscription;
         const customerId = typeof sub.customer === "string" ? sub.customer : sub.customer.id;
         const orgId = await findOrgId(customerId, sub.metadata?.organizationId ?? null);
-        if (orgId) {
-          const org = await prisma.organization.findUnique({ where: { id: orgId }, select: { trialEndsAt: true } });
-          const trialExpired = org?.trialEndsAt != null && org.trialEndsAt < new Date();
-          await prisma.organization.update({
-            where: { id: orgId },
-            data: {
-              stripeSubscriptionStatus: "canceled",
-              ...(trialExpired ? { suspendedAt: new Date() } : {}),
-            },
-          });
-        }
+        if (orgId) await endSubscription(orgId);
         break;
       }
       case "invoice.payment_failed": {

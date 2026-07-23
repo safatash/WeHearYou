@@ -45,9 +45,12 @@ export default async function BillingPage({
   const currentPlanId: PlanId = isPlanId(org.planId) ? org.planId : DEFAULT_PLAN_ID;
   const status = org.stripeSubscriptionStatus;
   const subscribed = Boolean(org.stripeSubscriptionId) && (status === "active" || status === "trialing");
+  // A subscription that was started and then cancelled/lapsed: has a Stripe
+  // customer but no active subscription now.
+  const subscriptionEnded = !subscribed && (status === "canceled" || (Boolean(org.stripeCustomerId) && !org.stripeSubscriptionId));
   const now = new Date().getTime();
-  const onTrial = !subscribed && org.trialEndsAt != null && org.trialEndsAt.getTime() > now;
-  const trialEnded = !subscribed && org.trialEndsAt != null && org.trialEndsAt.getTime() <= now;
+  const onTrial = !subscribed && !subscriptionEnded && org.trialEndsAt != null && org.trialEndsAt.getTime() > now;
+  const trialEnded = !subscribed && !subscriptionEnded && org.trialEndsAt != null && org.trialEndsAt.getTime() <= now;
   const daysLeft = org.trialEndsAt ? Math.max(0, Math.ceil((org.trialEndsAt.getTime() - now) / day)) : 0;
 
   return (
@@ -82,6 +85,11 @@ export default async function BillingPage({
                   {org.currentPeriodEnd ? ` · Renews ${org.currentPeriodEnd.toLocaleDateString()}` : ""}
                 </div>
               </>
+            ) : subscriptionEnded ? (
+              <>
+                <div style={{ fontSize: 15, fontWeight: 640 }}>Your subscription has ended.</div>
+                <div style={{ fontSize: 13, color: "var(--ink-500)", marginTop: 4 }}>You don&apos;t have an active plan. Subscribe below to restore full access.</div>
+              </>
             ) : onTrial ? (
               <>
                 <div style={{ fontSize: 15, fontWeight: 640 }}>You&apos;re on a free trial — {daysLeft} day{daysLeft === 1 ? "" : "s"} remaining.</div>
@@ -99,7 +107,7 @@ export default async function BillingPage({
               </>
             )}
           </div>
-          {subscribed && canManage ? <ManageBillingButton /> : null}
+          {canManage && (subscribed || (subscriptionEnded && org.stripeCustomerId)) ? <ManageBillingButton /> : null}
         </div>
 
         {!canManage ? (
