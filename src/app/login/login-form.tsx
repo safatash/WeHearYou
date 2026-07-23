@@ -1,47 +1,49 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
+import { Icon } from "@/components/icon";
 import { authenticate, type LoginActionState } from "@/app/login/actions";
 
 const initialState: LoginActionState = {};
 
 export function LoginForm() {
   const [state, formAction, pending] = useActionState(authenticate, initialState);
+  const [show, setShow] = useState(false);
 
   return (
-    <form action={formAction} className="space-y-5">
-      <label className="grid gap-2 text-sm font-semibold text-slate-700">
-        Email
-        <input
-          name="email"
-          type="email"
-          required
-          autoComplete="email"
-          className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-normal text-slate-700"
-        />
-      </label>
+    <form action={formAction} className="au-fields" style={{ marginTop: 26 }}>
+      <div>
+        <label className="au-field-label" htmlFor="login-email">Work email</label>
+        <div className="au-inwrap">
+          <Icon name="mail" size={17} style={{ position: "absolute", left: 14, color: "var(--ink-400)", pointerEvents: "none" }} />
+          <input id="login-email" className="au-input" name="email" type="email" required autoComplete="email" placeholder="you@company.com" />
+        </div>
+      </div>
 
-      <label className="grid gap-2 text-sm font-semibold text-slate-700">
-        Password
-        <input
-          name="password"
-          type="password"
-          required
-          autoComplete="current-password"
-          className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-normal text-slate-700"
-        />
-      </label>
+      <div>
+        <label className="au-field-label" htmlFor="login-password">Password</label>
+        <div className="au-inwrap">
+          <Icon name="lock" size={17} style={{ position: "absolute", left: 14, color: "var(--ink-400)", pointerEvents: "none" }} />
+          <input
+            id="login-password"
+            className="au-input"
+            name="password"
+            type={show ? "text" : "password"}
+            required
+            autoComplete="current-password"
+            placeholder="Enter your password"
+          />
+          <button type="button" className="au-eye" onClick={() => setShow((s) => !s)} aria-label={show ? "Hide password" : "Show password"}>
+            <Icon name={show ? "eyeOff" : "eye"} size={17} />
+          </button>
+        </div>
+      </div>
 
-      {state.error ? (
-        <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{state.error}</div>
-      ) : null}
+      {state.error ? <div className="au-error">{state.error}</div> : null}
 
-      <button
-        type="submit"
-        disabled={pending}
-        className="w-full rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-sm disabled:opacity-60"
-      >
-        {pending ? "Signing in..." : "Sign in"}
+      <button type="submit" className="au-submit" disabled={pending}>
+        {pending ? "Signing in…" : "Sign in"}
+        {!pending && <Icon name="arrowRight" size={18} />}
       </button>
     </form>
   );

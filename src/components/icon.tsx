@@ -8,6 +8,7 @@ import {
   Check,
   Plus,
   Eye,
+  EyeOff,
   Mail,
   Megaphone,
   Trash2,
@@ -57,7 +58,7 @@ import {
 
 export type IconName =
   | 'search' | 'bell' | 'settings' | 'logout' | 'pin' | 'chevDown' | 'check' | 'plus'
-  | 'eye' | 'mail' | 'megaphone' | 'trash' | 'upload' | 'grid' | 'layers' | 'film'
+  | 'eye' | 'eyeOff' | 'mail' | 'megaphone' | 'trash' | 'upload' | 'grid' | 'layers' | 'film'
   | 'star' | 'chat' | 'send' | 'sliders' | 'code' | 'copy' | 'sun' | 'moon'
   | 'monitor' | 'phone' | 'chevLeft' | 'close' | 'sparkles' | 'inbox' | 'plug' | 'package' | 'map'
   | 'reply' | 'tag' | 'archive' | 'dots' | 'chevRight' | 'arrowRight' | 'arrowUp' | 'external' | 'shield'
@@ -73,6 +74,7 @@ const iconMap: Record<IconName, LucideIcon> = {
   check: Check,
   plus: Plus,
   eye: Eye,
+  eyeOff: EyeOff,
   mail: Mail,
   megaphone: Megaphone,
   trash: Trash2,
