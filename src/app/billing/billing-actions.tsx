@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Icon } from "@/components/icon";
 import type { PlanId } from "@/lib/plans";
 
-async function post(url: string, body?: unknown): Promise<{ url?: string; error?: string }> {
+async function post(url: string, body?: unknown): Promise<{ url?: string; upgraded?: boolean; planId?: string; error?: string }> {
   const res = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -35,6 +35,11 @@ export function SubscribeButton({
       window.location.assign(data.url);
       return;
     }
+    if (data.upgraded) {
+      // Subscription was upgraded/downgraded in place — reload to show new plan
+      window.location.assign("/billing?success=1");
+      return;
+    }
     setError(data.error ?? "Could not start checkout.");
     setLoading(false);
   }
@@ -48,7 +53,7 @@ export function SubscribeButton({
         className={`btn btn-${variant}`}
         style={{ width: "100%", justifyContent: "center" }}
       >
-        {loading ? "Redirecting…" : label}
+        {loading ? "Please wait…" : label}
       </button>
       {error ? <p style={{ fontSize: 12, color: "var(--danger)", marginTop: 8 }}>{error}</p> : null}
     </div>

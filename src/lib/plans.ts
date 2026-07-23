@@ -45,7 +45,7 @@ export const PLANS = {
     id: "starter",
     name: "Starter",
     tagline: "Solo operators and single-location businesses.",
-    monthlyPriceUsd: 49,
+    monthlyPriceUsd: 19,
     stripePriceId: process.env.STRIPE_PRICE_STARTER ?? "",
     limits: {
       locations: 1,
@@ -71,7 +71,7 @@ export const PLANS = {
     id: "growth",
     name: "Growth",
     tagline: "Growing, multi-location businesses with small teams.",
-    monthlyPriceUsd: 99,
+    monthlyPriceUsd: 49,
     stripePriceId: process.env.STRIPE_PRICE_GROWTH ?? "",
     limits: {
       locations: 3,

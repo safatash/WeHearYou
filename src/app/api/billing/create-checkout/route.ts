@@ -37,6 +37,44 @@ export async function POST(req: Request) {
 
   const org = membership.organization;
 
+  // ── Path A: org already has an active subscription → upgrade/downgrade in place ──
+  if (org.stripeSubscriptionId) {
+    const activeStatuses = ["active", "trialing", "past_due"];
+    const currentStatus = org.stripeSubscriptionStatus ?? "";
+
+    if (activeStatuses.includes(currentStatus)) {
+      // Retrieve the subscription to find the current subscription item ID
+      const subscription = await stripe.subscriptions.retrieve(org.stripeSubscriptionId);
+      const itemId = subscription.items.data[0]?.id;
+
+      if (!itemId) {
+        return NextResponse.json({ error: "Could not find subscription item to update." }, { status: 500 });
+      }
+
+      // Swap the price immediately with proration
+      const updated = await stripe.subscriptions.update(org.stripeSubscriptionId, {
+        items: [{ id: itemId, price: plan.stripePriceId }],
+        proration_behavior: "create_prorations",
+        metadata: { organizationId: org.id, planId: plan.id },
+      });
+
+      // Update DB immediately (webhook will also fire)
+      await prisma.organization.update({
+        where: { id: org.id },
+        data: {
+          planId: plan.id,
+          stripeSubscriptionStatus: updated.status,
+          currentPeriodEnd: new Date(updated.current_period_end * 1000),
+          suspendedAt: null,
+        },
+      });
+
+      return NextResponse.json({ upgraded: true, planId: plan.id });
+    }
+  }
+
+  // ── Path B: no active subscription → create a Stripe Checkout session ──
+
   // Reuse or create the Stripe customer for this org.
   let customerId = org.stripeCustomerId;
   if (!customerId) {
