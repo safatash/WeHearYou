@@ -17,6 +17,7 @@ export type ScreenKey =
   | "gbp-photos"
   | "funnel-preview"
   | "customer-resolution"
+  | "billing"
   | "settings";
 
 import { IconName } from "@/components/icon";

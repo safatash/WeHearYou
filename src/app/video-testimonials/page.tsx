@@ -11,6 +11,8 @@ import { VideoThumbnailEditor } from "@/components/video-thumbnail-editor";
 import { getThumbnailUrl, getThumbnailAlt } from "@/lib/thumbnail-utils";
 import { StatusChips } from "@/components/status-chips";
 import { CaptionEditor } from "@/components/caption-editor";
+import { featureEnabledForOrg } from "@/lib/plan-features";
+import { UpgradeGate } from "@/components/upgrade-gate";
 
 function formatDuration(seconds: number | null) {
   if (!seconds) return null;
@@ -25,6 +27,17 @@ export default async function VideoTestimonialsPage({
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const membership = await requireActiveMembershipPage();
+
+  if (!featureEnabledForOrg(membership.organization.planId, "videoTestimonials")) {
+    return (
+      <AppShell activeScreen="video-testimonials">
+        <div style={{ maxWidth: 1240, margin: "0 auto", padding: "var(--gutter)" }}>
+          <UpgradeGate feature="Video testimonials" planRequired="growth" description="Collecting and showcasing video testimonials is available on Growth and Pro." />
+        </div>
+      </AppShell>
+    );
+  }
+
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
   const query = (await searchParams) ?? {};
   const selectedLocationId = typeof query.location === "string" ? query.location : null;

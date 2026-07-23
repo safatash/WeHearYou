@@ -6,6 +6,30 @@ import { cookies } from "next/headers";
 import { MembershipStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireSuperAdmin } from "@/lib/authz";
+import { isPlanId } from "@/lib/plans";
+
+export async function setOrgBillingAsAdmin(formData: FormData) {
+  await requireSuperAdmin();
+
+  const orgId = String(formData.get("orgId") ?? "").trim();
+  if (!orgId) throw new Error("Organization ID required");
+
+  const planId = String(formData.get("planId") ?? "").trim();
+  const extendDays = Number(formData.get("extendTrialDays") ?? 0);
+  const clearSuspended = formData.get("clearSuspended") === "on";
+
+  const data: { planId?: string; trialEndsAt?: Date; suspendedAt?: null } = {};
+  if (isPlanId(planId)) data.planId = planId;
+  if (Number.isFinite(extendDays) && extendDays > 0) {
+    data.trialEndsAt = new Date(Date.now() + extendDays * 24 * 60 * 60 * 1000);
+  }
+  if (clearSuspended) data.suspendedAt = null;
+
+  await prisma.organization.update({ where: { id: orgId }, data });
+
+  revalidatePath(`/admin/orgs/${orgId}`);
+  redirect(`/admin/orgs/${orgId}?flash=Billing+updated`);
+}
 
 export async function updateOrgAsAdmin(formData: FormData) {
   await requireSuperAdmin();

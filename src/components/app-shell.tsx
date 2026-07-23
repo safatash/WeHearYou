@@ -8,6 +8,7 @@ import { Icon } from "@/components/icon";
 import { SearchInput } from "@/components/search-input";
 import { NotificationButton } from "@/components/notification-button";
 import { ExitImpersonationButton } from "@/components/exit-impersonation-button";
+import { TrialBanner } from "@/components/trial-banner";
 import { getCurrentMembership } from "@/lib/authz";
 import { navItems, type ScreenKey } from "@/lib/navigation";
 import { prisma } from "@/lib/prisma";
@@ -36,6 +37,15 @@ export async function AppShell({
     .join("")
     .slice(0, 2)
     .toUpperCase();
+
+  // Trial banner state (informational — independent of enforcement).
+  const bOrg = membership?.organization;
+  const bSubscribed = Boolean(bOrg?.stripeSubscriptionId) && (bOrg?.stripeSubscriptionStatus === "active" || bOrg?.stripeSubscriptionStatus === "trialing");
+  const nowMs = new Date().getTime();
+  const trialDaysLeft =
+    bOrg?.trialEndsAt && !bSubscribed && bOrg.trialEndsAt.getTime() > nowMs
+      ? Math.ceil((bOrg.trialEndsAt.getTime() - nowMs) / (24 * 60 * 60 * 1000))
+      : null;
 
   // Fetch locations for the switcher
   const locations = membership
@@ -217,6 +227,9 @@ export async function AppShell({
             <ExitImpersonationButton />
           </div>
         )}
+
+        {/* Trial banner */}
+        {trialDaysLeft != null && <TrialBanner daysLeft={trialDaysLeft} />}
 
         {/* Main content */}
         <main style={{ flex: 1, paddingLeft: 16, paddingRight: 16, paddingTop: 24, paddingBottom: 24 }} className="lg:px-8">

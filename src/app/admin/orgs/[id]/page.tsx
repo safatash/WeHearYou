@@ -3,9 +3,10 @@ export const dynamic = "force-dynamic";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { updateOrgAsAdmin, suspendOrg, unsuspendOrg, startImpersonation } from "@/app/admin/actions";
+import { updateOrgAsAdmin, suspendOrg, unsuspendOrg, startImpersonation, setOrgBillingAsAdmin } from "@/app/admin/actions";
 import { FormSubmitButton } from "@/components/form-submit-button";
 import { DeleteOrgButton } from "./delete-org-button";
+import { PLAN_IDS, PLANS } from "@/lib/plans";
 
 export default async function AdminOrgDetailPage({
   params,
@@ -145,6 +146,38 @@ export default async function AdminOrgDetailPage({
               </div>
             ))}
           </div>
+        </section>
+
+        {/* Billing */}
+        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 className="text-lg font-semibold text-slate-950">Billing</h2>
+          <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
+            <div><dt className="text-slate-500">Plan</dt><dd className="font-semibold text-slate-900">{PLANS[org.planId as keyof typeof PLANS]?.name ?? org.planId}</dd></div>
+            <div><dt className="text-slate-500">Subscription</dt><dd className="font-semibold text-slate-900">{org.stripeSubscriptionStatus ?? "—"}</dd></div>
+            <div><dt className="text-slate-500">Trial ends</dt><dd className="font-semibold text-slate-900">{org.trialEndsAt ? org.trialEndsAt.toLocaleDateString() : "—"}</dd></div>
+            <div><dt className="text-slate-500">Renews</dt><dd className="font-semibold text-slate-900">{org.currentPeriodEnd ? org.currentPeriodEnd.toLocaleDateString() : "—"}</dd></div>
+            <div className="col-span-2"><dt className="text-slate-500">Stripe customer</dt><dd className="font-mono text-xs text-slate-700">{org.stripeCustomerId ?? "—"}</dd></div>
+          </dl>
+
+          <form action={setOrgBillingAsAdmin} className="mt-5 space-y-4 border-t border-slate-100 pt-4">
+            <input type="hidden" name="orgId" value={org.id} />
+            <div className="grid gap-4 sm:grid-cols-2">
+              <label className="grid gap-2 text-sm font-semibold text-slate-700">
+                Set plan
+                <select name="planId" defaultValue={org.planId} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-normal text-slate-700">
+                  {PLAN_IDS.map((pid) => <option key={pid} value={pid}>{PLANS[pid].name}</option>)}
+                </select>
+              </label>
+              <label className="grid gap-2 text-sm font-semibold text-slate-700">
+                Extend trial (days from now)
+                <input name="extendTrialDays" type="number" min={0} placeholder="e.g. 14" className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-normal text-slate-700" />
+              </label>
+            </div>
+            <label className="flex items-center gap-2 text-sm text-slate-700">
+              <input type="checkbox" name="clearSuspended" /> Clear suspension
+            </label>
+            <FormSubmitButton idleLabel="Save billing" pendingLabel="Saving..." className="rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white" />
+          </form>
         </section>
 
         {/* Danger zone */}

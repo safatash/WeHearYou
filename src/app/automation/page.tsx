@@ -5,9 +5,22 @@ import { AppShell } from "@/components/app-shell";
 import { Field, StatCard } from "@/components/ui";
 import { formatConfig, formatStepType, formatTriggerType, getAutomations } from "@/lib/automation";
 import { getCurrentMembership } from "@/lib/authz";
+import { featureEnabledForOrg } from "@/lib/plan-features";
+import { UpgradeGate } from "@/components/upgrade-gate";
 
 export default async function AutomationPage() {
   const membership = await getCurrentMembership();
+
+  if (membership && !featureEnabledForOrg(membership.organization.planId, "automation")) {
+    return (
+      <AppShell activeScreen="automation">
+        <div style={{ maxWidth: 1240, margin: "0 auto", padding: "var(--gutter)" }}>
+          <UpgradeGate feature="Automation" planRequired="growth" description="Automated review-request workflows are available on Growth and Pro." />
+        </div>
+      </AppShell>
+    );
+  }
+
   const automations = membership ? await getAutomations(membership.organizationId) : [];
   const selectedAutomation = automations[0];
   const selectedNode = selectedAutomation?.steps[0];
