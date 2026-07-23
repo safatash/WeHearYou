@@ -1,16 +1,23 @@
 import Stripe from "stripe";
 
 /**
- * Stripe client singleton. Reads STRIPE_SECRET_KEY from the environment.
- * apiVersion is omitted so the SDK uses the API version pinned to the Stripe
- * account, which avoids coupling the code to a specific dated version string.
+ * Lazy Stripe client. The SDK constructor throws when the secret key is missing,
+ * and Next evaluates module imports during `next build` — so we must NOT
+ * construct at module load. Call getStripe() only after stripeConfigured().
+ * apiVersion is omitted so the SDK uses the version pinned to the account.
  */
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? "", {
-  typescript: true,
-  appInfo: { name: "WeHearYou" },
-});
+let client: Stripe | null = null;
 
-/** True when Stripe secret + webhook secret are configured. */
+export function getStripe(): Stripe {
+  const key = process.env.STRIPE_SECRET_KEY;
+  if (!key) throw new Error("STRIPE_SECRET_KEY is not set");
+  if (!client) {
+    client = new Stripe(key, { typescript: true, appInfo: { name: "WeHearYou" } });
+  }
+  return client;
+}
+
+/** True when the Stripe secret key is configured. */
 export function stripeConfigured(): boolean {
   return Boolean(process.env.STRIPE_SECRET_KEY);
 }

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import type Stripe from "stripe";
-import { stripe } from "@/lib/stripe";
+import { getStripe, stripeConfigured } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
 import { planIdForPriceId } from "@/lib/plans";
 
@@ -53,9 +53,10 @@ async function applySubscription(sub: Stripe.Subscription) {
 
 export async function POST(req: Request) {
   const secret = process.env.STRIPE_WEBHOOK_SECRET;
-  if (!secret) {
+  if (!secret || !stripeConfigured()) {
     return NextResponse.json({ error: "Webhook not configured." }, { status: 503 });
   }
+  const stripe = getStripe();
 
   const body = await req.text();
   const signature = req.headers.get("stripe-signature");

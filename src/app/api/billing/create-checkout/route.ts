@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentMembership } from "@/lib/authz";
 import { canManageBilling } from "@/lib/team";
 import { prisma } from "@/lib/prisma";
-import { stripe, stripeConfigured } from "@/lib/stripe";
+import { getStripe, stripeConfigured } from "@/lib/stripe";
 import { PLANS, isPlanId } from "@/lib/plans";
 import type { TeamMemberWithRelations } from "@/lib/team";
 
@@ -16,6 +16,7 @@ export async function POST(req: Request) {
   if (!stripeConfigured()) {
     return NextResponse.json({ error: "Billing is not configured." }, { status: 503 });
   }
+  const stripe = getStripe();
 
   const membership = (await getCurrentMembership()) as TeamMemberWithRelations | null;
   if (!membership) {
