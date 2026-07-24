@@ -1,6 +1,8 @@
 export const dynamic = "force-dynamic";
 
+import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
+import { Icon } from "@/components/icon";
 import { FormSubmitButton } from "@/components/form-submit-button";
 import { requireActiveMembershipPage } from "@/lib/page-guards";
 import { prisma } from "@/lib/prisma";
@@ -103,48 +105,123 @@ export default async function VideoTestimonialsPage({
 
   const pendingCount = allTestimonials.filter((vt) => vt.status === "PENDING" && vt.videoUrl).length;
   const publishedCount = allTestimonials.filter((vt) => vt.status === "APPROVED").length;
+  const receivedCount = allTestimonials.filter((vt) => vt.videoUrl).length;
+
+  // Status filter lives in the URL so this page stays a server component.
+  const statusFilter = query.status === "pending" || query.status === "published" ? query.status : "all";
+  const shown = allTestimonials.filter((vt) =>
+    statusFilter === "pending" ? vt.status === "PENDING" && Boolean(vt.videoUrl)
+    : statusFilter === "published" ? vt.status === "APPROVED"
+    : true,
+  );
+  const filterHref = (status: string) => {
+    const params = new URLSearchParams();
+    if (selectedLocationId) params.set("location", selectedLocationId);
+    if (status !== "all") params.set("status", status);
+    const qs = params.toString();
+    return qs ? `/video-testimonials?${qs}` : "/video-testimonials";
+  };
+  const FILTERS: Array<{ id: string; label: string; count: number }> = [
+    { id: "all", label: "All", count: allTestimonials.length },
+    { id: "pending", label: "Awaiting review", count: pendingCount },
+    { id: "published", label: "Published", count: publishedCount },
+  ];
 
   return (
     <AppShell activeScreen="video-testimonials" selectedLocationId={selectedLocationId ?? undefined}>
-      <div className="mx-auto max-w-5xl space-y-6">
-        <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.22em] text-indigo-600">Video Testimonials</p>
-          <h2 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">Collect and publish video testimonials</h2>
-          <p className="mt-2 text-sm text-slate-600">Generate a recording link, share it with a customer, review their submission, and embed published videos on your website.</p>
+      <div style={{ maxWidth: 1240, margin: "0 auto", padding: "var(--gutter)" }}>
+        {/* Header */}
+        <div style={{ marginBottom: "var(--gutter)" }}>
+          <div className="eyebrow" style={{ marginBottom: 6 }}>Video Testimonials</div>
+          <h1 style={{ fontSize: 26, fontWeight: 680, letterSpacing: "-.025em" }}>Collect and publish video testimonials</h1>
+          <p style={{ fontSize: 13.5, color: "var(--ink-500)", marginTop: 5, maxWidth: 780, lineHeight: 1.5 }}>
+            Generate a recording link, share it with a customer, review their submission, and embed published videos on your website.
+          </p>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-3">
-          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Total Received</p>
-            <p className="mt-1 text-3xl font-semibold text-slate-950">{allTestimonials.filter((vt) => vt.videoUrl).length}</p>
-          </div>
-          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Awaiting Review</p>
-            <p className="mt-1 text-3xl font-semibold text-amber-600">{pendingCount}</p>
-          </div>
-          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Published</p>
-            <p className="mt-1 text-3xl font-semibold text-emerald-600">{publishedCount}</p>
-          </div>
+        {/* Stats */}
+        <div className="vt-stats" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "var(--gutter)", marginBottom: "var(--gutter)" }}>
+          {([
+            { icon: "film", label: "Total received", value: receivedCount, tone: "neutral" },
+            { icon: "clock", label: "Awaiting review", value: pendingCount, tone: "warning" },
+            { icon: "check", label: "Published", value: publishedCount, tone: "success" },
+          ] as const).map((s) => (
+            <div key={s.label} className="card" style={{ padding: "16px 18px", display: "flex", alignItems: "center", gap: 13 }}>
+              <span
+                style={{
+                  width: 38, height: 38, borderRadius: 10, flex: "none", display: "grid", placeItems: "center",
+                  background: s.tone === "warning" ? "var(--warning-soft)" : s.tone === "success" ? "var(--success-soft)" : "var(--ink-100)",
+                  color: s.tone === "warning" ? "var(--warning)" : s.tone === "success" ? "var(--success)" : "var(--ink-500)",
+                }}
+              >
+                <Icon name={s.icon} size={18} />
+              </span>
+              <div style={{ minWidth: 0 }}>
+                <div className="eyebrow" style={{ marginBottom: 5, whiteSpace: "nowrap" }}>{s.label}</div>
+                <div className="tnum" style={{ fontSize: 24, fontWeight: 700, letterSpacing: "-.02em", lineHeight: 1, color: s.tone === "warning" ? "var(--warning)" : s.tone === "success" ? "var(--success)" : "var(--ink-900)" }}>
+                  {s.value}
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
 
-        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h3 className="text-lg font-semibold text-slate-950">Send a Video Request</h3>
-          <p className="mt-1 mb-5 text-sm text-slate-600">Send a customer a personalised link to record a short video testimonial via email or SMS.</p>
+        {/* Send a video request */}
+        <div className="card" style={{ padding: "var(--card-pad)", marginBottom: "var(--gutter)" }}>
+          <div style={{ marginBottom: 18 }}>
+            <h3 style={{ fontSize: 16, fontWeight: 660, letterSpacing: "-.015em" }}>Send a video request</h3>
+            <p style={{ fontSize: 12.5, color: "var(--ink-500)", marginTop: 4 }}>
+              Send a customer a personalised link to record a short video testimonial via email or SMS.
+            </p>
+          </div>
           {locations.length === 0 ? (
-            <p className="text-sm text-slate-500">Add a location first to send video testimonial requests.</p>
+            <p style={{ fontSize: 13, color: "var(--ink-500)" }}>Add a location first to send video testimonial requests.</p>
           ) : (
             <SendVideoRequestForm locations={locationList} contacts={contactRows} />
           )}
-        </section>
+        </div>
 
-        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h3 className="text-lg font-semibold text-slate-950">All Testimonials</h3>
-          {allTestimonials.length === 0 ? (
-            <p className="mt-4 text-sm text-slate-500">No video testimonials yet. Send a request above and share it with a customer.</p>
+        <div className="card" style={{ padding: "var(--card-pad)" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginBottom: 16 }}>
+            <div>
+              <h3 style={{ fontSize: 16, fontWeight: 660, letterSpacing: "-.015em" }}>All testimonials</h3>
+              <p style={{ fontSize: 12.5, color: "var(--ink-500)", marginTop: 3 }}>Recorded by your customers · hosted on WeHearYou</p>
+            </div>
+            <div style={{ display: "flex", gap: 4, padding: 3, background: "var(--ink-100)", borderRadius: "var(--r-sm)" }}>
+              {FILTERS.map((f) => {
+                const active = statusFilter === f.id;
+                return (
+                  <Link
+                    key={f.id}
+                    href={filterHref(f.id)}
+                    style={{
+                      padding: "5px 12px", borderRadius: 5, fontSize: 12.5, fontWeight: 560, textDecoration: "none",
+                      background: active ? "var(--white)" : "transparent",
+                      color: active ? "var(--ink-900)" : "var(--ink-500)",
+                      boxShadow: active ? "var(--shadow-xs)" : "none",
+                      display: "inline-flex", alignItems: "center", gap: 6,
+                    }}
+                  >
+                    {f.label}
+                    <span className="tnum" style={{ fontSize: 11, fontWeight: 700, color: active ? "var(--accent-strong)" : "var(--ink-400)" }}>{f.count}</span>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+
+          {shown.length === 0 ? (
+            <div style={{ padding: "48px 0", textAlign: "center", color: "var(--ink-400)" }}>
+              <Icon name="film" size={26} />
+              <div style={{ marginTop: 8, fontSize: 13.5 }}>
+                {allTestimonials.length === 0
+                  ? "No video testimonials yet. Send a request above and share it with a customer."
+                  : "No testimonials in this view yet."}
+              </div>
+            </div>
           ) : (
-            <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {allTestimonials.map((vt) => {
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(296px, 1fr))", gap: "var(--gutter)" }}>
+              {shown.map((vt) => {
                 const recorderUrl = `${appUrl}/vt/${vt.token}`;
                 const isPublished = vt.status === "APPROVED";
                 const embedCode = isPublished && vt.videoUrl
@@ -161,12 +238,14 @@ export default async function VideoTestimonialsPage({
                 return (
                   <div
                     key={vt.id}
-                    className={`rounded-2xl border bg-white overflow-hidden hover:shadow-md transition-shadow ${
-                      !vt.videoUrl ? "border-dashed border-slate-200 opacity-80" : "border-slate-200"
-                    }`}
+                    className="card"
+                    style={{
+                      overflow: "hidden",
+                      ...(vt.videoUrl ? {} : { borderStyle: "dashed", opacity: 0.85 }),
+                    }}
                   >
                     {/* Thumbnail / Video preview area */}
-                    <div className="relative aspect-video bg-slate-900">
+                    <div className="relative aspect-video" style={{ background: "var(--ink-900)" }}>
                       {vt.videoUrl ? (
                         thumbnailUrl ? (
                           <img
@@ -190,33 +269,35 @@ export default async function VideoTestimonialsPage({
                       {/* Play overlay */}
                       {vt.videoUrl && (
                         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                          <div className="w-12 h-12 rounded-full bg-black/30 backdrop-blur-sm flex items-center justify-center">
-                            <svg className="w-5 h-5 text-white ml-0.5" fill="currentColor" viewBox="0 0 20 20">
-                              <path d="M6.3 2.84A1.5 1.5 0 0 0 4 4.11v11.78a1.5 1.5 0 0 0 2.3 1.27l9.344-5.891a1.5 1.5 0 0 0 0-2.538L6.3 2.84Z" />
-                            </svg>
-                          </div>
+                          <span style={{ width: 50, height: 50, borderRadius: "50%", background: "rgba(255,255,255,.92)", display: "grid", placeItems: "center", boxShadow: "0 6px 20px rgba(0,0,0,.32)" }}>
+                            <svg width="17" height="17" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" fill="var(--accent)" /></svg>
+                          </span>
                         </div>
                       )}
 
                       {/* Duration badge */}
                       {vt.durationSeconds && (
-                        <div className="absolute bottom-2 right-2 rounded bg-black/60 px-1.5 py-0.5 text-xs text-white font-mono">
+                        <div className="absolute bottom-2 right-2 tnum" style={{ background: "rgba(0,0,0,.62)", color: "#fff", fontSize: 11.5, fontWeight: 600, fontFamily: "var(--font-mono)", padding: "2px 7px", borderRadius: 5 }}>
                           {formatDuration(vt.durationSeconds)}
                         </div>
                       )}
                     </div>
 
                     {/* Card body */}
-                    <div className="p-4">
+                    <div style={{ padding: 14, display: "flex", flexDirection: "column", gap: 10 }}>
                       {/* Name + location + date */}
-                      <div className="flex items-start justify-between gap-2 mb-2">
-                        <div className="min-w-0">
-                          <h3 className="font-semibold text-slate-900 text-sm truncate">{vt.submitterName ?? "Unnamed"}</h3>
-                          <p className="text-xs text-slate-500 truncate">{vt.location.name} · {vt.location.city}, {vt.location.state}</p>
+                      <div>
+                        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 8 }}>
+                          <span style={{ fontSize: 14.5, fontWeight: 660, letterSpacing: "-.01em", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            {vt.submitterName ?? "Unnamed"}
+                          </span>
+                          <span className="tnum" style={{ fontSize: 11.5, color: "var(--ink-400)", flex: "none" }}>
+                            {new Date(vt.createdAt).toLocaleDateString()}
+                          </span>
                         </div>
-                        <span className="text-xs text-slate-400 whitespace-nowrap flex-shrink-0">
-                          {new Date(vt.createdAt).toLocaleDateString()}
-                        </span>
+                        <div style={{ fontSize: 12, color: "var(--ink-400)", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {vt.location.name} · {vt.location.city}, {vt.location.state}
+                        </div>
                       </div>
 
                       {/* Status chips */}
@@ -224,42 +305,36 @@ export default async function VideoTestimonialsPage({
 
                       {/* Caption preview */}
                       {vt.videoUrl && (
-                        <p className="mt-2 text-xs text-slate-600 line-clamp-2">
-                          {vt.caption ?? <em className="text-slate-400">No caption yet</em>}
+                        <p style={{ fontSize: 13, lineHeight: 1.5, color: "var(--ink-700)", margin: 0, fontWeight: 500, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+                          {vt.caption ?? <em style={{ color: "var(--ink-400)", fontWeight: 400 }}>No caption yet</em>}
                         </p>
                       )}
 
                       {/* Recording prompt (collapsible) */}
                       {vt.prompt && (
-                        <details className="mt-2">
-                          <summary className="text-xs text-slate-400 cursor-pointer select-none hover:text-slate-600">
-                            Recording prompt ↓
+                        <details>
+                          <summary style={{ fontSize: 12, color: "var(--accent-strong)", fontWeight: 540, cursor: "pointer", userSelect: "none" }}>
+                            Recording prompt
                           </summary>
-                          <p className="mt-1 text-xs text-slate-500 italic pl-2 border-l border-slate-200">{vt.prompt}</p>
+                          <div style={{ fontSize: 12.5, color: "var(--ink-500)", background: "var(--ink-50)", border: "1px solid var(--ink-150)", borderRadius: "var(--r-sm)", padding: "8px 11px", fontStyle: "italic", marginTop: 6 }}>
+                            {vt.prompt}
+                          </div>
                         </details>
                       )}
 
+                      <div className="hr" style={{ margin: "2px 0 0" }} />
+
                       {/* Actions */}
-                      <div className="mt-3 pt-3 border-t border-slate-100 flex flex-wrap gap-2 items-center">
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 7, alignItems: "center" }}>
                         {!vt.videoUrl && (
-                          <a
-                            href={recorderUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 hover:border-slate-300"
-                          >
-                            Open link ↗
+                          <a href={recorderUrl} target="_blank" rel="noreferrer" className="btn btn-secondary btn-sm">
+                            <Icon name="external" size={13} />Open link
                           </a>
                         )}
 
                         {vt.videoUrl && (
-                          <a
-                            href={vt.videoUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 hover:border-slate-300"
-                          >
-                            Watch ↗
+                          <a href={vt.videoUrl} target="_blank" rel="noreferrer" className="btn btn-secondary btn-sm">
+                            <Icon name="external" size={13} />Watch
                           </a>
                         )}
 
@@ -288,30 +363,18 @@ export default async function VideoTestimonialsPage({
                           <>
                             <form action={approveVideoTestimonial}>
                               <input type="hidden" name="id" value={vt.id} />
-                              <FormSubmitButton
-                                idleLabel="Publish"
-                                pendingLabel="Publishing…"
-                                className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700 hover:border-emerald-300"
-                              />
+                              <FormSubmitButton idleLabel="Approve & publish" pendingLabel="Publishing…" className="btn btn-primary btn-sm" />
                             </form>
                             <form action={rejectVideoTestimonial}>
                               <input type="hidden" name="id" value={vt.id} />
-                              <FormSubmitButton
-                                idleLabel="Reject"
-                                pendingLabel="Rejecting…"
-                                className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-medium text-rose-700 hover:border-rose-300"
-                              />
+                              <FormSubmitButton idleLabel="Reject" pendingLabel="Rejecting…" className="btn btn-secondary btn-sm" />
                             </form>
                           </>
                         )}
 
-                        <form action={deleteVideoTestimonial}>
+                        <form action={deleteVideoTestimonial} style={{ marginLeft: "auto" }}>
                           <input type="hidden" name="id" value={vt.id} />
-                          <FormSubmitButton
-                            idleLabel="Delete"
-                            pendingLabel="Deleting…"
-                            className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-400 hover:border-rose-200 hover:text-rose-600"
-                          />
+                          <FormSubmitButton idleLabel="Delete" pendingLabel="Deleting…" className="btn btn-ghost btn-sm" />
                         </form>
                       </div>
 
@@ -328,7 +391,7 @@ export default async function VideoTestimonialsPage({
               })}
             </div>
           )}
-        </section>
+        </div>
       </div>
     </AppShell>
   );
