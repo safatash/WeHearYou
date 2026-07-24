@@ -9,6 +9,10 @@
 
 export const UNLIMITED = Infinity;
 
+/** Length of the free trial granted at signup. Single source of truth — the
+ *  signup action and all trial copy read from this. */
+export const TRIAL_DAYS = 14;
+
 export type PlanFeatures = {
   automation: boolean;
   videoTestimonials: boolean;

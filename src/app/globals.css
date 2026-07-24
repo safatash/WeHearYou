@@ -407,6 +407,13 @@ select:focus {
 .au-h1 { font-size: 27px; font-weight: 700; letter-spacing: -.03em; color: var(--ink-900); line-height: 1.12; }
 .au-lede { font-size: 14.5px; color: var(--ink-500); margin-top: 8px; line-height: 1.5; text-wrap: pretty; }
 
+/* Free-trial callout (sign-up only) */
+.au-trial { display: flex; align-items: center; gap: 10px; margin-top: 18px; padding: 11px 14px; border-radius: 12px;
+  border: 1px solid var(--accent-border); background: var(--accent-soft); color: var(--ink-700); font-size: 13px; line-height: 1.45; }
+.au-trial b { color: var(--accent-strong); font-weight: 620; }
+.au-trial-ic { width: 26px; height: 26px; border-radius: 8px; flex: none; display: grid; place-items: center;
+  background: var(--accent); color: #fff; }
+
 /* OAuth buttons */
 .au-oauth { display: flex; flex-direction: column; gap: 10px; margin-top: 26px; }
 .au-oauth-btn { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; min-height: 50px; border-radius: 13px;

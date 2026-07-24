@@ -4,9 +4,7 @@ import bcrypt from "bcryptjs";
 import { MembershipRole, MembershipStatus } from "@prisma/client";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { DEFAULT_PLAN_ID } from "@/lib/plans";
-
-const TRIAL_DAYS = 14;
+import { DEFAULT_PLAN_ID, TRIAL_DAYS } from "@/lib/plans";
 
 export type SignUpState = {
   error?: string;

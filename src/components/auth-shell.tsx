@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Icon, type IconName } from "@/components/icon";
+import { TRIAL_DAYS } from "@/lib/plans";
 
 const POINTS: Array<{ icon: IconName; title: string; body: string }> = [
   { icon: "star", title: "Collect more reviews", body: "Route happy customers to public reviews with smart, on-brand funnels." },
@@ -73,6 +74,15 @@ export function AuthShell({
               ? "Start a new workspace and invite your team in minutes."
               : "Sign in to your dashboard to manage reviews, posts, and insights."}
           </p>
+
+          {signup ? (
+            <div className="au-trial">
+              <span className="au-trial-ic"><Icon name="bolt" size={14} /></span>
+              <span>
+                <b>{TRIAL_DAYS}-day free trial</b> — full access, no credit card required.
+              </span>
+            </div>
+          ) : null}
 
           {children}
 
