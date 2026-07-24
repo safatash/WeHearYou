@@ -943,9 +943,14 @@ const script = `
     var mountSelector = scriptEl.getAttribute("data-mount");
     var mount = mountSelector ? document.querySelector(mountSelector) : null;
 
-    if (!token || !mount) return;
-    if (_initializedMounts[mountSelector]) return;
-    _initializedMounts[mountSelector] = true;
+    // Collecting and Floating widgets inject themselves into <body>, so their
+    // embed snippet is a bare script tag with no data-mount. Requiring a mount
+    // here made those widgets render nothing at all. Only a token is required;
+    // render kinds that DO need a mount bail out below with a clear warning.
+    if (!token) return;
+    var initKey = mountSelector || ("token:" + token);
+    if (_initializedMounts[initKey]) return;
+    _initializedMounts[initKey] = true;
 
     // Extract optional data attributes for configuration overrides
     var overrides = {
@@ -1044,6 +1049,18 @@ const script = `
         // Floating Widget: render fixed-position card with rotation, skip review grid
         if (nextPage === 1 && renderKind === "floating") {
           renderFloatingWidget(data, token, baseUrl.origin);
+          done = true;
+          setLoadingState(false);
+          return;
+        }
+
+        // Every remaining render kind writes into a mount element. If the embed
+        // snippet omitted the mount div (or the selector matched nothing), say so
+        // instead of throwing on a null mount.
+        if (!mount) {
+          if (window.console && console.warn) {
+            console.warn("[WeHearYou] Widget " + token + ": missing mount element. Add the <div id=\\"why-widget-" + token + "\\"></div> from the embed snippet, or the matching data-mount selector.");
+          }
           done = true;
           setLoadingState(false);
           return;
@@ -1399,7 +1416,7 @@ const script = `
         done = !data.pagination.hasMore || data.widget.layout === "slider" || data.widget.layout === "carousel" || data.widget.layout === "video" || data.widget.contentType === "VIDEO" || data.widget.contentType === "MIXED";
         setLoadingState(false);
       } catch (error) {
-        if (nextPage === 1) {
+        if (nextPage === 1 && mount) {
           var msg = (error && error.message === "not_found")
             ? "This widget is currently unavailable."
             : "Unable to load reviews right now.";
