@@ -644,8 +644,10 @@ export function WidgetMockPreview({
             boxShadow: "0 6px 18px rgba(0,0,0,.18)",
             padding: isTab ? "14px 9px" : "11px 17px",
             borderRadius: isTab ? tabRadius : 999,
-            writingMode: isTab ? "vertical-rl" : undefined,
-            transform: s.collectPosition === "left" ? "rotate(180deg)" : undefined,
+            // Match the live embed (.why-collect-tab-l/-r): both side tabs read
+            // top-to-bottom. The left tab previously carried a 180° rotation, so
+            // the preview showed upside-down text the real widget never renders.
+            writingMode: isTab ? (s.collectPosition === "left" ? "vertical-lr" : "vertical-rl") : undefined,
           })}
         >
           {!isTab && <Icon name="chat" size={15} />}
