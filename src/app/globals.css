@@ -513,3 +513,11 @@ select:focus {
   background: var(--ink-100); color: var(--ink-500); border-radius: 999px; padding: 1px 7px;
 }
 .chip[data-active="true"] .ld-tabcount { background: var(--accent-soft); color: var(--accent-strong); }
+
+/* ===================== Locations (/locations) ===================== */
+@media (max-width: 1080px) {
+  .loc-stats { grid-template-columns: repeat(2, 1fr) !important; }
+}
+@media (max-width: 560px) {
+  .loc-stats { grid-template-columns: 1fr !important; }
+}

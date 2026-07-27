@@ -1,7 +1,7 @@
 import { Icon, type IconName } from "@/components/icon";
 
 /**
- * Compact portfolio summary tile: icon + label + value.
+ * Compact portfolio summary tile: icon chip + label + value.
  * Mirrors the mockup's `PortStat` row used above the locations grid.
  */
 export function PortfolioStat({
@@ -19,20 +19,24 @@ export function PortfolioStat({
 }) {
   const warning = tone === "warning";
   return (
-    <div className="flex items-center gap-3 rounded-3xl border border-slate-200/80 bg-white p-4 shadow-[0_12px_32px_rgba(15,23,42,0.05)]">
+    <div className="card" style={{ padding: "16px 18px", display: "flex", alignItems: "center", gap: 13 }}>
       <span
-        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${
-          warning ? "bg-amber-50 text-amber-600" : "bg-indigo-50 text-indigo-600"
-        }`}
+        style={{
+          width: 38, height: 38, borderRadius: 10, flex: "none", display: "grid", placeItems: "center",
+          background: warning ? "var(--warning-soft)" : "var(--accent-soft)",
+          color: warning ? "var(--warning)" : "var(--accent-strong)",
+        }}
       >
         <Icon name={icon} size={18} />
       </span>
-      <div className="min-w-0">
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">{label}</p>
-        <p className="mt-1 flex items-baseline gap-1">
-          <span className={`text-2xl font-semibold tracking-tight ${warning ? "text-amber-600" : "text-slate-950"}`}>{value}</span>
-          {suffix ? <span className={`text-base font-semibold ${suffix === "★" ? "text-amber-400" : "text-slate-400"}`}>{suffix}</span> : null}
-        </p>
+      <div style={{ minWidth: 0 }}>
+        <div className="eyebrow" style={{ marginBottom: 5, whiteSpace: "nowrap" }}>{label}</div>
+        <div style={{ display: "flex", alignItems: "baseline", gap: 3 }}>
+          <span className="tnum" style={{ fontSize: 24, fontWeight: 700, letterSpacing: "-.02em", lineHeight: 1, color: warning ? "var(--warning)" : "var(--ink-900)" }}>
+            {value}
+          </span>
+          {suffix ? <span style={{ fontSize: 14, fontWeight: 600, color: suffix === "★" ? "var(--star)" : "var(--ink-400)" }}>{suffix}</span> : null}
+        </div>
       </div>
     </div>
   );

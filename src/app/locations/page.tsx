@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
+import { Icon } from "@/components/icon";
 import { PortfolioStat } from "@/app/locations/_components/portfolio-stat";
 import { LocationCard } from "@/app/locations/_components/location-card";
 import { buildGoogleSyncSummary, buildLocationSyncErrorMessage } from "@/lib/google-sync-summary";
@@ -29,54 +30,59 @@ export default async function LocationsPage({ searchParams }: { searchParams?: P
 
   return (
     <AppShell activeScreen="locations">
-      <div className="space-y-6">
+      <div style={{ maxWidth: 1240, margin: "0 auto", padding: "var(--gutter)" }}>
         {syncState === "success" ? (
-          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-            {buildGoogleSyncSummary({
-              createdCount,
-              updatedCount,
-              skippedCount,
-              totalCount,
-            })}
+          <div
+            className="card"
+            style={{ padding: "11px 14px", marginBottom: "var(--gutter)", fontSize: 13, background: "var(--success-soft)", borderColor: "color-mix(in srgb, var(--success) 26%, var(--white))", color: "var(--success)" }}
+          >
+            {buildGoogleSyncSummary({ createdCount, updatedCount, skippedCount, totalCount })}
           </div>
         ) : null}
 
         {syncState === "error" ? (
-          <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
+          <div
+            className="card"
+            style={{ padding: "11px 14px", marginBottom: "var(--gutter)", fontSize: 13, background: "var(--danger-soft)", borderColor: "color-mix(in srgb, var(--danger) 26%, var(--white))", color: "var(--danger)" }}
+          >
             {buildLocationSyncErrorMessage(syncMessage)}
           </div>
         ) : null}
 
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.22em] text-indigo-600">Portfolio</p>
-            <h2 className="mt-2 text-4xl font-semibold tracking-tight text-slate-950">Locations</h2>
-            <p className="mt-3 max-w-3xl text-slate-600">
+        {/* header */}
+        <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 16, flexWrap: "wrap", marginBottom: "var(--gutter)" }}>
+          <div style={{ minWidth: 0 }}>
+            <div className="eyebrow" style={{ marginBottom: 6 }}>Portfolio</div>
+            <h1 style={{ fontSize: 26, fontWeight: 680, letterSpacing: "-.025em" }}>Locations</h1>
+            <p style={{ fontSize: 13.5, color: "var(--ink-500)", marginTop: 5 }}>
               Monitor reputation across your {portfolio.totalLocations} {portfolio.totalLocations === 1 ? "location" : "locations"}
               {attentionCount > 0 ? (
-                <>
-                  {" "}
-                  — <span className="font-semibold text-amber-600">{attentionCount} need{attentionCount > 1 ? "" : "s"} attention</span>
-                </>
+                <> — <b style={{ color: "var(--warning)" }}>{attentionCount} need{attentionCount > 1 ? "" : "s"} attention</b></>
               ) : null}
               .
             </p>
           </div>
-          <div className="flex gap-3">
-            <button className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm">Invite Manager</button>
+          <div style={{ display: "flex", gap: 10 }}>
+            <button type="button" className="btn btn-secondary">Invite manager</button>
             {atLocationLimit ? (
-              <Link href="/billing" title="You've reached your plan's location limit. Upgrade to add more." className="rounded-2xl border border-slate-200 bg-slate-100 px-5 py-3 text-sm font-semibold text-slate-400 shadow-sm">
-                Add Location
+              <Link
+                href="/billing"
+                title="You've reached your plan's location limit. Upgrade to add more."
+                className="btn btn-secondary"
+                style={{ opacity: 0.6 }}
+              >
+                <Icon name="plus" size={16} />Add location
               </Link>
             ) : (
-              <Link href="/locations/new" className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold !text-white shadow-sm visited:!text-white hover:!text-white">
-                Add Location
+              <Link href="/locations/new" className="btn btn-primary">
+                <Icon name="plus" size={16} />Add location
               </Link>
             )}
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+        {/* portfolio summary */}
+        <div className="loc-stats" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "var(--gutter)", marginBottom: "var(--gutter)" }}>
           <PortfolioStat icon="pin" label="Locations" value={portfolio.totalLocations} />
           <PortfolioStat icon="star" label="Avg rating" value={portfolio.portfolioRatingValue.toFixed(1)} suffix="★" />
           <PortfolioStat icon="chat" label="Total reviews" value={portfolio.totalReviews.toLocaleString()} />
@@ -84,15 +90,15 @@ export default async function LocationsPage({ searchParams }: { searchParams?: P
         </div>
 
         {cards.length === 0 ? (
-          <div className="rounded-3xl border border-dashed border-slate-300 bg-white p-12 text-center">
-            <p className="text-base font-semibold text-slate-900">No locations yet</p>
-            <p className="mt-2 text-sm text-slate-500">Add your first location to start tracking reputation across the portfolio.</p>
-            <Link href="/locations/new" className="mt-5 inline-flex rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold !text-white shadow-sm hover:!text-white">
-              Add Location
+          <div className="card" style={{ padding: "48px 20px", textAlign: "center", border: "1px dashed var(--ink-300)", boxShadow: "none" }}>
+            <p style={{ fontSize: 15, fontWeight: 640, color: "var(--ink-900)" }}>No locations yet</p>
+            <p style={{ fontSize: 13, color: "var(--ink-500)", marginTop: 6 }}>Add your first location to start tracking reputation across the portfolio.</p>
+            <Link href="/locations/new" className="btn btn-primary" style={{ marginTop: 18 }}>
+              <Icon name="plus" size={16} />Add location
             </Link>
           </div>
         ) : (
-          <div className="grid gap-5 [grid-template-columns:repeat(auto-fill,minmax(340px,1fr))]">
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(372px, 1fr))", gap: "var(--gutter)" }}>
             {cards.map(({ location, reputation }) => (
               <LocationCard key={location.id} location={location} reputation={reputation} />
             ))}
