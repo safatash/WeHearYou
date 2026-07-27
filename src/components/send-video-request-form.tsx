@@ -35,6 +35,18 @@ function VField({ label, hint, children }: { label: string; hint?: string; child
   );
 }
 
+// The app has no `.input` class — inputs are styled inline (same pattern as the
+// campaigns form) so borders / full width apply regardless of element type.
+const inputStyle: React.CSSProperties = {
+  width: "100%",
+  padding: "9px 12px",
+  borderRadius: "var(--r-sm)",
+  border: "1px solid var(--ink-200)",
+  background: "var(--white)",
+  color: "var(--ink-900)",
+  fontSize: 13.5,
+};
+
 export function SendVideoRequestForm({ locations, contacts }: SendVideoRequestFormProps) {
   const [locationId, setLocationId] = useState(locations[0]?.id ?? "");
   const [contactQuery, setContactQuery] = useState("");
@@ -115,11 +127,11 @@ export function SendVideoRequestForm({ locations, contacts }: SendVideoRequestFo
       <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
         <VField label="Location">
           <select
-            className="input"
+            className="focus-ring"
             value={locationId}
             onChange={(e) => { setLocationId(e.target.value); clearContact(); }}
             required
-            style={{ cursor: "pointer" }}
+            style={{ ...inputStyle, height: 38, cursor: "pointer" }}
           >
             {locations.map((loc) => (
               <option key={loc.id} value={loc.id}>{loc.name} — {loc.city}, {loc.state}</option>
@@ -131,7 +143,7 @@ export function SendVideoRequestForm({ locations, contacts }: SendVideoRequestFo
           <div style={{ position: "relative" }}>
             <Icon name="search" size={15} style={{ position: "absolute", left: 11, top: "50%", transform: "translateY(-50%)", color: "var(--ink-400)", pointerEvents: "none" }} />
             <input
-              className="input"
+              className="focus-ring"
               value={contactQuery}
               onChange={(e) => {
                 setContactQuery(e.target.value);
@@ -141,7 +153,7 @@ export function SendVideoRequestForm({ locations, contacts }: SendVideoRequestFo
               onFocus={() => setShowDropdown(true)}
               onBlur={() => setTimeout(() => setShowDropdown(false), 150)}
               placeholder="Search by name, email, or phone…"
-              style={{ paddingLeft: 32, paddingRight: selectedContact ? 108 : 12 }}
+              style={{ ...inputStyle, paddingLeft: 32, paddingRight: selectedContact ? 108 : 12 }}
             />
             {selectedContact ? (
               <span style={{ position: "absolute", right: 9, top: "50%", transform: "translateY(-50%)", display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11.5, fontWeight: 560, color: "var(--accent-strong)" }}>
@@ -171,13 +183,13 @@ export function SendVideoRequestForm({ locations, contacts }: SendVideoRequestFo
         {!selectedContact ? (
           <div className="vt-manual-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, padding: 12, background: "var(--ink-50)", border: "1px solid var(--ink-150)", borderRadius: "var(--r-md)" }}>
             <VField label="Name">
-              <input className="input" value={recipientName} onChange={(e) => setRecipientName(e.target.value)} required placeholder="Jane Smith" />
+              <input className="focus-ring" style={inputStyle} value={recipientName} onChange={(e) => setRecipientName(e.target.value)} required placeholder="Jane Smith" />
             </VField>
             <VField label="Email">
-              <input className="input" type="email" value={recipientEmail} onChange={(e) => setRecipientEmail(e.target.value)} placeholder="jane@example.com" />
+              <input className="focus-ring" style={inputStyle} type="email" value={recipientEmail} onChange={(e) => setRecipientEmail(e.target.value)} placeholder="jane@example.com" />
             </VField>
             <VField label="Phone">
-              <input className="input" type="tel" value={recipientPhone} onChange={(e) => setRecipientPhone(e.target.value)} placeholder="+1 703 123 4567" />
+              <input className="focus-ring" style={inputStyle} type="tel" value={recipientPhone} onChange={(e) => setRecipientPhone(e.target.value)} placeholder="+1 703 123 4567" />
             </VField>
           </div>
         ) : null}
@@ -207,12 +219,12 @@ export function SendVideoRequestForm({ locations, contacts }: SendVideoRequestFo
 
         <VField label="Recording prompt" hint={`Shown to the customer while recording. Defaults to “${defaultPrompt}” if left blank.`}>
           <textarea
-            className="input"
+            className="focus-ring"
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             placeholder={defaultPrompt}
             rows={3}
-            style={{ height: "auto", padding: "10px 12px", resize: "vertical", lineHeight: 1.5, fontFamily: "inherit" }}
+            style={{ ...inputStyle, padding: "10px 12px", resize: "vertical", lineHeight: 1.5, fontFamily: "inherit" }}
           />
         </VField>
 
