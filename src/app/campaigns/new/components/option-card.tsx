@@ -1,7 +1,9 @@
 "use client";
 
+import { Icon, type IconName } from "@/components/icon";
+
 interface OptionCardProps {
-  icon?: string;
+  icon?: IconName;
   title: string;
   desc: string;
   on: boolean;
@@ -9,58 +11,44 @@ interface OptionCardProps {
   kind?: "radio" | "check";
 }
 
-export function OptionCard({
-  icon,
-  title,
-  desc,
-  on,
-  onClick,
-  kind = "radio",
-}: OptionCardProps) {
-  const isRadio = kind === "radio";
-
+export function OptionCard({ icon, title, desc, on, onClick, kind = "radio" }: OptionCardProps) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`w-full cursor-pointer rounded-2xl border p-4 text-left transition-colors ${
-        on
-          ? "border-teal-300 bg-teal-50"
-          : "border-slate-200 bg-slate-50 hover:border-teal-200 hover:bg-teal-50"
-      }`}
+      className="tap focus-ring"
+      aria-pressed={on}
+      style={{
+        display: "flex", alignItems: "flex-start", gap: 12, padding: 14, borderRadius: "var(--r-md)",
+        cursor: "pointer", textAlign: "left", width: "100%",
+        border: on ? "1.5px solid var(--accent)" : "1px solid var(--ink-200)",
+        background: on ? "var(--accent-softer)" : "var(--white)",
+        boxShadow: on ? "0 0 0 3px var(--accent-ring)" : "none",
+        transition: "all .14s",
+      }}
     >
-      <div className="flex items-start gap-3">
-        {/* Radio or Checkbox */}
-        <div className="mt-1 flex h-4 w-4 flex-shrink-0 items-center justify-center rounded border border-slate-300">
-          {on && (
-            <>
-              {isRadio ? (
-                <div className="h-2 w-2 rounded-full bg-teal-600" />
-              ) : (
-                <svg
-                  className="h-3 w-3 text-teal-600"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-              )}
-            </>
-          )}
-        </div>
-        {/* Content */}
-        <div className="flex-1">
-          {icon && <div className="mb-2 text-2xl">{icon}</div>}
-          <p className={`text-sm font-semibold ${on ? "text-teal-900" : "text-slate-900"}`}>
-            {title}
-          </p>
-          <p className="mt-1 text-sm text-slate-600">{desc}</p>
-        </div>
-      </div>
+      {icon ? (
+        <span
+          style={{
+            width: 36, height: 36, borderRadius: 9, flex: "none", display: "grid", placeItems: "center",
+            background: on ? "var(--accent)" : "var(--ink-100)", color: on ? "#fff" : "var(--ink-500)", transition: "all .14s",
+          }}
+        >
+          <Icon name={icon} size={18} />
+        </span>
+      ) : null}
+      <span style={{ flex: 1, minWidth: 0 }}>
+        <span style={{ display: "block", fontSize: 14, fontWeight: 620, color: "var(--ink-900)" }}>{title}</span>
+        <span style={{ display: "block", fontSize: 12, color: "var(--ink-400)", marginTop: 2, lineHeight: 1.4 }}>{desc}</span>
+      </span>
+      <span
+        style={{
+          width: 20, height: 20, flex: "none", borderRadius: kind === "radio" ? "50%" : 6, display: "grid", placeItems: "center",
+          border: on ? "0" : "1.5px solid var(--ink-300)", background: on ? "var(--accent)" : "transparent", color: "#fff", marginTop: 1,
+        }}
+      >
+        {on ? <Icon name="check" size={13} /> : null}
+      </span>
     </button>
   );
 }

@@ -364,6 +364,15 @@ select:focus {
 @keyframes why-marq-r { from { transform: translateX(-50%); } to { transform: translateX(0); } }
 @media (prefers-reduced-motion: reduce) { .why-marq-track { animation: none; } }
 
+/* ===================== Send review requests (/campaigns/new) ===================== */
+@media (max-width: 1080px) {
+  .rr-grid { grid-template-columns: minmax(0, 1fr) !important; }
+  .rr-side { display: none !important; }
+}
+@media (max-width: 560px) {
+  .rr-2col { grid-template-columns: 1fr !important; }
+}
+
 /* ===================== Auth (sign in / sign up) ===================== */
 .au-root { min-height: 100vh; display: grid; grid-template-columns: 1.02fr 1fr; }
 

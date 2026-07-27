@@ -212,6 +212,79 @@ export async function createCampaign(formData: FormData) {
   redirect(`/campaigns/${campaigns[0]?.id}?flash=${encodeURIComponent(`${campaigns[0]?.channel} campaign created`)}&tone=success`);
 }
 
+export async function saveDraftCampaign(formData: FormData) {
+  const campaignName = normalize(formData.get("name")) ?? "Untitled draft";
+  const allowedLocationIds = await getCurrentAccessibleLocationIds();
+  const locationId = normalize(formData.get("locationId"));
+  const channels = parseChannels(formData.getAll("channels"));
+  const emailSubject = normalize(formData.get("emailSubject"));
+  const messageBody = normalize(formData.get("messageBody"));
+  const destination = normalize(formData.get("destination"));
+  const selectedContacts = formData
+    .getAll("contactIds")
+    .map((value) => (typeof value === "string" ? value : ""))
+    .filter(Boolean);
+
+  if (!locationId) {
+    throw new Error("Location is required.");
+  }
+
+  await requireContactManagement(locationId);
+
+  const location = await prisma.location.findFirst({
+    where: {
+      AND: [
+        { id: locationId },
+        ...(allowedLocationIds.length > 0 ? [{ id: { in: allowedLocationIds } }] : []),
+      ],
+    },
+    select: { id: true },
+  });
+
+  if (!location) {
+    throw new Error("Location not found.");
+  }
+
+  // A draft can be incomplete: recipients/channels are optional. Only keep
+  // contacts that actually belong to the selected (accessible) location.
+  const contacts = selectedContacts.length
+    ? await prisma.contact.findMany({
+        where: {
+          id: { in: selectedContacts },
+          ...(allowedLocationIds.length > 0 ? { locationId: { in: allowedLocationIds } } : {}),
+          locationId,
+        },
+        select: { id: true },
+      })
+    : [];
+
+  const campaign = await prisma.campaign.create({
+    data: {
+      locationId,
+      name: campaignName,
+      channel: channels[0] ?? PreferredChannel.SMS,
+      status: CampaignStatus.DRAFT,
+      workflowName: "Manual send",
+      emailSubject,
+      messageBody,
+      destination,
+      recipients: contacts.length
+        ? {
+            create: contacts.map((contact) => ({
+              contactId: contact.id,
+              token: `rr_tok_${crypto.randomBytes(6).toString("hex")}`,
+              status: CampaignStatus.DRAFT,
+              outcome: "Draft",
+            })),
+          }
+        : undefined,
+    },
+    select: { id: true },
+  });
+
+  redirect(`/campaigns/${campaign.id}?flash=${encodeURIComponent("Draft saved")}&tone=success`);
+}
+
 export async function quickCreateContact(formData: FormData): Promise<{
   id: string;
   name: string;

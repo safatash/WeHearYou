@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect, useTransition } from "react";
+import { useState, useTransition } from "react";
 import Link from "next/link";
-import { createCampaign, quickCreateContact } from "@/app/campaigns/actions";
+import { createCampaign, quickCreateContact, saveDraftCampaign } from "@/app/campaigns/actions";
+import { Icon } from "@/components/icon";
 import { RCard } from "./components/rcard";
 import { OptionCard } from "./components/option-card";
 import { MessagePreview } from "./components/message-preview";
@@ -16,10 +17,7 @@ type ContactItem = {
   locationId: string;
 };
 
-type LocationItem = {
-  id: string;
-  name: string;
-};
+type LocationItem = { id: string; name: string };
 
 interface CampaignFormClientProps {
   initialContacts: ContactItem[];
@@ -27,12 +25,44 @@ interface CampaignFormClientProps {
   defaultLocationId: string | null;
 }
 
-export function CampaignFormClient({
-  initialContacts,
-  locations,
-  defaultLocationId,
-}: CampaignFormClientProps) {
-  // Form state
+const inputStyle: React.CSSProperties = {
+  padding: "9px 12px",
+  borderRadius: "var(--r-sm)",
+  border: "1px solid var(--ink-200)",
+  background: "var(--white)",
+  color: "var(--ink-900)",
+  fontSize: 13.5,
+  width: "100%",
+};
+
+function RLabel({ children, hint }: { children: React.ReactNode; hint?: string }) {
+  return (
+    <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 8 }}>
+      <label style={{ fontSize: 12.5, fontWeight: 580, color: "var(--ink-700)" }}>{children}</label>
+      {hint ? <span className="tnum" style={{ fontSize: 11.5, color: "var(--ink-400)" }}>{hint}</span> : null}
+    </div>
+  );
+}
+
+function initials(name: string) {
+  return name.split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase();
+}
+
+function AvatarChip({ name, size = 24 }: { name: string; size?: number }) {
+  return (
+    <span
+      aria-hidden
+      style={{
+        width: size, height: size, borderRadius: "50%", flex: "none", display: "grid", placeItems: "center",
+        background: "var(--accent-soft)", color: "var(--accent-strong)", fontWeight: 640, fontSize: size * 0.42,
+      }}
+    >
+      {initials(name)}
+    </span>
+  );
+}
+
+export function CampaignFormClient({ initialContacts, locations, defaultLocationId }: CampaignFormClientProps) {
   const [name, setName] = useState("Manual review request");
   const [destination, setDestination] = useState<"REVIEW" | "VIDEO_TESTIMONIAL">("REVIEW");
   const [locationId, setLocationId] = useState(defaultLocationId ?? locations[0]?.id ?? "");
@@ -43,273 +73,207 @@ export function CampaignFormClient({
   const [previewChannel, setPreviewChannel] = useState<"sms" | "email">("email");
 
   const [isPending, startTransition] = useTransition();
-
-  // Adjust previewChannel if selected channel becomes unavailable
-  useEffect(() => {
-    if (previewChannel === "sms" && !channels.sms) {
-      if (channels.email) setPreviewChannel("email");
-    } else if (previewChannel === "email" && !channels.email) {
-      if (channels.sms) setPreviewChannel("sms");
-    }
-  }, [channels, previewChannel]);
-
-  // Filter recipients when locationId changes
-  useEffect(() => {
-    setRecipients((prev) => prev.filter((r) => r.locationId === locationId));
-  }, [locationId]);
+  const [isSavingDraft, startDraftTransition] = useTransition();
 
   const currentLocation = locations.find((l) => l.id === locationId);
   const sampleName = recipients[0]?.name.split(" ")[0] || "Alex";
   const anyChannel = channels.sms || channels.email;
   const canSend = anyChannel && recipients.length > 0;
 
+  // Derive the effective preview channel so we never store a channel that's off.
+  const effectivePreview: "sms" | "email" = channels[previewChannel] ? previewChannel : channels.sms ? "sms" : "email";
+
+  function changeLocation(id: string) {
+    setLocationId(id);
+    // Drop recipients that don't belong to the newly selected location.
+    setRecipients((prev) => prev.filter((r) => r.locationId === id));
+  }
+
   function toggleChannel(channel: "sms" | "email") {
     setChannels((prev) => ({ ...prev, [channel]: !prev[channel] }));
   }
 
   function insertToken(token: string) {
-    setMessageBody((prev) => prev + token);
+    setMessageBody((prev) => (prev.length ? `${prev} ${token}` : token));
   }
 
-  function handleRecipientsChange(updated: ContactItem[]) {
-    setRecipients(updated);
+  function buildFormData() {
+    const fd = new FormData();
+    fd.append("name", name);
+    fd.append("destination", destination);
+    fd.append("locationId", locationId);
+    if (channels.sms) fd.append("channels", "SMS");
+    if (channels.email) fd.append("channels", "EMAIL");
+    if (emailSubject) fd.append("emailSubject", emailSubject);
+    if (messageBody) fd.append("messageBody", messageBody);
+    for (const r of recipients) fd.append("contactIds", r.id);
+    return fd;
   }
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     startTransition(async () => {
-      const fd = new FormData();
-      fd.append("name", name);
-      fd.append("destination", destination);
-      fd.append("locationId", locationId);
-      if (channels.sms) fd.append("channels", "SMS");
-      if (channels.email) fd.append("channels", "EMAIL");
-      if (emailSubject) fd.append("emailSubject", emailSubject);
-      if (messageBody) fd.append("messageBody", messageBody);
-      for (const r of recipients) {
-        fd.append("contactIds", r.id);
-      }
-      await createCampaign(fd);
+      await createCampaign(buildFormData());
     });
   }
 
-  const footerStatus = !anyChannel
-    ? "Select a channel to continue..."
-    : recipients.length === 0
-    ? "Add at least one recipient to send..."
-    : `Ready to send to ${recipients.length} recipient${recipients.length !== 1 ? "s" : ""}`;
+  function handleSaveDraft() {
+    startDraftTransition(async () => {
+      await saveDraftCampaign(buildFormData());
+    });
+  }
 
   return (
-    <form onSubmit={handleSubmit} className="relative">
-      <div className="grid gap-6 lg:grid-cols-[1fr_340px] xl:grid-cols-[1fr_380px]">
-        {/* Left pane: form steps */}
-        <div className="space-y-4 pb-28">
-          {/* Step 1: Campaign */}
-          <RCard step={1} title="Campaign" sub="Name your campaign and choose the type.">
-            <label className="grid gap-2 text-sm font-semibold text-slate-700">
-              Campaign Name
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="e.g. June Follow-up"
-                className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-normal text-slate-700 focus:border-teal-300 focus:outline-none"
-              />
-            </label>
+    <form onSubmit={handleSubmit} style={{ maxWidth: 1240, margin: "0 auto", padding: "var(--gutter)" }}>
+      {/* Header */}
+      <Link
+        href="/campaigns"
+        className="tap"
+        style={{ display: "inline-flex", alignItems: "center", gap: 6, color: "var(--ink-500)", fontSize: 12.5, fontWeight: 560, marginBottom: 8 }}
+      >
+        <Icon name="chevDown" size={15} style={{ transform: "rotate(90deg)" }} />Back to campaigns
+      </Link>
+      <div className="eyebrow" style={{ marginBottom: 6 }}>Campaigns</div>
+      <h1 style={{ fontSize: 26, fontWeight: 680, letterSpacing: "-.025em" }}>Send review requests</h1>
+      <p style={{ fontSize: 13.5, color: "var(--ink-500)", marginTop: 5 }}>
+        Create a one-off campaign to request reviews or video testimonials from your customers.
+      </p>
 
-            <div className="grid gap-3 sm:grid-cols-2">
-              <OptionCard
-                icon="⭐"
-                title="Review Request"
-                desc="Ask customers to leave a star rating on Google or another platform."
-                on={destination === "REVIEW"}
-                onClick={() => setDestination("REVIEW")}
-                kind="radio"
-              />
-              <OptionCard
-                icon="🎥"
-                title="Video Testimonial"
-                desc="Invite customers to record a short video sharing their experience."
-                on={destination === "VIDEO_TESTIMONIAL"}
-                onClick={() => setDestination("VIDEO_TESTIMONIAL")}
-                kind="radio"
-              />
+      {/* Two-pane */}
+      <div className="rr-grid" style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 348px", gap: "var(--gutter)", marginTop: "var(--gutter)" }}>
+        {/* LEFT — form */}
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--gutter)", minWidth: 0 }}>
+          {/* 1 campaign */}
+          <RCard step={1} title="Campaign" sub="Name it and choose what you're asking for.">
+            <div>
+              <RLabel>Campaign name</RLabel>
+              <input style={inputStyle} value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Post-visit review request" />
+            </div>
+            <div>
+              <RLabel>Request type</RLabel>
+              <div className="rr-2col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <OptionCard on={destination === "REVIEW"} onClick={() => setDestination("REVIEW")} icon="star" title="Review request" desc="Ask for a star review on your sites" />
+                <OptionCard on={destination === "VIDEO_TESTIMONIAL"} onClick={() => setDestination("VIDEO_TESTIMONIAL")} icon="film" title="Video testimonial" desc="Ask for a short recorded video" />
+              </div>
             </div>
           </RCard>
 
-          {/* Step 2: Sending */}
-          <RCard step={2} title="Sending" sub="Choose the location and delivery channels.">
-            <label className="grid gap-2 text-sm font-semibold text-slate-700">
-              Sending location
-              <select
-                value={locationId}
-                onChange={(e) => setLocationId(e.target.value)}
-                className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-normal text-slate-700 focus:border-teal-300 focus:outline-none"
-              >
+          {/* 2 sending */}
+          <RCard step={2} title="Sending" sub="Where it comes from and how it's delivered.">
+            <div>
+              <RLabel>Sending location</RLabel>
+              <select style={{ ...inputStyle, cursor: "pointer" }} value={locationId} onChange={(e) => changeLocation(e.target.value)}>
                 {locations.map((loc) => (
-                  <option key={loc.id} value={loc.id}>
-                    {loc.name}
-                  </option>
+                  <option key={loc.id} value={loc.id}>{loc.name}</option>
                 ))}
               </select>
-            </label>
-
+            </div>
             <div>
-              <p className="text-sm font-semibold text-slate-700">Delivery channels</p>
-              <div className="mt-2 grid gap-3 sm:grid-cols-2">
-                <OptionCard
-                  title="SMS"
-                  desc="Send a text message to the recipient's phone number."
-                  on={channels.sms}
-                  onClick={() => toggleChannel("sms")}
-                  kind="check"
-                />
-                <OptionCard
-                  title="Email"
-                  desc="Send an email to the recipient's email address."
-                  on={channels.email}
-                  onClick={() => toggleChannel("email")}
-                  kind="check"
-                />
+              <RLabel hint={!anyChannel ? "Pick at least one" : undefined}>Delivery channels</RLabel>
+              <div className="rr-2col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <OptionCard kind="check" on={channels.sms} onClick={() => toggleChannel("sms")} icon="chat" title="SMS" desc="Text message — highest open rate" />
+                <OptionCard kind="check" on={channels.email} onClick={() => toggleChannel("email")} icon="send" title="Email" desc="Good for longer follow-ups" />
               </div>
             </div>
           </RCard>
 
-          {/* Step 3: Message */}
-          <RCard
-            step={3}
-            title="Message"
-            sub="Customize the message sent to recipients."
-            right={
-              channels.sms ? (
-                <button
-                  type="button"
-                  onClick={() => setPreviewChannel(previewChannel === "sms" ? "email" : "sms")}
-                  className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:border-teal-200 hover:bg-teal-50 hover:text-teal-700"
-                >
-                  Preview: {previewChannel.toUpperCase()}
-                </button>
-              ) : undefined
-            }
-          >
-            {channels.sms && (
-              <div className="space-y-2">
-                <label className="grid gap-2 text-sm font-semibold text-slate-700">
-                  SMS Message
-                  <textarea
-                    value={messageBody}
-                    onChange={(e) => setMessageBody(e.target.value)}
-                    placeholder="Hi {first}, we'd love to hear about your experience at {location}. Leave a review: {link}"
-                    rows={3}
-                    maxLength={480}
-                    className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-normal text-slate-700 focus:border-teal-300 focus:outline-none"
-                  />
-                </label>
-                <div className="flex items-center justify-between">
-                  <div className="flex gap-2">
-                    {["{first}", "{location}", "{link}"].map((token) => (
-                      <button
-                        key={token}
-                        type="button"
-                        onClick={() => insertToken(token)}
-                        className="rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-mono font-semibold text-slate-600 hover:border-teal-200 hover:bg-teal-50 hover:text-teal-700"
-                      >
-                        {token}
-                      </button>
-                    ))}
-                  </div>
-                  <span className={`text-xs font-semibold ${messageBody.length > 160 ? "text-amber-600" : "text-slate-400"}`}>
-                    {messageBody.length}/160
-                  </span>
-                </div>
+          {/* 3 message */}
+          <RCard step={3} title="Message" sub="Leave blank to use your location's default copy.">
+            {channels.email ? (
+              <div>
+                <RLabel>Email subject</RLabel>
+                <input style={inputStyle} value={emailSubject} onChange={(e) => setEmailSubject(e.target.value)} placeholder={`How was your experience with ${currentLocation?.name ?? "[Location]"}?`} />
               </div>
-            )}
-
-            {channels.email && (
-              <label className="grid gap-2 text-sm font-semibold text-slate-700">
-                Email Subject
-                <input
-                  type="text"
-                  value={emailSubject}
-                  onChange={(e) => setEmailSubject(e.target.value)}
-                  placeholder={`How was your experience with ${currentLocation?.name ?? "[Location]"}?`}
-                  className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-normal text-slate-700 focus:border-teal-300 focus:outline-none"
+            ) : null}
+            {channels.sms ? (
+              <div>
+                <RLabel hint={`${messageBody.length}/160`}>SMS message</RLabel>
+                <textarea
+                  rows={3}
+                  value={messageBody}
+                  onChange={(e) => setMessageBody(e.target.value)}
+                  maxLength={480}
+                  placeholder="Hi {first}, thanks for visiting {location}! We'd love a quick review: {link}"
+                  style={{ ...inputStyle, height: "auto", padding: "11px 12px", resize: "vertical", lineHeight: 1.55, fontFamily: "inherit" }}
                 />
-                <span className="text-xs font-normal text-slate-500">
-                  Leave blank to use the default subject line.
-                </span>
-              </label>
-            )}
-
-            {!channels.sms && !channels.email && (
-              <p className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-center text-sm text-slate-500">
-                Enable at least one delivery channel in Step 2 to configure the message.
-              </p>
+              </div>
+            ) : null}
+            {!anyChannel ? (
+              <div style={{ fontSize: 12.5, color: "var(--ink-400)" }}>Select a delivery channel above to edit its message.</div>
+            ) : (
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 7, alignItems: "center" }}>
+                <span style={{ fontSize: 12, color: "var(--ink-400)" }}>Insert:</span>
+                {["{first}", "{location}", "{link}"].map((tok) => (
+                  <button
+                    key={tok}
+                    type="button"
+                    onClick={() => (channels.sms ? insertToken(tok) : setEmailSubject((v) => (v.length ? `${v} ${tok}` : tok)))}
+                    style={{ fontFamily: "var(--font-mono)", fontSize: 11.5, padding: "4px 9px", borderRadius: 6, border: "1px solid var(--ink-200)", background: "var(--ink-50)", color: "var(--accent-strong)", cursor: "pointer" }}
+                  >
+                    {tok}
+                  </button>
+                ))}
+              </div>
             )}
           </RCard>
 
-          {/* Step 4: Recipients */}
-          <RCard
-            step={4}
-            title="Recipients"
-            sub="Select the contacts to include in this campaign."
-            right={
-              recipients.length > 0 ? (
-                <span className="rounded-full bg-teal-100 px-3 py-1 text-xs font-bold text-teal-700">
-                  {recipients.length} selected
-                </span>
-              ) : undefined
-            }
-          >
-            <RecipientPickerControlled
+          {/* 4 recipients */}
+          <RCard step={4} title="Recipients" sub="Select the contacts to include in this send." right={<span className="badge badge-neutral tnum">{recipients.length} selected</span>}>
+            <RecipientPicker
               initialContacts={initialContacts}
-              locations={locations}
               locationId={locationId}
               selectedRecipients={recipients}
-              onRecipientsChange={handleRecipientsChange}
+              onRecipientsChange={setRecipients}
             />
           </RCard>
         </div>
 
-        {/* Right pane: sticky preview + summary */}
-        <div className="hidden lg:block">
-          <div className="sticky space-y-4 pb-28" style={{ top: "var(--gutter, 1.5rem)" }}>
-            {/* Live Preview */}
-            <div className="rounded-[28px] border border-slate-200/80 bg-white p-6 shadow-[0_12px_32px_rgba(15,23,42,0.05)]">
-              <div className="mb-4 flex items-center justify-between">
-                <h3 className="text-base font-semibold text-slate-950">Live Preview</h3>
-                {channels.sms && channels.email && (
-                  <div className="flex rounded-full border border-slate-200 bg-slate-50 p-0.5">
-                    <button
-                      type="button"
-                      onClick={() => setPreviewChannel("sms")}
-                      className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${previewChannel === "sms" ? "bg-teal-600 text-white" : "text-slate-500 hover:text-slate-700"}`}
-                    >
-                      SMS
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setPreviewChannel("email")}
-                      className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${previewChannel === "email" ? "bg-teal-600 text-white" : "text-slate-500 hover:text-slate-700"}`}
-                    >
-                      Email
-                    </button>
+        {/* RIGHT — preview + summary */}
+        <div className="rr-side" style={{ display: "flex", flexDirection: "column", gap: "var(--gutter)" }}>
+          <div style={{ position: "sticky", top: "var(--gutter)", display: "flex", flexDirection: "column", gap: "var(--gutter)" }}>
+            {/* preview */}
+            <div className="card" style={{ padding: 16 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+                <span className="badge badge-success"><span className="dot" style={{ background: "var(--success)" }} />Live preview</span>
+                {channels.sms && channels.email ? (
+                  <div style={{ display: "flex", gap: 3, padding: 3, background: "var(--ink-100)", borderRadius: "var(--r-sm)" }}>
+                    {([["sms", "SMS"], ["email", "Email"]] as const).map(([k, lbl]) => (
+                      <button
+                        key={k}
+                        type="button"
+                        onClick={() => setPreviewChannel(k)}
+                        style={{
+                          border: 0, cursor: "pointer", padding: "4px 11px", borderRadius: 5, fontSize: 12, fontWeight: 560,
+                          background: effectivePreview === k ? "var(--white)" : "transparent",
+                          color: effectivePreview === k ? "var(--ink-900)" : "var(--ink-500)",
+                          boxShadow: effectivePreview === k ? "var(--shadow-xs)" : "none",
+                        }}
+                      >
+                        {lbl}
+                      </button>
+                    ))}
                   </div>
-                )}
+                ) : null}
               </div>
-              <MessagePreview
-                type={destination === "REVIEW" ? "review" : "video"}
-                channel={previewChannel}
-                subject={emailSubject}
-                sms={messageBody}
-                sample={sampleName}
-                location={currentLocation?.name ?? "Your Business"}
-              />
+              {anyChannel ? (
+                <MessagePreview
+                  type={destination === "REVIEW" ? "review" : "video"}
+                  channel={effectivePreview}
+                  subject={emailSubject}
+                  sms={messageBody}
+                  sample={sampleName}
+                  location={currentLocation?.name ?? "Your Business"}
+                />
+              ) : (
+                <div style={{ height: 200, display: "grid", placeItems: "center", color: "var(--ink-400)", fontSize: 13, textAlign: "center" }}>
+                  Select a delivery channel<br />to preview the message.
+                </div>
+              )}
             </div>
 
-            {/* Send Summary */}
+            {/* summary */}
             <SendSummary
-              type={destination === "REVIEW" ? "Review Request" : "Video Testimonial"}
+              type={destination === "REVIEW" ? "Review request" : "Video testimonial"}
               location={currentLocation?.name ?? "—"}
               channels={channels}
               recipients={recipients.length}
@@ -318,108 +282,93 @@ export function CampaignFormClient({
         </div>
       </div>
 
-      {/* Sticky footer action bar */}
-      <div className="fixed bottom-0 left-0 right-0 z-30 border-t border-slate-200 bg-white/95 backdrop-blur-sm">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
-          <p className={`text-sm font-medium ${canSend ? "text-slate-600" : "text-slate-400"}`}>
-            {footerStatus}
-          </p>
-          <div className="flex shrink-0 gap-3">
-            <Link
-              href="/campaigns"
-              className="rounded-2xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 shadow-sm hover:border-slate-300"
-            >
-              Cancel
-            </Link>
-            <button
-              type="submit"
-              disabled={!canSend || isPending}
-              className="rounded-2xl bg-teal-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              {isPending ? "Sending…" : "Send review request"}
-            </button>
-          </div>
+      {/* Sticky footer action bar — bleeds to the gutter and pins to the
+          bottom of the content column (stays clear of the app sidebar). */}
+      <div
+        className="rr-footer"
+        style={{
+          position: "sticky", bottom: 0, left: 0, right: 0, zIndex: 20,
+          marginTop: "var(--gutter)",
+          marginLeft: "calc(var(--gutter) * -1)", marginRight: "calc(var(--gutter) * -1)",
+          padding: "14px var(--gutter)",
+          background: "color-mix(in srgb, var(--white) 86%, transparent)", backdropFilter: "blur(8px)",
+          borderTop: "1px solid var(--ink-200)",
+          display: "flex", alignItems: "center", gap: 12,
+        }}
+      >
+        <div style={{ fontSize: 12.5, color: "var(--ink-500)" }}>
+          {canSend ? (
+            <>Ready to send to <b className="tnum" style={{ color: "var(--ink-900)" }}>{recipients.length}</b> recipient{recipients.length === 1 ? "" : "s"}</>
+          ) : !anyChannel ? "Select a delivery channel to continue" : "Add at least one recipient to send"}
+        </div>
+        <div style={{ marginLeft: "auto", display: "flex", gap: 10 }}>
+          <Link href="/campaigns" className="btn btn-ghost">Cancel</Link>
+          <button type="button" className="btn btn-secondary" onClick={handleSaveDraft} disabled={isSavingDraft || isPending}>
+            {isSavingDraft ? "Saving…" : "Save draft"}
+          </button>
+          <button type="submit" className="btn btn-primary" disabled={!canSend || isPending || isSavingDraft} style={{ opacity: canSend && !isSavingDraft ? 1 : 0.5 }}>
+            <Icon name={isPending ? "check" : "send"} size={16} />{isPending ? "Sending…" : "Send review request"}
+          </button>
         </div>
       </div>
     </form>
   );
 }
 
-// ---- Controlled RecipientPicker wrapper ----
-// The original RecipientPicker manages its own selection state. We wrap it
-// to expose selection changes upward so the parent can track recipients.
+// ---- Recipient picker (chips + search + suggested + inline manual add) ----
 
-interface RecipientPickerControlledProps {
+interface RecipientPickerProps {
   initialContacts: ContactItem[];
-  locations: LocationItem[];
   locationId: string;
   selectedRecipients: ContactItem[];
   onRecipientsChange: (recipients: ContactItem[]) => void;
 }
 
-function RecipientPickerControlled({
-  initialContacts,
-  locations,
-  locationId,
-  selectedRecipients,
-  onRecipientsChange,
-}: RecipientPickerControlledProps) {
+function contactLine(c: ContactItem) {
+  return [c.email, c.phone].filter(Boolean).join(" · ") || "No contact info";
+}
+
+function RecipientPicker({ initialContacts, locationId, selectedRecipients, onRecipientsChange }: RecipientPickerProps) {
   const [contacts, setContacts] = useState<ContactItem[]>(initialContacts);
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set(selectedRecipients.map((r) => r.id)));
-  const [showPopup, setShowPopup] = useState(false);
-  const [quickName, setQuickName] = useState("");
-  const [quickEmail, setQuickEmail] = useState("");
-  const [quickPhone, setQuickPhone] = useState("");
+  const [query, setQuery] = useState("");
+  const [openAdd, setOpenAdd] = useState(false);
+  const [mName, setMName] = useState("");
+  const [mContact, setMContact] = useState("");
   const [isAdding, setIsAdding] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
 
-  const visibleContacts = contacts.filter((c) => c.locationId === locationId);
+  const selectedIds = new Set(selectedRecipients.map((r) => r.id));
+  const pool = contacts.filter((c) => c.locationId === locationId);
+  const matches = pool.filter(
+    (c) => !selectedIds.has(c.id) && (query.trim() === "" || `${c.name} ${c.email ?? ""} ${c.phone ?? ""}`.toLowerCase().includes(query.toLowerCase())),
+  );
 
-  function toggleContact(id: string) {
-    const next = new Set(selectedIds);
-    if (next.has(id)) {
-      next.delete(id);
-    } else {
-      next.add(id);
-    }
-    setSelectedIds(next);
-    const selected = contacts.filter((c) => next.has(c.id));
-    onRecipientsChange(selected);
+  function add(c: ContactItem) {
+    if (selectedIds.has(c.id)) return;
+    onRecipientsChange([...selectedRecipients, c]);
+    setQuery("");
+  }
+  function remove(id: string) {
+    onRecipientsChange(selectedRecipients.filter((r) => r.id !== id));
   }
 
-  function closePopup() {
-    setShowPopup(false);
+  async function addManual() {
     setAddError(null);
-    setQuickName("");
-    setQuickEmail("");
-    setQuickPhone("");
-  }
-
-  async function handleQuickAdd() {
-    setAddError(null);
-    if (!quickName.trim()) {
-      setAddError("Name is required.");
-      return;
-    }
-    if (!quickEmail.trim() && !quickPhone.trim()) {
-      setAddError("Email or phone is required.");
-      return;
-    }
+    if (!mName.trim()) { setAddError("Name is required."); return; }
+    if (!mContact.trim()) { setAddError("Email or phone is required."); return; }
+    const isEmail = mContact.includes("@");
     setIsAdding(true);
     try {
       const fd = new FormData();
-      fd.append("name", quickName.trim());
-      fd.append("email", quickEmail.trim());
-      fd.append("phone", quickPhone.trim());
+      fd.append("name", mName.trim());
+      fd.append("email", isEmail ? mContact.trim() : "");
+      fd.append("phone", isEmail ? "" : mContact.trim());
       fd.append("locationId", locationId);
       const contact = await quickCreateContact(fd);
-      const newContact = { ...contact, locationId };
+      const newContact: ContactItem = { ...contact, locationId };
       setContacts((prev) => [...prev, newContact]);
-      const next = new Set(selectedIds);
-      next.add(contact.id);
-      setSelectedIds(next);
-      onRecipientsChange(contacts.filter((c) => next.has(c.id)).concat(newContact));
-      closePopup();
+      onRecipientsChange([...selectedRecipients, newContact]);
+      setMName(""); setMContact(""); setOpenAdd(false);
     } catch (err) {
       setAddError(err instanceof Error ? err.message : "Failed to add contact.");
     } finally {
@@ -428,115 +377,96 @@ function RecipientPickerControlled({
   }
 
   return (
-    <>
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-slate-500">
-          {visibleContacts.length === 0 ? "No contacts for this location." : `${visibleContacts.length} contact${visibleContacts.length !== 1 ? "s" : ""} available`}
-        </p>
-        <button
-          type="button"
-          onClick={() => setShowPopup(true)}
-          className="text-sm font-semibold text-teal-600 hover:text-teal-700"
-        >
-          + Add recipient
-        </button>
-      </div>
-
-      {visibleContacts.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
-          No contacts for this location.{" "}
-          <button
-            type="button"
-            onClick={() => setShowPopup(true)}
-            className="font-semibold text-teal-600 hover:text-teal-700"
-          >
-            Add one →
-          </button>
-        </div>
-      ) : (
-        <div className="max-h-96 space-y-2 overflow-y-auto pr-1">
-          {visibleContacts.map((contact) => (
-            <label
-              key={contact.id}
-              className="flex cursor-pointer items-start gap-3 rounded-2xl border border-slate-200 p-4 hover:border-teal-200 hover:bg-teal-50 has-[:checked]:border-teal-300 has-[:checked]:bg-teal-50"
-            >
-              <input
-                type="checkbox"
-                checked={selectedIds.has(contact.id)}
-                onChange={() => toggleContact(contact.id)}
-                className="mt-0.5 h-4 w-4 accent-teal-600"
-              />
-              <div className="min-w-0 flex-1">
-                <p className="font-semibold text-slate-900">{contact.name}</p>
-                <p className="mt-0.5 truncate text-xs text-slate-500">
-                  {[contact.email, contact.phone].filter(Boolean).join(" · ") || "No contact info"}
-                </p>
-              </div>
-            </label>
+    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+      {/* selected chips */}
+      {selectedRecipients.length > 0 ? (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          {selectedRecipients.map((c) => (
+            <span key={c.id} style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "5px 9px 5px 5px", borderRadius: 999, background: "var(--accent-softer)", border: "1px solid var(--accent-border)" }}>
+              <AvatarChip name={c.name} size={22} />
+              <span style={{ fontSize: 12.5, fontWeight: 560, color: "var(--ink-800)" }}>{c.name}</span>
+              <button type="button" onClick={() => remove(c.id)} className="tap" title="Remove" style={{ border: 0, background: "transparent", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--ink-400)", padding: 0 }}>
+                <Icon name="close" size={13} />
+              </button>
+            </span>
           ))}
         </div>
-      )}
+      ) : null}
 
-      {showPopup && (
-        <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center"
-          onClick={(e) => { if (e.target === e.currentTarget) closePopup(); }}
-        >
-          <div className="w-full max-w-md rounded-[28px] border border-slate-200 bg-white p-6 shadow-2xl">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-slate-950">Add recipient</h3>
-              <button type="button" onClick={closePopup} className="text-slate-400 hover:text-slate-600">
-                ✕
-              </button>
-            </div>
-            <div className="mt-4 space-y-3">
-              <input
-                autoFocus
-                value={quickName}
-                onChange={(e) => setQuickName(e.target.value)}
-                placeholder="Full name *"
-                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 placeholder:text-slate-400 focus:border-teal-300 focus:outline-none"
-              />
-              <input
-                type="email"
-                value={quickEmail}
-                onChange={(e) => setQuickEmail(e.target.value)}
-                placeholder="Email"
-                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 placeholder:text-slate-400 focus:border-teal-300 focus:outline-none"
-              />
-              <input
-                type="tel"
-                value={quickPhone}
-                onChange={(e) => setQuickPhone(e.target.value)}
-                placeholder="Phone"
-                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 placeholder:text-slate-400 focus:border-teal-300 focus:outline-none"
-              />
-              {addError ? (
-                <p className="text-sm text-red-600">{addError}</p>
-              ) : (
-                <p className="text-xs text-slate-400">Email or phone is required.</p>
-              )}
-            </div>
-            <div className="mt-5 flex gap-3">
-              <button
-                type="button"
-                onClick={closePopup}
-                className="flex-1 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 hover:border-slate-300"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleQuickAdd}
-                disabled={isAdding}
-                className="flex-1 rounded-2xl bg-teal-600 px-4 py-3 text-sm font-semibold text-white hover:bg-teal-700 disabled:opacity-50"
-              >
-                {isAdding ? "Adding…" : "Add & select"}
-              </button>
-            </div>
+      {/* search + add */}
+      <div style={{ position: "relative" }}>
+        <div style={{ display: "flex", gap: 8 }}>
+          <div style={{ position: "relative", flex: 1 }}>
+            <Icon name="search" size={15} style={{ position: "absolute", left: 11, top: "50%", transform: "translateY(-50%)", color: "var(--ink-400)" }} />
+            <input className="focus-ring" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search contacts by name, email, or phone…" style={{ ...inputStyle, paddingLeft: 32 }} />
           </div>
+          <button className="btn btn-secondary" type="button" onClick={() => setOpenAdd((o) => !o)}><Icon name="plus" size={15} />Add manually</button>
         </div>
-      )}
-    </>
+
+        {/* manual add */}
+        {openAdd ? (
+          <div className="anim-up card" style={{ padding: 12, marginTop: 8, boxShadow: "var(--shadow-md)" }}>
+            <div style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>
+              <div style={{ flex: 1 }}>
+                <RLabel>Name</RLabel>
+                <input className="focus-ring" style={inputStyle} value={mName} onChange={(e) => setMName(e.target.value)} placeholder="Jane Smith" />
+              </div>
+              <div style={{ flex: 1.4 }}>
+                <RLabel>Email or phone</RLabel>
+                <input className="focus-ring" style={inputStyle} value={mContact} onChange={(e) => setMContact(e.target.value)} placeholder="jane@example.com" />
+              </div>
+              <button className="btn btn-primary" type="button" onClick={addManual} disabled={isAdding} style={{ flex: "none" }}>
+                {isAdding ? "Adding…" : "Add"}
+              </button>
+            </div>
+            {addError ? <p style={{ fontSize: 12, color: "var(--danger)", marginTop: 8, marginBottom: 0 }}>{addError}</p> : null}
+          </div>
+        ) : null}
+
+        {/* matches dropdown */}
+        {query.trim() !== "" && matches.length > 0 ? (
+          <div className="card" style={{ position: "absolute", top: "calc(100% + 6px)", left: 0, right: 0, padding: 6, maxHeight: 240, overflowY: "auto", zIndex: 30, boxShadow: "var(--shadow-pop)" }}>
+            {matches.map((c) => (
+              <button key={c.id} type="button" onClick={() => add(c)} className="tap" style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "8px 9px", borderRadius: "var(--r-sm)", border: 0, cursor: "pointer", background: "transparent", textAlign: "left" }}>
+                <AvatarChip name={c.name} size={28} />
+                <span style={{ minWidth: 0, flex: 1 }}>
+                  <span style={{ display: "block", fontSize: 13, fontWeight: 560 }}>{c.name}</span>
+                  <span style={{ display: "block", fontSize: 11.5, color: "var(--ink-400)" }}>{contactLine(c)}</span>
+                </span>
+                <Icon name="plus" size={15} style={{ color: "var(--accent)" }} />
+              </button>
+            ))}
+          </div>
+        ) : null}
+      </div>
+
+      {/* suggestions when nothing selected */}
+      {selectedRecipients.length === 0 && query.trim() === "" ? (
+        <div style={{ border: "1px dashed var(--ink-300)", borderRadius: "var(--r-md)", padding: 14, background: "var(--ink-50)" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+            <span className="eyebrow">Suggested · this location</span>
+            {pool.length > 0 ? (
+              <button className="btn btn-ghost btn-sm" type="button" onClick={() => onRecipientsChange(pool)}>Select all {pool.length}</button>
+            ) : null}
+          </div>
+          {pool.length === 0 ? (
+            <div style={{ fontSize: 13, color: "var(--ink-400)", textAlign: "center", padding: "8px 0" }}>No contacts for this location. Add one above.</div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              {pool.slice(0, 4).map((c) => (
+                <button key={c.id} type="button" onClick={() => add(c)} className="tap focus-ring" style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 8px", borderRadius: "var(--r-sm)", border: 0, cursor: "pointer", background: "var(--white)", textAlign: "left", boxShadow: "var(--shadow-xs)" }}>
+                  <AvatarChip name={c.name} size={26} />
+                  <span style={{ minWidth: 0, flex: 1 }}>
+                    <span style={{ display: "block", fontSize: 12.5, fontWeight: 560 }}>{c.name}</span>
+                    <span style={{ display: "block", fontSize: 11, color: "var(--ink-400)" }}>{contactLine(c)}</span>
+                  </span>
+                  <span style={{ fontSize: 11.5, fontWeight: 540, color: "var(--accent-strong)", display: "inline-flex", alignItems: "center", gap: 4 }}><Icon name="plus" size={13} />Add</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      ) : null}
+    </div>
   );
 }
