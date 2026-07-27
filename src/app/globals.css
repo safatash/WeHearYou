@@ -521,3 +521,12 @@ select:focus {
 @media (max-width: 560px) {
   .loc-stats { grid-template-columns: 1fr !important; }
 }
+
+/* ===================== Video testimonials (/video-testimonials) ===================== */
+@media (max-width: 1080px) {
+  .vt-stats { grid-template-columns: 1fr !important; }
+  .vt-request-grid { grid-template-columns: 1fr !important; }
+}
+@media (max-width: 720px) {
+  .vt-manual-grid { grid-template-columns: 1fr !important; }
+}

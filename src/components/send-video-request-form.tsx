@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { sendVideoTestimonialRequest } from "@/app/video-testimonials/actions";
+import { Icon } from "@/components/icon";
 
 type Contact = {
   id: string;
@@ -24,6 +25,16 @@ interface SendVideoRequestFormProps {
   contacts: Contact[];
 }
 
+function VField({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <label style={{ display: "block", fontSize: 12.5, fontWeight: 560, color: "var(--ink-700)", marginBottom: 7 }}>{label}</label>
+      {children}
+      {hint ? <div style={{ fontSize: 11.5, color: "var(--ink-400)", marginTop: 6 }}>{hint}</div> : null}
+    </div>
+  );
+}
+
 export function SendVideoRequestForm({ locations, contacts }: SendVideoRequestFormProps) {
   const [locationId, setLocationId] = useState(locations[0]?.id ?? "");
   const [contactQuery, setContactQuery] = useState("");
@@ -38,8 +49,8 @@ export function SendVideoRequestForm({ locations, contacts }: SendVideoRequestFo
   const [isPending, startTransition] = useTransition();
 
   const selectedLocation = locations.find((l) => l.id === locationId);
+  const brand = selectedLocation?.name ?? "your location";
   const defaultPrompt = selectedLocation ? `How has ${selectedLocation.name} helped you?` : "";
-
   const displayPrompt = prompt || defaultPrompt;
 
   const filteredContacts = contactQuery.length > 0
@@ -72,8 +83,8 @@ export function SendVideoRequestForm({ locations, contacts }: SendVideoRequestFo
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const effectiveName = selectedContact ? selectedContact.name : recipientName;
-    if (!effectiveName.trim()) {
+    const effName = selectedContact ? selectedContact.name : recipientName;
+    if (!effName.trim()) {
       setErrorMessage("Recipient name is required.");
       return;
     }
@@ -99,29 +110,28 @@ export function SendVideoRequestForm({ locations, contacts }: SendVideoRequestFo
   const effectiveEmail = selectedContact ? (selectedContact.email ?? "") : recipientEmail;
 
   return (
-    <div className="grid gap-8 lg:grid-cols-[1.4fr_1fr]">
-      {/* Left: compose form */}
-      <form onSubmit={handleSubmit} className="grid gap-4">
-        {/* Location */}
-        <div className="flex flex-col gap-1">
-          <label className="text-xs font-semibold text-slate-600">Location</label>
+    <div className="vt-request-grid" style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(0, .92fr)", gap: 26 }}>
+      {/* Left — compose form */}
+      <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        <VField label="Location">
           <select
+            className="input"
             value={locationId}
             onChange={(e) => { setLocationId(e.target.value); clearContact(); }}
             required
-            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+            style={{ cursor: "pointer" }}
           >
             {locations.map((loc) => (
               <option key={loc.id} value={loc.id}>{loc.name} — {loc.city}, {loc.state}</option>
             ))}
           </select>
-        </div>
+        </VField>
 
-        {/* Contact search */}
-        <div className="flex flex-col gap-1 relative">
-          <label className="text-xs font-semibold text-slate-600">Contact</label>
-          <div className={`flex items-center rounded-xl border px-3 py-2 text-sm ${selectedContact ? "border-indigo-400 ring-2 ring-indigo-100" : "border-slate-200"}`}>
+        <VField label="Contact" hint={selectedContact ? "Using a saved contact — edit the location to change." : "Or enter manually below if not in contacts."}>
+          <div style={{ position: "relative" }}>
+            <Icon name="search" size={15} style={{ position: "absolute", left: 11, top: "50%", transform: "translateY(-50%)", color: "var(--ink-400)", pointerEvents: "none" }} />
             <input
+              className="input"
               value={contactQuery}
               onChange={(e) => {
                 setContactQuery(e.target.value);
@@ -131,149 +141,124 @@ export function SendVideoRequestForm({ locations, contacts }: SendVideoRequestFo
               onFocus={() => setShowDropdown(true)}
               onBlur={() => setTimeout(() => setShowDropdown(false), 150)}
               placeholder="Search by name, email, or phone…"
-              className="flex-1 bg-transparent outline-none text-slate-900 placeholder:text-slate-400"
+              style={{ paddingLeft: 32, paddingRight: selectedContact ? 108 : 12 }}
             />
-            {selectedContact && (
-              <span className="ml-2 text-xs font-semibold text-indigo-600 flex-shrink-0">from contacts ✓</span>
-            )}
+            {selectedContact ? (
+              <span style={{ position: "absolute", right: 9, top: "50%", transform: "translateY(-50%)", display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11.5, fontWeight: 560, color: "var(--accent-strong)" }}>
+                <Icon name="check" size={12} />From contacts
+              </span>
+            ) : null}
+            {showDropdown && filteredContacts.length > 0 ? (
+              <div className="card" style={{ position: "absolute", top: "calc(100% + 6px)", left: 0, right: 0, padding: 6, zIndex: 30, boxShadow: "var(--shadow-pop)", maxHeight: 240, overflowY: "auto" }}>
+                {filteredContacts.map((c) => (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onMouseDown={() => selectContact(c)}
+                    className="tap"
+                    style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, padding: "8px 9px", borderRadius: "var(--r-sm)", border: 0, cursor: "pointer", background: "transparent", textAlign: "left" }}
+                  >
+                    <span style={{ fontSize: 13, fontWeight: 560, color: "var(--ink-900)" }}>{c.name}</span>
+                    <span style={{ fontSize: 11.5, color: "var(--ink-400)" }}>{c.email ?? c.phone}</span>
+                  </button>
+                ))}
+              </div>
+            ) : null}
           </div>
-          {showDropdown && filteredContacts.length > 0 && (
-            <div className="absolute top-full left-0 right-0 z-10 mt-1 rounded-xl border border-slate-200 bg-white shadow-lg overflow-hidden">
-              {filteredContacts.map((c) => (
-                <button
-                  key={c.id}
-                  type="button"
-                  onMouseDown={() => selectContact(c)}
-                  className="flex w-full items-center justify-between px-4 py-2.5 text-sm hover:bg-slate-50 text-left"
-                >
-                  <span className="font-medium text-slate-900">{c.name}</span>
-                  <span className="text-slate-400 text-xs">{c.email ?? c.phone}</span>
-                </button>
-              ))}
-            </div>
-          )}
-          {!selectedContact && (
-            <p className="text-xs text-slate-400">Or enter manually below if not in contacts</p>
-          )}
-        </div>
+        </VField>
 
         {/* Manual entry (shown when no contact selected) */}
-        {!selectedContact && (
-          <div className="grid gap-3 sm:grid-cols-3 bg-slate-50 rounded-xl p-3 border border-slate-100">
-            <div className="flex flex-col gap-1">
-              <label className="text-xs font-semibold text-slate-500">Name</label>
-              <input
-                value={recipientName}
-                onChange={(e) => setRecipientName(e.target.value)}
-                required
-                placeholder="Jane Smith"
-                className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm focus:border-indigo-400 focus:outline-none"
-              />
-            </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-xs font-semibold text-slate-500">Email</label>
-              <input
-                type="email"
-                value={recipientEmail}
-                onChange={(e) => setRecipientEmail(e.target.value)}
-                placeholder="jane@example.com"
-                className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm focus:border-indigo-400 focus:outline-none"
-              />
-            </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-xs font-semibold text-slate-500">Phone</label>
-              <input
-                type="tel"
-                value={recipientPhone}
-                onChange={(e) => setRecipientPhone(e.target.value)}
-                placeholder="+17031234567"
-                className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm focus:border-indigo-400 focus:outline-none"
-              />
-            </div>
+        {!selectedContact ? (
+          <div className="vt-manual-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, padding: 12, background: "var(--ink-50)", border: "1px solid var(--ink-150)", borderRadius: "var(--r-md)" }}>
+            <VField label="Name">
+              <input className="input" value={recipientName} onChange={(e) => setRecipientName(e.target.value)} required placeholder="Jane Smith" />
+            </VField>
+            <VField label="Email">
+              <input className="input" type="email" value={recipientEmail} onChange={(e) => setRecipientEmail(e.target.value)} placeholder="jane@example.com" />
+            </VField>
+            <VField label="Phone">
+              <input className="input" type="tel" value={recipientPhone} onChange={(e) => setRecipientPhone(e.target.value)} placeholder="+1 703 123 4567" />
+            </VField>
           </div>
-        )}
+        ) : null}
 
-        {/* Channel toggle */}
-        <div className="flex flex-col gap-1">
-          <label className="text-xs font-semibold text-slate-600">Channel</label>
-          <div className="flex gap-2">
-            {(["EMAIL", "SMS"] as const).map((ch) => (
-              <button
-                key={ch}
-                type="button"
-                onClick={() => setChannel(ch)}
-                className={`flex-1 rounded-xl border px-4 py-2 text-sm font-semibold transition-colors ${
-                  channel === ch
-                    ? "border-indigo-400 bg-indigo-50 text-indigo-700"
-                    : "border-slate-200 bg-white text-slate-500 hover:border-slate-300"
-                }`}
-              >
-                {ch === "EMAIL" ? "✉ Email" : "💬 SMS"}
-              </button>
-            ))}
+        <VField label="Channel">
+          <div style={{ display: "flex", gap: 4, padding: 3, background: "var(--ink-100)", borderRadius: "var(--r-sm)" }}>
+            {([["EMAIL", "Email", "send"], ["SMS", "SMS", "chat"]] as const).map(([k, lbl, ic]) => {
+              const active = channel === k;
+              return (
+                <button
+                  key={k}
+                  type="button"
+                  onClick={() => setChannel(k)}
+                  style={{
+                    flex: 1, border: 0, cursor: "pointer", padding: "8px 12px", borderRadius: 5, fontSize: 13, fontWeight: 560,
+                    background: active ? "var(--white)" : "transparent", color: active ? "var(--ink-900)" : "var(--ink-500)",
+                    boxShadow: active ? "var(--shadow-xs)" : "none", transition: "all .14s",
+                    display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7,
+                  }}
+                >
+                  <Icon name={ic} size={15} />{lbl}
+                </button>
+              );
+            })}
           </div>
-        </div>
+        </VField>
 
-        {/* Recording prompt */}
-        <div className="flex flex-col gap-1">
-          <label className="text-xs font-semibold text-slate-600">
-            Recording prompt{" "}
-            <span className="font-normal text-slate-400">(shown to customer while recording)</span>
-          </label>
+        <VField label="Recording prompt" hint={`Shown to the customer while recording. Defaults to “${defaultPrompt}” if left blank.`}>
           <textarea
+            className="input"
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             placeholder={defaultPrompt}
-            rows={2}
-            className="rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100 resize-none"
+            rows={3}
+            style={{ height: "auto", padding: "10px 12px", resize: "vertical", lineHeight: 1.5, fontFamily: "inherit" }}
           />
-          <p className="text-xs text-slate-400">Keep it open-ended. Defaults to &ldquo;{defaultPrompt}&rdquo; if left blank.</p>
-        </div>
+        </VField>
 
-        {errorMessage && <p className="text-sm text-rose-600">{errorMessage}</p>}
+        {errorMessage ? <p style={{ fontSize: 12.5, color: "var(--danger)", margin: 0 }}>{errorMessage}</p> : null}
 
-        <button
-          type="submit"
-          disabled={isPending}
-          className="rounded-2xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-60"
-        >
-          {isPending ? "Sending…" : "Send Video Request 🎥"}
+        <button type="submit" className="btn btn-primary" disabled={isPending} style={{ height: 42 }}>
+          <Icon name={isPending ? "check" : "send"} size={16} />{isPending ? "Sending…" : "Send video request"}
         </button>
       </form>
 
-      {/* Right: live preview */}
-      <div className="hidden lg:block">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-3">
+      {/* Right — live preview */}
+      <div>
+        <div className="eyebrow" style={{ marginBottom: 10 }}>
           {channel === "EMAIL" ? "Email preview" : "SMS preview"} — what {effectiveName || "your customer"} receives
-        </p>
+        </div>
         {channel === "EMAIL" ? (
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-700 space-y-3 shadow-sm">
-            <div className="border-b border-slate-100 pb-3 text-xs text-slate-400 space-y-0.5">
-              <div>From: {selectedLocation?.name ?? "Your location"} via WeHearYou</div>
-              {effectiveEmail && <div>To: {effectiveEmail}</div>}
-              <div className="font-semibold text-slate-600 mt-1">
+          <div style={{ border: "1px solid var(--ink-200)", borderRadius: "var(--r-md)", overflow: "hidden", boxShadow: "var(--shadow-sm)" }}>
+            <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--ink-150)", background: "var(--ink-50)" }}>
+              <div style={{ fontSize: 11.5, color: "var(--ink-400)" }}>From: {brand} via WeHearYou</div>
+              {effectiveEmail ? <div style={{ fontSize: 11.5, color: "var(--ink-400)", marginTop: 1 }}>To: {effectiveEmail}</div> : null}
+              <div style={{ fontSize: 13.5, fontWeight: 620, marginTop: 3, color: "var(--ink-900)" }}>
                 {effectiveName ? `${effectiveName}, can you share a quick video?` : "Share a quick video about your experience"}
               </div>
             </div>
-            <p className="text-xs leading-relaxed text-slate-600">
-              Hi {effectiveName || "there"},<br /><br />
-              Thank you for being a customer of {selectedLocation?.name ?? "ours"}. We&apos;d love to hear your experience in your own words — would you be willing to record a short 90-second video?
-            </p>
-            {displayPrompt && (
-              <div className="border-l-4 border-indigo-500 bg-indigo-50 px-3 py-2 text-xs italic text-slate-600 rounded-r-lg">
-                &ldquo;{displayPrompt}&rdquo;
+            <div style={{ padding: 16 }}>
+              <p style={{ fontSize: 13, color: "var(--ink-600)", margin: 0, lineHeight: 1.6 }}>Hi {effectiveName || "there"},</p>
+              <p style={{ fontSize: 13, color: "var(--ink-600)", margin: "10px 0 0", lineHeight: 1.6 }}>
+                Thank you for being a customer of {brand}. We&apos;d love to hear your experience in your own words — would you be willing to record a short 90-second video?
+              </p>
+              {displayPrompt ? (
+                <div style={{ borderLeft: "3px solid var(--accent)", background: "var(--accent-soft)", borderRadius: "0 var(--r-sm) var(--r-sm) 0", padding: "10px 13px", margin: "14px 0", fontSize: 13, fontStyle: "italic", color: "var(--ink-700)" }}>
+                  &ldquo;{displayPrompt}&rdquo;
+                </div>
+              ) : null}
+              <div className="btn btn-primary" style={{ width: "100%", justifyContent: "center", pointerEvents: "none" }}>
+                <Icon name="film" size={15} />Record my video
               </div>
-            )}
-            <div className="rounded-lg bg-indigo-600 py-2.5 text-center text-xs font-bold text-white">
-              Record My Video →
+              <p style={{ fontSize: 11.5, color: "var(--ink-400)", margin: "12px 0 0", textAlign: "center" }}>Nothing to download or install. Takes about 90 seconds.</p>
             </div>
-            <p className="text-center text-xs text-slate-400">Nothing to download or install. Takes about 90 seconds.</p>
           </div>
         ) : (
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5 shadow-sm">
-            <div className="inline-block rounded-2xl rounded-tl-sm bg-white border border-slate-200 px-4 py-3 text-sm text-slate-800 shadow-sm max-w-xs">
-              Hi {effectiveName || "there"}, {selectedLocation?.name ?? "we"}&apos;d love a short video testimonial from you!{displayPrompt ? ` "${displayPrompt}"` : ""} Record here (90 sec): [link]
+          <div style={{ border: "1px solid var(--ink-200)", borderRadius: "var(--r-md)", padding: 16, boxShadow: "var(--shadow-sm)" }}>
+            <div style={{ background: "var(--accent-soft)", border: "1px solid color-mix(in srgb, var(--accent) 22%, transparent)", borderRadius: 14, padding: "12px 14px", fontSize: 13, color: "var(--ink-700)", lineHeight: 1.55, maxWidth: "85%" }}>
+              Hi {effectiveName || "there"}! {brand} would love a quick video of your experience. Record one in ~90s (no app needed){displayPrompt ? `: “${displayPrompt}”` : ""} <span style={{ color: "var(--accent-strong)", fontWeight: 560 }}>wehear.you/r/…</span>
             </div>
+            <div style={{ fontSize: 11.5, color: "var(--ink-400)", marginTop: 8 }}>Sent from {brand} via WeHearYou</div>
           </div>
         )}
       </div>
