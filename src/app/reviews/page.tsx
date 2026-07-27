@@ -68,27 +68,45 @@ export default async function ReviewsPage({
     return `/reviews?${params.toString()}`;
   };
 
+  const ratingTabs: Array<{ label: React.ReactNode; href: string; active: boolean }> = [
+    { label: "All", href: buildFilterHref({ status: "all", rating: "all" }), active: status === "all" && rating === "all" },
+    {
+      label: (
+        <>
+          Needs reply
+          {needsReplyCount > 0 && <span className="ld-tabcount">{needsReplyCount}</span>}
+        </>
+      ),
+      href: buildFilterHref({ status: "needs-follow-up", rating: "all" }),
+      active: status === "needs-follow-up",
+    },
+    { label: "5★", href: buildFilterHref({ rating: "five-star", status: "all" }), active: rating === "five-star" },
+    { label: "4★", href: buildFilterHref({ rating: "four-star", status: "all" }), active: rating === "four-star" },
+    { label: "1–3★", href: buildFilterHref({ rating: "low-star", status: "all" }), active: rating === "low-star" },
+    { label: "Replied", href: buildFilterHref({ status: "published", rating: "all" }), active: status === "published" },
+  ];
+
   return (
     <AppShell activeScreen="reviews" selectedLocationId={allowedLocationId !== "all" ? allowedLocationId : undefined}>
-      <div className="flex flex-col gap-6">
+      <div style={{ maxWidth: 1240, margin: "0 auto", padding: "var(--gutter)" }}>
         {/* Header */}
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">REPUTATION</p>
-            <h1 className="mt-1 text-3xl font-bold tracking-tight text-slate-950">Reviews</h1>
-            <p className="mt-1.5 text-sm text-slate-500 max-w-lg">
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
+          <div style={{ minWidth: 0 }}>
+            <div className="eyebrow" style={{ marginBottom: 6 }}>Reputation</div>
+            <h1 style={{ fontSize: 26, fontWeight: 680, letterSpacing: "-.025em" }}>Reviews</h1>
+            <p style={{ fontSize: 13.5, color: "var(--ink-500)", marginTop: 5, maxWidth: 560, lineHeight: 1.55 }}>
               Every Google review across your connected profiles. Replies post publicly as the business owner — always after you confirm.
             </p>
           </div>
-          <div className="flex gap-2 shrink-0 mt-1">
-            <button className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition">
-              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <div style={{ display: "flex", gap: 10, flex: "none" }}>
+            <button type="button" className="btn btn-secondary">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
               </svg>
               Export CSV
             </button>
-            <button className="inline-flex items-center gap-1.5 rounded-lg bg-[#37aeb7] px-4 py-2 text-sm font-semibold text-white hover:bg-[#2a8a92] transition">
-              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <button type="button" className="btn btn-primary">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>
               </svg>
               AI reply drafts
@@ -96,58 +114,36 @@ export default async function ReviewsPage({
           </div>
         </div>
 
-        {/* Info banner */}
-        <div className="flex items-center gap-2.5 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
-          <svg className="w-4 h-4 text-[#37aeb7] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        {/* Gated-write notice */}
+        <div
+          className="card"
+          style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 14px", marginTop: "var(--gutter)", fontSize: 13, color: "var(--ink-600)" }}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent-strong)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flex: "none" }}>
             <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
           </svg>
           Replies are written to Google only after you review and confirm each one. AI never posts on its own.
         </div>
 
-        {/* Filters — single white card, tabs left / location right */}
-        <div className="flex items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white px-4 py-3">
-          {/* Rating/status tabs */}
-          <div className="flex items-center gap-1 flex-wrap">
-            {[
-              { label: "All", href: buildFilterHref({ status: "all", rating: "all" }), active: status === "all" && rating === "all" },
-              { label: <>Needs reply {needsReplyCount > 0 && <span className="ml-1 tabular-nums">{needsReplyCount}</span>}</>, href: buildFilterHref({ status: "needs-follow-up", rating: "all" }), active: status === "needs-follow-up" },
-              { label: "5★", href: buildFilterHref({ rating: "five-star", status: "all" }), active: rating === "five-star" },
-              { label: "4★", href: buildFilterHref({ rating: "four-star", status: "all" }), active: rating === "four-star" },
-              { label: "1–3★", href: buildFilterHref({ rating: "low-star", status: "all" }), active: rating === "low-star" },
-              { label: "Replied", href: buildFilterHref({ status: "published", rating: "all" }), active: status === "published" },
-            ].map((tab, i) => (
-              <Link
-                key={i}
-                href={tab.href}
-                className={`rounded-full px-3.5 py-1.5 text-sm font-semibold transition whitespace-nowrap ${
-                  tab.active
-                    ? "bg-[#37aeb7] !text-white"
-                    : "text-slate-600 hover:bg-slate-100"
-                }`}
-              >
+        {/* Filters — chip tabs (left) + location segmented control (right) */}
+        <div
+          className="card"
+          style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", padding: "12px 14px", marginTop: "var(--gutter)" }}
+        >
+          <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
+            {ratingTabs.map((tab, i) => (
+              <Link key={i} href={tab.href} className="chip" data-active={tab.active}>
                 {tab.label}
               </Link>
             ))}
           </div>
 
-          {/* Location pills */}
-          <div className="flex items-center gap-1 flex-wrap justify-end">
-            <Link
-              href={buildFilterHref({ locationId: "all" })}
-              className={`rounded-full px-3.5 py-1.5 text-sm font-semibold transition whitespace-nowrap ${
-                allowedLocationId === "all" ? "bg-slate-900 !text-white" : "text-slate-500 hover:text-slate-700"
-              }`}
-            >
+          <div className="seg" style={{ marginLeft: "auto" }}>
+            <Link href={buildFilterHref({ locationId: "all" })} data-active={allowedLocationId === "all"}>
               All locations
             </Link>
             {locations.map((loc) => (
-              <Link
-                key={loc.id}
-                href={buildFilterHref({ locationId: loc.id })}
-                className={`rounded-full px-3.5 py-1.5 text-sm font-semibold transition whitespace-nowrap ${
-                  allowedLocationId === loc.id ? "bg-slate-900 !text-white" : "text-slate-500 hover:text-slate-700"
-                }`}
-              >
+              <Link key={loc.id} href={buildFilterHref({ locationId: loc.id })} data-active={allowedLocationId === loc.id}>
                 {loc.name}
               </Link>
             ))}
@@ -155,11 +151,14 @@ export default async function ReviewsPage({
         </div>
 
         {/* Review list */}
-        <div className="space-y-3">
+        <div style={{ display: "flex", flexDirection: "column", gap: 11, marginTop: "var(--gutter)" }}>
           {reviews.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-slate-600">
-              <p className="font-semibold text-slate-700 mb-1">No reviews yet</p>
-              <p>Sync Google or collect direct feedback to start populating the inbox.</p>
+            <div
+              className="card"
+              style={{ padding: "34px 20px", textAlign: "center", border: "1px dashed var(--ink-300)", background: "var(--ink-50)", boxShadow: "none" }}
+            >
+              <p style={{ fontSize: 14, fontWeight: 620, color: "var(--ink-800)", marginBottom: 4 }}>No reviews yet</p>
+              <p style={{ fontSize: 13, color: "var(--ink-500)" }}>Sync Google or collect direct feedback to start populating the inbox.</p>
             </div>
           ) : (
             reviews.map((review) => (

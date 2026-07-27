@@ -479,3 +479,37 @@ select:focus {
   .au-form-top { display: none; }
   .au-form-wrap { padding: 24px 22px; }
 }
+
+/* ===================== Chips + segmented control (shared) ===================== */
+.chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 30px; padding: 0 12px; border-radius: 999px;
+  border: 1px solid var(--ink-200); background: var(--white);
+  font-size: 12.5px; font-weight: 540; color: var(--ink-600); cursor: pointer;
+  white-space: nowrap; transition: background .14s, color .14s, border-color .14s;
+}
+.chip:hover { border-color: var(--ink-300); color: var(--ink-900); }
+.chip[data-active="true"] {
+  background: var(--accent-soft); border-color: var(--accent-border); color: var(--accent-strong); font-weight: 600;
+}
+
+/* Segmented control — items may be <button> (client) or <a> (server-rendered filters) */
+.seg {
+  display: inline-flex; flex-wrap: wrap; background: var(--ink-100); border: 1px solid var(--ink-200);
+  border-radius: var(--r-sm); padding: 3px; gap: 2px;
+}
+.seg button, .seg a {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 28px; padding: 0 12px; border: 0; border-radius: 5px; cursor: pointer;
+  background: transparent; color: var(--ink-500); font-size: 12.5px; font-weight: 540; font-family: inherit;
+  transition: background .14s, color .14s;
+}
+.seg button[data-active="true"], .seg a[data-active="true"] {
+  background: var(--white); color: var(--ink-900); box-shadow: var(--shadow-xs); font-weight: 600;
+}
+
+.ld-tabcount {
+  font-size: 11px; font-weight: 700; font-family: var(--font-mono);
+  background: var(--ink-100); color: var(--ink-500); border-radius: 999px; padding: 1px 7px;
+}
+.chip[data-active="true"] .ld-tabcount { background: var(--accent-soft); color: var(--accent-strong); }
