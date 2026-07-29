@@ -530,3 +530,12 @@ select:focus {
 @media (max-width: 720px) {
   .vt-manual-grid { grid-template-columns: 1fr !important; }
 }
+
+/* ===================== GBP Manager (/gbp) ===================== */
+@media (max-width: 1024px) {
+  .gbp-grid { grid-template-columns: 1fr !important; }
+}
+@media (max-width: 720px) {
+  .gbp-statrail { grid-template-columns: repeat(2, 1fr) !important; }
+  .gbp-statrail > div { border-left: 0 !important; border-top: 1px solid var(--ink-150); }
+}
