@@ -240,35 +240,38 @@ export default async function VideoTestimonialsPage({
                     key={vt.id}
                     className="card"
                     style={{
-                      overflow: "hidden",
-                      ...(vt.videoUrl ? {} : { borderStyle: "dashed", opacity: 0.85 }),
+                      padding: 14,
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 12,
+                      ...(vt.videoUrl ? {} : { borderStyle: "dashed" }),
                     }}
                   >
-                    {/* Thumbnail / Video preview area */}
-                    <div className="relative aspect-video" style={{ background: "var(--ink-900)" }}>
+                    {/* Thumbnail — inset rounded 16:11 surface (matches the mockup card) */}
+                    <div style={{ position: "relative", borderRadius: "var(--r-md)", overflow: "hidden", aspectRatio: "16 / 11", background: "var(--ink-900)" }}>
                       {vt.videoUrl ? (
                         thumbnailUrl ? (
                           <img
                             src={thumbnailUrl}
                             alt={getThumbnailAlt(vt.submitterName)}
-                            className="w-full h-full object-cover"
+                            style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
                           />
                         ) : (
                           <video
                             src={vt.videoUrl}
                             preload="metadata"
-                            className="w-full h-full object-cover"
+                            style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
                           />
                         )
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <span className="text-5xl opacity-40">🎥</span>
+                        <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", background: "linear-gradient(150deg, var(--ink-600), var(--ink-900))", color: "rgba(255,255,255,.55)" }}>
+                          <Icon name="film" size={26} />
                         </div>
                       )}
 
                       {/* Play overlay */}
                       {vt.videoUrl && (
-                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", pointerEvents: "none" }}>
                           <span style={{ width: 50, height: 50, borderRadius: "50%", background: "rgba(255,255,255,.92)", display: "grid", placeItems: "center", boxShadow: "0 6px 20px rgba(0,0,0,.32)" }}>
                             <svg width="17" height="17" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" fill="var(--accent)" /></svg>
                           </span>
@@ -277,115 +280,112 @@ export default async function VideoTestimonialsPage({
 
                       {/* Duration badge */}
                       {vt.durationSeconds && (
-                        <div className="absolute bottom-2 right-2 tnum" style={{ background: "rgba(0,0,0,.62)", color: "#fff", fontSize: 11.5, fontWeight: 600, fontFamily: "var(--font-mono)", padding: "2px 7px", borderRadius: 5 }}>
+                        <div className="tnum" style={{ position: "absolute", bottom: 8, right: 8, background: "rgba(0,0,0,.62)", color: "#fff", fontSize: 11.5, fontWeight: 600, fontFamily: "var(--font-mono)", padding: "2px 7px", borderRadius: 5 }}>
                           {formatDuration(vt.durationSeconds)}
                         </div>
                       )}
                     </div>
 
-                    {/* Card body */}
-                    <div style={{ padding: 14, display: "flex", flexDirection: "column", gap: 10 }}>
-                      {/* Name + location + date */}
-                      <div>
-                        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 8 }}>
-                          <span style={{ fontSize: 14.5, fontWeight: 660, letterSpacing: "-.01em", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                            {vt.submitterName ?? "Unnamed"}
-                          </span>
-                          <span className="tnum" style={{ fontSize: 11.5, color: "var(--ink-400)", flex: "none" }}>
-                            {new Date(vt.createdAt).toLocaleDateString()}
-                          </span>
-                        </div>
-                        <div style={{ fontSize: 12, color: "var(--ink-400)", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                          {vt.location.name} · {vt.location.city}, {vt.location.state}
-                        </div>
+                    {/* Name + location + date */}
+                    <div>
+                      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 8 }}>
+                        <span style={{ fontSize: 14.5, fontWeight: 660, letterSpacing: "-.01em", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {vt.submitterName ?? "Unnamed"}
+                        </span>
+                        <span className="tnum" style={{ fontSize: 11.5, color: "var(--ink-400)", flex: "none" }}>
+                          {new Date(vt.createdAt).toLocaleDateString()}
+                        </span>
                       </div>
+                      <div style={{ fontSize: 12, color: "var(--ink-400)", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {vt.location.name} · {vt.location.city}, {vt.location.state}
+                      </div>
+                    </div>
 
-                      {/* Status chips */}
-                      <StatusChips vt={vt} />
+                    {/* Status chips */}
+                    <StatusChips vt={vt} />
 
-                      {/* Caption preview */}
-                      {vt.videoUrl && (
-                        <p style={{ fontSize: 13, lineHeight: 1.5, color: "var(--ink-700)", margin: 0, fontWeight: 500, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
-                          {vt.caption ?? <em style={{ color: "var(--ink-400)", fontWeight: 400 }}>No caption yet</em>}
-                        </p>
+                    {/* Caption preview */}
+                    {vt.videoUrl && (
+                      <p style={{ fontSize: 13, lineHeight: 1.5, color: "var(--ink-700)", margin: 0, fontWeight: 500, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+                        {vt.caption ?? <em style={{ color: "var(--ink-400)", fontWeight: 400 }}>No caption yet</em>}
+                      </p>
+                    )}
+
+                    {/* Recording prompt (collapsible) */}
+                    {vt.prompt && (
+                      <details>
+                        <summary style={{ fontSize: 12, color: "var(--accent-strong)", fontWeight: 540, cursor: "pointer", userSelect: "none" }}>
+                          Recording prompt
+                        </summary>
+                        <div style={{ fontSize: 12.5, color: "var(--ink-500)", background: "var(--ink-50)", border: "1px solid var(--ink-150)", borderRadius: "var(--r-sm)", padding: "8px 11px", fontStyle: "italic", marginTop: 6 }}>
+                          {vt.prompt}
+                        </div>
+                      </details>
+                    )}
+
+                    <div className="hr" style={{ margin: "2px 0 0" }} />
+
+                    {/* Actions */}
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 7, alignItems: "center" }}>
+                      {!vt.videoUrl && (
+                        <a href={recorderUrl} target="_blank" rel="noreferrer" className="btn btn-secondary btn-sm">
+                          <Icon name="external" size={13} />Open link
+                        </a>
                       )}
 
-                      {/* Recording prompt (collapsible) */}
-                      {vt.prompt && (
-                        <details>
-                          <summary style={{ fontSize: 12, color: "var(--accent-strong)", fontWeight: 540, cursor: "pointer", userSelect: "none" }}>
-                            Recording prompt
-                          </summary>
-                          <div style={{ fontSize: 12.5, color: "var(--ink-500)", background: "var(--ink-50)", border: "1px solid var(--ink-150)", borderRadius: "var(--r-sm)", padding: "8px 11px", fontStyle: "italic", marginTop: 6 }}>
-                            {vt.prompt}
-                          </div>
-                        </details>
+                      {vt.videoUrl && (
+                        <a href={vt.videoUrl} target="_blank" rel="noreferrer" className="btn btn-secondary btn-sm">
+                          <Icon name="external" size={13} />Watch
+                        </a>
                       )}
 
-                      <div className="hr" style={{ margin: "2px 0 0" }} />
-
-                      {/* Actions */}
-                      <div style={{ display: "flex", flexWrap: "wrap", gap: 7, alignItems: "center" }}>
-                        {!vt.videoUrl && (
-                          <a href={recorderUrl} target="_blank" rel="noreferrer" className="btn btn-secondary btn-sm">
-                            <Icon name="external" size={13} />Open link
-                          </a>
-                        )}
-
-                        {vt.videoUrl && (
-                          <a href={vt.videoUrl} target="_blank" rel="noreferrer" className="btn btn-secondary btn-sm">
-                            <Icon name="external" size={13} />Watch
-                          </a>
-                        )}
-
-                        {vt.videoUrl && (
-                          <VideoThumbnailEditor
-                            videoId={vt.id}
-                            videoUrl={vt.videoUrl ?? ""}
-                            durationSeconds={vt.durationSeconds}
-                            submitterName={vt.submitterName}
-                            caption={vt.caption}
-                            locationName={vt.location.name}
-                            status={vt.status}
-                            customThumbnailUrl={vt.customThumbnailUrl}
-                            capturedFrameUrl={vt.capturedFrameUrl}
-                            capturedFrameTimestamp={vt.capturedFrameTimestamp}
-                            thumbnailSource={vt.thumbnailSource}
-                            approveAction={approveVideoTestimonial}
-                          />
-                        )}
-
-                        {embedCode && (
-                          <CopyButton value={embedCode} label="Copy Embed" />
-                        )}
-
-                        {vt.videoUrl && vt.status === "PENDING" && (
-                          <>
-                            <form action={approveVideoTestimonial}>
-                              <input type="hidden" name="id" value={vt.id} />
-                              <FormSubmitButton idleLabel="Approve & publish" pendingLabel="Publishing…" className="btn btn-primary btn-sm" />
-                            </form>
-                            <form action={rejectVideoTestimonial}>
-                              <input type="hidden" name="id" value={vt.id} />
-                              <FormSubmitButton idleLabel="Reject" pendingLabel="Rejecting…" className="btn btn-secondary btn-sm" />
-                            </form>
-                          </>
-                        )}
-
-                        <form action={deleteVideoTestimonial} style={{ marginLeft: "auto" }}>
-                          <input type="hidden" name="id" value={vt.id} />
-                          <FormSubmitButton idleLabel="Delete" pendingLabel="Deleting…" className="btn btn-ghost btn-sm" />
-                        </form>
-                      </div>
-
                       {vt.videoUrl && (
-                        <CaptionEditor
-                          vtId={vt.id}
-                          currentCaption={vt.caption}
-                          prompt={vt.prompt}
+                        <VideoThumbnailEditor
+                          videoId={vt.id}
+                          videoUrl={vt.videoUrl ?? ""}
+                          durationSeconds={vt.durationSeconds}
+                          submitterName={vt.submitterName}
+                          caption={vt.caption}
+                          locationName={vt.location.name}
+                          status={vt.status}
+                          customThumbnailUrl={vt.customThumbnailUrl}
+                          capturedFrameUrl={vt.capturedFrameUrl}
+                          capturedFrameTimestamp={vt.capturedFrameTimestamp}
+                          thumbnailSource={vt.thumbnailSource}
+                          approveAction={approveVideoTestimonial}
                         />
                       )}
+
+                      {embedCode && (
+                        <CopyButton value={embedCode} label="Copy Embed" />
+                      )}
+
+                      {vt.videoUrl && vt.status === "PENDING" && (
+                        <>
+                          <form action={approveVideoTestimonial}>
+                            <input type="hidden" name="id" value={vt.id} />
+                            <FormSubmitButton idleLabel="Approve & publish" pendingLabel="Publishing…" className="btn btn-primary btn-sm" />
+                          </form>
+                          <form action={rejectVideoTestimonial}>
+                            <input type="hidden" name="id" value={vt.id} />
+                            <FormSubmitButton idleLabel="Reject" pendingLabel="Rejecting…" className="btn btn-secondary btn-sm" />
+                          </form>
+                        </>
+                      )}
+
+                      <form action={deleteVideoTestimonial} style={{ marginLeft: "auto" }}>
+                        <input type="hidden" name="id" value={vt.id} />
+                        <FormSubmitButton idleLabel="Delete" pendingLabel="Deleting…" className="btn btn-ghost btn-sm" />
+                      </form>
                     </div>
+
+                    {vt.videoUrl && (
+                      <CaptionEditor
+                        vtId={vt.id}
+                        currentCaption={vt.caption}
+                        prompt={vt.prompt}
+                      />
+                    )}
                   </div>
                 );
               })}
