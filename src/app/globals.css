@@ -530,6 +530,11 @@ select:focus {
 @media (max-width: 720px) {
   .vt-manual-grid { grid-template-columns: 1fr !important; }
 }
+/* collapsible recording prompt — hide the native disclosure marker, rotate the chevron */
+.vt-prompt summary { list-style: none; }
+.vt-prompt summary::-webkit-details-marker { display: none; }
+.vt-prompt summary svg { transition: transform .15s ease; }
+.vt-prompt[open] summary svg { transform: rotate(180deg); }
 
 /* ===================== GBP Manager (/gbp) ===================== */
 @media (max-width: 1024px) {

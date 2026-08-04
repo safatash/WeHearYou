@@ -20,7 +20,20 @@ function formatDuration(seconds: number | null) {
   if (!seconds) return null;
   const m = Math.floor(seconds / 60);
   const s = seconds % 60;
-  return m > 0 ? `${m}m ${s}s` : `${s}s`;
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
+
+/** Deterministic hue (0-359) from a stable string, for the cinematic thumbnail gradient. */
+function hueFromString(value: string) {
+  let hash = 0;
+  for (let i = 0; i < value.length; i++) {
+    hash = (hash * 31 + value.charCodeAt(i)) % 360;
+  }
+  return (hash + 360) % 360;
+}
+
+function videoGradient(hue: number) {
+  return `linear-gradient(150deg, hsl(${hue} 48% 32%) 0%, hsl(${hue + 24} 46% 18%) 70%, hsl(${hue + 38} 52% 11%) 100%)`;
 }
 
 export default async function VideoTestimonialsPage({
@@ -234,6 +247,7 @@ export default async function VideoTestimonialsPage({
                   videoUrl: vt.videoUrl,
                   thumbnailSource: vt.thumbnailSource,
                 });
+                const hue = hueFromString(vt.id);
 
                 return (
                   <div
@@ -247,36 +261,29 @@ export default async function VideoTestimonialsPage({
                       ...(vt.videoUrl ? {} : { borderStyle: "dashed" }),
                     }}
                   >
-                    {/* Thumbnail — inset rounded 16:11 surface (matches the mockup card) */}
-                    <div style={{ position: "relative", borderRadius: "var(--r-md)", overflow: "hidden", aspectRatio: "16 / 11", background: "var(--ink-900)" }}>
-                      {vt.videoUrl ? (
-                        thumbnailUrl ? (
-                          <img
-                            src={thumbnailUrl}
-                            alt={getThumbnailAlt(vt.submitterName)}
-                            style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
-                          />
-                        ) : (
-                          <video
-                            src={vt.videoUrl}
-                            preload="metadata"
-                            style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
-                          />
-                        )
-                      ) : (
-                        <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", background: "linear-gradient(150deg, var(--ink-600), var(--ink-900))", color: "rgba(255,255,255,.55)" }}>
-                          <Icon name="film" size={26} />
-                        </div>
+                    {/* Thumbnail — cinematic gradient surface (matches the mockup); a real
+                        thumbnail image is layered on top only when one has been set. */}
+                    <div style={{ position: "relative", borderRadius: "var(--r-md)", overflow: "hidden", aspectRatio: "16 / 11", background: videoGradient(hue) }}>
+                      <div style={{ position: "absolute", inset: 0, background: "radial-gradient(120% 90% at 32% 22%, rgba(255,255,255,.13), transparent 55%)" }} />
+
+                      {thumbnailUrl && (
+                        <img
+                          src={thumbnailUrl}
+                          alt={getThumbnailAlt(vt.submitterName)}
+                          style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
+                        />
                       )}
 
-                      {/* Play overlay */}
-                      {vt.videoUrl && (
-                        <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", pointerEvents: "none" }}>
-                          <span style={{ width: 50, height: 50, borderRadius: "50%", background: "rgba(255,255,255,.92)", display: "grid", placeItems: "center", boxShadow: "0 6px 20px rgba(0,0,0,.32)" }}>
-                            <svg width="17" height="17" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" fill="var(--accent)" /></svg>
+                      {/* Center glyph — play for a recorded video, film for a pending request */}
+                      <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", pointerEvents: "none" }}>
+                        {vt.videoUrl ? (
+                          <span style={{ width: 52, height: 52, borderRadius: "50%", background: "rgba(255,255,255,.92)", display: "grid", placeItems: "center", boxShadow: "0 6px 20px rgba(0,0,0,.32)" }}>
+                            <svg width="18" height="18" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" fill="var(--accent)" /></svg>
                           </span>
-                        </div>
-                      )}
+                        ) : (
+                          <Icon name="film" size={26} style={{ color: "rgba(255,255,255,.6)" }} />
+                        )}
+                      </div>
 
                       {/* Duration badge */}
                       {vt.durationSeconds && (
@@ -313,9 +320,9 @@ export default async function VideoTestimonialsPage({
 
                     {/* Recording prompt (collapsible) */}
                     {vt.prompt && (
-                      <details>
-                        <summary style={{ fontSize: 12, color: "var(--accent-strong)", fontWeight: 540, cursor: "pointer", userSelect: "none" }}>
-                          Recording prompt
+                      <details className="vt-prompt">
+                        <summary style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, color: "var(--accent-strong)", fontWeight: 540, cursor: "pointer", userSelect: "none", listStyle: "none" }}>
+                          <Icon name="chevDown" size={13} />Recording prompt
                         </summary>
                         <div style={{ fontSize: 12.5, color: "var(--ink-500)", background: "var(--ink-50)", border: "1px solid var(--ink-150)", borderRadius: "var(--r-sm)", padding: "8px 11px", fontStyle: "italic", marginTop: 6 }}>
                           {vt.prompt}

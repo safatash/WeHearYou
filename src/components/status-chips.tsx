@@ -1,3 +1,5 @@
+import { Icon } from "@/components/icon";
+
 type TestimonialForChips = {
   videoUrl: string | null;
   status: string;
@@ -5,54 +7,48 @@ type TestimonialForChips = {
   thumbnailSource: string;
 };
 
-type Chip = { label: string; className: string };
-
-export function computeStatusChips(vt: TestimonialForChips): Chip[] {
-  const chips: Chip[] = [];
-
-  if (!vt.videoUrl) {
-    chips.push({ label: "Awaiting Video", className: "bg-slate-100 text-slate-500" });
-    return chips;
-  }
-
-  if (vt.status === "APPROVED") {
-    chips.push({ label: "Published", className: "bg-emerald-50 text-emerald-700" });
-  } else if (vt.status === "REJECTED") {
-    chips.push({ label: "Rejected", className: "bg-rose-50 text-rose-700" });
-  } else {
-    // PENDING with video
-    if (vt.caption) {
-      chips.push({ label: "Ready to Publish", className: "bg-teal-50 text-teal-700" });
-    } else {
-      chips.push({ label: "Pending Review", className: "bg-amber-50 text-amber-700" });
-      chips.push({ label: "Needs Caption", className: "bg-orange-50 text-orange-700" });
-    }
-  }
-
-  // Thumbnail source chip
-  if (vt.thumbnailSource === "CUSTOM") {
-    chips.push({ label: "Custom Thumbnail", className: "bg-indigo-50 text-indigo-600" });
-  } else if (vt.thumbnailSource === "CAPTURED") {
-    chips.push({ label: "Captured Frame", className: "bg-blue-50 text-blue-600" });
-  } else if (vt.videoUrl) {
-    chips.push({ label: "Auto Thumbnail", className: "bg-slate-50 text-slate-400" });
-  }
-
-  return chips;
+function Dot({ color }: { color: string }) {
+  return <span style={{ width: 6, height: 6, borderRadius: "50%", background: color, flex: "none" }} />;
 }
 
-export function StatusChips({ vt }: { vt: TestimonialForChips }) {
-  const chips = computeStatusChips(vt);
+function SparkleGlyph() {
   return (
-    <div className="flex flex-wrap gap-1.5">
-      {chips.map((chip) => (
-        <span
-          key={chip.label}
-          className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${chip.className}`}
-        >
-          {chip.label}
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M12 2l2 7 7 2-7 2-2 7-2-7-7-2 7-2z" />
+    </svg>
+  );
+}
+
+/** Status + thumbnail-source pills, styled to the app design system (matches the mockup card). */
+export function StatusChips({ vt }: { vt: TestimonialForChips }) {
+  const status = !vt.videoUrl
+    ? { label: "Awaiting video", cls: "badge-neutral", dot: "var(--ink-400)" }
+    : vt.status === "APPROVED"
+    ? { label: "Published", cls: "badge-success", dot: "var(--success)" }
+    : vt.status === "REJECTED"
+    ? { label: "Rejected", cls: "badge-danger", dot: "var(--danger)" }
+    : { label: "Awaiting review", cls: "badge-warning", dot: "var(--warning)" };
+
+  const thumbChip = vt.videoUrl
+    ? vt.thumbnailSource === "CUSTOM"
+      ? { label: "Custom thumbnail", sparkle: false }
+      : vt.thumbnailSource === "CAPTURED"
+      ? { label: "Captured frame", sparkle: false }
+      : { label: "Auto thumbnail", sparkle: true }
+    : null;
+
+  return (
+    <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+      <span className={`badge ${status.cls}`}>
+        <Dot color={status.dot} />
+        {status.label}
+      </span>
+      {thumbChip ? (
+        <span className="badge badge-neutral" style={{ gap: 5 }}>
+          {thumbChip.sparkle ? <SparkleGlyph /> : <Icon name="film" size={11} />}
+          {thumbChip.label}
         </span>
-      ))}
+      ) : null}
     </div>
   );
 }
