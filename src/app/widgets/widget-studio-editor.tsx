@@ -1022,8 +1022,9 @@ export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [], aiS
                 <div style={st({ display: "flex", flexDirection: "column", gap: 14 })}>
                   <FontSlider label="Review text" value={fontSizeBase} min={11} max={18} onChange={setFontSizeBase} />
                   <FontSlider label="Reviewer names" value={fontSizeNames} min={10} max={16} onChange={setFontSizeNames} />
-                  <FontSlider label="Header title" value={fontSizeHeader} min={14} max={28} onChange={setFontSizeHeader} />
-                  {content !== "videos" && <FontSlider label="AI summary text" value={fontSizeSummary} min={11} max={16} onChange={setFontSizeSummary} />}
+                  {showDate && <FontSlider label="Dates & labels" value={fontSizeLabel} min={10} max={14} onChange={setFontSizeLabel} />}
+                  {isReviewWall && <FontSlider label="Header title" value={fontSizeHeader} min={14} max={28} onChange={setFontSizeHeader} />}
+                  {isReviewWall && content !== "videos" && <FontSlider label="AI summary text" value={fontSizeSummary} min={11} max={16} onChange={setFontSizeSummary} />}
                 </div>
               </Field>
 

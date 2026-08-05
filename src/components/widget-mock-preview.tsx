@@ -380,12 +380,12 @@ const VideoCardW = ({ v, s, tk }: { v: Video; s: PreviewSettings; tk: Tokens }) 
     </div>
     <div style={st({ padding: 14, display: "flex", flexDirection: "column", gap: 8 })}>
       <Stars value={v.rating} size={14} />
-      <p style={st({ fontSize: 13, lineHeight: 1.5, color: tk.text, margin: 0, fontWeight: 500 })}>&ldquo;{v.quote}&rdquo;</p>
+      <p style={st({ fontSize: (s.fontSizeBase || 14) - 1, lineHeight: 1.5, color: tk.text, margin: 0, fontWeight: 500 })}>&ldquo;{v.quote}&rdquo;</p>
       <div style={st({ display: "flex", alignItems: "center", gap: 9, marginTop: 2 })}>
         {s.showAvatars && <Avatar name={v.name} size={28} />}
         <div style={st({ minWidth: 0, flex: 1 })}>
-          <div style={st({ fontSize: 12.5, fontWeight: 620, color: tk.text })}>{v.name}</div>
-          {s.showDates && <div style={st({ fontSize: 11, color: tk.muted })}>{v.time}</div>}
+          <div style={st({ fontSize: s.fontSizeNames || 13, fontWeight: 620, color: tk.text })}>{v.name}</div>
+          {s.showDates && <div style={st({ fontSize: (s.fontSizeLabel || 12) - 1, color: tk.muted })}>{v.time}</div>}
         </div>
         {s.showSources && <SourceBadge source={v.source} size={16} />}
       </div>
@@ -675,13 +675,13 @@ export function WidgetMockPreview({
         ) : (
           <div style={st({ ...cardStyles, borderRadius: s.radius, padding: s.density === "compact" ? 20 : 28, display: "flex", flexDirection: "column", gap: s.density === "compact" ? 12 : 16, fontFamily: fontStack })}>
             <svg width="30" height="30" viewBox="0 0 24 24" fill="none" style={st({ opacity: 0.25 })}><path d="M10 11H6a1 1 0 0 1-1-1V7a3 3 0 0 1 3-3M19 11h-4a1 1 0 0 1-1-1V7a3 3 0 0 1 3-3" stroke={s.accent} strokeWidth="2" /><path d="M10 11v3a4 4 0 0 1-4 4M19 11v3a4 4 0 0 1-4 4" stroke={s.accent} strokeWidth="2" /></svg>
-            <p style={st({ fontSize: 18, lineHeight: 1.5, color: tk.text, margin: 0, fontWeight: 500, letterSpacing: "-.01em" })}>{r.text}</p>
+            <p style={st({ fontSize: (s.fontSizeBase || 14) + 4, lineHeight: 1.5, color: tk.text, margin: 0, fontWeight: 500, letterSpacing: "-.01em" })}>{r.text}</p>
             {s.showRating && <Stars value={r.rating} size={18} color={starColor} />}
             <div style={st({ display: "flex", alignItems: "center", gap: 11, borderTop: `1px solid ${tk.line}`, paddingTop: 16 })}>
               {s.showAvatars && <Avatar name={r.name} size={40} />}
               <div style={st({ flex: 1 })}>
-                <div style={st({ fontSize: 14, fontWeight: 640, color: tk.text })}>{r.name}</div>
-                {s.showDates && <div style={st({ fontSize: 12, color: tk.muted })}>{r.time} · {r.source} review</div>}
+                <div style={st({ fontSize: s.fontSizeNames || 13, fontWeight: 640, color: tk.text })}>{r.name}</div>
+                {s.showDates && <div style={st({ fontSize: s.fontSizeLabel || 12, color: tk.muted })}>{r.time} · {r.source} review</div>}
               </div>
               {s.showSources && <SourceBadge source={r.source} size={22} />}
             </div>

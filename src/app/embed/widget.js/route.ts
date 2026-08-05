@@ -147,7 +147,9 @@ const script = `
       ".why-widget-name{font-size:" + fontSizeNames + "px !important}" +
       ".why-widget-date{font-size:" + fontSizeLabel + "px !important}" +
       ".why-widget-meta{font-size:" + fontSizeLabel + "px !important}" +
-      ".why-widget-review-link{font-size:" + fontSizeLabel + "px !important}";
+      ".why-widget-review-link{font-size:" + fontSizeLabel + "px !important}" +
+      // Video cards carry a submitter name too, so it follows the same slider.
+      ".why-video-name{font-size:" + fontSizeNames + "px !important}";
     document.head.appendChild(style);
   }
 
@@ -700,6 +702,12 @@ const script = `
     }
     var r = reviews[0];
     var accentColor = w.primaryColor || "#4338ca";
+    // Typography sliders: the quote is the hero element so it scales a step
+    // above the review-text size; name/date follow their own sizes.
+    var fontSizeBase = w.fontSizeBase || 14;
+    var fontSizeNames = w.fontSizeNames || 13;
+    var fontSizeLabel = w.fontSizeLabel || 12;
+    var quoteFontSize = fontSizeBase + 4;
     // Decorative opening quote in the accent color.
     var quoteMark = '<div style="font-family:Georgia,serif;font-size:44px;line-height:.5;color:' + escapeHtml(accentColor) + ';opacity:.28;margin-bottom:4px">“</div>';
     var reviewerHtml = '';
@@ -709,8 +717,8 @@ const script = `
         : '<div class="why-widget-avatar-fallback">' + escapeHtml((r.reviewerName || '?').slice(0, 1).toUpperCase()) + '</div>';
       var sourceMarkHtml = w.showSourceLogo ? sourceMarkHtmlFor(r.source) : '';
       reviewerHtml = '<div style="display:flex;align-items:center;gap:11px">' + avatarHtml +
-        '<div style="flex:1"><div style="font-weight:700;font-size:14px">' + escapeHtml(r.reviewerName || 'Anonymous') + '</div>' +
-        (w.showDate !== false && r.reviewedAt ? '<div style="font-size:12px;color:#64748b">' + escapeHtml(formatDate(r.reviewedAt)) + '</div>' : '') +
+        '<div style="flex:1"><div style="font-weight:700;font-size:' + fontSizeNames + 'px">' + escapeHtml(r.reviewerName || 'Anonymous') + '</div>' +
+        (w.showDate !== false && r.reviewedAt ? '<div style="font-size:' + fontSizeLabel + 'px;color:#64748b">' + escapeHtml(formatDate(r.reviewedAt)) + '</div>' : '') +
         '</div>' + sourceMarkHtml + '</div>';
     }
     var singleStarColor = resolveStarColorEmbed(w);
@@ -723,7 +731,7 @@ const script = `
     return wrapOpen +
       quoteMark +
       (w.showRating !== false ? '<div style="color:' + escapeHtml(singleStarColor) + ';font-size:18px;margin-bottom:12px">' + escapeHtml(stars(r.rating)) + '</div>' : '') +
-      '<p style="font-size:18px;line-height:1.55;font-weight:500;margin:0 0 18px">' + escapeHtml(r.body || '') + '</p>' +
+      '<p style="font-size:' + quoteFontSize + 'px;line-height:1.55;font-weight:500;margin:0 0 18px">' + escapeHtml(r.body || '') + '</p>' +
       reviewerHtml +
       ownerReplyHtml +
       brandingHtml +
@@ -1262,7 +1270,7 @@ const script = `
               var body = item.data.body || "";
               var starColor = "#fff";
               var starsHtml = w.showRating !== false ? '<div style="font-size:14px;color:' + starColor + ';margin-bottom:10px">' + escapeHtml(stars(item.data.rating)) + '</div>' : '';
-              var nameHtml = w.showAvatars !== false ? '<div style="font-size:13px;font-weight:600;color:rgba(255,255,255,.9)">' + escapeHtml(item.data.reviewerName || 'Anonymous') + '</div>' : '';
+              var nameHtml = w.showAvatars !== false ? '<div style="font-size:' + (w.fontSizeNames || 13) + 'px;font-weight:600;color:rgba(255,255,255,.9)">' + escapeHtml(item.data.reviewerName || 'Anonymous') + '</div>' : '';
               // Highlight on accent bg: white semi-transparent mark
               var spotlightFontSize = w.fontSizeBase || 14;
               var quote = highlightMap[reviewId];
