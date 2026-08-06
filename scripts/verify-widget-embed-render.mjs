@@ -297,6 +297,24 @@ await render(browser, buildPayload({
   check("show-on-mobile renders the button at a mobile viewport", Boolean(await page.$(".why-collect-btn")));
 }, { viewport: { width: 390, height: 844 }, mount: false });
 
+/* 7a — the spotlight card is typographically distinct */
+await render(browser, buildPayload({ widget: { wallStyle: "varied", spotlightReviewId: "r3" } }), async (page) => {
+  const fonts = await page.$$eval(".why-widget-card", (els) =>
+    els.map((e) => {
+      const body = e.querySelector("div[style*='line-height']");
+      return body ? getComputedStyle(body).fontFamily : "";
+    }),
+  );
+  const spotlightFont = fonts[0] ?? "";
+  check("the spotlight card body uses the serif accent face",
+    /Instrument Serif|Georgia|serif/i.test(spotlightFont), spotlightFont);
+  const others = fonts.slice(1).filter(Boolean);
+  check("the surrounding cards keep the configured body font",
+    others.every((f) => !/Instrument Serif/i.test(f)), JSON.stringify(others.slice(0, 2)));
+  check("the spotlight font differs from the rest",
+    others.length > 0 && spotlightFont !== others[0], `${spotlightFont} vs ${others[0]}`);
+});
+
 /* 7b — video cards carry the caption the editor preview shows */
 await render(browser, buildPayload({ widget: { contentType: "VIDEO" } }), async (page) => {
   const cards = await page.$$(".why-video-card");
@@ -310,6 +328,28 @@ await render(browser, buildPayload({ widget: { contentType: "VIDEO" } }), async 
   const text = await page.textContent(".why-widget");
   check("the submitter name still renders", /Jules/.test(text));
   check("the duration badge renders", /22s/.test(await page.textContent(".why-video-duration")));
+
+  // Caption and name sit *on* the video, with nothing rendered below it.
+  const overlay = await page.$(".why-video-overlay");
+  check("caption and name are in an overlay", Boolean(overlay));
+  const inThumb = await page.$eval(".why-video-overlay", (o) => Boolean(o.closest(".why-video-thumb")));
+  check("the overlay sits inside the thumbnail", inThumb);
+  const box = await page.$eval(".why-video-card", (c) => {
+    const card = c.getBoundingClientRect();
+    const thumb = c.querySelector(".why-video-thumb").getBoundingClientRect();
+    return { cardH: Math.round(card.height), thumbH: Math.round(thumb.height), ratio: +(thumb.width / thumb.height).toFixed(2) };
+  });
+  check("nothing renders below the video", Math.abs(box.cardH - box.thumbH) <= 2, `card ${box.cardH} vs thumb ${box.thumbH}`);
+  check("the card uses the preview's 4:3 ratio", Math.abs(box.ratio - 4 / 3) < 0.05, `ratio=${box.ratio}`);
+  const overlayBottom = await page.$eval(".why-video-overlay", (o) => {
+    const s = getComputedStyle(o);
+    return { pos: s.position, bottom: s.bottom, hasScrim: /gradient/.test(s.backgroundImage), color: s.color };
+  });
+  check("the overlay is anchored to the bottom of the video",
+    overlayBottom.pos === "absolute" && overlayBottom.bottom === "0px", JSON.stringify(overlayBottom.bottom));
+  check("the overlay has a gradient scrim for legibility", overlayBottom.hasScrim);
+  const dur = await page.$eval(".why-video-duration", (e) => getComputedStyle(e).top);
+  check("the duration chip sits clear of the overlay", dur === "8px", `top=${dur}`);
 });
 
 await render(browser, buildPayload({ widget: { contentType: "VIDEO", showDate: false, showReviewerName: false } }), async (page) => {

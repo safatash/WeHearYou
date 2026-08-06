@@ -125,14 +125,20 @@ const script = `
       ".why-widget-branding{margin-top:12px;text-align:center;font-size:12px;opacity:.6}" +
       ".why-widget-branding a{color:inherit;text-decoration:none}" +
       ".why-widget-branding a:hover{text-decoration:underline}" +
-      ".why-video-card{display:flex;flex-direction:column;gap:0;border:1px solid rgba(0,0,0,.08);border-radius:16px;background:#fff;overflow:hidden;cursor:pointer;transition:transform .15s,box-shadow .15s}" +
+      // Video card: the thumbnail *is* the card. Caption and submitter sit on the
+      // video over a bottom gradient scrim, so nothing renders below it.
+      // 4/3 matches the editor preview (the embed used to be 16/9).
+      ".why-video-card{position:relative;display:block;border:1px solid rgba(0,0,0,.08);border-radius:16px;background:#0f172a;overflow:hidden;cursor:pointer;transition:transform .15s,box-shadow .15s}" +
       ".why-video-card:hover{transform:translateY(-2px);box-shadow:0 4px 16px rgba(0,0,0,.1)}" +
-      ".why-video-thumb{position:relative;background:#0f172a;aspect-ratio:16/9;overflow:hidden;display:flex;align-items:center;justify-content:center}" +
+      ".why-video-thumb{position:relative;background:#0f172a;aspect-ratio:4/3;overflow:hidden;display:flex;align-items:center;justify-content:center}" +
       ".why-video-thumb video{width:100%;height:100%;object-fit:cover;display:block}" +
       ".why-video-play{position:absolute;width:44px;height:44px;background:rgba(255,255,255,.2);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;color:#fff;backdrop-filter:blur(2px)}" +
-      ".why-video-duration{position:absolute;bottom:6px;right:8px;font-size:11px;color:rgba(255,255,255,.8);background:rgba(0,0,0,.5);padding:1px 5px;border-radius:4px}" +
-      ".why-video-info{padding:10px 12px}" +
-      ".why-video-name{font-size:13px;font-weight:600}" +
+      // Duration moves to the top-right so it cannot collide with the overlay.
+      ".why-video-duration{position:absolute;top:8px;right:8px;font-size:11px;color:rgba(255,255,255,.85);background:rgba(0,0,0,.5);padding:1px 6px;border-radius:4px}" +
+      ".why-video-overlay{position:absolute;left:0;right:0;bottom:0;padding:14px;background:linear-gradient(to top,rgba(0,0,0,.9) 0%,rgba(0,0,0,.6) 55%,rgba(0,0,0,0) 100%);color:#fff;pointer-events:none;text-align:left}" +
+      ".why-video-caption{margin:0 0 6px;font-size:14px;line-height:1.4;font-weight:600;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.4)}" +
+      ".why-video-name{font-size:13px;font-weight:700;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.4)}" +
+      ".why-video-meta{font-size:11.5px;color:rgba(255,255,255,.82);text-shadow:0 1px 2px rgba(0,0,0,.4)}" +
       ".why-widget-masonry{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));align-items:start}" +
       ".why-marq{overflow:hidden;width:100%}" +
       ".why-marq+.why-marq{margin-top:14px}" +
@@ -874,37 +880,32 @@ const script = `
     var fontSizeBase = w.fontSizeBase || 14;
     var fontSizeNames = w.fontSizeNames || 13;
     var fontSizeLabel = w.fontSizeLabel || 12;
-    var textColor = w.textColor || "#0f172a";
     var thumbnailUrl = getThumbnailUrl(vt);
     var thumbHtml = thumbnailUrl
       ? '<img src="' + escapeHtml(thumbnailUrl) + '" alt="' + getThumbnailAlt(vt.submitterName) + '" style="width:100%;height:100%;object-fit:cover;display:block">'
       : '<video src="' + escapeHtml(vt.videoUrl) + '#t=0.001" preload="metadata" muted playsinline style="width:100%;height:100%;object-fit:cover"></video>';
 
-    // Video testimonials have no rating column, so no stars are invented here.
-    var infoHtml = '';
+    // Caption and submitter overlay the video over a gradient scrim; nothing
+    // renders below the thumbnail. Video testimonials have no rating column, so
+    // no stars are invented here.
+    var overlayHtml = '';
     if (caption) {
-      infoHtml += '<p class="why-video-caption" style="margin:0 0 8px;font-size:' + (fontSizeBase - 1) + 'px;line-height:1.5;font-weight:500;color:' + escapeHtml(textColor) + '">\u201c' + escapeHtml(caption) + '\u201d</p>';
+      overlayHtml += '<p class="why-video-caption" style="font-size:' + fontSizeBase + 'px">\u201c' + escapeHtml(caption) + '\u201d</p>';
     }
-
-    var metaHtml = '';
     if (w.showReviewerName !== false) {
-      metaHtml += '<div class="why-widget-avatar-fallback" style="width:28px;height:28px;flex:none">' + escapeHtml((vt.submitterName || '?').slice(0, 1).toUpperCase()) + '</div>';
+      overlayHtml += '<div class="why-video-name" style="font-size:' + fontSizeNames + 'px">' + name + '</div>';
     }
-    metaHtml += '<div style="min-width:0;flex:1">' +
-      '<div class="why-video-name" style="font-size:' + fontSizeNames + 'px">' + name + '</div>' +
-      (w.showDate && vt.publishedAt ? '<div class="why-widget-date" style="font-size:' + (fontSizeLabel - 1) + 'px">' + escapeHtml(formatDate(vt.publishedAt)) + '</div>' : '') +
-    '</div>';
-    if (w.showSourceLogo) metaHtml += sourceMarkHtmlFor("INTERNAL");
-
-    infoHtml += '<div style="display:flex;align-items:center;gap:9px">' + metaHtml + '</div>';
+    if (w.showDate && vt.publishedAt) {
+      overlayHtml += '<div class="why-video-meta" style="font-size:' + (fontSizeLabel - 0.5) + 'px">' + escapeHtml(formatDate(vt.publishedAt)) + '</div>';
+    }
 
     return '<div class="why-video-card" data-video-url="' + escapeHtml(vt.videoUrl) + '">' +
       '<div class="why-video-thumb">' +
         thumbHtml +
         '<div class="why-video-play">&#9658;</div>' +
         (dur ? '<div class="why-video-duration">' + escapeHtml(dur) + '</div>' : '') +
+        (overlayHtml ? '<div class="why-video-overlay">' + overlayHtml + '</div>' : '') +
       '</div>' +
-      '<div class="why-video-info">' + infoHtml + '</div>' +
     '</div>';
   }
 
@@ -1336,7 +1337,12 @@ const script = `
             var isGridLayout = data.widget.layout === "grid" || data.widget.layout === "masonry" || data.widget.layout === "mixed-masonry";
             var reviewId = item.data && item.data.id ? String(item.data.id) : "";
 
-            // Spotlight card in Varied layout: accent background + Instrument Serif
+            // Spotlight card in Varied layout: accent background + Instrument Serif.
+            // The serif face is what visually distinguishes the spotlight from the
+            // surrounding cards. The preview (FeaturedReviewCardW) has always used
+            // it; the embed rendered the ordinary body font, so the accent card
+            // looked identical to the rest. ensureStyles() loads the webfont, with
+            // Georgia as the fallback.
             if (isSpotlight && isVaried && isGridLayout) {
               var w = data.widget;
               var radius = typeof w.cornerRadius === "number" ? w.cornerRadius : 12;
@@ -1350,12 +1356,12 @@ const script = `
               var bodyHtml;
               if (quote && body.indexOf(quote) !== -1) {
                 var qi = body.indexOf(quote);
-                bodyHtml = '<div style="font-family:' + fontStack(w.fontFamily) + ';font-size:' + spotlightFontSize + 'px;line-height:1.55;font-weight:400;margin-bottom:16px;color:#fff">\u201c' +
+                bodyHtml = '<div style="font-family:' + serif + ';letter-spacing:-.01em;font-size:' + spotlightFontSize + 'px;line-height:1.45;font-weight:400;margin-bottom:16px;color:#fff">\u201c' +
                   escapeHtml(body.slice(0, qi)) +
                   '<mark style="background:rgba(255,255,255,.28);color:#fff;border-radius:3px;padding:0 3px;font-weight:700">' + escapeHtml(quote) + '</mark>' +
                   escapeHtml(body.slice(qi + quote.length)) + '\u201d</div>';
               } else {
-                bodyHtml = '<div style="font-family:' + fontStack(w.fontFamily) + ';font-size:' + spotlightFontSize + 'px;line-height:1.55;font-weight:400;margin-bottom:16px;color:#fff">\u201c' + escapeHtml(body) + '\u201d</div>';
+                bodyHtml = '<div style="font-family:' + serif + ';letter-spacing:-.01em;font-size:' + spotlightFontSize + 'px;line-height:1.45;font-weight:400;margin-bottom:16px;color:#fff">\u201c' + escapeHtml(body) + '\u201d</div>';
               }
               return '<article class="why-widget-card" style="background:' + escapeHtml(accentColor) + ';border:none;border-radius:' + radius + 'px;padding:20px;color:#fff">' +
                 starsHtml + bodyHtml +
