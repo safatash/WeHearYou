@@ -8,6 +8,21 @@ import { Icon, type IconName } from "@/components/icon";
 import { WidgetMockPreview, type PreviewSettings } from "@/components/widget-mock-preview";
 import { updateReviewWidget, getOrCreateWidgetForLocation, generateWidgetAiSummary, deleteReviewWidget } from "@/app/widgets/actions";
 import { FormSubmitButton } from "@/components/form-submit-button";
+import {
+  WIDGET_TYPE_REGISTRY,
+  resolveWidgetTypeMeta,
+  REVIEW_SOURCES,
+  SOURCE_LABELS,
+  normalizeCardHeights,
+  normalizeEnabledSources,
+  serializeEnabledSources,
+  parsePinnedReviewIds,
+  serializePinnedReviewIds,
+  parseReviewHighlights,
+  serializeReviewHighlights,
+  widgetDraftsEqual,
+  MAX_PINNED_REVIEWS,
+} from "@/lib/widget-config";
 
 const st = (s: React.CSSProperties): React.CSSProperties => s;
 
@@ -16,14 +31,15 @@ const ACCENTS = ["#4f46e5", "#2563eb", "#0e9488", "#7c3aed", "#e0533d", "#18181b
 
 type TypeKey = "grid" | "carousel" | "single" | "badge" | "collecting" | "floating";
 
-const STUDIO_TYPES: Array<{ id: TypeKey; label: string; icon: IconName; desc: string }> = [
-  { id: "grid", label: "Wall of Love", icon: "grid", desc: "Masonry of reviews" },
-  { id: "carousel", label: "Review marquee", icon: "layers", desc: "Auto-scrolling rows of reviews" },
-  { id: "single", label: "Single testimonial", icon: "film", desc: "One standout quote" },
-  { id: "badge", label: "Rating badge", icon: "star", desc: "Compact score + stars" },
-  { id: "collecting", label: "Collect reviews", icon: "send", desc: "Floating feedback button" },
-  { id: "floating", label: "Floating badge", icon: "chat", desc: "Sticky social-proof card" },
-];
+// Labels/icons/descriptions come from the shared registry so the type picker,
+// the inventory card and the embed instructions cannot disagree.
+const STUDIO_TYPES: Array<{ id: TypeKey; label: string; icon: IconName; desc: string }> =
+  (["grid", "carousel", "single", "badge", "collecting", "floating"] as TypeKey[]).map((id) => ({
+    id,
+    label: WIDGET_TYPE_REGISTRY[id].label,
+    icon: WIDGET_TYPE_REGISTRY[id].icon as IconName,
+    desc: WIDGET_TYPE_REGISTRY[id].description,
+  }));
 
 type ContentKey = "reviews" | "videos" | "mixed";
 type BadgeStyle = "rating" | "compact" | "review_cta" | "trust";
@@ -127,6 +143,15 @@ export type StudioWidget = {
   textColor: string;
 };
 
+export type PickerVideo = {
+  id: string;
+  submitterName: string | null;
+  videoUrl: string;
+  durationSeconds: number | null;
+  caption: string | null;
+  publishedAt: string | null;
+};
+
 export type PickerReview = {
   id: string;
   reviewerName: string;
@@ -138,12 +163,7 @@ export type PickerReview = {
 };
 
 function deriveTypeKey(w: StudioWidget): TypeKey {
-  if (w.widgetType === "FLOATING" || w.layout === "floating") return "floating";
-  if (w.widgetType === "COLLECTING") return "collecting";
-  if (w.widgetType === "BADGE" || w.layout === "badge") return "badge";
-  if (w.widgetType === "SINGLE_TESTIMONIAL") return "single";
-  if (w.layout === "carousel" || w.layout === "slider") return "carousel";
-  return "grid";
+  return resolveWidgetTypeMeta(w.widgetType, w.layout).studioKey as TypeKey;
 }
 
 function snapPageSize(n: number): number {
@@ -310,118 +330,273 @@ const EmbedCode = ({ code, hint }: { code: string; hint: string }) => {
 };
 
 /* ================= Studio editor ================= */
-export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [], aiSummaryText = null, aiSummaryCount = null, availableReviews = [] }: { widget: StudioWidget; embedScriptUrl: string; locations?: Array<{ id: string; name: string }>; aiSummaryText?: string | null; aiSummaryCount?: number | null; availableReviews?: PickerReview[] }) {
+/**
+ * Every customizable setting, in one typed object.
+ *
+ * All mutations go through `update()` below — no per-control local state, no
+ * DOM event synthesis. Dirty state is a normalized comparison of this draft
+ * against the last saved baseline, so a control that changes the config always
+ * marks the editor dirty, and reverting it always returns to clean.
+ */
+type WidgetDraft = {
+  name: string;
+  typeKey: TypeKey;
+  content: ContentKey;
+  dark: boolean;
+  accent: string;
+  minRating: number;
+  pageSize: number;
+  marqueeSpeed: string;
+  isActive: boolean;
+  // Display
+  showHeader: boolean;
+  showAvgRating: boolean;
+  showReviewCount: boolean;
+  showReviewerName: boolean;
+  showDate: boolean;
+  showSourceLogo: boolean;
+  showRating: boolean;
+  showWriteReview: boolean;
+  showAiSummary: boolean;
+  showResponses: boolean;
+  showNav: boolean;
+  showPagination: boolean;
+  showBranding: boolean;
+  // Typography
+  starColor: string;
+  fontSizeBase: number;
+  fontSizeNames: number;
+  fontSizeHeader: number;
+  fontSizeLabel: number;
+  fontSizeSummary: number;
+  bodyMaxChars: number;
+  // Appearance
+  fontFamily: string;
+  starColorMode: string;
+  cornerRadius: number;
+  cardStyle: string;
+  density: string;
+  gridColumns: string;
+  wallStyle: string;
+  cardHeights: string;
+  // Content selection
+  enabledSources: string[];
+  singleTestimonialReviewId: string | null;
+  spotlightReviewId: string | null;
+  pinnedReviewIds: string[];
+  reviewHighlights: HighlightEntry[];
+  // Badge
+  badgeStyle: BadgeStyle;
+  // Collecting
+  collectPosition: string;
+  collectTheme: string;
+  collectColorMode: string;
+  collectColor: string;
+  collectMobile: string;
+  // Floating
+  floatingCardStyle: string;
+  floatingVariation: string;
+  floatingPosition: string;
+  floatingRotation: boolean;
+  floatingInterval: number;
+  floatingAccentMode: string;
+  floatingAccentColor: string;
+  floatingMobile: string;
+  floatingApprovedOnly: boolean;
+  floatingMinRating: number;
+};
+
+type HighlightEntry = { reviewId: string; quote: string };
+
+/** Build the draft (and the saved baseline) from a persisted widget row. */
+function draftFromWidget(w: StudioWidget): WidgetDraft {
+  return {
+    name: w.name,
+    typeKey: deriveTypeKey(w),
+    content: deriveContent(w.contentType),
+    dark: w.theme === "dark",
+    accent: w.primaryColor || "#4f46e5",
+    minRating: w.minRating || 1,
+    pageSize: snapPageSize(w.pageSize || 12),
+    marqueeSpeed: w.marqueeSpeed || "normal",
+    isActive: w.isActive,
+    showHeader: w.showHeader,
+    showAvgRating: w.showAvgRating,
+    showReviewCount: w.showReviewCount,
+    showReviewerName: w.showReviewerName,
+    showDate: w.showDate,
+    showSourceLogo: w.showSourceLogo,
+    showRating: w.showRating,
+    showWriteReview: w.showWriteReview,
+    showAiSummary: w.showAiSummary,
+    showResponses: w.showResponses,
+    showNav: w.showNav,
+    showPagination: w.showPagination,
+    showBranding: w.showBranding,
+    starColor: w.starColor ?? "#fbbf24",
+    fontSizeBase: w.fontSizeBase ?? 14,
+    fontSizeNames: w.fontSizeNames ?? 13,
+    fontSizeHeader: w.fontSizeHeader ?? 20,
+    fontSizeLabel: w.fontSizeLabel ?? 12,
+    fontSizeSummary: w.fontSizeSummary ?? 14,
+    bodyMaxChars: w.bodyMaxChars ?? 280,
+    fontFamily: w.fontFamily || "system",
+    starColorMode: w.starColorMode || "gold",
+    cornerRadius: w.cornerRadius ?? 12,
+    cardStyle: w.cardStyle || "border",
+    density: w.density || "cozy",
+    gridColumns: w.gridColumns || "auto",
+    wallStyle: w.wallStyle || "varied",
+    cardHeights: normalizeCardHeights(w.cardHeights),
+    enabledSources: normalizeEnabledSources(w.enabledSources),
+    singleTestimonialReviewId: w.singleTestimonialReviewId ?? null,
+    spotlightReviewId: w.spotlightReviewId ?? null,
+    pinnedReviewIds: parsePinnedReviewIds(w.pinnedReviewIds),
+    reviewHighlights: parseReviewHighlights(w.reviewHighlights),
+    badgeStyle: (w.badgeStyle as BadgeStyle) || "rating",
+    collectPosition: w.collectButtonPosition || "bottom-right",
+    collectTheme: w.collectButtonTheme || "default",
+    collectColorMode: w.collectButtonColor ? "custom" : "inherit",
+    collectColor: w.collectButtonColor || "#4f46e5",
+    collectMobile: w.collectMobileBehavior || "pill",
+    floatingCardStyle: w.floatingCardStyle || "dark_solid_pill",
+    floatingVariation: w.floatingVariation || "standard",
+    floatingPosition: w.floatingPosition || "bottom-right",
+    floatingRotation: w.floatingRotationEnabled ?? true,
+    floatingInterval: w.floatingRotationIntervalSec ?? 8,
+    floatingAccentMode: w.floatingAccentColorMode || "inherit",
+    floatingAccentColor: w.floatingAccentColor || "#4f46e5",
+    floatingMobile: w.floatingMobileBehavior || "show",
+    floatingApprovedOnly: w.floatingApprovedOnly ?? true,
+    floatingMinRating: w.floatingMinRating ?? 4,
+  };
+}
+
+/**
+ * The comparable projection of a draft. `content` is folded into the persisted
+ * contentType so that, e.g., switching a Badge between Reviews/Videos — which
+ * the schema cannot express and the save path discards — is not reported as an
+ * unsaved change the admin can never resolve.
+ */
+function comparableDraft(d: WidgetDraft): Record<string, unknown> {
+  const { content, typeKey, ...rest } = d;
+  return {
+    ...rest,
+    typeKey,
+    contentType: resolveContentType(typeKey, content),
+  };
+}
+
+export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [], aiSummaryText = null, aiSummaryCount = null, availableReviews = [], availableVideos = [] }: { widget: StudioWidget; embedScriptUrl: string; locations?: Array<{ id: string; name: string }>; aiSummaryText?: string | null; aiSummaryCount?: number | null; availableReviews?: PickerReview[]; availableVideos?: PickerVideo[] }) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const [name, setName] = useState(widget.name);
-  const [locationId] = useState(widget.locationId);
+
+  // ── single typed state path ─────────────────────────────────────────────
+  // `saved` is the last-known-persisted configuration; `draft` is what the
+  // controls edit. Everything else is derived.
+  const [saved, setSaved] = useState<WidgetDraft>(() => draftFromWidget(widget));
+  const [draft, setDraft] = useState<WidgetDraft>(() => draftFromWidget(widget));
+
+  /** The one mutation entry point for every control in this editor. */
+  const update = React.useCallback((patch: Partial<WidgetDraft>) => {
+    setDraft((prev) => ({ ...prev, ...patch }));
+  }, []);
+
+  const locationId = widget.locationId;
   const [locationSwitching, setLocationSwitching] = useState(false);
-  const [typeKey, setTypeKey] = useState<TypeKey>(deriveTypeKey(widget));
-  const [content, setContent] = useState<ContentKey>(deriveContent(widget.contentType));
-  const [dark, setDark] = useState(widget.theme === "dark");
-  const [accent, setAccent] = useState(widget.primaryColor || "#4f46e5");
-  const [minRating, setMinRating] = useState(widget.minRating || 1);
-  const [pageSize, setPageSize] = useState(snapPageSize(widget.pageSize || 12));
-  const [marqueeSpeed, setMarqueeSpeed] = useState(widget.marqueeSpeed || "normal");
-  // Display toggles
-  const [showHeader, setShowHeader] = useState(widget.showHeader);
-  const [showAvgRating, setShowAvgRating] = useState(widget.showAvgRating);
-  const [showReviewCount, setShowReviewCount] = useState(widget.showReviewCount);
-  const [showReviewerName, setShowReviewerName] = useState(widget.showReviewerName);
-  const [showDate, setShowDate] = useState(widget.showDate);
-  const [showSourceLogo, setShowSourceLogo] = useState(widget.showSourceLogo);
-  const [showRating, setShowRating] = useState(widget.showRating);
-  const [showWriteReview, setShowWriteReview] = useState(widget.showWriteReview);
-  const [showAiSummary, setShowAiSummary] = useState(widget.showAiSummary);
-  const [showResponses, setShowResponses] = useState(widget.showResponses);
-  const [showNav, setShowNav] = useState(widget.showNav);
-  const [showPagination, setShowPagination] = useState(widget.showPagination);
-  const [showBranding, setShowBranding] = useState(widget.showBranding);
-  // Typography & Colors
-  const [starColor, setStarColor] = useState(widget.starColor ?? "#fbbf24");
-  const [fontSizeBase, setFontSizeBase] = useState(widget.fontSizeBase ?? 14);
-  const [fontSizeNames, setFontSizeNames] = useState(widget.fontSizeNames ?? 13);
-  const [fontSizeHeader, setFontSizeHeader] = useState(widget.fontSizeHeader ?? 20);
-  const [fontSizeLabel, setFontSizeLabel] = useState(widget.fontSizeLabel ?? 12);
-  const [fontSizeSummary, setFontSizeSummary] = useState(widget.fontSizeSummary ?? 14);
-  const [bodyMaxChars, setBodyMaxChars] = useState(widget.bodyMaxChars ?? 280);
-  // Appearance & style
-  const [fontFamily, setFontFamily] = useState(widget.fontFamily || "system");
-  const [starColorMode, setStarColorMode] = useState(widget.starColorMode || "gold");
-  const [cornerRadius, setCornerRadius] = useState(widget.cornerRadius ?? 12);
-  const [cardStyle, setCardStyle] = useState(widget.cardStyle || "border");
-  const [density, setDensity] = useState(widget.density || "cozy");
-  const [gridColumns, setGridColumns] = useState(widget.gridColumns || "auto");
-  const [wallStyle, setWallStyle] = useState(widget.wallStyle || "varied");
-  const [cardHeights, setCardHeights] = useState(widget.cardHeights || "equal");
-  // Sources: parse CSV string into a Set
-  const ALL_SOURCES = ["GOOGLE", "FACEBOOK", "YELP", "INTERNAL"] as const;
-  const SOURCE_LABELS: Record<string, string> = { GOOGLE: "Google", FACEBOOK: "Facebook", YELP: "Yelp", INTERNAL: "WeHearYou" };
-  const parseEnabledSources = (csv: string): Set<string> => {
-    if (!csv || csv.trim() === "") return new Set(ALL_SOURCES);
-    return new Set(csv.split(",").map((s) => s.trim()).filter(Boolean));
-  };
-  const [enabledSourcesSet, setEnabledSourcesSet] = useState<Set<string>>(() => parseEnabledSources(widget.enabledSources || ""));
-  const [isActive, setIsActive] = useState(widget.isActive);
-  // Single Testimonial review picker
-  const [singleTestimonialReviewId, setSingleTestimonialReviewId] = useState<string | null>(
-    (widget as { singleTestimonialReviewId?: string | null }).singleTestimonialReviewId ?? null
-  );
-  // Spotlight & Pins
-  const [spotlightReviewId, setSpotlightReviewId] = useState<string | null>(widget.spotlightReviewId ?? null);
-  const [pinnedReviewIds, setPinnedReviewIds] = useState<string[]>(() =>
-    (widget.pinnedReviewIds || "").split(",").map((s) => s.trim()).filter(Boolean)
-  );
-  // reviewHighlights: [{reviewId, quote}] stored as JSON
-  type HighlightEntry = { reviewId: string; quote: string };
-  const [reviewHighlights, setReviewHighlights] = useState<HighlightEntry[]>(() => {
-    try { return JSON.parse(widget.reviewHighlights || "[]"); } catch { return []; }
-  });
+
+  // Derived, normalized dirty state — not a flag that latches on first change.
+  const isDirty = !widgetDraftsEqual(comparableDraft(saved), comparableDraft(draft));
+
+  const {
+    name, typeKey, content, dark, accent, minRating, pageSize, marqueeSpeed, isActive,
+    showHeader, showAvgRating, showReviewCount, showReviewerName, showDate, showSourceLogo,
+    showRating, showWriteReview, showAiSummary, showResponses, showNav, showPagination, showBranding,
+    starColor, fontSizeBase, fontSizeNames, fontSizeHeader, fontSizeLabel, fontSizeSummary, bodyMaxChars,
+    fontFamily, starColorMode, cornerRadius, cardStyle, density, gridColumns, wallStyle, cardHeights,
+    enabledSources, singleTestimonialReviewId, spotlightReviewId, pinnedReviewIds, reviewHighlights,
+    badgeStyle, collectPosition, collectTheme, collectColorMode, collectColor, collectMobile,
+    floatingCardStyle, floatingVariation, floatingPosition, floatingRotation, floatingInterval,
+    floatingAccentMode, floatingAccentColor, floatingMobile, floatingApprovedOnly, floatingMinRating,
+  } = draft;
+
+  // Thin typed setters so the controls below stay declarative while every write
+  // still funnels through `update`.
+  const setName = (v: string) => update({ name: v });
+  const setTypeKey = (v: TypeKey) => update({ typeKey: v });
+  const setContent = (v: ContentKey) => update({ content: v });
+  const setDark = (v: boolean) => update({ dark: v });
+  const setAccent = (v: string) => update({ accent: v });
+  const setMinRating = (v: number) => update({ minRating: v });
+  const setPageSize = (v: number) => update({ pageSize: v });
+  const setMarqueeSpeed = (v: string) => update({ marqueeSpeed: v });
+  const setIsActive = (v: boolean) => update({ isActive: v });
+  const setShowHeader = (v: boolean) => update({ showHeader: v });
+  const setShowAvgRating = (v: boolean) => update({ showAvgRating: v });
+  const setShowReviewCount = (v: boolean) => update({ showReviewCount: v });
+  const setShowReviewerName = (v: boolean) => update({ showReviewerName: v });
+  const setShowDate = (v: boolean) => update({ showDate: v });
+  const setShowSourceLogo = (v: boolean) => update({ showSourceLogo: v });
+  const setShowRating = (v: boolean) => update({ showRating: v });
+  const setShowWriteReview = (v: boolean) => update({ showWriteReview: v });
+  const setShowAiSummary = (v: boolean) => update({ showAiSummary: v });
+  const setShowResponses = (v: boolean) => update({ showResponses: v });
+  const setShowNav = (v: boolean) => update({ showNav: v });
+  const setShowPagination = (v: boolean) => update({ showPagination: v });
+  const setShowBranding = (v: boolean) => update({ showBranding: v });
+  const setFontSizeBase = (v: number) => update({ fontSizeBase: v });
+  const setFontSizeNames = (v: number) => update({ fontSizeNames: v });
+  const setFontSizeHeader = (v: number) => update({ fontSizeHeader: v });
+  const setFontSizeLabel = (v: number) => update({ fontSizeLabel: v });
+  const setFontSizeSummary = (v: number) => update({ fontSizeSummary: v });
+  const setBodyMaxChars = (v: number) => update({ bodyMaxChars: v });
+  const setFontFamily = (v: string) => update({ fontFamily: v });
+  const setStarColorMode = (v: string) => update({ starColorMode: v });
+  const setCornerRadius = (v: number) => update({ cornerRadius: v });
+  const setCardStyle = (v: string) => update({ cardStyle: v });
+  const setDensity = (v: string) => update({ density: v });
+  const setGridColumns = (v: string) => update({ gridColumns: v });
+  const setWallStyle = (v: string) => update({ wallStyle: v });
+  const setCardHeights = (v: string) => update({ cardHeights: v });
+  const setSingleTestimonialReviewId = (v: string | null) => update({ singleTestimonialReviewId: v });
+  const setSpotlightReviewId = (v: string | null) => update({ spotlightReviewId: v });
+  const setPinnedReviewIds = (fn: (prev: string[]) => string[]) =>
+    setDraft((prev) => ({ ...prev, pinnedReviewIds: fn(prev.pinnedReviewIds) }));
+  const setReviewHighlights = (fn: (prev: HighlightEntry[]) => HighlightEntry[]) =>
+    setDraft((prev) => ({ ...prev, reviewHighlights: fn(prev.reviewHighlights) }));
+  const setBadgeStyle = (v: BadgeStyle) => update({ badgeStyle: v });
+  const setCollectPosition = (v: string) => update({ collectPosition: v });
+  const setCollectTheme = (v: string) => update({ collectTheme: v });
+  const setCollectColorMode = (v: string) => update({ collectColorMode: v });
+  const setCollectColor = (v: string) => update({ collectColor: v });
+  const setCollectMobile = (v: string) => update({ collectMobile: v });
+  const setFloatingCardStyle = (v: string) => update({ floatingCardStyle: v });
+  const setFloatingVariation = (v: string) => update({ floatingVariation: v });
+  const setFloatingPosition = (v: string) => update({ floatingPosition: v });
+  const setFloatingRotation = (v: boolean) => update({ floatingRotation: v });
+  const setFloatingInterval = (v: number) => update({ floatingInterval: v });
+  const setFloatingAccentMode = (v: string) => update({ floatingAccentMode: v });
+  const setFloatingAccentColor = (v: string) => update({ floatingAccentColor: v });
+  const setFloatingMobile = (v: string) => update({ floatingMobile: v });
+  const setFloatingApprovedOnly = (v: boolean) => update({ floatingApprovedOnly: v });
+  const setFloatingMinRating = (v: number) => update({ floatingMinRating: v });
+
+  const toggleSource = (src: string, on: boolean) =>
+    setDraft((prev) => ({
+      ...prev,
+      enabledSources: on
+        ? normalizeEnabledSources([...prev.enabledSources, src].join(","))
+        : prev.enabledSources.filter((s) => s !== src),
+    }));
+
+  // ── editor-only UI state (never part of the saved config) ────────────────
   const [highlightEditId, setHighlightEditId] = useState<string | null>(null);
   const [highlightEditText, setHighlightEditText] = useState("");
   const [spotlightSearch, setSpotlightSearch] = useState("");
-  // Badge
-  const [badgeStyle, setBadgeStyle] = useState<BadgeStyle>((widget.badgeStyle as BadgeStyle) || "rating");
-  // Collecting
-  const [collectPosition, setCollectPosition] = useState(widget.collectButtonPosition || "bottom-right");
-  const [collectTheme, setCollectTheme] = useState(widget.collectButtonTheme || "default");
-  const [collectColorMode, setCollectColorMode] = useState(widget.collectButtonColor ? "custom" : "inherit");
-  const [collectColor, setCollectColor] = useState(widget.collectButtonColor || "#4f46e5");
-  const [collectMobile, setCollectMobile] = useState(widget.collectMobileBehavior || "pill");
-  // Floating
-  const [floatingCardStyle, setFloatingCardStyle] = useState(widget.floatingCardStyle || "dark_solid_pill");
-  const [floatingVariation, setFloatingVariation] = useState(widget.floatingVariation || "standard");
-  const [floatingPosition, setFloatingPosition] = useState(widget.floatingPosition || "bottom-right");
-  const [floatingRotation, setFloatingRotation] = useState(widget.floatingRotationEnabled ?? true);
-  const [floatingInterval, setFloatingInterval] = useState(widget.floatingRotationIntervalSec ?? 8);
-  const [floatingAccentMode, setFloatingAccentMode] = useState(widget.floatingAccentColorMode || "inherit");
-  const [floatingAccentColor, setFloatingAccentColor] = useState(widget.floatingAccentColor || "#4f46e5");
-  const [floatingMobile, setFloatingMobile] = useState(widget.floatingMobileBehavior || "show");
-  const [floatingApprovedOnly, setFloatingApprovedOnly] = useState(widget.floatingApprovedOnly ?? true);
-  const [floatingMinRating, setFloatingMinRating] = useState(widget.floatingMinRating ?? 4);
-  const [realPayload, setRealPayload] = useState<any>(null);
-  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
-  // isNewDraft: true when widget was just created and never saved (?new=1 in URL)
+  const [saveState, setSaveState] = useState<"idle" | "saving" | "error">("idle");
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [isNewDraft, setIsNewDraft] = useState(() => searchParams.get("new") === "1");
-  // isDirty: true when local state has changed since last save
-  const [isDirty, setIsDirty] = useState(false);
-
-  // Mark dirty on any user-facing state change after mount
-  const mountedRef = React.useRef(false);
-  useEffect(() => {
-    if (!mountedRef.current) { mountedRef.current = true; return; }
-    setIsDirty(true);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [typeKey, name, dark, accent, minRating, pageSize, marqueeSpeed, showHeader, showAvgRating,
-      showReviewCount, showReviewerName, showDate, showSourceLogo, showRating, showWriteReview,
-      showAiSummary, showResponses, showNav, showPagination, showBranding, starColor, fontSizeBase,
-      fontSizeNames, fontSizeHeader, fontSizeLabel, fontSizeSummary, bodyMaxChars, fontFamily,
-      starColorMode, cornerRadius, cardStyle, density, gridColumns, wallStyle, cardHeights,
-      badgeStyle, collectPosition, collectTheme, collectColorMode, collectColor, collectMobile,
-      floatingCardStyle, floatingVariation, floatingPosition, floatingRotation, floatingInterval,
-      floatingAccentMode, floatingAccentColor, floatingMobile, floatingApprovedOnly, floatingMinRating,
-      isActive, singleTestimonialReviewId, enabledSourcesSet]);
 
   // Navigate-away cleanup: delete the unsaved draft if user leaves without saving
   useEffect(() => {
@@ -437,21 +612,56 @@ export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [], aiS
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [isNewDraft, widget.id]);
 
-  // Fetch real widget data for live preview
+  // ── preview data ─────────────────────────────────────────────────────────
+  // Location-level stats for the header come from the public payload. The
+  // previous location's payload is dropped the instant the token changes, so a
+  // populated wall can never linger over a newly-selected empty location — the
+  // preview shows a skeleton until this location's own data arrives.
+  // Bumped after a successful save so the public-config cache is re-read.
+  const [previewNonce, setPreviewNonce] = useState(0);
+  // Stats are stored *with* the request key they belong to. Reading them back
+  // through that key means a payload for a different widget/location can never
+  // be displayed, even for a frame — no clearing, no cleanup ordering to get
+  // wrong, and a failed fetch simply leaves nothing to show.
+  const statsKey = `${widget.publicToken}:${previewNonce}`;
+  const [statsFor, setStatsFor] = useState<{ key: string; avgRating: number | null; reviewCount: number } | null>(null);
+  const locationStats = statsFor && statsFor.key === statsKey
+    ? { avgRating: statsFor.avgRating, reviewCount: statsFor.reviewCount }
+    : null;
+  const previewLoading = locationStats === null;
+
   useEffect(() => {
-    const fetchRealData = async () => {
+    let cancelled = false;
+    void (async () => {
       try {
-        const res = await fetch(`/api/public/widgets/${widget.publicToken}?page=1`);
-        if (res.ok) {
-          const data = await res.json();
-          setRealPayload(data);
-        }
-      } catch (e) {
-        console.error("Failed to fetch widget preview data", e);
+        const res = await fetch(`/api/public/widgets/${widget.publicToken}?page=1`, { cache: "no-store" });
+        if (!res.ok) throw new Error(String(res.status));
+        const data = await res.json();
+        if (cancelled) return;
+        setStatsFor({
+          key: statsKey,
+          avgRating: data?.location?.avgRating ?? null,
+          reviewCount: data?.location?.reviewCount ?? 0,
+        });
+      } catch {
+        // Leave the previous key in place: `locationStats` already reads as null
+        // for this key, so nothing stale can surface.
       }
-    };
-    fetchRealData();
-  }, [widget.publicToken]);
+    })();
+    return () => { cancelled = true; };
+  }, [widget.publicToken, statsKey]);
+
+  // The public payload orders reviews with buildOrderBy(widget.sort) before the
+  // shared resolver runs. Apply the same ordering to the preview's raw feed so
+  // both sides feed resolveWallItems() an identically-ordered list.
+  const sortedAvailableReviews = React.useMemo(() => {
+    const byDate = (a: PickerReview, b: PickerReview) =>
+      String(b.reviewedAt ?? "").localeCompare(String(a.reviewedAt ?? ""));
+    const list = [...availableReviews];
+    if (widget.sort === "highest") return list.sort((a, b) => b.rating - a.rating || byDate(a, b));
+    if (widget.sort === "lowest") return list.sort((a, b) => a.rating - b.rating || byDate(a, b));
+    return list.sort(byDate);
+  }, [availableReviews, widget.sort]);
 
   const isBadge = typeKey === "badge";
   const isSingle = typeKey === "single";
@@ -492,9 +702,13 @@ export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [], aiS
     density: density as PreviewSettings["density"],
     gridColumns,
     wallStyle: wallStyle as PreviewSettings["wallStyle"],
-    cardHeights: cardHeights as PreviewSettings["cardHeights"],
+    cardHeights: normalizeCardHeights(cardHeights) as PreviewSettings["cardHeights"],
     fontFamily,
     starColorMode: starColorMode as PreviewSettings["starColorMode"],
+    // Draft source filters and pins drive the preview directly, so their effect
+    // is visible before saving — and identical to what the embed will do after.
+    enabledSources,
+    pinnedReviewIds,
     spotlightReviewId: spotlightReviewId ?? undefined,
     reviewHighlights,
     aiSummary: isReviewWall && content !== "videos" && showAiSummary,
@@ -511,111 +725,124 @@ export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [], aiS
     floatingMinRating,
   };
 
+  const typeMeta = WIDGET_TYPE_REGISTRY[typeKey] ?? WIDGET_TYPE_REGISTRY.grid;
   const scriptSrc = `${embedScriptUrl}?t=${widget.publicToken}`;
-  const embedCode = isCollecting || isFloating
+  // Placement comes from the registry, so the snippet and its instructions can
+  // never describe a different widget type than the editor is showing.
+  const embedCode = typeMeta.placement === "head"
     ? `<script src="${scriptSrc}" data-token="${widget.publicToken}"></script>`
     : `<div id="why-widget-${widget.publicToken}"></div><script src="${scriptSrc}" data-token="${widget.publicToken}" data-mount="#why-widget-${widget.publicToken}"></script>`;
 
   const handleSave = async () => {
+    if (saveState === "saving") return; // no duplicate submissions
     setSaveState("saving");
-    const { widgetType, layout } = TYPE_TO_FIELDS[typeKey];
+    setSaveError(null);
+    const submitted = draft;
+    const { widgetType, layout } = TYPE_TO_FIELDS[submitted.typeKey];
     const fd = new FormData();
     fd.append("widgetId", widget.id);
-    fd.append("name", (name || "").trim() || "Untitled widget");
+    fd.append("name", (submitted.name || "").trim() || "Untitled widget");
     fd.append("widgetType", widgetType);
     fd.append("layout", layout);
-    fd.append("contentType", resolveContentType(typeKey, content));
-    fd.append("theme", dark ? "dark" : "light");
-    fd.append("primaryColor", accent);
-    fd.append("minRating", String(minRating));
-    fd.append("pageSize", String(pageSize));
-    fd.append("marqueeSpeed", marqueeSpeed);
-    if (isActive) fd.append("isActive", "on");
+    fd.append("contentType", resolveContentType(submitted.typeKey, submitted.content));
+    fd.append("theme", submitted.dark ? "dark" : "light");
+    fd.append("primaryColor", submitted.accent);
+    fd.append("minRating", String(submitted.minRating));
+    fd.append("pageSize", String(submitted.pageSize));
+    fd.append("marqueeSpeed", submitted.marqueeSpeed);
+    if (submitted.isActive) fd.append("isActive", "on");
     // Display toggles
-    if (showHeader) fd.append("showHeader", "on");
-    if (showAvgRating) fd.append("showAvgRating", "on");
-    if (showReviewCount) fd.append("showReviewCount", "on");
-    if (showRating) fd.append("showRating", "on");
-    if (showReviewerName) fd.append("showReviewerName", "on");
-    if (showDate) fd.append("showDate", "on");
-    if (showWriteReview) fd.append("showWriteReview", "on");
-    if (showSourceLogo) fd.append("showSourceLogo", "on");
-    if (showAiSummary) fd.append("showAiSummary", "on");
-    if (showResponses) fd.append("showResponses", "on");
-    if (showNav) fd.append("showNav", "on");
-    if (showPagination) fd.append("showPagination", "on");
-    if (showBranding) fd.append("showBranding", "on");
+    if (submitted.showHeader) fd.append("showHeader", "on");
+    if (submitted.showAvgRating) fd.append("showAvgRating", "on");
+    if (submitted.showReviewCount) fd.append("showReviewCount", "on");
+    if (submitted.showRating) fd.append("showRating", "on");
+    if (submitted.showReviewerName) fd.append("showReviewerName", "on");
+    if (submitted.showDate) fd.append("showDate", "on");
+    if (submitted.showWriteReview) fd.append("showWriteReview", "on");
+    if (submitted.showSourceLogo) fd.append("showSourceLogo", "on");
+    if (submitted.showAiSummary) fd.append("showAiSummary", "on");
+    if (submitted.showResponses) fd.append("showResponses", "on");
+    if (submitted.showNav) fd.append("showNav", "on");
+    if (submitted.showPagination) fd.append("showPagination", "on");
+    if (submitted.showBranding) fd.append("showBranding", "on");
     // Typography
-    fd.append("fontSizeBase", String(fontSizeBase));
-    fd.append("fontSizeNames", String(fontSizeNames));
-    fd.append("fontSizeHeader", String(fontSizeHeader));
-    fd.append("fontSizeLabel", String(fontSizeLabel));
-    fd.append("fontSizeSummary", String(fontSizeSummary));
-    fd.append("bodyMaxChars", String(bodyMaxChars));
+    fd.append("fontSizeBase", String(submitted.fontSizeBase));
+    fd.append("fontSizeNames", String(submitted.fontSizeNames));
+    fd.append("fontSizeHeader", String(submitted.fontSizeHeader));
+    fd.append("fontSizeLabel", String(submitted.fontSizeLabel));
+    fd.append("fontSizeSummary", String(submitted.fontSizeSummary));
+    fd.append("bodyMaxChars", String(submitted.bodyMaxChars));
 
     // Badge
-    fd.append("badgeStyle", badgeStyle);
+    fd.append("badgeStyle", submitted.badgeStyle);
     // Collecting (display frequency intentionally omitted)
-    fd.append("collectButtonPosition", collectPosition);
-    fd.append("collectButtonTheme", collectTheme);
-    fd.append("collectButtonColor", collectColorMode === "custom" ? collectColor : "");
-    fd.append("collectMobileBehavior", collectMobile);
+    fd.append("collectButtonPosition", submitted.collectPosition);
+    fd.append("collectButtonTheme", submitted.collectTheme);
+    fd.append("collectButtonColor", submitted.collectColorMode === "custom" ? submitted.collectColor : "");
+    fd.append("collectMobileBehavior", submitted.collectMobile);
     // Floating (display frequency intentionally omitted)
-    fd.append("floatingCardStyle", floatingCardStyle);
-    fd.append("floatingVariation", floatingVariation);
-    fd.append("floatingPosition", floatingPosition);
-    if (floatingRotation) fd.append("floatingRotationEnabled", "on");
-    fd.append("floatingRotationIntervalSec", String(floatingInterval));
-    fd.append("floatingAccentColorMode", floatingAccentMode);
-    fd.append("floatingAccentColor", floatingAccentMode === "custom" ? floatingAccentColor : "");
-    fd.append("floatingMobileBehavior", floatingMobile);
-    if (floatingApprovedOnly) fd.append("floatingApprovedOnly", "on");
-    fd.append("floatingMinRating", String(floatingMinRating));
+    fd.append("floatingCardStyle", submitted.floatingCardStyle);
+    fd.append("floatingVariation", submitted.floatingVariation);
+    fd.append("floatingPosition", submitted.floatingPosition);
+    if (submitted.floatingRotation) fd.append("floatingRotationEnabled", "on");
+    fd.append("floatingRotationIntervalSec", String(submitted.floatingInterval));
+    fd.append("floatingAccentColorMode", submitted.floatingAccentMode);
+    fd.append("floatingAccentColor", submitted.floatingAccentMode === "custom" ? submitted.floatingAccentColor : "");
+    fd.append("floatingMobileBehavior", submitted.floatingMobile);
+    if (submitted.floatingApprovedOnly) fd.append("floatingApprovedOnly", "on");
+    fd.append("floatingMinRating", String(submitted.floatingMinRating));
 
     // Appearance & style
-    fd.append("fontFamily", fontFamily);
-    fd.append("starColorMode", starColorMode);
-    fd.append("cornerRadius", String(cornerRadius));
-    fd.append("cardStyle", cardStyle);
-    fd.append("density", density);
-    fd.append("gridColumns", gridColumns);
-    fd.append("wallStyle", wallStyle);
-    fd.append("cardHeights", cardHeights);
-    // Sources: serialize Set back to CSV (empty string = all enabled)
-    const allEnabled = ALL_SOURCES.every((s) => enabledSourcesSet.has(s));
-    fd.append("enabledSources", allEnabled ? "" : Array.from(enabledSourcesSet).join(","));
+    fd.append("fontFamily", submitted.fontFamily);
+    fd.append("starColorMode", submitted.starColorMode);
+    fd.append("cornerRadius", String(submitted.cornerRadius));
+    fd.append("cardStyle", submitted.cardStyle);
+    fd.append("density", submitted.density);
+    fd.append("gridColumns", submitted.gridColumns);
+    fd.append("wallStyle", submitted.wallStyle);
+    fd.append("cardHeights", normalizeCardHeights(submitted.cardHeights));
+    // Sources: canonical CSV; empty string = every source enabled.
+    fd.append("enabledSources", serializeEnabledSources(submitted.enabledSources));
     // Single Testimonial review picker
-    fd.append("singleTestimonialReviewId", singleTestimonialReviewId ?? "");
+    fd.append("singleTestimonialReviewId", submitted.singleTestimonialReviewId ?? "");
     // Spotlight & Pins
-    fd.append("spotlightReviewId", spotlightReviewId ?? "");
-    fd.append("pinnedReviewIds", pinnedReviewIds.join(","));
-    fd.append("reviewHighlights", reviewHighlights.length > 0 ? JSON.stringify(reviewHighlights) : "");
+    fd.append("spotlightReviewId", submitted.spotlightReviewId ?? "");
+    fd.append("pinnedReviewIds", serializePinnedReviewIds(submitted.pinnedReviewIds));
+    fd.append("reviewHighlights", serializeReviewHighlights(submitted.reviewHighlights));
     // preserved-as-is fields the editor doesn't expose
     fd.append("sort", widget.sort);
     fd.append("headerAlign", widget.headerAlign);
     fd.append("starColor", widget.starColor);
     // Derive bg/text from the current dark toggle so dark mode is always saved correctly
-    fd.append("backgroundColor", dark ? "#17171b" : "#ffffff");
-    fd.append("textColor", dark ? "#f4f4f5" : "#18181b");
+    fd.append("backgroundColor", submitted.dark ? "#17171b" : "#ffffff");
+    fd.append("textColor", submitted.dark ? "#f4f4f5" : "#18181b");
+
+    // A successful save re-baselines the draft (so the button returns to
+    // "Saved") and refreshes the server-rendered config + public payload.
+    const onSaved = () => {
+      setSaved(submitted);
+      setIsNewDraft(false);
+      setSaveState("idle");
+      setSaveError(null);
+      // Invalidates the stats key, so the preview reloads from the freshly
+      // saved public config rather than the pre-save payload.
+      setPreviewNonce((n) => n + 1);
+      if (searchParams.get("new") === "1") router.replace(pathname);
+    };
 
     try {
       await updateReviewWidget(fd);
-      setSaveState("saved");
-      setIsNewDraft(false);
-      setIsDirty(false);
-      // Remove ?new=1 from URL without triggering a navigation
-      if (searchParams.get("new") === "1") {
-        router.replace(pathname);
-      }
-      setTimeout(() => setSaveState("idle"), 1600);
+      onSaved();
     } catch (e) {
+      // updateReviewWidget ends in redirect(), which Next surfaces as a thrown
+      // redirect error — that is the *success* path, not a failure.
       if (isRedirectError(e)) {
-        setSaveState("saved");
-        setIsNewDraft(false);
-        setIsDirty(false);
+        onSaved();
         return;
       }
+      // Failure keeps the draft intact and never claims the widget is saved.
       setSaveState("error");
+      setSaveError(e instanceof Error && e.message ? e.message : "Could not save. Check your connection and try again.");
     }
   };
 
@@ -633,14 +860,26 @@ export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [], aiS
           <p style={st({ fontSize: 13.5, color: "var(--ink-500)", marginTop: 6 })}>Design your review widget, then copy the embed code. Changes preview live.</p>
         </div>
         <div style={st({ display: "flex", alignItems: "center", gap: 10 })}>
-          {isDirty && saveState === "idle" && (
+          {/* Save controls: "Saved" appears only when the draft matches the
+              saved baseline; any semantic change shows "Save changes". */}
+          {isDirty && saveState !== "saving" && (
             <span style={st({ fontSize: 12, color: "var(--ink-400)", display: "flex", alignItems: "center", gap: 5 })}>
               <span style={st({ width: 7, height: 7, borderRadius: "50%", background: "#f59e0b", display: "inline-block", flexShrink: 0 })} />
               Unsaved changes
             </span>
           )}
-          <button type="button" className={`btn ${saveState === "saved" ? "btn-soft" : "btn-primary"}`} onClick={handleSave} disabled={saveState === "saving"}>
-            <Icon name="check" size={16} />{saveState === "saving" ? "Saving…" : saveState === "saved" ? "Saved" : "Save changes"}
+          {saveState === "error" && saveError && (
+            <span role="alert" style={st({ fontSize: 12, color: "var(--danger, #dc2626)", maxWidth: 260 })}>{saveError}</span>
+          )}
+          <button
+            type="button"
+            className={`btn ${!isDirty && saveState !== "error" ? "btn-soft" : "btn-primary"}`}
+            onClick={handleSave}
+            disabled={saveState === "saving" || (!isDirty && saveState !== "error")}
+            data-save-state={saveState === "saving" ? "saving" : saveState === "error" ? "error" : isDirty ? "dirty" : "saved"}
+          >
+            <Icon name="check" size={16} />
+            {saveState === "saving" ? "Saving…" : saveState === "error" ? "Retry save" : isDirty ? "Save changes" : "Saved"}
           </button>
         </div>
       </div>
@@ -950,18 +1189,12 @@ export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [], aiS
               <div className="hr" />
               <Field label="Sources">
                 <div style={st({ display: "flex", flexDirection: "column", gap: 11 })}>
-                  {ALL_SOURCES.map((src) => (
+                  {REVIEW_SOURCES.map((src) => (
                     <div key={src} style={st({ display: "flex", alignItems: "center", gap: 9 })}>
                       <span style={st({ fontSize: 13, color: "var(--ink-700)", flex: 1 })}>{SOURCE_LABELS[src]}</span>
                       <Toggle
-                        checked={enabledSourcesSet.has(src)}
-                        onChange={(v) => {
-                          setEnabledSourcesSet((prev) => {
-                            const next = new Set(prev);
-                            if (v) next.add(src); else next.delete(src);
-                            return next;
-                          });
-                        }}
+                        checked={enabledSources.includes(src)}
+                        onChange={(v) => toggleSource(src, v)}
                         label=""
                       />
                     </div>
@@ -1118,7 +1351,7 @@ export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [], aiS
                           .slice(0, 15)
                           .map((r) => (
                             <button key={r.id} type="button"
-                              onClick={() => setPinnedReviewIds((prev) => prev.length < 8 ? [...prev, r.id] : prev)}
+                              onClick={() => setPinnedReviewIds((prev) => prev.length < MAX_PINNED_REVIEWS ? [...prev, r.id] : prev)}
                               style={st({ textAlign: "left", borderRadius: 7, border: "1px solid var(--ink-200)", background: "var(--white)", padding: "7px 10px", cursor: "pointer", display: "flex", flexDirection: "column", gap: 3 })}>
                               <div style={st({ display: "flex", alignItems: "center", gap: 6 })}>
                                 <span style={st({ fontSize: 11, color: "#f59e0b" })}>{'★'.repeat(r.rating)}</span>
@@ -1129,8 +1362,8 @@ export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [], aiS
                             </button>
                           ))}
                       </div>
-                      {pinnedReviewIds.length >= 8 && (
-                        <p style={st({ fontSize: 11, color: "var(--ink-400)", margin: 0 })}>Maximum 8 pinned reviews</p>
+                      {pinnedReviewIds.length >= MAX_PINNED_REVIEWS && (
+                        <p style={st({ fontSize: 11, color: "var(--ink-400)", margin: 0 })}>Maximum {MAX_PINNED_REVIEWS} pinned reviews</p>
                       )}
                     </div>
                   </Field>
@@ -1240,10 +1473,16 @@ export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [], aiS
                         <div style={st({ fontSize: 14, color: dark ? "#a1a1aa" : "#52525b", marginTop: 8 })}>See what our community is saying.</div>
                       </div>
                     )}
+                    {/* Live mode: the preview resolves the *draft* config against
+                        this location's real reviews and videos with the same
+                        functions the public payload uses. No sample content. */}
                     <WidgetMockPreview
+                      dataMode="live"
+                      loading={previewLoading || locationSwitching}
                       settings={previewSettings}
-                      realReviews={realPayload?.reviews}
-                      locationStats={realPayload?.location ? { avgRating: realPayload.location.avgRating, reviewCount: realPayload.location.reviewCount } : undefined}
+                      realReviews={sortedAvailableReviews}
+                      realVideos={availableVideos}
+                      locationStats={locationStats ?? undefined}
                     />
                   </div>
                 </div>
@@ -1251,7 +1490,7 @@ export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [], aiS
             </div>
           </div>
 
-          <EmbedCode code={embedCode} hint={isCollecting || isFloating ? "Add to global <head>" : "Paste where you want it to appear"} />
+          <EmbedCode code={embedCode} hint={typeMeta.placementHint} />
         </div>
       </div>
     </div>

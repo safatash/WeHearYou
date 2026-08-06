@@ -3,21 +3,40 @@ import { ReviewSource, ReviewStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireOrganizationAccess } from "@/lib/authz";
 import { resolveEmbedRenderKind, isKnownWidgetType, normalizeMarqueeSpeed, type EmbedRenderKind } from "@/lib/widget-embed";
+import {
+  normalizeCardHeights,
+  normalizeContentMode,
+  contentModeToStored,
+  contentModeIncludesVideos,
+  normalizeEnabledSources,
+  serializeEnabledSources,
+  resolvePublicOwnerResponse,
+  parsePinnedReviewIds,
+  serializePinnedReviewIds,
+  parseReviewHighlights,
+  serializeReviewHighlights,
+  resolveWallItems,
+  resolveWallEmptyState,
+  setInvalidWidgetValueReporter,
+  type WallEmptyState,
+} from "@/lib/widget-config";
+
+// Malformed persisted config must be observable rather than silently changing
+// meaning. Registered once at module load; the shared module falls back safely
+// on its own.
+setInvalidWidgetValueReporter((info) => {
+  console.warn(
+    `[widget-config] Invalid ${info.field} value ${JSON.stringify(info.received)} — falling back to ${info.fallback}.`,
+  );
+});
 
 // ─── Source filter helper ─────────────────────────────────────────────────────
-// Parses the widget's enabledSources CSV (e.g. "GOOGLE,FACEBOOK,INTERNAL") into
-// a Prisma-ready ReviewSource array. Empty string = historical default set
-// (Google + Internal + Facebook). Yelp is only included when explicitly listed.
-const ALL_REVIEW_SOURCES = [ReviewSource.GOOGLE, ReviewSource.FACEBOOK, ReviewSource.YELP, ReviewSource.INTERNAL] as const;
-const DEFAULT_SOURCES = [ReviewSource.GOOGLE, ReviewSource.FACEBOOK, ReviewSource.INTERNAL] as ReviewSource[];
+// Turns the widget's canonical enabled-source list into a Prisma-ready
+// ReviewSource array. Parsing/normalization lives in @/lib/widget-config so the
+// editor preview, this API and the embed all agree on what the CSV means.
+const DEFAULT_SOURCES = [ReviewSource.GOOGLE, ReviewSource.FACEBOOK, ReviewSource.YELP, ReviewSource.INTERNAL] as ReviewSource[];
 function resolveEnabledSources(enabledSourcesCsv: string | null | undefined): ReviewSource[] {
-  const csv = (enabledSourcesCsv ?? "").trim();
-  if (!csv) return DEFAULT_SOURCES;
-  const parsed = csv
-    .split(",")
-    .map((s) => s.trim().toUpperCase())
-    .filter((s): s is ReviewSource => (ALL_REVIEW_SOURCES as readonly string[]).includes(s));
-  return parsed.length > 0 ? parsed : DEFAULT_SOURCES;
+  return normalizeEnabledSources(enabledSourcesCsv) as unknown as ReviewSource[];
 }
 
 export type PublicWidgetReview = {
@@ -128,7 +147,20 @@ export type PublicWidgetPayload = {
   };
   videoTestimonials?: PublicWidgetVideoTestimonial[];
   singleItemUnavailable?: boolean;
+  /**
+   * The wall's cards, already filtered, ordered, interleaved and capped by
+   * `resolveWallItems`. The embed renders this list verbatim so it never has to
+   * re-derive configuration semantics (source filters, pinning, MIXED
+   * interleaving, content caps) that could drift from the editor.
+   */
+  items?: PublicWidgetItem[];
+  /** Present only when `items` is empty; tells the embed which empty state to draw. */
+  emptyState?: WallEmptyState | null;
 };
+
+export type PublicWidgetItem =
+  | { type: "review"; id: string; pinned: boolean; spotlight: boolean; data: PublicWidgetReview }
+  | { type: "video"; id: string; pinned: false; spotlight: false; data: PublicWidgetVideoTestimonial };
 
 export type ReviewWidgetHealth = {
   reviewCount: number;
@@ -280,7 +312,7 @@ export async function getPublicReviewWidgetPayload(publicToken: string, page = 1
     marqueeSpeed: normalizeMarqueeSpeed(widget.marqueeSpeed),
     theme: widget.theme,
     pageSize: ps,
-    contentType: widget.contentType,
+    contentType: contentModeToStored(normalizeContentMode(widget.contentType)),
     widgetType: widget.widgetType ?? null,
     badgeStyle: widget.badgeStyle ?? null,
     showHeader: widget.showHeader,
@@ -309,12 +341,14 @@ export async function getPublicReviewWidgetPayload(publicToken: string, page = 1
     density: (widget as { density?: string }).density ?? "cozy",
     gridColumns: (widget as { gridColumns?: string }).gridColumns ?? "auto",
     wallStyle: (widget as { wallStyle?: string }).wallStyle ?? "varied",
-    cardHeights: (widget as { cardHeights?: string }).cardHeights ?? "equal",
-    enabledSources: (widget as { enabledSources?: string }).enabledSources ?? "",
+    // Runtime-validated: an unknown persisted value falls back to the documented
+    // default and is logged rather than silently inverting meaning.
+    cardHeights: normalizeCardHeights(widget.cardHeights),
+    enabledSources: serializeEnabledSources(normalizeEnabledSources(widget.enabledSources)),
     // Spotlight & Pins
-    spotlightReviewId: (widget as { spotlightReviewId?: string | null }).spotlightReviewId ?? null,
-    pinnedReviewIds: (widget as { pinnedReviewIds?: string }).pinnedReviewIds ?? "",
-    reviewHighlights: (widget as { reviewHighlights?: string }).reviewHighlights ?? "",
+    spotlightReviewId: widget.spotlightReviewId ?? null,
+    pinnedReviewIds: serializePinnedReviewIds(parsePinnedReviewIds(widget.pinnedReviewIds)),
+    reviewHighlights: serializeReviewHighlights(parseReviewHighlights(widget.reviewHighlights)),
     fontSizeBase: widget.fontSizeBase ?? 14,
     fontSizeNames: widget.fontSizeNames ?? 13,
     fontSizeHeader: widget.fontSizeHeader ?? 20,
@@ -341,7 +375,10 @@ export async function getPublicReviewWidgetPayload(publicToken: string, page = 1
   const buildLocationObj = (reviewCount: number) => ({
     name: widget.location.name,
     slug: widget.location.slug,
-    avgRating: widget.location.avgRating ?? null,
+    // A score describes reviews. With nothing eligible to show, publishing the
+    // location's stored average would put a rating on a widget that displays no
+    // reviews to back it up.
+    avgRating: reviewCount > 0 ? (widget.location.avgRating ?? null) : null,
     reviewCount,
     reviewLink: widget.location.reviewLink ?? null,
     aiReviewSummary: (widget.location.publicProfile?.showAiReviewSummary && widget.showAiSummary)
@@ -465,9 +502,7 @@ export async function getPublicReviewWidgetPayload(publicToken: string, page = 1
         reviewerName: r.reviewerName,
         reviewerPhotoUrl: r.reviewerPhotoUrl ?? null,
         sourceReviewUrl: r.sourceReviewUrl ?? null,
-        sourceReplyText: r.source === ReviewSource.INTERNAL
-          ? (r.replyPublishedAt ? r.replyDraft : null)
-          : (r.sourceReplyText ?? ((r.replyPublishedAt || r.replySentAt) ? r.replyDraft : null) ?? null),
+        sourceReplyText: resolvePublicOwnerResponse(r, widget.showResponses),
         rating: r.rating ?? 5,
         body: r.body,
         reviewedAt: r.reviewedAt ? r.reviewedAt.toISOString() : null,
@@ -478,9 +513,22 @@ export async function getPublicReviewWidgetPayload(publicToken: string, page = 1
   }
 
   // ── Normal Wall of Love / Badge flow ─────────────────────────────────────
+  //
+  // The database narrows the candidate set (location, enabled sources, minimum
+  // rating, page window). Everything that decides *what the visitor actually
+  // sees* — pin/spotlight ordering, MIXED interleaving, the content cap and the
+  // empty state — is delegated to `resolveWallItems` / `resolveWallEmptyState`
+  // in @/lib/widget-config, which the editor preview calls with the same
+  // arguments. That is what keeps preview and embed in agreement.
   const safePage = Number.isFinite(page) && page > 0 ? Math.floor(page) : 1;
   const pageSize = Math.max(1, Math.min(widget.pageSize, 50));
   const skip = (safePage - 1) * pageSize;
+  const isFirstPage = safePage === 1;
+
+  const contentMode = normalizeContentMode(widget.contentType);
+  const enabledSources = normalizeEnabledSources(widget.enabledSources);
+  const pinnedIds = parsePinnedReviewIds(widget.pinnedReviewIds);
+  const spotlightId = widget.spotlightReviewId ?? null;
 
   const where = {
     locationId: widget.locationId,
@@ -491,15 +539,10 @@ export async function getPublicReviewWidgetPayload(publicToken: string, page = 1
     },
   };
 
-  // Parse pinned review IDs (CSV) — only relevant on page 1
-  const widgetWithPins = widget as { pinnedReviewIds?: string; spotlightReviewId?: string | null };
-  const pinnedIds = (widgetWithPins.pinnedReviewIds ?? "")
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
-  const spotlightId = widgetWithPins.spotlightReviewId ?? null;
-
-  // Collect all IDs that need to be fetched separately (pinned + spotlight)
+  // Pinned/spotlight reviews are fetched by id so they are present even when
+  // they fall outside the page window. Eligibility (source / minimum rating) is
+  // still applied by the resolver, so a pin the current filters exclude is
+  // dropped rather than smuggled back in.
   const priorityIds = Array.from(new Set([...(spotlightId ? [spotlightId] : []), ...pinnedIds]));
 
   const reviewSelect = {
@@ -517,59 +560,53 @@ export async function getPublicReviewWidgetPayload(publicToken: string, page = 1
     source: true,
   };
 
-  // Fetch priority reviews (spotlight + pinned) separately so they're always included
-  const priorityReviews = priorityIds.length > 0 && safePage === 1
+  const priorityReviews = priorityIds.length > 0 && isFirstPage
     ? await prisma.review.findMany({
         where: { id: { in: priorityIds }, status: ReviewStatus.PUBLISHED },
         select: reviewSelect,
       })
     : [];
-  const priorityIdSet = new Set(priorityReviews.map((r) => r.id));
 
   const [reviews, total] = await Promise.all([
     prisma.review.findMany({
       where: { ...where, id: { notIn: priorityIds.length > 0 ? priorityIds : undefined } },
       orderBy: buildOrderBy(widget.sort),
-      skip: safePage === 1 ? 0 : skip - priorityIds.length,
-      take: safePage === 1 ? Math.max(1, pageSize - priorityReviews.length) : pageSize,
+      skip: isFirstPage ? 0 : Math.max(0, skip - priorityIds.length),
+      take: pageSize,
       select: reviewSelect,
     }),
     prisma.review.count({ where }),
   ]);
 
-  // On page 1: scatter pinned reviews into the list at semi-random positions
-  // Spotlight always goes first; pinned reviews are inserted at deterministic
-  // but spread-out positions so they don't all cluster at the top.
-  const buildReviewList = () => {
-    if (priorityReviews.length === 0) return reviews;
-    const spotlight = spotlightId ? priorityReviews.find((r) => r.id === spotlightId) : null;
-    const pinned = pinnedIds
-      .map((id) => priorityReviews.find((r) => r.id === id))
-      .filter((r): r is NonNullable<typeof r> => r !== undefined && r.id !== spotlightId);
-    const rest = reviews.filter((r) => !priorityIdSet.has(r.id));
-    // Insert pinned reviews at evenly-spaced positions throughout the rest list
-    const result = [...rest];
-    const step = Math.max(1, Math.floor(result.length / (pinned.length + 1)));
-    pinned.forEach((r, i) => {
-      const pos = Math.min(step * (i + 1), result.length);
-      result.splice(pos, 0, r);
-    });
-    // Spotlight goes at position 0
-    if (spotlight) result.unshift(spotlight);
-    return result;
-  };
+  const toPublicReview = (review: (typeof reviews)[number]): PublicWidgetReview => ({
+    id: review.id,
+    reviewerName: review.reviewerName,
+    reviewerPhotoUrl: review.reviewerPhotoUrl ?? null,
+    sourceReviewUrl: review.sourceReviewUrl ?? null,
+    // Owner responses: unpublished admin drafts stay private, and with the
+    // toggle off the text is omitted from the payload rather than hidden in CSS.
+    sourceReplyText: resolvePublicOwnerResponse(review, widget.showResponses),
+    rating: review.rating ?? 0,
+    body: review.body,
+    reviewedAt: review.reviewedAt ? review.reviewedAt.toISOString() : null,
+    source: review.source as string,
+  });
 
-  const mergedReviews = safePage === 1 ? buildReviewList() : reviews;
+  // Priority rows first so `resolveWallItems` can find them; it de-duplicates.
+  const candidateReviews = [...priorityReviews, ...reviews].map(toPublicReview);
 
+  // Videos are page-1 only — they are not paginated, so re-emitting them on
+  // "Load more" would duplicate every card.
   const videoTestimonials: PublicWidgetVideoTestimonial[] = [];
-  if (widget.contentType === "VIDEO" || widget.contentType === "MIXED") {
+  if (contentModeIncludesVideos(contentMode) && isFirstPage) {
     const vts = await prisma.videoTestimonial.findMany({
       where: {
         locationId: widget.locationId,
         status: "APPROVED",
         videoUrl: { not: null },
       },
-      orderBy: { publishedAt: "desc" },
+      orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
+      take: pageSize,
       select: {
         id: true,
         submitterName: true,
@@ -601,22 +638,35 @@ export async function getPublicReviewWidgetPayload(publicToken: string, page = 1
     );
   }
 
+  const resolutionConfig = {
+    contentMode,
+    enabledSources,
+    minRating: widget.minRating,
+    pageSize,
+    pinnedReviewIds: pinnedIds,
+    spotlightReviewId: spotlightId,
+    applyPriority: isFirstPage,
+  };
+
+  const items = resolveWallItems(
+    candidateReviews as unknown as Parameters<typeof resolveWallItems>[0],
+    videoTestimonials as unknown as Parameters<typeof resolveWallItems>[1],
+    resolutionConfig,
+  ) as unknown as PublicWidgetItem[];
+
+  const emptyState = resolveWallEmptyState(items.length, resolutionConfig);
+  const renderedReviews = items
+    .filter((i): i is Extract<PublicWidgetItem, { type: "review" }> => i.type === "review")
+    .map((i) => i.data);
+
   return {
     widget: buildWidgetObj(pageSize),
     location: buildLocationObj(total),
-    reviews: mergedReviews.map((review) => ({
-      id: review.id,
-      reviewerName: review.reviewerName,
-      reviewerPhotoUrl: review.reviewerPhotoUrl ?? null,
-      sourceReviewUrl: review.sourceReviewUrl ?? null,
-      sourceReplyText: review.source === ReviewSource.INTERNAL
-        ? (review.replyPublishedAt ? review.replyDraft : null)
-        : (review.sourceReplyText ?? ((review.replyPublishedAt || review.replySentAt) ? review.replyDraft : null) ?? null),
-      rating: review.rating ?? 0,
-      body: review.body,
-      reviewedAt: review.reviewedAt ? review.reviewedAt.toISOString() : null,
-      source: review.source as string,
-    })),
+    // `reviews` stays for compatibility with existing consumers; `items` is what
+    // the embed renders.
+    reviews: renderedReviews,
+    items,
+    emptyState,
     pagination: {
       page: safePage,
       pageSize,
@@ -710,6 +760,9 @@ export async function getWidgetPickerData(locationId: string) {
     prisma.review.findMany({
       where: {
         locationId,
+        // Every supported source: the editor applies its own source filter to
+        // this raw feed, so pre-filtering here would make a toggled-off source
+        // impossible to turn back on in the preview.
         source: { in: DEFAULT_SOURCES },
         status: ReviewStatus.PUBLISHED,
       },

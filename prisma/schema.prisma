@@ -745,7 +745,18 @@ model ReviewWidget {
   density          String       @default("cozy")    // "cozy" | "compact"
   gridColumns      String       @default("auto")    // "auto" | "2" | "3"
   wallStyle        String       @default("varied")  // "varied" | "uniform"
-  enabledSources   String       @default("")         // CSV of GOOGLE,FACEBOOK,YELP,TRUSTPILOT; "" = all
+  // "natural" = content-driven card heights (masonry); "equal" = equal heights
+  // per row. Descriptive values only — see src/lib/widget-config.ts. Default is
+  // "equal" because that is what every widget rendered as before this column
+  // existed.
+  cardHeights      String       @default("equal")   // "natural" | "equal"
+  enabledSources   String       @default("")         // CSV of GOOGLE,FACEBOOK,YELP,INTERNAL; "" = all
+
+  // Spotlight & pins (Wall of Love). Ordering semantics live in
+  // src/lib/widget-config.ts#resolveWallItems.
+  spotlightReviewId String?                          // single featured Review.id
+  pinnedReviewIds   String      @default("")         // CSV of Review.id, admin pin order preserved
+  reviewHighlights  String      @default("")         // JSON [{reviewId, quote}]
   showBranding     Boolean      @default(true)
   collectTitle     String?
   collectSubtitle  String?

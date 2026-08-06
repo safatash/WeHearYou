@@ -8,6 +8,15 @@ import { generateReviewWidgetToken } from "@/lib/review-widgets";
 import { getCurrentMembership, requireOrganizationAccess } from "@/lib/authz";
 import { generateAiReviewSummary } from "@/lib/ai-summary";
 import { limitReached } from "@/lib/plan-features";
+import {
+  normalizeCardHeights,
+  normalizeEnabledSources,
+  serializeEnabledSources,
+  parsePinnedReviewIds,
+  serializePinnedReviewIds,
+  parseReviewHighlights,
+  serializeReviewHighlights,
+} from "@/lib/widget-config";
 
 const WIDGET_LIMIT_FLASH = "You've reached your plan's widget limit. Upgrade to add more.";
 
@@ -239,7 +248,10 @@ export async function updateReviewWidget(formData: FormData) {
   const allowedWidgetTypes = new Set(["WALL_OF_LOVE", "SINGLE_TESTIMONIAL", "BADGE", "COLLECTING", "FLOATING"]);
   const allowedBadgeStyles = new Set(["rating", "compact", "review_cta", "trust"]);
   const allowedAligns = new Set(["left", "center"]);
-  const allowedFonts = new Set(["system", "sans", "serif"]);
+  // Must match the fonts the studio offers and the embed's fontStack() supports
+  // — a font the editor lets you pick but the action silently rewrites to
+  // "system" is the same class of editor/embed disagreement as cardHeights was.
+  const allowedFonts = new Set(["system", "sans", "serif", "round", "mono"]);
   const allowedDisplayFreqs = new Set(["always", "50pct", "33pct"]);
   const allowedButtonThemes = new Set(["default", "minimal", "branded"]);
   const allowedMobileBehaviors = new Set(["pill", "hidden"]);
@@ -377,12 +389,14 @@ export async function updateReviewWidget(formData: FormData) {
       density: ["cozy", "compact"].includes(rawDensity) ? rawDensity : "cozy",
       gridColumns: ["auto", "2", "3"].includes(rawGridColumns) ? rawGridColumns : "auto",
       wallStyle: ["varied", "uniform"].includes(rawWallStyle) ? rawWallStyle : "varied",
-      // cardHeights: ["equal", "natural"].includes(rawCardHeights) ? rawCardHeights : "equal", // field not in schema
-      enabledSources: rawEnabledSources, // empty string = all sources enabled
-      // Spotlight & Pins (using singleTestimonialReviewId instead)
-      // spotlightReviewId: rawSpotlightReviewId, // field not in schema
-      // pinnedReviewIds: rawPinnedReviewIds, // field not in schema
-      // reviewHighlights: rawReviewHighlights, // field not in schema
+      cardHeights: normalizeCardHeights(rawCardHeights),
+      // Canonicalised so a set toggled in a different order serializes
+      // identically and cannot produce a false dirty state on reload.
+      enabledSources: serializeEnabledSources(normalizeEnabledSources(rawEnabledSources)),
+      // Spotlight & Pins
+      spotlightReviewId: rawSpotlightReviewId,
+      pinnedReviewIds: serializePinnedReviewIds(parsePinnedReviewIds(rawPinnedReviewIds)),
+      reviewHighlights: serializeReviewHighlights(parseReviewHighlights(rawReviewHighlights)),
       fontSizeBase: Math.max(11, Math.min(18, fontSizeBase)),
       fontSizeNames: Math.max(10, Math.min(16, fontSizeNames)),
       fontSizeHeader: Math.max(14, Math.min(28, fontSizeHeader)),
