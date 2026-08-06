@@ -108,14 +108,14 @@ export default async function WidgetDetailPage({
       density: widget.density,
       gridColumns: widget.gridColumns,
       wallStyle: widget.wallStyle,
-      cardHeights: (widget as { cardHeights?: string }).cardHeights ?? "auto",
+      cardHeights: widget.cardHeights,
       enabledSources: widget.enabledSources,
       // Single Testimonial
-      singleTestimonialReviewId: (widget as { singleTestimonialReviewId?: string | null }).singleTestimonialReviewId ?? null,
+      singleTestimonialReviewId: widget.singleTestimonialReviewId ?? null,
       // Spotlight & Pins
-      spotlightReviewId: (widget as { spotlightReviewId?: string | null }).spotlightReviewId ?? null,
-      pinnedReviewIds: (widget as { pinnedReviewIds?: string }).pinnedReviewIds ?? "",
-      reviewHighlights: (widget as { reviewHighlights?: string }).reviewHighlights ?? "",
+      spotlightReviewId: widget.spotlightReviewId,
+      pinnedReviewIds: widget.pinnedReviewIds,
+      reviewHighlights: widget.reviewHighlights,
       showAvgRating: widget.showAvgRating,
       showReviewCount: widget.showReviewCount,
       showResponses: widget.showResponses,
@@ -144,7 +144,20 @@ export default async function WidgetDetailPage({
     }));
     return (
       <AppShell activeScreen="widgets" flash={flash ? { message: flash, tone } : null}>
-        <WidgetStudioEditor widget={studioWidget} embedScriptUrl={embedScriptUrl} locations={locationOptions} aiSummaryText={aiSummaryText} aiSummaryCount={aiSummaryCount} availableReviews={availableReviews} />
+        {/* key: switching location routes to a different widget id on the same
+            route segment. Without a key React would keep the editor instance
+            alive and its state initialisers would never re-run, leaving the
+            previous location's settings and reviews on screen. */}
+        <WidgetStudioEditor
+          key={widget.id}
+          widget={studioWidget}
+          embedScriptUrl={embedScriptUrl}
+          locations={locationOptions}
+          aiSummaryText={aiSummaryText}
+          aiSummaryCount={aiSummaryCount}
+          availableReviews={availableReviews}
+          availableVideos={pickerData.videos}
+        />
       </AppShell>
     );
   }

@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Icon, type IconName } from "@/components/icon";
 import { WidgetMockPreview, mapWidgetToPreviewSettings } from "@/components/widget-mock-preview";
+import { WIDGET_TYPE_REGISTRY, resolveWidgetTypeMeta } from "@/lib/widget-config";
 import {
   createDraftReviewWidget,
   deleteReviewWidget,
@@ -29,33 +30,29 @@ export type IndexWidget = {
   showReviewerName: boolean;
   showSourceLogo: boolean;
   isActive: boolean;
+  // Appearance settings the thumbnail renders with (over sample content).
+  enabledSources: string;
+  cardHeights: string;
+  gridColumns: string;
+  wallStyle: string;
   reviewCount: number;
   updatedAt: string;
   locationName: string;
 };
 
-// type id -> label + icon (mirrors the mock's WIDGET_TYPES)
-const TYPE_META: Record<string, { label: string; icon: IconName }> = {
-  grid: { label: "Wall of Love", icon: "grid" },
-  carousel: { label: "Review carousel", icon: "layers" },
-  single: { label: "Single testimonial", icon: "film" },
-  badge: { label: "Rating badge", icon: "star" },
-  floating: { label: "Floating badge", icon: "chat" },
-  cta: { label: "Collect reviews", icon: "send" },
-};
+// Labels, icons and placement guidance come from the single typed registry in
+// @/lib/widget-config, keyed by the canonical saved widgetType. A local map
+// keyed on something else is exactly how a Collect reviews widget ended up
+// reading as "Wall of Love".
 
-const TYPE_HINTS: Array<{ label: string; icon: IconName }> = [
-  { label: "Wall of Love", icon: "grid" },
-  { label: "Review carousel", icon: "layers" },
-  { label: "Single testimonial", icon: "film" },
-  { label: "Rating badge", icon: "star" },
-  { label: "Floating badge", icon: "chat" },
-  { label: "Collect reviews", icon: "send" },
-];
+const TYPE_HINTS: Array<{ label: string; icon: IconName }> = Object.values(WIDGET_TYPE_REGISTRY).map((m) => ({
+  label: m.label,
+  icon: m.icon as IconName,
+}));
 
 
-function previewType(w: IndexWidget): string {
-  return (mapWidgetToPreviewSettings(w).type as string) || "grid";
+function widgetMeta(w: IndexWidget) {
+  return resolveWidgetTypeMeta(w.widgetType, w.layout);
 }
 
 function fmtDate(iso: string): string {
@@ -99,7 +96,7 @@ function WidgetCard({
     return () => document.removeEventListener("mousedown", h);
   }, []);
 
-  const meta = TYPE_META[previewType(w)] || TYPE_META.grid;
+  const meta = widgetMeta(w);
   const accent = w.primaryColor || "#4f46e5";
   const showCheckbox = hovered || selected;
 
@@ -158,7 +155,7 @@ function WidgetCard({
       <div style={st({ padding: 16, display: "flex", flexDirection: "column", gap: 12, flex: 1 })}>
         <div style={st({ display: "flex", alignItems: "flex-start", gap: 10 })}>
           <span style={st({ width: 34, height: 34, borderRadius: 9, flex: "none", display: "grid", placeItems: "center", background: "var(--accent-soft)", color: "var(--accent-strong)" })}>
-            <Icon name={meta.icon} size={17} />
+            <Icon name={meta.icon as IconName} size={17} />
           </span>
           <div style={st({ minWidth: 0, flex: 1 })}>
             <div style={st({ fontSize: 14.5, fontWeight: 640, letterSpacing: "-.01em", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", color: "var(--ink-900)" })}>{w.name}</div>

@@ -83,6 +83,14 @@ const script = `
       ".why-widget-slider-btn{border:1px solid rgba(0,0,0,.1);background:#fff;border-radius:999px;width:28px;height:28px;cursor:pointer;font-weight:700}" +
       ".why-widget-slider-btn[disabled]{opacity:.4;cursor:not-allowed}" +
       ".why-widget-card{display:flex;flex-direction:column;gap:8px;height:100%}" +
+      // Pinned emphasis: a positional change alone is easy to miss, so pinned
+      // cards also carry a visible marker.
+      ".why-widget-card-pinned{position:relative;box-shadow:inset 0 0 0 1.5px currentColor}" +
+      ".why-widget-card-pinned::before{content:'Pinned';position:absolute;top:8px;right:8px;font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;opacity:.55;pointer-events:none}" +
+      // Explicit empty state — never a blank frame, never substituted content.
+      ".why-widget-empty{padding:28px 16px;text-align:center;opacity:.75}" +
+      ".why-widget-empty-title{font-size:15px;font-weight:600;margin-bottom:4px}" +
+      ".why-widget-empty-message{font-size:13px;line-height:1.5;opacity:.8}" +
       ".why-widget-stars{font-size:14px}" +
       ".why-widget-reviewer{display:flex;align-items:center;gap:10px}" +
       ".why-widget-avatar{width:32px;height:32px;border-radius:999px;object-fit:cover;background:#e2e8f0}" +
@@ -1082,17 +1090,13 @@ const script = `
           return;
         }
 
-        var items = [];
-        if (data.widget.contentType === "VIDEO") {
-          var vts = data.videoTestimonials || [];
-          items = vts.map(function (vt) { return { type: "video", data: vt, date: vt.publishedAt || "" }; });
-        } else if (data.widget.contentType === "MIXED") {
-          var reviewItems = (data.reviews || []).map(function (r) { return { type: "review", data: r, date: r.reviewedAt || "" }; });
-          var vtItems = (data.videoTestimonials || []).map(function (vt) { return { type: "video", data: vt, date: vt.publishedAt || "" }; });
-          items = reviewItems.concat(vtItems).sort(function (a, b) { return b.date < a.date ? -1 : b.date > a.date ? 1 : 0; });
-        } else {
-          items = (data.reviews || []).map(function (r) { return { type: "review", data: r, date: r.reviewedAt || "" }; });
-        }
+        // The payload's items[] are already filtered by source and minimum
+        // rating, ordered (spotlight → pins → rest), interleaved for MIXED and
+        // capped to the page size by resolveWallItems() in
+        // src/lib/widget-config.ts — the same function the editor preview uses.
+        // The embed renders them verbatim so it cannot disagree with the editor
+        // about what a setting means.
+        var items = data.items || [];
 
         if (nextPage === 1) {
           // Badge: render once and bail — no pagination needed.
@@ -1206,24 +1210,36 @@ const script = `
           brandingContainer = mount.querySelector(".why-widget-branding-wrap");
         }
 
-        if (container) {
-          // Filter items by enabledSources if set
-          var enabledSrcList = (data.widget.enabledSources || "").split(",").map(function(s) { return s.trim().toUpperCase(); }).filter(Boolean);
-          var filteredItems = enabledSrcList.length > 0
-            ? items.filter(function(item) { return !item.data || !item.data.source || enabledSrcList.indexOf(item.data.source.toUpperCase()) !== -1; })
-            : items;
+        // Zero eligible cards is an intentional, explicit state — never a blank
+        // frame and never a fallback to other content. The category is decided
+        // server-side by resolveWallEmptyState() so the editor preview shows
+        // the same one.
+        if (nextPage === 1 && container && items.length === 0) {
+          var es = data.emptyState || { title: "No reviews yet", message: "Reviews for this location will appear here once they are published." };
+          container.style.display = "block";
+          container.style.columns = "";
+          container.style.gridTemplateColumns = "";
+          container.innerHTML =
+            '<div class="why-widget-empty" data-empty-category="' + escapeHtml(data.emptyState ? data.emptyState.category : "no_content") + '">' +
+              '<div class="why-widget-empty-title">' + escapeHtml(es.title) + '</div>' +
+              '<div class="why-widget-empty-message">' + escapeHtml(es.message) + '</div>' +
+            '</div>';
+        }
+
+        if (container && items.length > 0) {
+          // Source filtering, pinning and the content cap are already applied
+          // server-side; items[] is the final render list.
+          var filteredItems = items;
           var isVaried = data.widget.wallStyle === "varied" || !data.widget.wallStyle;
           var accentColor = data.widget.primaryColor || "#4338ca";
           var serif = "'Instrument Serif', Georgia, serif";
           var nonFeaturedReviewCount = 0;
 
-          // Spotlight: use admin-selected review ID if set; otherwise fall back to first review in varied layout
-          var spotlightId = data.widget.spotlightReviewId || null;
+          // The resolver marks the spotlight card; fall back to the first review
+          // in varied layout when no spotlight is configured.
           var featuredIdx = (function() {
-            if (spotlightId) {
-              var idx = filteredItems.findIndex(function(it) { return it.type !== "video" && it.data && it.data.id === spotlightId; });
-              if (idx !== -1) return idx;
-            }
+            var marked = filteredItems.findIndex(function(it) { return it.type !== "video" && it.spotlight === true; });
+            if (marked !== -1) return marked;
             return isVaried ? filteredItems.findIndex(function(it) { return it.type !== "video"; }) : -1;
           })();
 
@@ -1257,7 +1273,7 @@ const script = `
             '</div>';
           }
 
-          var cardsHtml = filteredItems.map(function (item, idx) {
+          function renderWallCard(item, idx) {
             if (item.type === "video") return renderVideoCard(item.data);
             var isSpotlight = idx === featuredIdx;
             var isGridLayout = data.widget.layout === "grid" || data.widget.layout === "masonry" || data.widget.layout === "mixed-masonry";
@@ -1347,7 +1363,20 @@ const script = `
               return html;
             }
             return renderCard(item.data, data.widget);
+          }
+
+          // Pinned reviews are ordered ahead of the non-pinned cards by
+          // resolveWallItems and are additionally marked here, so a pin is
+          // visible even when the card would have been near the top anyway.
+          var cardsHtml = filteredItems.map(function (item, idx) {
+            var html = renderWallCard(item, idx);
+            if (!item.pinned) return html;
+            return html.replace(
+              'class="why-widget-card"',
+              'class="why-widget-card why-widget-card-pinned" data-pinned="1"'
+            );
           }).join("");
+
           if (data.widget.layout === "slider") {
             container.insertAdjacentHTML("beforeend", filteredItems.map(function (item) {
               var cardHtml = item.type === "video" ? renderVideoCard(item.data) : renderCard(item.data, data.widget);
@@ -1380,7 +1409,7 @@ const script = `
         // Build footer structure: Load more (footerActions) → Write a review (writeReviewContainer) → Powered by (brandingContainer)
         if (nextPage === 1 && footerActions) {
           // Add the Load more button (skip for slider, carousel, VIDEO, and MIXED)
-          if (!loadMoreButton && data.widget.layout !== "slider" && data.widget.layout !== "carousel" && data.widget.layout !== "video" && data.widget.contentType !== "VIDEO" && data.widget.contentType !== "MIXED") {
+          if (!loadMoreButton && items.length > 0 && data.pagination.hasMore && data.widget.layout !== "slider" && data.widget.layout !== "carousel" && data.widget.layout !== "video" && data.widget.contentType !== "VIDEO" && data.widget.contentType !== "MIXED") {
             loadMoreButton = document.createElement("button");
             loadMoreButton.type = "button";
             loadMoreButton.className = "why-widget-button";

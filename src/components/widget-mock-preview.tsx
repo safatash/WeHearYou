@@ -7,6 +7,18 @@
 
 import React from "react";
 import { Icon } from "@/components/icon";
+import {
+  REVIEW_SOURCES,
+  normalizeCardHeights,
+  normalizeContentMode,
+  normalizeEnabledSources,
+  parsePinnedReviewIds,
+  resolveWidgetTypeMeta,
+  resolveWallItems,
+  resolveWallEmptyState,
+  type WallReview,
+  type WallVideo,
+} from "@/lib/widget-config";
 
 const st = (s: React.CSSProperties): React.CSSProperties => s;
 
@@ -20,7 +32,10 @@ export type PreviewSettings = {
   aiSummary: boolean;
   aiSummaryText: string | null;
   aiSummaryCount: number | null;
+  /** @deprecated Legacy display-name keyed map. Use `enabledSources`. */
   sources: Record<string, boolean>;
+  /** Canonical enabled platforms, e.g. ["GOOGLE","YELP"]. Empty array = all. */
+  enabledSources: string[];
   minRating: number;
   maxReviews: number;
   marqueeSpeed: string;
@@ -52,6 +67,8 @@ export type PreviewSettings = {
   bodyMaxChars: number;
   // Spotlight & Pins
   spotlightReviewId?: string;
+  /** Ordered, canonical review IDs the admin pinned. */
+  pinnedReviewIds?: string[];
   reviewHighlights?: Array<{ reviewId: string; quote: string }>;
   // Badge
   badgeStyle: "rating" | "compact" | "review_cta" | "trust";
@@ -78,6 +95,7 @@ export const PREVIEW_DEFAULTS: PreviewSettings = {
   aiSummaryText: null,
   aiSummaryCount: null,
   sources: { Google: true, Facebook: true, Yelp: true, Trustpilot: true },
+  enabledSources: [...REVIEW_SOURCES],
   minRating: 4,
   maxReviews: 6,
   marqueeSpeed: "normal",
@@ -136,7 +154,7 @@ const REVIEWS: Review[] = [
   { id: 2, name: "Michael Chen", rating: 5, text: "Booked online and was seen right away. Clean office, friendly staff, and zero pressure. Highly recommend.", time: "1 week ago", source: "Facebook" },
   { id: 3, name: "Priya Patel", rating: 4, text: "Great care and clear explanations. Wait was a little long but the quality made up for it.", time: "2 weeks ago", source: "Yelp" },
   { id: 4, name: "David Romero", rating: 5, text: "They genuinely care about their patients. I've already referred two friends here.", time: "3 weeks ago", source: "Google" },
-  { id: 5, name: "Emily Carter", rating: 5, text: "From the front desk to the checkout, everything was seamless. I actually look forward to my visits now.", time: "1 month ago", source: "Trustpilot" },
+  { id: 5, name: "Emily Carter", rating: 5, text: "From the front desk to the checkout, everything was seamless. I actually look forward to my visits now.", time: "1 month ago", source: "WeHearYou" },
   { id: 6, name: "James Wright", rating: 4, text: "Solid, dependable service every single time. Exactly what you want.", time: "1 month ago", source: "Facebook" },
 ];
 
@@ -441,12 +459,14 @@ function cornerStyle(pos: string): React.CSSProperties {
   }
 }
 
-function Header({ s, tk, avg, total }: { s: PreviewSettings; tk: ReturnType<typeof wTokens>; avg: number; total: string }) {
+function Header({ s, tk, avg, total }: { s: PreviewSettings; tk: ReturnType<typeof wTokens>; avg: number | null; total: string | null }) {
   const starColor = resolveStarColor(s);
   const fontStack = FONT_STACKS[s.fontFamily] || FONT_STACKS.system;
   if (!s.showHeader) return null;
-  const showAvg = s.showAvgRating !== false;
-  const showCount = s.showReviewCount !== false;
+  // A score/count with no eligible reviews behind it would be invented data —
+  // the embed suppresses them the same way (avgRating is nulled server-side).
+  const showAvg = s.showAvgRating !== false && avg !== null;
+  const showCount = s.showReviewCount !== false && total !== null;
   if (!showAvg && !showCount) return null;
   return (
     <div style={st({ display: "flex", alignItems: "center", gap: 14, marginBottom: 18, flexWrap: "wrap", fontFamily: fontStack })}>
@@ -459,6 +479,58 @@ function Header({ s, tk, avg, total }: { s: PreviewSettings; tk: ReturnType<type
       {showAvg && showCount && <div style={st({ height: 30, width: 1, background: tk.line })} />}
       {showCount && <div style={st({ fontSize: s.fontSizeLabel || 13, color: tk.sub })}>Based on <b style={st({ color: tk.text })}>{total}</b> verified reviews</div>}
       <div style={st({ marginLeft: "auto" })}><VerifiedTag s={s} tk={tk} /></div>
+    </div>
+  );
+}
+
+/** Raw, unfiltered preview feed: the editor applies draft config to these. */
+type RealVideo = {
+  id: string;
+  submitterName: string | null;
+  videoUrl: string;
+  durationSeconds: number | null;
+  caption: string | null;
+  publishedAt: string | null;
+};
+
+/**
+ * Shown while the selected location's content is loading. The previous
+ * location's cards are dropped the moment the selection changes, so a stale
+ * wall can never be mistaken for the new location's.
+ */
+function PreviewSkeleton({ s, tk }: { s: PreviewSettings; tk: ReturnType<typeof wTokens> }) {
+  return (
+    <div aria-busy="true" data-preview-state="loading" style={st({ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 14 })}>
+      {[0, 1, 2, 3].map((i) => (
+        <div key={i} style={st({ border: `1px solid ${tk.line}`, borderRadius: s.radius, background: tk.card, padding: 16, height: 132, opacity: 0.6 })}>
+          <div style={st({ height: 10, width: "45%", borderRadius: 4, background: tk.line, marginBottom: 12 })} />
+          <div style={st({ height: 8, width: "92%", borderRadius: 4, background: tk.line, marginBottom: 7 })} />
+          <div style={st({ height: 8, width: "78%", borderRadius: 4, background: tk.line, marginBottom: 7 })} />
+          <div style={st({ height: 8, width: "60%", borderRadius: 4, background: tk.line })} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * The editor-side twin of the embed's `.why-widget-empty` block. Both are driven
+ * by `resolveWallEmptyState`, so the category and copy match.
+ */
+function PreviewEmptyState({
+  s,
+  tk,
+  state,
+}: {
+  s: PreviewSettings;
+  tk: ReturnType<typeof wTokens>;
+  state: NonNullable<ReturnType<typeof resolveWallEmptyState>>;
+}) {
+  return (
+    <div data-preview-state="empty" data-empty-category={state.category}
+      style={st({ border: `1px dashed ${tk.line}`, borderRadius: s.radius, background: tk.card, padding: "34px 18px", textAlign: "center" })}>
+      <div style={st({ fontSize: 15, fontWeight: 620, color: tk.text, marginBottom: 5 })}>{state.title}</div>
+      <div style={st({ fontSize: 13, color: tk.sub, lineHeight: 1.5 })}>{state.message}</div>
     </div>
   );
 }
@@ -490,6 +562,14 @@ function formatRelativeTime(dateStr: string | null): string {
   return dateStr.split("T")[0];
 }
 
+/** Seconds → m:ss, matching the embed's video duration chip. */
+function formatVideoLength(seconds: number | null): string {
+  if (seconds === null || !Number.isFinite(seconds) || seconds <= 0) return "";
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  return `${mins}:${String(secs).padStart(2, "0")}`;
+}
+
 function convertRealReviews(realReviews: RealReview[]): Review[] {
   return realReviews.map((r) => {
     const sourceMap: Record<string, string> = {
@@ -511,26 +591,52 @@ function convertRealReviews(realReviews: RealReview[]): Review[] {
   });
 }
 
+/**
+ * `sample` — the widgets-index thumbnail. It illustrates a widget's *appearance*
+ * with representative content and is labelled as such in the UI. This is the
+ * only place synthetic reviews are allowed.
+ *
+ * `live` — the Widget Studio preview. It must resolve the admin's draft
+ * configuration against this location's real content, with no synthetic
+ * fallback, so it agrees with the public embed.
+ */
+export type PreviewDataMode = "sample" | "live";
+
 export function WidgetMockPreview({
   settings,
   realReviews,
+  realVideos,
   locationStats,
+  dataMode = "sample",
+  loading = false,
 }: {
   settings: Partial<PreviewSettings>;
   realReviews?: RealReview[];
+  realVideos?: RealVideo[];
   locationStats?: { avgRating: number | null; reviewCount: number };
+  dataMode?: PreviewDataMode;
+  loading?: boolean;
 }) {
   const s: PreviewSettings = { ...PREVIEW_DEFAULTS, ...settings };
   const tk = wTokens(s);
+  const isLive = dataMode === "live";
 
-  // Use real data if available, otherwise use defaults
-  const reviews = realReviews && realReviews.length > 0 ? convertRealReviews(realReviews) : REVIEWS;
-  const avgRating = locationStats?.avgRating ?? 4.6;
-  const avg = parseFloat(avgRating.toFixed(1));
-  const total = locationStats?.reviewCount ? locationStats.reviewCount.toLocaleString() : "1,284";
+  // In live mode there is no synthetic fallback: an empty location renders the
+  // empty state, never another business's reviews or invented totals.
+  const reviews = isLive ? convertRealReviews(realReviews ?? []) : REVIEWS;
+  const avgRating = isLive ? (locationStats?.avgRating ?? null) : (locationStats?.avgRating ?? 4.6);
+  const avg = avgRating === null ? null : parseFloat(avgRating.toFixed(1));
+  const total = isLive
+    ? (locationStats?.reviewCount ? locationStats.reviewCount.toLocaleString() : null)
+    : (locationStats?.reviewCount ? locationStats.reviewCount.toLocaleString() : "1,284");
+
+  if (isLive && loading) {
+    return <PreviewSkeleton s={s} tk={tk} />;
+  }
 
   if (s.type === "floating") {
     const r = reviews.find((x) => x.rating >= s.floatingMinRating) || reviews[0];
+    if (!r) return null;
     const accent = s.floatingAccentColor || s.accent;
     const compact = s.floatingVariation === "compact";
     const quote = r.text.length > (compact ? 60 : 110) ? r.text.slice(0, compact ? 60 : 110) + "…" : r.text;
@@ -577,6 +683,15 @@ export function WidgetMockPreview({
   }
 
   if (s.type === "badge") {
+    // A rating badge with no eligible reviews has nothing truthful to display.
+    if (avg === null || total === null) {
+      const badgeEmpty = resolveWallEmptyState(0, {
+        contentMode: "REVIEWS",
+        enabledSources: s.enabledSources ?? [...REVIEW_SOURCES],
+        minRating: s.minRating,
+      });
+      return <PreviewEmptyState s={s} tk={tk} state={badgeEmpty!} />;
+    }
     if (s.badgeStyle === "compact") {
       return (
         <span style={st({ display: "inline-flex", alignItems: "center", gap: 8, background: tk.card, border: `1px solid ${tk.line}`, borderRadius: 999, padding: "6px 13px", boxShadow: "var(--shadow-sm)" })}>
@@ -697,35 +812,79 @@ export function WidgetMockPreview({
     );
   }
 
-  // grid / carousel (Wall of Love)
-  // Build a set of enabled sources from the gridColumns/wallStyle settings
-  // The `sources` field in PreviewSettings is a legacy Record<string,bool> — we also
-  // support the new string-based `enabledSources` CSV passed via previewSettings.
-  const enabledSourcesSet: Set<string> = (() => {
-    // Check if any source in the sources record is explicitly false
-    const hasExplicitFalse = Object.values(s.sources).some((v) => v === false);
-    if (!hasExplicitFalse) return new Set(["Google", "Facebook", "Yelp", "WeHearYou", "Trustpilot", "INTERNAL"]);
-    return new Set(Object.entries(s.sources).filter(([, v]) => v).map(([k]) => k));
-  })();
-  const filteredReviews = reviews.filter((r) => enabledSourcesSet.has(r.source) && r.rating >= s.minRating);
-  const videos = VIDEOS.filter((v) => enabledSourcesSet.has(v.source));
-  let items: Array<{ kind: "review"; data: Review } | { kind: "video"; data: Video }>;
-  if (s.content === "videos") items = videos.map((v) => ({ kind: "video" as const, data: v }));
-  else if (s.content === "mixed") {
-    const rs = filteredReviews.map((r) => ({ kind: "review" as const, data: r }));
-    const vs = videos.map((v) => ({ kind: "video" as const, data: v }));
-    items = [];
-    let ri = 0, vi = 0;
-    while (ri < rs.length || vi < vs.length) {
-      if (vi < vs.length) items.push(vs[vi++]);
-      if (ri < rs.length) items.push(rs[ri++]);
-      if (ri < rs.length) items.push(rs[ri++]);
-    }
-  } else items = filteredReviews.map((r) => ({ kind: "review" as const, data: r }));
+  // ── grid / carousel (Wall of Love) ──────────────────────────────────────
+  // Source filtering, minimum rating, pin/spotlight ordering, MIXED
+  // interleaving and the content cap are all delegated to resolveWallItems() —
+  // the exact function the public payload uses — so this preview and the embed
+  // cannot drift. Only the card *chrome* is drawn locally.
+  const previewSourceToCanonical: Record<string, string> = {
+    Google: "GOOGLE",
+    Facebook: "FACEBOOK",
+    Yelp: "YELP",
+    WeHearYou: "INTERNAL",
+    INTERNAL: "INTERNAL",
+  };
+
+  // Sample mode keeps its illustrative fixture; live mode uses only this
+  // location's real content.
+  const canonicalReviews: Array<WallReview & { _display: Review }> = reviews.map((r) => ({
+    id: r.realId ?? String(r.id),
+    source: previewSourceToCanonical[r.source] ?? r.source,
+    rating: r.rating,
+    _display: r,
+  }));
+
+  const sampleVideoDisplay = (v: Video) => v;
+  const canonicalVideos: Array<WallVideo & { _display: Video }> = isLive
+    ? (realVideos ?? []).map((v, i) => ({
+        id: v.id,
+        _display: {
+          id: i + 1,
+          name: v.submitterName ?? "Anonymous",
+          rating: 5,
+          quote: v.caption ?? "",
+          time: formatRelativeTime(v.publishedAt),
+          source: "WeHearYou",
+          length: formatVideoLength(v.durationSeconds),
+        } as Video,
+      }))
+    : VIDEOS.map((v) => ({ id: String(v.id), _display: sampleVideoDisplay(v) }));
+
+  const contentMode = s.content === "videos" ? "VIDEOS" : s.content === "mixed" ? "MIXED" : "REVIEWS";
+  const resolutionConfig = {
+    contentMode: contentMode as "REVIEWS" | "VIDEOS" | "MIXED",
+    enabledSources: s.enabledSources ?? [...REVIEW_SOURCES],
+    minRating: s.minRating,
+    pageSize: s.maxReviews,
+    pinnedReviewIds: s.pinnedReviewIds ?? [],
+    spotlightReviewId: s.spotlightReviewId ?? null,
+  };
+
+  const resolved = resolveWallItems(canonicalReviews, canonicalVideos, resolutionConfig);
+  const items: Array<
+    | { kind: "review"; data: Review; pinned: boolean; spotlight: boolean }
+    | { kind: "video"; data: Video; pinned: boolean; spotlight: boolean }
+  > = resolved.map((item) =>
+    item.type === "review"
+      ? { kind: "review" as const, data: (item.data as WallReview & { _display: Review })._display, pinned: item.pinned, spotlight: item.spotlight }
+      : { kind: "video" as const, data: (item.data as WallVideo & { _display: Video })._display, pinned: false, spotlight: false },
+  );
+
+  // Marquee rows are built from the same resolved list (uncapped rows would
+  // re-introduce content the cap removed).
   const marqueeRows = buildMarqueeRows(items);
   const marqueeDur = s.marqueeSpeed === "slow" ? 60 : s.marqueeSpeed === "fast" ? 26 : 40;
-  items = items.slice(0, s.maxReviews);
   const showSummary = s.aiSummary && s.content !== "videos";
+
+  const emptyState = resolveWallEmptyState(items.length, resolutionConfig);
+  if (isLive && emptyState) {
+    return (
+      <div>
+        <Header s={s} tk={tk} avg={avg} total={total} />
+        <PreviewEmptyState s={s} tk={tk} state={emptyState} />
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -849,20 +1008,29 @@ export function mapWidgetToPreviewSettings(w: {
   showDate?: boolean | null;
   showReviewerName?: boolean | null;
   showSourceLogo?: boolean | null;
+  enabledSources?: string | null;
+  cardHeights?: string | null;
+  gridColumns?: string | null;
+  wallStyle?: string | null;
+  pinnedReviewIds?: string | null;
+  spotlightReviewId?: string | null;
 }): Partial<PreviewSettings> {
-  let type: PreviewSettings["type"] = "grid";
-  if (w.widgetType === "BADGE" || w.layout === "badge") type = "badge";
-  else if (w.widgetType === "FLOATING" || w.layout === "floating") type = "floating";
-  else if (w.widgetType === "COLLECTING") type = "collecting";
-  else if (w.widgetType === "SINGLE_TESTIMONIAL") type = "single";
-  else if (w.layout === "carousel" || w.layout === "slider" || w.layout === "video-carousel" || w.layout === "mixed-carousel") type = "carousel";
-  else type = "grid";
+  // Single typed registry: the saved widgetType decides the renderer, exactly as
+  // it decides the inventory label and the embed placement guidance.
+  const type = resolveWidgetTypeMeta(w.widgetType, w.layout).studioKey as PreviewSettings["type"];
 
+  const mode = normalizeContentMode(w.contentType);
   const content: PreviewSettings["content"] =
-    w.contentType === "VIDEO" ? "videos" : w.contentType === "MIXED" ? "mixed" : "reviews";
+    mode === "VIDEOS" ? "videos" : mode === "MIXED" ? "mixed" : "reviews";
 
   return {
     type,
+    enabledSources: normalizeEnabledSources(w.enabledSources),
+    cardHeights: normalizeCardHeights(w.cardHeights),
+    gridColumns: w.gridColumns ?? "auto",
+    wallStyle: (w.wallStyle as PreviewSettings["wallStyle"]) ?? "varied",
+    pinnedReviewIds: parsePinnedReviewIds(w.pinnedReviewIds),
+    spotlightReviewId: w.spotlightReviewId ?? undefined,
     theme: w.theme === "dark" ? "dark" : "light",
     accent: w.primaryColor || "#4f46e5",
     content,
