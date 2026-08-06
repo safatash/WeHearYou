@@ -20,6 +20,8 @@ import {
   serializePinnedReviewIds,
   parseReviewHighlights,
   serializeReviewHighlights,
+  resolveCardBody,
+  resolveHighlightStatus,
   widgetDraftsEqual,
   MAX_PINNED_REVIEWS,
 } from "@/lib/widget-config";
@@ -160,6 +162,8 @@ export type PickerReview = {
   body: string;
   reviewedAt: string | null;
   source: string;
+  /** Published owner response, or null. Never an unpublished admin draft. */
+  ownerReply?: string | null;
 };
 
 function deriveTypeKey(w: StudioWidget): TypeKey {
@@ -565,6 +569,23 @@ export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [], aiS
     setDraft((prev) => ({ ...prev, pinnedReviewIds: fn(prev.pinnedReviewIds) }));
   const setReviewHighlights = (fn: (prev: HighlightEntry[]) => HighlightEntry[]) =>
     setDraft((prev) => ({ ...prev, reviewHighlights: fn(prev.reviewHighlights) }));
+  /** Add an empty row and open it for editing. */
+  const addReviewHighlight = (reviewId: string) =>
+    setReviewHighlights((prev) => (prev.some((h) => h.reviewId === reviewId) ? prev : [...prev, { reviewId, quote: "" }]));
+  /**
+   * Bound directly to the textarea. Every keystroke lands in the widget draft,
+   * so the phrase is part of "Save changes" whether or not the panel's own
+   * button is clicked — that gap is what silently discarded highlights.
+   */
+  const updateReviewHighlightQuote = (reviewId: string, quote: string) =>
+    setReviewHighlights((prev) => prev.map((h) => (h.reviewId === reviewId ? { ...h, quote } : h)));
+  const removeReviewHighlight = (reviewId: string) =>
+    setReviewHighlights((prev) => prev.filter((h) => h.reviewId !== reviewId));
+  /** Closing an untouched row must not leave a blank record behind. */
+  const closeReviewHighlightEditor = (reviewId: string) => {
+    setReviewHighlights((prev) => prev.filter((h) => h.reviewId !== reviewId || h.quote.trim() !== ""));
+    setHighlightEditId(null);
+  };
   const setBadgeStyle = (v: BadgeStyle) => update({ badgeStyle: v });
   const setCollectPosition = (v: string) => update({ collectPosition: v });
   const setCollectTheme = (v: string) => update({ collectTheme: v });
@@ -592,7 +613,6 @@ export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [], aiS
 
   // ── editor-only UI state (never part of the saved config) ────────────────
   const [highlightEditId, setHighlightEditId] = useState<string | null>(null);
-  const [highlightEditText, setHighlightEditText] = useState("");
   const [spotlightSearch, setSpotlightSearch] = useState("");
   const [saveState, setSaveState] = useState<"idle" | "saving" | "error">("idle");
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -1374,39 +1394,58 @@ export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [], aiS
                       <p style={st({ fontSize: 11.5, color: "var(--ink-500)", margin: 0, lineHeight: 1.5 })}>Select a review and paste the exact phrase you want highlighted in accent color.</p>
                       {reviewHighlights.map((h) => {
                         const r = availableReviews.find((r) => r.id === h.reviewId);
+                        // Status is computed against the body the card actually
+                        // renders (i.e. after the text limit) — the same text the
+                        // public embed matches against.
+                        const renderedBody = r ? resolveCardBody(r.body, bodyMaxChars) : null;
+                        const status = h.quote.trim()
+                          ? resolveHighlightStatus({ reviewId: h.reviewId, quote: h.quote.trim() }, renderedBody)
+                          : null;
+                        const isEditing = highlightEditId === h.reviewId;
                         return (
                           <div key={h.reviewId} style={st({ borderRadius: 7, border: "1px solid var(--ink-200)", background: "var(--ink-50)", padding: "8px 10px" })}>
-                            {highlightEditId === h.reviewId ? (
+                            {isEditing ? (
                               <div style={st({ display: "flex", flexDirection: "column", gap: 6 })}>
                                 <div style={st({ fontSize: 11, color: "var(--ink-500)" })}>{r?.reviewerName} · {r?.body.slice(0, 50)}{(r?.body.length ?? 0) > 50 ? "…" : ""}</div>
                                 <textarea
-                                  value={highlightEditText}
-                                  onChange={(e) => setHighlightEditText(e.target.value)}
+                                  value={h.quote}
+                                  onChange={(e) => updateReviewHighlightQuote(h.reviewId, e.target.value)}
                                   placeholder="Paste the exact phrase to highlight…"
                                   rows={2}
                                   style={st({ width: "100%", borderRadius: 6, border: "1px solid var(--ink-200)", padding: "6px 8px", fontSize: 12, resize: "vertical", outline: "none", fontFamily: "inherit" })}
                                 />
+                                {status === "phrase_not_found" && (
+                                  <p data-highlight-status="phrase_not_found" style={st({ margin: 0, fontSize: 11, color: "#b45309", lineHeight: 1.45 })}>
+                                    This phrase isn’t in the review text, so it won’t be highlighted. It stays saved until you change it.
+                                  </p>
+                                )}
                                 <div style={st({ display: "flex", gap: 6 })}>
-                                  <button type="button" onClick={() => {
-                                    if (highlightEditText.trim()) {
-                                      setReviewHighlights((prev) => prev.map((x) => x.reviewId === h.reviewId ? { ...x, quote: highlightEditText.trim() } : x));
-                                    }
-                                    setHighlightEditId(null);
-                                  }} style={st({ flex: 1, borderRadius: 6, border: 0, background: accent, color: "#fff", padding: "5px 0", fontSize: 12, fontWeight: 600, cursor: "pointer" })}>Save</button>
-                                  <button type="button" onClick={() => setHighlightEditId(null)}
-                                    style={st({ flex: 1, borderRadius: 6, border: "1px solid var(--ink-200)", background: "var(--white)", color: "var(--ink-600)", padding: "5px 0", fontSize: 12, cursor: "pointer" })}>Cancel</button>
+                                  <button type="button" onClick={() => closeReviewHighlightEditor(h.reviewId)}
+                                    style={st({ flex: 1, borderRadius: 6, border: 0, background: accent, color: "#fff", padding: "5px 0", fontSize: 12, fontWeight: 600, cursor: "pointer" })}>Done</button>
+                                  <button type="button" onClick={() => removeReviewHighlight(h.reviewId)}
+                                    style={st({ flex: 1, borderRadius: 6, border: "1px solid var(--ink-200)", background: "var(--white)", color: "var(--ink-600)", padding: "5px 0", fontSize: 12, cursor: "pointer" })}>Remove</button>
                                 </div>
                               </div>
                             ) : (
                               <div style={st({ display: "flex", alignItems: "flex-start", gap: 8 })}>
                                 <div style={st({ flex: 1, minWidth: 0 })}>
-                                  <div style={st({ fontSize: 11, color: "var(--ink-500)", marginBottom: 2 })}>{r?.reviewerName}</div>
-                                  <div style={st({ fontSize: 12, color: accent, fontWeight: 560, background: `color-mix(in srgb, ${accent} 12%, var(--white))`, borderRadius: 4, padding: "2px 6px", display: "inline" })}>“{h.quote}”</div>
+                                  <div style={st({ fontSize: 11, color: "var(--ink-500)", marginBottom: 2 })}>{r?.reviewerName ?? "Review unavailable"}</div>
+                                  {h.quote.trim() ? (
+                                    <div style={st({ fontSize: 12, color: accent, fontWeight: 560, background: `color-mix(in srgb, ${accent} 12%, var(--white))`, borderRadius: 4, padding: "2px 6px", display: "inline" })}>“{h.quote}”</div>
+                                  ) : (
+                                    <div data-highlight-status="empty" style={st({ fontSize: 11.5, color: "#b45309" })}>No phrase yet — this one won’t be saved.</div>
+                                  )}
+                                  {status === "phrase_not_found" && (
+                                    <div data-highlight-status="phrase_not_found" style={st({ fontSize: 11, color: "#b45309", marginTop: 3, lineHeight: 1.4 })}>Not found in the review text — saved, but not highlighted.</div>
+                                  )}
+                                  {status === "review_unavailable" && (
+                                    <div data-highlight-status="review_unavailable" style={st({ fontSize: 11, color: "#b45309", marginTop: 3, lineHeight: 1.4 })}>This review is no longer available — saved, but not highlighted.</div>
+                                  )}
                                 </div>
                                 <div style={st({ display: "flex", gap: 4 })}>
-                                  <button type="button" onClick={() => { setHighlightEditId(h.reviewId); setHighlightEditText(h.quote); }}
+                                  <button type="button" onClick={() => setHighlightEditId(h.reviewId)}
                                     style={st({ border: 0, background: "transparent", cursor: "pointer", color: "var(--ink-400)", fontSize: 12, padding: 2 })}>Edit</button>
-                                  <button type="button" onClick={() => setReviewHighlights((prev) => prev.filter((x) => x.reviewId !== h.reviewId))}
+                                  <button type="button" onClick={() => removeReviewHighlight(h.reviewId)}
                                     style={st({ border: 0, background: "transparent", cursor: "pointer", color: "var(--ink-400)", fontSize: 16, lineHeight: 1, padding: 2 })}>×</button>
                                 </div>
                               </div>
@@ -1421,11 +1460,7 @@ export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [], aiS
                           .slice(0, 12)
                           .map((r) => (
                             <button key={r.id} type="button"
-                              onClick={() => {
-                                setReviewHighlights((prev) => [...prev, { reviewId: r.id, quote: "" }]);
-                                setHighlightEditId(r.id);
-                                setHighlightEditText("");
-                              }}
+                              onClick={() => { addReviewHighlight(r.id); setHighlightEditId(r.id); }}
                               style={st({ textAlign: "left", borderRadius: 7, border: "1px solid var(--ink-200)", background: "var(--white)", padding: "7px 10px", cursor: "pointer", display: "flex", flexDirection: "column", gap: 3 })}>
                               <div style={st({ display: "flex", alignItems: "center", gap: 6 })}>
                                 <span style={st({ fontSize: 11, color: "#f59e0b" })}>{'★'.repeat(r.rating)}</span>

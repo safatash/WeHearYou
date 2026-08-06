@@ -776,6 +776,12 @@ export async function getWidgetPickerData(locationId: string) {
         body: true,
         reviewedAt: true,
         source: true,
+        // Needed so the editor preview can show the *real* owner response
+        // instead of an invented one. Publish rules are applied below.
+        sourceReplyText: true,
+        replyDraft: true,
+        replyPublishedAt: true,
+        replySentAt: true,
       },
     }),
     prisma.videoTestimonial.findMany({
@@ -809,6 +815,9 @@ export async function getWidgetPickerData(locationId: string) {
       body: r.body,
       reviewedAt: r.reviewedAt ? r.reviewedAt.toISOString() : null,
       source: r.source as string,
+      // Same publish rule as the public payload: an unpublished admin draft is
+      // private, so the preview must not show it either.
+      ownerReply: resolvePublicOwnerResponse(r, true),
     })),
     videos: videos
       .filter((v): v is typeof v & { videoUrl: string } => v.videoUrl !== null)

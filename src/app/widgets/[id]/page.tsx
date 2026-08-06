@@ -141,6 +141,7 @@ export default async function WidgetDetailPage({
       body: r.body,
       reviewedAt: r.reviewedAt,
       source: r.source,
+      ownerReply: r.ownerReply,
     }));
     return (
       <AppShell activeScreen="widgets" flash={flash ? { message: flash, tone } : null}>

@@ -36,6 +36,9 @@ const script = `
     }
   }
 
+  // Mirrors resolveCardBody() in src/lib/widget-config.ts. The editor preview
+  // applies the same limit, so a quote highlight matches (or does not match) the
+  // same text in both places. Asserted by the embed contract tests.
   function truncate(body, maxChars) {
     if (!body) return "";
     if (!maxChars || maxChars <= 0) return body;
@@ -573,8 +576,50 @@ const script = `
     return "background:" + cardBg + ";border:1px solid " + lineColor + ";";
   }
 
+  // ── Quote highlights ──────────────────────────────────────────────────────
+  // One implementation, used by every card renderer. Highlights used to work
+  // only in "varied" grid walls because renderCard() — the path for uniform
+  // walls, lists, sliders and carousels — rendered the body with no <mark>
+  // support at all.
+  var activeHighlights = {};
+
+  // Mirrors normalizeReviewHighlights() in src/lib/widget-config.ts: keep
+  // well-formed records, trim, first-wins per review, fail safe on garbage.
+  function parseHighlightMap(raw) {
+    var map = {};
+    try {
+      var list = raw ? JSON.parse(raw) : [];
+      if (Object.prototype.toString.call(list) !== "[object Array]") return map;
+      for (var i = 0; i < list.length; i++) {
+        var h = list[i];
+        if (!h || typeof h.reviewId !== "string" || typeof h.quote !== "string") continue;
+        var id = h.reviewId.trim();
+        var quote = h.quote.trim();
+        if (!id || !quote || map[id]) continue;
+        map[id] = quote;
+      }
+    } catch (e) {}
+    return map;
+  }
+
+  // Escaped body HTML with the phrase wrapped in <mark>. When the phrase is not
+  // present in the rendered body (edited review, or past the text limit) the
+  // text renders plainly — never an error, never a dropped review.
+  function highlightedTextHtml(text, quote, markStyle) {
+    if (!quote) return escapeHtml(text);
+    var idx = text.indexOf(quote);
+    if (idx === -1) return escapeHtml(text);
+    return escapeHtml(text.slice(0, idx)) +
+      '<mark style="' + markStyle + '">' + escapeHtml(quote) + '</mark>' +
+      escapeHtml(text.slice(idx + quote.length));
+  }
+
+  function highlightMarkStyle(accentColor) {
+    return "background:rgba(79,70,229,.14);color:" + escapeHtml(accentColor || "#4338ca") + ";border-radius:3px;padding:0 2px;font-weight:600";
+  }
+
   function renderCard(review, widget) {
-    var body = review.body || '';
+    var body = truncate(review.body || '', widget.bodyMaxChars);
     var textColor = widget.textColor || "#0f172a";
     var primaryColor = widget.primaryColor || "#4338ca";
     var starColor = resolveStarColorEmbed(widget);
@@ -611,7 +656,8 @@ const script = `
     }
 
     // 3. Body text
-    html += '<div class="why-widget-body" style="margin-bottom:12px">' + escapeHtml(body) + '</div>';
+    html += '<div class="why-widget-body" style="margin-bottom:12px">' +
+      highlightedTextHtml(body, activeHighlights[review.id], highlightMarkStyle(primaryColor)) + '</div>';
 
     // 4. Owner reply
     if (widget.showResponses && review.sourceReplyText) {
@@ -1097,6 +1143,8 @@ const script = `
         // The embed renders them verbatim so it cannot disagree with the editor
         // about what a setting means.
         var items = data.items || [];
+        // Populated before any renderer runs so every card path can highlight.
+        activeHighlights = parseHighlightMap(data.widget.reviewHighlights);
 
         if (nextPage === 1) {
           // Badge: render once and bail — no pagination needed.
@@ -1243,33 +1291,14 @@ const script = `
             return isVaried ? filteredItems.findIndex(function(it) { return it.type !== "video"; }) : -1;
           })();
 
-          // Build highlight map: reviewId -> quote
-          var highlightMap = {};
-          try {
-            var rawHighlights = data.widget.reviewHighlights || "";
-            var highlights = rawHighlights ? JSON.parse(rawHighlights) : [];
-            highlights.forEach(function(h) { if (h.reviewId && h.quote) highlightMap[h.reviewId] = h.quote; });
-          } catch(e) {}
+          // Same map the generic renderer uses — one source of truth.
+          var highlightMap = activeHighlights;
 
           // Helper: render body text with an optional highlighted phrase
           function renderBodyWithHighlight(body, reviewId, textColor, fontFamily, fontSize, useQuotes) {
-            var quote = highlightMap[reviewId];
-            var escaped = escapeHtml(body);
-            if (!quote || !quote.trim()) {
-              return '<div style="font-family:' + fontFamily + ';font-size:' + fontSize + 'px;line-height:1.5;color:' + escapeHtml(textColor) + '">' + (useQuotes ? '\u201c' + escaped + '\u201d' : escaped) + '</div>';
-            }
-            var idx = body.indexOf(quote);
-            if (idx === -1) {
-              return '<div style="font-family:' + fontFamily + ';font-size:' + fontSize + 'px;line-height:1.5;color:' + escapeHtml(textColor) + '">' + (useQuotes ? '\u201c' + escaped + '\u201d' : escaped) + '</div>';
-            }
-            var before = escapeHtml(body.slice(0, idx));
-            var marked = escapeHtml(quote);
-            var after = escapeHtml(body.slice(idx + quote.length));
-            var markStyle = 'background:rgba(79,70,229,.14);color:' + escapeHtml(accentColor) + ';border-radius:3px;padding:0 2px;font-weight:600';
+            var inner = highlightedTextHtml(body, highlightMap[reviewId], highlightMarkStyle(accentColor));
             return '<div style="font-family:' + fontFamily + ';font-size:' + fontSize + 'px;line-height:1.5;color:' + escapeHtml(textColor) + '">' +
-              (useQuotes ? '\u201c' : '') + before +
-              '<mark style="' + markStyle + '">' + marked + '</mark>' +
-              after + (useQuotes ? '\u201d' : '') +
+              (useQuotes ? '\u201c' : '') + inner + (useQuotes ? '\u201d' : '') +
             '</div>';
           }
 
@@ -1283,7 +1312,7 @@ const script = `
             if (isSpotlight && isVaried && isGridLayout) {
               var w = data.widget;
               var radius = typeof w.cornerRadius === "number" ? w.cornerRadius : 12;
-              var body = item.data.body || "";
+              var body = truncate(item.data.body || "", data.widget.bodyMaxChars);
               var starColor = "#fff";
               var starsHtml = w.showRating !== false ? '<div style="font-size:14px;color:' + starColor + ';margin-bottom:10px">' + escapeHtml(stars(item.data.rating)) + '</div>' : '';
               var nameHtml = w.showAvatars !== false ? '<div style="font-size:' + (w.fontSizeNames || 13) + 'px;font-weight:600;color:rgba(255,255,255,.9)">' + escapeHtml(item.data.reviewerName || 'Anonymous') + '</div>' : '';
@@ -1315,7 +1344,7 @@ const script = `
               var radius = typeof w.cornerRadius === "number" ? w.cornerRadius : 12;
               var pad = w.density === "compact" ? "12px" : "16px";
               var cardStyleCss = resolveCardStyleEmbed(w);
-              var body = item.data.body || "";
+              var body = truncate(item.data.body || "", data.widget.bodyMaxChars);
               var starColor = resolveStarColorEmbed(w);
               var fontSizeBase = w.fontSizeBase || 14;
               var fontSizeNames = w.fontSizeNames || 13;
@@ -1343,7 +1372,7 @@ const script = `
               var radius = typeof w.cornerRadius === "number" ? w.cornerRadius : 12;
               var pad = w.density === "compact" ? "12px" : "16px";
               var cardStyleCss = resolveCardStyleEmbed(w);
-              var body = item.data.body || "";
+              var body = truncate(item.data.body || "", data.widget.bodyMaxChars);
               var starColor = resolveStarColorEmbed(w);
               var fontSizeNames = w.fontSizeNames || 13;
               var fontSizeLabel = w.fontSizeLabel || 12;
