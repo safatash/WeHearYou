@@ -748,7 +748,7 @@ const script = `
     var wrapOpen = '<div class="why-widget" style="' + cardStyleCss + 'font-family:' + fontStack(w.fontFamily) + ';color:' + escapeHtml(w.textColor) + ';border-radius:' + radius + 'px;padding:' + pad + ';max-width:560px;margin:0 auto">';
     var vids = data.videoTestimonials || [];
     if (w.contentType === "VIDEO" && vids.length) {
-      return wrapOpen + renderVideoCard(vids[0]) + '</div>';
+      return wrapOpen + renderVideoCard(vids[0], w) + '</div>';
     }
     var reviews = data.reviews || [];
     if (!reviews.length) {
@@ -808,7 +808,7 @@ const script = `
     function rowHtml(row, dir, d) {
       if (!row.length) return "";
       var cards = row.concat(row).map(function (it) {
-        var card = it.type === "video" ? renderVideoCard(it.data) : renderCard(it.data, w);
+        var card = it.type === "video" ? renderVideoCard(it.data, w) : renderCard(it.data, w);
         return '<div class="why-marq-item">' + card + '</div>';
       }).join("");
       return '<div class="why-marq"><div class="why-marq-track' + (dir === "r" ? " why-marq-track--r" : "") + '" style="animation-duration:' + d + 's">' + cards + '</div></div>';
@@ -862,13 +862,41 @@ const script = `
     return "Video testimonial thumbnail";
   }
 
-  function renderVideoCard(vt) {
+  // Video card. Mirrors VideoCardW in the editor preview: caption, then the
+  // submitter row (avatar / name / date / source) gated by the same display
+  // flags. The caption used to be dropped here even though the payload carried
+  // it, so the preview showed it and the live embed did not.
+  function renderVideoCard(vt, widget) {
+    var w = widget || {};
     var dur = formatDuration(vt.durationSeconds);
     var name = escapeHtml(vt.submitterName || "Anonymous");
+    var caption = (vt.caption || "").trim();
+    var fontSizeBase = w.fontSizeBase || 14;
+    var fontSizeNames = w.fontSizeNames || 13;
+    var fontSizeLabel = w.fontSizeLabel || 12;
+    var textColor = w.textColor || "#0f172a";
     var thumbnailUrl = getThumbnailUrl(vt);
     var thumbHtml = thumbnailUrl
       ? '<img src="' + escapeHtml(thumbnailUrl) + '" alt="' + getThumbnailAlt(vt.submitterName) + '" style="width:100%;height:100%;object-fit:cover;display:block">'
       : '<video src="' + escapeHtml(vt.videoUrl) + '#t=0.001" preload="metadata" muted playsinline style="width:100%;height:100%;object-fit:cover"></video>';
+
+    // Video testimonials have no rating column, so no stars are invented here.
+    var infoHtml = '';
+    if (caption) {
+      infoHtml += '<p class="why-video-caption" style="margin:0 0 8px;font-size:' + (fontSizeBase - 1) + 'px;line-height:1.5;font-weight:500;color:' + escapeHtml(textColor) + '">\u201c' + escapeHtml(caption) + '\u201d</p>';
+    }
+
+    var metaHtml = '';
+    if (w.showReviewerName !== false) {
+      metaHtml += '<div class="why-widget-avatar-fallback" style="width:28px;height:28px;flex:none">' + escapeHtml((vt.submitterName || '?').slice(0, 1).toUpperCase()) + '</div>';
+    }
+    metaHtml += '<div style="min-width:0;flex:1">' +
+      '<div class="why-video-name" style="font-size:' + fontSizeNames + 'px">' + name + '</div>' +
+      (w.showDate && vt.publishedAt ? '<div class="why-widget-date" style="font-size:' + (fontSizeLabel - 1) + 'px">' + escapeHtml(formatDate(vt.publishedAt)) + '</div>' : '') +
+    '</div>';
+    if (w.showSourceLogo) metaHtml += sourceMarkHtmlFor("INTERNAL");
+
+    infoHtml += '<div style="display:flex;align-items:center;gap:9px">' + metaHtml + '</div>';
 
     return '<div class="why-video-card" data-video-url="' + escapeHtml(vt.videoUrl) + '">' +
       '<div class="why-video-thumb">' +
@@ -876,7 +904,7 @@ const script = `
         '<div class="why-video-play">&#9658;</div>' +
         (dur ? '<div class="why-video-duration">' + escapeHtml(dur) + '</div>' : '') +
       '</div>' +
-      '<div class="why-video-info"><div class="why-video-name">' + name + '</div></div>' +
+      '<div class="why-video-info">' + infoHtml + '</div>' +
     '</div>';
   }
 
@@ -1303,7 +1331,7 @@ const script = `
           }
 
           function renderWallCard(item, idx) {
-            if (item.type === "video") return renderVideoCard(item.data);
+            if (item.type === "video") return renderVideoCard(item.data, data.widget);
             var isSpotlight = idx === featuredIdx;
             var isGridLayout = data.widget.layout === "grid" || data.widget.layout === "masonry" || data.widget.layout === "mixed-masonry";
             var reviewId = item.data && item.data.id ? String(item.data.id) : "";
@@ -1408,12 +1436,12 @@ const script = `
 
           if (data.widget.layout === "slider") {
             container.insertAdjacentHTML("beforeend", filteredItems.map(function (item) {
-              var cardHtml = item.type === "video" ? renderVideoCard(item.data) : renderCard(item.data, data.widget);
+              var cardHtml = item.type === "video" ? renderVideoCard(item.data, data.widget) : renderCard(item.data, data.widget);
               return '<div class="why-widget-slide">' + cardHtml + '</div>';
             }).join(""));
           } else if (data.widget.layout === "video" || data.widget.layout === "carousel") {
             container.insertAdjacentHTML("beforeend", filteredItems.map(function (item, idx) {
-              var cardHtml = item.type === "video" ? renderVideoCard(item.data) : renderCard(item.data, data.widget);
+              var cardHtml = item.type === "video" ? renderVideoCard(item.data, data.widget) : renderCard(item.data, data.widget);
               return '<div class="why-widget-carousel-item' + (idx === 0 ? ' active' : '') + '">' + cardHtml + '</div>';
             }).join(""));
             // Add pagination dots if pagination is enabled

@@ -10,6 +10,7 @@ import { Icon } from "@/components/icon";
 import {
   REVIEW_SOURCES,
   resolveCardBody,
+  formatVideoDuration,
   normalizeCardHeights,
   normalizeContentMode,
   normalizeEnabledSources,
@@ -148,7 +149,7 @@ const SOURCE_META: Record<string, { color: string; letter: string }> = {
 const AV_COLORS = ["#6366f1", "#0ea5e9", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899", "#14b8a6"];
 
 type Review = { id: number; name: string; rating: number; text: string; time: string; source: string; realId?: string; ownerReply?: string | null };
-type Video = { id: number; name: string; rating: number; quote: string; time: string; source: string; length: string };
+type Video = { id: number; name: string; rating?: number | null; quote: string; time: string; source: string; length: string };
 
 const REVIEWS: Review[] = [
   { id: 1, name: "Sarah Johnson", rating: 5, text: "Absolutely the best experience I've had. The team was professional, kind, and thorough from start to finish.", time: "2 days ago", source: "Google" },
@@ -399,8 +400,11 @@ const VideoCardW = ({ v, s, tk }: { v: Video; s: PreviewSettings; tk: Tokens }) 
       <span style={st({ position: "absolute", bottom: 9, right: 9, background: "rgba(0,0,0,.62)", color: "#fff", fontSize: 11, fontWeight: 600, fontFamily: "var(--font-mono)", padding: "2px 7px", borderRadius: 5 })}>{v.length}</span>
     </div>
     <div style={st({ padding: 14, display: "flex", flexDirection: "column", gap: 8 })}>
-      <Stars value={v.rating} size={14} />
-      <p style={st({ fontSize: (s.fontSizeBase || 14) - 1, lineHeight: 1.5, color: tk.text, margin: 0, fontWeight: 500 })}>&ldquo;{v.quote}&rdquo;</p>
+      {/* VideoTestimonial has no rating column — stars only where a real one exists. */}
+      {s.showRating && typeof v.rating === "number" && <Stars value={v.rating} size={14} />}
+      {v.quote.trim() !== "" && (
+        <p style={st({ fontSize: (s.fontSizeBase || 14) - 1, lineHeight: 1.5, color: tk.text, margin: 0, fontWeight: 500 })}>&ldquo;{v.quote}&rdquo;</p>
+      )}
       <div style={st({ display: "flex", alignItems: "center", gap: 9, marginTop: 2 })}>
         {s.showAvatars && <Avatar name={v.name} size={28} />}
         <div style={st({ minWidth: 0, flex: 1 })}>
@@ -563,14 +567,6 @@ function formatRelativeTime(dateStr: string | null): string {
   const weeks = Math.floor(days / 7);
   if (weeks < 4) return `${weeks} week${weeks > 1 ? "s" : ""} ago`;
   return dateStr.split("T")[0];
-}
-
-/** Seconds → m:ss, matching the embed's video duration chip. */
-function formatVideoLength(seconds: number | null): string {
-  if (seconds === null || !Number.isFinite(seconds) || seconds <= 0) return "";
-  const mins = Math.floor(seconds / 60);
-  const secs = Math.floor(seconds % 60);
-  return `${mins}:${String(secs).padStart(2, "0")}`;
 }
 
 function convertRealReviews(realReviews: RealReview[]): Review[] {
@@ -847,11 +843,11 @@ export function WidgetMockPreview({
         _display: {
           id: i + 1,
           name: v.submitterName ?? "Anonymous",
-          rating: 5,
+          rating: null,
           quote: v.caption ?? "",
           time: formatRelativeTime(v.publishedAt),
           source: "WeHearYou",
-          length: formatVideoLength(v.durationSeconds),
+          length: formatVideoDuration(v.durationSeconds),
         } as Video,
       }))
     : VIDEOS.map((v) => ({ id: String(v.id), _display: sampleVideoDisplay(v) }));

@@ -497,6 +497,22 @@ export function resolvePublicOwnerResponse(
   return published || Boolean(review.replySentAt) ? draft : null;
 }
 
+/* ─── video testimonials ──────────────────────────────────────────────────── */
+
+/**
+ * Duration badge text for a video card: `m:ss` once past a minute, `Ns` below.
+ *
+ * Shared so the editor preview and the embed print the same string — they used
+ * to disagree ("0:22" vs "22s") for the same clip.
+ */
+export function formatVideoDuration(seconds?: number | null): string {
+  if (!Number.isFinite(seconds) || (seconds as number) <= 0) return "";
+  const total = Math.floor(seconds as number);
+  const m = Math.floor(total / 60);
+  const s = total % 60;
+  return m > 0 ? `${m}:${String(s).padStart(2, "0")}` : `${s}s`;
+}
+
 /* ─── empty state ─────────────────────────────────────────────────────────── */
 
 export type WallEmptyState = {
