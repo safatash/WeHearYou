@@ -321,12 +321,11 @@ export async function updateReviewWidget(formData: FormData) {
   // Spotlight & Pins
   const rawSpotlightReviewId = String(formData.get("spotlightReviewId") ?? "").trim() || null;
   const rawPinnedReviewIds = String(formData.get("pinnedReviewIds") ?? "").trim();
-  // reviewHighlights is a JSON string [{reviewId, quote}] — validate it's parseable
-  const rawReviewHighlights = (() => {
-    const raw = String(formData.get("reviewHighlights") ?? "").trim();
-    if (!raw) return "";
-    try { JSON.parse(raw); return raw; } catch { return ""; }
-  })();
+  // reviewHighlights is a JSON array of { reviewId, quote }. Validation happens
+  // in parseReviewHighlights, which keeps every well-formed record and drops
+  // only the individually-invalid ones — a single bad entry must never coerce
+  // the admin's whole highlight configuration to empty.
+  const rawReviewHighlights = String(formData.get("reviewHighlights") ?? "").trim();
   const rawMinRating = Number(formData.get("minRating") ?? 1);
   const rawPageSize = Number(formData.get("pageSize") ?? 12);
   const rawBodyMaxChars = Number(formData.get("bodyMaxChars") ?? 280);

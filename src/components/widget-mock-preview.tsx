@@ -9,6 +9,7 @@ import React from "react";
 import { Icon } from "@/components/icon";
 import {
   REVIEW_SOURCES,
+  resolveCardBody,
   normalizeCardHeights,
   normalizeContentMode,
   normalizeEnabledSources,
@@ -146,12 +147,12 @@ const SOURCE_META: Record<string, { color: string; letter: string }> = {
 
 const AV_COLORS = ["#6366f1", "#0ea5e9", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899", "#14b8a6"];
 
-type Review = { id: number; name: string; rating: number; text: string; time: string; source: string; realId?: string };
+type Review = { id: number; name: string; rating: number; text: string; time: string; source: string; realId?: string; ownerReply?: string | null };
 type Video = { id: number; name: string; rating: number; quote: string; time: string; source: string; length: string };
 
 const REVIEWS: Review[] = [
   { id: 1, name: "Sarah Johnson", rating: 5, text: "Absolutely the best experience I've had. The team was professional, kind, and thorough from start to finish.", time: "2 days ago", source: "Google" },
-  { id: 2, name: "Michael Chen", rating: 5, text: "Booked online and was seen right away. Clean office, friendly staff, and zero pressure. Highly recommend.", time: "1 week ago", source: "Facebook" },
+  { id: 2, name: "Michael Chen", rating: 5, text: "Booked online and was seen right away. Clean office, friendly staff, and zero pressure. Highly recommend.", time: "1 week ago", source: "Facebook", ownerReply: "Thank you so much for your kind words! We really appreciate you taking the time to share your experience." },
   { id: 3, name: "Priya Patel", rating: 4, text: "Great care and clear explanations. Wait was a little long but the quality made up for it.", time: "2 weeks ago", source: "Yelp" },
   { id: 4, name: "David Romero", rating: 5, text: "They genuinely care about their patients. I've already referred two friends here.", time: "3 weeks ago", source: "Google" },
   { id: 5, name: "Emily Carter", rating: 5, text: "From the front desk to the checkout, everything was seamless. I actually look forward to my visits now.", time: "1 month ago", source: "WeHearYou" },
@@ -284,7 +285,7 @@ const FeaturedReviewCardW = ({ r, s, tk, highlightQuote }: { r: Review; s: Previ
   const pad = s.density === "compact" ? 16 : 22;
   const bodyFontSize = s.fontSizeBase || 14;
   const truncLen = s.bodyMaxChars || 280;
-  const displayText = r.text.length > truncLen ? r.text.slice(0, truncLen) + "…" : r.text;
+  const displayText = resolveCardBody(r.text, truncLen);
   // Render body with highlight on white-on-accent background
   const renderFeaturedBody = () => {
     const text = displayText;
@@ -355,9 +356,10 @@ const ReviewCardW = ({ r, s, tk, featured, accentFont, highlightQuote }: { r: Re
   const bodyFont = fontStack;
   const pad = s.density === "compact" ? 12 : 16;
   const truncLen = s.bodyMaxChars || 280;
-  const bodyText = r.text.length > truncLen ? r.text.slice(0, truncLen) + "…" : r.text;
-  // Fake owner response for preview
-  const ownerReply = "Thank you so much for your kind words! We really appreciate you taking the time to share your experience.";
+  const bodyText = resolveCardBody(r.text, truncLen);
+  // The review's actual published owner response, or none. A placeholder here
+  // would put words in the business's mouth that the public embed never shows.
+  const ownerReply = r.ownerReply ?? null;
   return (
     <div style={st({ ...cardStyles, ...spotlightBorder, borderRadius: s.radius, padding: pad, display: "flex", flexDirection: "column", gap: s.density === "compact" ? 7 : 9, minWidth: 0, fontFamily: fontStack })}>
       {s.showAvatars && (
@@ -377,7 +379,7 @@ const ReviewCardW = ({ r, s, tk, featured, accentFont, highlightQuote }: { r: Re
       )}
       {s.showRating && <Stars value={r.rating} size={s.density === "compact" ? 13 : 15} color={starColor} />}
       {renderBodyWithHighlight(bodyText, highlightQuote, s.accent, s.fontSizeBase || 14, tk.sub, bodyFont)}
-      {s.showResponses && (
+      {s.showResponses && ownerReply && (
         <div style={st({ background: `color-mix(in srgb, ${s.accent} 8%, ${tk.bg})`, border: `1px solid color-mix(in srgb, ${s.accent} 20%, ${tk.line})`, borderRadius: Math.max(4, s.radius - 4), padding: "9px 11px", fontSize: (s.fontSizeBase || 13) - 1, color: tk.sub, lineHeight: 1.5 })}>
           <span style={st({ fontWeight: 640, color: s.accent, fontSize: (s.fontSizeBase || 13) - 1 })}>Owner reply: </span>{ownerReply}
         </div>
@@ -543,6 +545,7 @@ type RealReview = {
   body: string;
   reviewedAt: string | null;
   source: string;
+  ownerReply?: string | null;
 };
 
 function formatRelativeTime(dateStr: string | null): string {
@@ -587,6 +590,7 @@ function convertRealReviews(realReviews: RealReview[]): Review[] {
       text: r.body,
       time: formatRelativeTime(r.reviewedAt),
       source: sourceMap[r.source] || r.source,
+      ownerReply: r.ownerReply ?? null,
     };
   });
 }
@@ -782,7 +786,9 @@ export function WidgetMockPreview({
     const fontStack = FONT_STACKS[s.fontFamily] || FONT_STACKS.system;
     const cardStyles = resolveCardStyle(s, tk);
     const starColor = resolveStarColor(s);
-    const singleReply = "Thank you so much for your kind words! We really appreciate you taking the time to share your experience.";
+    // The chosen review's actual published reply, or none — same rule as the
+    // wall cards and the public embed.
+    const singleReply = r.ownerReply ?? null;
     return (
       <div style={st({ maxWidth: 540, margin: "0 auto" })}>
         {useVideo ? (
@@ -800,7 +806,7 @@ export function WidgetMockPreview({
               </div>
               {s.showSources && <SourceBadge source={r.source} size={22} />}
             </div>
-            {s.showResponses && (
+            {s.showResponses && singleReply && (
               <div style={st({ background: `color-mix(in srgb, ${s.accent} 8%, ${tk.bg})`, border: `1px solid color-mix(in srgb, ${s.accent} 20%, ${tk.line})`, borderRadius: Math.max(4, s.radius - 4), padding: "9px 11px", fontSize: 13, color: tk.sub, lineHeight: 1.5 })}>
                 <span style={st({ fontWeight: 640, color: s.accent, fontSize: 13 })}>Owner reply: </span>{singleReply}
               </div>

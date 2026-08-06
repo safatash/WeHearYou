@@ -195,6 +195,54 @@ test("card heights map to the right layout and are not inverted", () => {
   assert.match(equalBranch, /container\.style\.columns = ""/);
 });
 
+/* ─── Quote highlights ────────────────────────────────────────────────────── */
+
+test("highlight support is layout-independent, not just the varied grid", () => {
+  // renderCard() serves uniform walls, lists, sliders and carousels. It used to
+  // emit escapeHtml(body) with no <mark>, so highlights only ever worked in the
+  // varied grid.
+  const renderCard = extractFunction("renderCard");
+  assert.match(renderCard, /highlightedTextHtml\(body, activeHighlights\[review\.id\]/);
+  assert.ok(!/why-widget-body[^]*?escapeHtml\(body\)\s*\+/.test(renderCard), "the body must go through the highlighter");
+});
+
+test("there is one highlight implementation in the embed", () => {
+  assert.equal((EMBED_SRC.match(/function highlightedTextHtml\(/g) ?? []).length, 1);
+  assert.match(EMBED_SRC, /var highlightMap = activeHighlights;/, "the grid path reuses the shared map");
+  // The old duplicate parse/slice implementation must be gone.
+  assert.ok(!/highlights\.forEach\(function\(h\)/.test(EMBED_SRC));
+});
+
+test("the highlight map is built before any card renders", () => {
+  const items = EMBED_SRC.indexOf("var items = data.items || []");
+  const build = EMBED_SRC.indexOf("activeHighlights = parseHighlightMap");
+  assert.notEqual(build, -1);
+  assert.ok(build > items && build - items < 200, "map must be populated up-front");
+});
+
+test("malformed highlight data cannot throw in the embed", () => {
+  const parse = extractFunction("parseHighlightMap");
+  assert.match(parse, /try \{/);
+  assert.match(parse, /catch \(e\) \{\}/);
+  assert.match(parse, /\[object Array\]/, "non-array JSON must be rejected");
+});
+
+test("a phrase that is absent from the body renders plain text", () => {
+  const fn = extractFunction("highlightedTextHtml");
+  assert.match(fn, /if \(idx === -1\) return escapeHtml\(text\);/);
+});
+
+/* ─── Body text limit ─────────────────────────────────────────────────────── */
+
+test("bodyMaxChars is applied to public wall cards", () => {
+  // Previously truncate() existed but was only wired to the floating widget, so
+  // the editor's text-limit slider had no public effect — and the preview and
+  // embed matched highlight phrases against different text.
+  const uses = EMBED_SRC.match(/truncate\([^)]*bodyMaxChars\)/g) ?? [];
+  assert.ok(uses.length >= 4, `expected every wall card path to truncate, saw ${uses.length}`);
+  assert.match(extractFunction("renderCard"), /truncate\(review\.body \|\| '', widget\.bodyMaxChars\)/);
+});
+
 /* ─── Empty state ─────────────────────────────────────────────────────────── */
 
 test("zero items renders an explicit empty state, not a blank frame", () => {

@@ -22,7 +22,7 @@ import { pathToFileURL } from "node:url";
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 register(pathToFileURL(path.join(ROOT, "test-loader.mjs")).href, { parentURL: pathToFileURL(ROOT + "/") });
 
-const { resolveWallItems, resolveWallEmptyState } = await import(
+const { resolveWallItems, resolveWallEmptyState, serializeReviewHighlights } = await import(
   pathToFileURL(path.join(ROOT, "src/lib/widget-config.ts")).href
 );
 
@@ -78,8 +78,9 @@ const BASE_WIDGET = {
 };
 
 /** Build a payload exactly the way getPublicReviewWidgetPayload does. */
-function buildPayload({ widget = {}, reviews = POPULATED_REVIEWS, videos = POPULATED_VIDEOS, locationName = "Acme Cabinets" } = {}) {
+function buildPayload({ widget = {}, reviews = POPULATED_REVIEWS, videos = POPULATED_VIDEOS, locationName = "Acme Cabinets", highlights = null } = {}) {
   const w = { ...BASE_WIDGET, ...widget };
+  if (highlights) w.reviewHighlights = serializeReviewHighlights(highlights);
   const contentMode = w.contentType === "VIDEO" ? "VIDEOS" : w.contentType === "MIXED" ? "MIXED" : "REVIEWS";
   const config = {
     contentMode,
@@ -135,7 +136,6 @@ async function render(browser, payload, fn, { viewport = { width: 1200, height: 
   await page.evaluate((js) => {
     const s = document.querySelector("script[data-token]");
     Object.defineProperty(s, "src", { value: "https://app.example/embed/widget.js", writable: false });
-    // eslint-disable-next-line no-eval
     (0, eval)(js);
   }, EMBED_JS);
   await page.waitForTimeout(400);
@@ -295,7 +295,75 @@ await render(browser, buildPayload({
   check("show-on-mobile renders the button at a mobile viewport", Boolean(await page.$(".why-collect-btn")));
 }, { viewport: { width: 390, height: 844 }, mount: false });
 
-/* 8 — resilience */
+/* 8 — quote highlights in a fresh embed */
+const R1_PHRASE = "stayed late to make sure the finish";
+
+await render(browser, buildPayload({ highlights: [{ reviewId: "r1", quote: R1_PHRASE }] }), async (page) => {
+  const marks = await page.$$(".why-widget-card mark");
+  check("a saved highlight renders exactly one <mark>", marks.length === 1, `${marks.length} mark(s)`);
+  const text = marks.length ? await marks[0].textContent() : "";
+  check("the <mark> contains the exact saved phrase", text === R1_PHRASE, JSON.stringify(text));
+  const owner = await page.$eval(".why-widget-card mark", (m) => m.closest(".why-widget-card").textContent);
+  check("the highlight lands in the intended review", /Dana/.test(owner));
+});
+
+await render(browser, buildPayload({
+  highlights: [{ reviewId: "r1", quote: R1_PHRASE }, { reviewId: "r3", quote: "finished on time" }],
+}), async (page) => {
+  const marks = await page.$$(".why-widget-card mark");
+  check("multiple highlights render independently", marks.length === 2, `${marks.length} mark(s)`);
+  const texts = await Promise.all(marks.map((m) => m.textContent()));
+  check("each <mark> carries its own phrase",
+    texts.includes(R1_PHRASE) && texts.includes("finished on time"), JSON.stringify(texts));
+});
+
+await render(browser, buildPayload({
+  highlights: [{ reviewId: "r1", quote: "a phrase that is not in the review at all" }],
+}), async (page) => {
+  check("a non-matching phrase renders no <mark>", (await page.$$(".why-widget-card mark")).length === 0);
+  check("the review still renders in full", (await page.$$(".why-widget-card")).length === 4);
+  const body = await page.$eval(".why-widget-card", (e) => e.textContent);
+  check("the review body is intact", /walked me through every option/.test(body));
+});
+
+await render(browser, buildPayload({ widget: { reviewHighlights: "{not json" } }), async (page) => {
+  check("malformed highlight data does not break the embed", (await page.$$(".why-widget-card")).length === 4);
+  check("malformed highlight data renders no <mark>", (await page.$$("mark")).length === 0);
+});
+
+/* 8a — highlights are not limited to one wall layout */
+await render(browser, buildPayload({
+  widget: { wallStyle: "varied" },
+  highlights: [{ reviewId: "r1", quote: R1_PHRASE }],
+}), async (page) => {
+  const marks = await page.$$("mark");
+  check("highlights render in the varied wall layout too", marks.length === 1, `${marks.length} mark(s)`);
+});
+
+await render(browser, buildPayload({
+  widget: { layout: "list", wallStyle: "uniform" },
+  highlights: [{ reviewId: "r1", quote: R1_PHRASE }],
+}), async (page) => {
+  const marks = await page.$$("mark");
+  check("highlights render in the list layout", marks.length === 1, `${marks.length} mark(s)`);
+});
+
+/* 8b — the text limit applies publicly, so highlights match the rendered body */
+await render(browser, buildPayload({ widget: { bodyMaxChars: 80 } }), async (page) => {
+  const body = await page.$eval(".why-widget-card", (e) => e.textContent);
+  check("bodyMaxChars truncates the public card body", /…|\.\./.test(body), body.trim().slice(0, 70));
+  check("the truncated body drops the tail text", !/matched the rest of the house/.test(body));
+});
+
+await render(browser, buildPayload({
+  widget: { bodyMaxChars: 80 },
+  highlights: [{ reviewId: "r1", quote: "matched the rest of the house" }],
+}), async (page) => {
+  check("a phrase past the text limit renders no <mark> publicly",
+    (await page.$$(".why-widget-card mark")).length === 0);
+});
+
+/* 9 — resilience */
 await render(browser, buildPayload({ widget: { pinnedReviewIds: "deleted-id,r4" } }), async (page) => {
   check("a deleted pinned review does not break the wall", (await page.$$(".why-widget-card")).length === 4);
   check("the surviving pin still leads", /Robin/.test(await page.$eval(".why-widget-card", (e) => e.textContent)));

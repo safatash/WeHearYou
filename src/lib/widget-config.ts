@@ -206,27 +206,99 @@ export function serializePinnedReviewIds(ids: readonly string[]): string {
 
 /* ─── review highlights ───────────────────────────────────────────────────── */
 
+/**
+ * A phrase inside one review that should render highlighted.
+ *
+ * Canonical contract: `reviewId` is a canonical Review id, `quote` is a
+ * non-empty phrase. At most one highlight per review — the review id is the key.
+ */
 export type ReviewHighlight = { reviewId: string; quote: string };
+
+/**
+ * Canonicalise a highlight list: trim quotes, drop entries that are structurally
+ * invalid or have an empty phrase, and de-duplicate by review id (first wins).
+ *
+ * Invalid *entries* are dropped individually. A single bad record must never
+ * discard the admin's other, valid highlights.
+ */
+export function normalizeReviewHighlights(entries: readonly unknown[]): ReviewHighlight[] {
+  const byReview = new Map<string, ReviewHighlight>();
+  for (const entry of entries) {
+    if (!entry || typeof entry !== "object") continue;
+    const { reviewId, quote } = entry as { reviewId?: unknown; quote?: unknown };
+    if (typeof reviewId !== "string" || typeof quote !== "string") continue;
+    const id = reviewId.trim();
+    const text = quote.trim();
+    // A blank phrase is an unfinished edit, not a highlight.
+    if (!id || !text) continue;
+    if (byReview.has(id)) continue;
+    byReview.set(id, { reviewId: id, quote: text });
+  }
+  return [...byReview.values()];
+}
 
 export function parseReviewHighlights(json?: string | null): ReviewHighlight[] {
   const raw = String(json ?? "").trim();
   if (!raw) return [];
   try {
     const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
-    return parsed
-      .filter((h): h is ReviewHighlight =>
-        Boolean(h) && typeof h.reviewId === "string" && typeof h.quote === "string" && h.quote.trim() !== "")
-      .map((h) => ({ reviewId: h.reviewId, quote: h.quote }));
+    if (!Array.isArray(parsed)) {
+      reportInvalid("reviewHighlights", raw.slice(0, 40), "[]");
+      return [];
+    }
+    return normalizeReviewHighlights(parsed);
   } catch {
     reportInvalid("reviewHighlights", raw.slice(0, 40), "[]");
     return [];
   }
 }
 
-export function serializeReviewHighlights(highlights: readonly ReviewHighlight[]): string {
-  const clean = highlights.filter((h) => h.reviewId && h.quote.trim() !== "");
-  return clean.length > 0 ? JSON.stringify(clean.map((h) => ({ reviewId: h.reviewId, quote: h.quote }))) : "";
+export function serializeReviewHighlights(highlights: readonly unknown[]): string {
+  const clean = normalizeReviewHighlights(highlights);
+  return clean.length > 0 ? JSON.stringify(clean) : "";
+}
+
+/**
+ * Why a highlight is or is not rendering, so the editor can say so out loud
+ * instead of the admin discovering a silently dead highlight in production.
+ *
+ *  - `active`             — the phrase occurs in the body that will be rendered
+ *  - `phrase_not_found`   — the review exists but no longer contains the phrase
+ *                           (edited review, or a phrase past the text limit)
+ *  - `review_unavailable` — the review is gone or excluded by current filters
+ *
+ * Only `active` highlights render. The other two are kept in the configuration
+ * verbatim: a phrase that stops matching must not delete the admin's record.
+ */
+export type HighlightStatus = "active" | "phrase_not_found" | "review_unavailable";
+
+export function resolveHighlightStatus(
+  highlight: ReviewHighlight,
+  renderedBody: string | null | undefined,
+): HighlightStatus {
+  if (renderedBody === null || renderedBody === undefined) return "review_unavailable";
+  return renderedBody.includes(highlight.quote) ? "active" : "phrase_not_found";
+}
+
+/* ─── card body ───────────────────────────────────────────────────────────── */
+
+export const DEFAULT_BODY_MAX_CHARS = 280;
+
+/**
+ * The review text a card actually renders.
+ *
+ * Both the editor preview and the public embed must call this: highlights are
+ * matched against the *rendered* body, so if the two sides truncated
+ * differently a phrase could highlight in one and not the other.
+ */
+export function resolveCardBody(body: string | null | undefined, bodyMaxChars?: number | null): string {
+  const text = String(body ?? "");
+  const limit = Number.isFinite(bodyMaxChars) && (bodyMaxChars as number) > 0
+    ? Math.floor(bodyMaxChars as number)
+    : DEFAULT_BODY_MAX_CHARS;
+  if (text.length <= limit) return text;
+  const cut = text.slice(0, limit).replace(/\s+$/, "");
+  return cut.endsWith(".") ? `${cut}..` : `${cut}\u2026`;
 }
 
 /* ─── effective content resolution ────────────────────────────────────────── */
