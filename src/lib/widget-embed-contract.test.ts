@@ -232,6 +232,39 @@ test("a phrase that is absent from the body renders plain text", () => {
   assert.match(fn, /if \(idx === -1\) return escapeHtml\(text\);/);
 });
 
+/* ─── Video cards ─────────────────────────────────────────────────────────── */
+
+test("the video card renders the caption the payload carries", () => {
+  // The caption was in the payload and shown in the editor preview, but the
+  // embed dropped it — thumbnail + name only.
+  const fn = extractFunction("renderVideoCard");
+  assert.match(fn, /var caption = \(vt\.caption \|\| ""\)\.trim\(\)/);
+  assert.match(fn, /why-video-caption/);
+  assert.match(fn, /escapeHtml\(caption\)/, "the caption must be escaped into the card");
+});
+
+test("the video card honours the display flags, like review cards do", () => {
+  const fn = extractFunction("renderVideoCard");
+  assert.match(fn, /w\.showReviewerName !== false/);
+  assert.match(fn, /w\.showDate && vt\.publishedAt/);
+  assert.match(fn, /w\.showSourceLogo/);
+});
+
+test("video cards invent no star rating", () => {
+  // VideoTestimonial has no rating column; stars here would be fabricated.
+  const fn = extractFunction("renderVideoCard");
+  assert.ok(!/stars\(/.test(fn), "no star markup may be produced for a video");
+});
+
+test("every video card call site passes the widget config", () => {
+  const calls = EMBED_SRC.match(/renderVideoCard\([^)]*\)/g) ?? [];
+  const invocations = calls.filter((c) => !c.startsWith("renderVideoCard(vt"));
+  assert.ok(invocations.length >= 4, `expected several call sites, saw ${invocations.length}`);
+  for (const call of invocations) {
+    assert.match(call, /,\s*(w|data\.widget)\)/, `call site must pass config: ${call}`);
+  }
+});
+
 /* ─── Body text limit ─────────────────────────────────────────────────────── */
 
 test("bodyMaxChars is applied to public wall cards", () => {

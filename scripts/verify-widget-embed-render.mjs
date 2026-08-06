@@ -53,8 +53,10 @@ const POPULATED_REVIEWS = [
   { id: "r4", reviewerName: "Robin", reviewerPhotoUrl: null, sourceReviewUrl: null, sourceReplyText: null, rating: 4, body: SHORT, reviewedAt: "2026-05-30T00:00:00.000Z", source: "YELP" },
 ];
 
+const VIDEO_CAPTION = "We love NOVA Advertising";
 const POPULATED_VIDEOS = [
-  { id: "v1", submitterName: "Jules", videoUrl: "https://cdn.example/v1.mp4", durationSeconds: 42, caption: "Loved it", publishedAt: "2026-06-25T00:00:00.000Z", customThumbnailUrl: null, capturedFrameUrl: null, capturedFrameTimestamp: null, thumbnailSource: "AUTO" },
+  { id: "v1", submitterName: "Jules", videoUrl: "https://cdn.example/v1.mp4", durationSeconds: 22, caption: VIDEO_CAPTION, publishedAt: "2026-06-25T00:00:00.000Z", customThumbnailUrl: null, capturedFrameUrl: null, capturedFrameTimestamp: null, thumbnailSource: "AUTO" },
+  { id: "v2", submitterName: "Morgan", videoUrl: "https://cdn.example/v2.mp4", durationSeconds: 95, caption: null, publishedAt: "2026-06-20T00:00:00.000Z", customThumbnailUrl: null, capturedFrameUrl: null, capturedFrameTimestamp: null, thumbnailSource: "AUTO" },
 ];
 
 const BASE_WIDGET = {
@@ -177,7 +179,7 @@ await render(browser, buildPayload({ widget: { contentType: "MIXED" } }), async 
 
 await render(browser, buildPayload({ widget: { contentType: "VIDEO" } }), async (page) => {
   check("VIDEOS renders video cards only",
-    (await page.$$(".why-video-card")).length === 1 && (await page.$$(".why-widget-card")).length === 0);
+    (await page.$$(".why-video-card")).length === POPULATED_VIDEOS.length && (await page.$$(".why-widget-card")).length === 0);
 });
 
 /* 3 — card heights, with deliberately unequal review lengths */
@@ -294,6 +296,34 @@ await render(browser, buildPayload({
 }), async (page) => {
   check("show-on-mobile renders the button at a mobile viewport", Boolean(await page.$(".why-collect-btn")));
 }, { viewport: { width: 390, height: 844 }, mount: false });
+
+/* 7b — video cards carry the caption the editor preview shows */
+await render(browser, buildPayload({ widget: { contentType: "VIDEO" } }), async (page) => {
+  const cards = await page.$$(".why-video-card");
+  check("video cards render", cards.length === 2, `${cards.length} card(s)`);
+  const captionEl = await page.$(".why-video-caption");
+  check("the video caption renders in the embed", Boolean(captionEl));
+  const caption = captionEl ? (await captionEl.textContent()).replace(/[\u201c\u201d]/g, "") : "";
+  check("the caption text matches the payload", caption === VIDEO_CAPTION, JSON.stringify(caption));
+  const captions = await page.$$(".why-video-caption");
+  check("a video with no caption renders none", captions.length === 1, `${captions.length} caption(s)`);
+  const text = await page.textContent(".why-widget");
+  check("the submitter name still renders", /Jules/.test(text));
+  check("the duration badge renders", /22s/.test(await page.textContent(".why-video-duration")));
+});
+
+await render(browser, buildPayload({ widget: { contentType: "VIDEO", showDate: false, showReviewerName: false } }), async (page) => {
+  const dates = await page.$$(".why-video-card .why-widget-date");
+  check("video cards honour showDate=false", dates.length === 0, `${dates.length} date(s)`);
+  const avatars = await page.$$(".why-video-card .why-widget-avatar-fallback");
+  check("video cards honour showReviewerName=false", avatars.length === 0, `${avatars.length} avatar(s)`);
+  check("the caption still renders regardless", (await page.$$(".why-video-caption")).length === 1);
+});
+
+await render(browser, buildPayload({ widget: { contentType: "VIDEO" } }), async (page) => {
+  const html = await page.$eval(".why-video-card", (e) => e.innerHTML);
+  check("video cards invent no star rating", !/★/.test(html));
+});
 
 /* 8 — quote highlights in a fresh embed */
 const R1_PHRASE = "stayed late to make sure the finish";
