@@ -232,6 +232,28 @@ test("a phrase that is absent from the body renders plain text", () => {
   assert.match(fn, /if \(idx === -1\) return escapeHtml\(text\);/);
 });
 
+/* ─── Spotlight card typography ───────────────────────────────────────────── */
+
+test("the spotlight card uses the serif accent face, not the body font", () => {
+  // The preview's FeaturedReviewCardW has always rendered the accent-background
+  // card in Instrument Serif; the embed used fontStack(w.fontFamily), so the
+  // spotlight looked identical to every other card.
+  const block = EMBED_SRC.slice(
+    EMBED_SRC.indexOf("Spotlight card in Varied layout"),
+    EMBED_SRC.indexOf("Spotlight card in Uniform layout"),
+  );
+  assert.ok(block.length > 0, "spotlight branch must exist");
+  const serifUses = block.match(/font-family:" \+ serif/g) ?? block.match(/font-family:' \+ serif/g) ?? [];
+  assert.equal(serifUses.length, 2, "both the highlighted and plain body paths must use the serif");
+  assert.ok(!/fontStack\(w\.fontFamily\) \+ ";font-size:" \+ spotlightFontSize/.test(block));
+});
+
+test("the serif stack is defined and the webfont is loaded", () => {
+  assert.match(EMBED_SRC, /var serif = "'Instrument Serif', Georgia, serif";/);
+  assert.match(EMBED_SRC, /family=Instrument\+Serif/, "the webfont must be requested");
+  assert.match(EMBED_SRC, /Georgia/, "with a system fallback");
+});
+
 /* ─── Video cards ─────────────────────────────────────────────────────────── */
 
 test("the video card renders the caption the payload carries", () => {
@@ -247,7 +269,25 @@ test("the video card honours the display flags, like review cards do", () => {
   const fn = extractFunction("renderVideoCard");
   assert.match(fn, /w\.showReviewerName !== false/);
   assert.match(fn, /w\.showDate && vt\.publishedAt/);
-  assert.match(fn, /w\.showSourceLogo/);
+  // No source badge: the overlay has no room for one, and a video testimonial
+  // is always WeHearYou-native, so the mark would carry no information.
+});
+
+test("caption and submitter overlay the video, with nothing below it", () => {
+  const fn = extractFunction("renderVideoCard");
+  assert.match(fn, /why-video-overlay/);
+  assert.ok(!/why-video-info/.test(fn), "the below-the-video info block must be gone");
+  // The overlay is the last child of the thumbnail, so it sits on the video.
+  const thumbIdx = fn.indexOf("why-video-thumb");
+  const overlayIdx = fn.indexOf("why-video-overlay", thumbIdx);
+  assert.ok(overlayIdx > thumbIdx, "overlay must be inside the thumb");
+});
+
+test("the video card matches the preview aspect ratio and keeps the duration clear", () => {
+  assert.match(EMBED_SRC, /\.why-video-thumb\{[^}]*aspect-ratio:4\/3/, "must match the preview's 4/3");
+  assert.match(EMBED_SRC, /\.why-video-duration\{position:absolute;top:8px;right:8px/,
+    "duration moves to the top so the overlay cannot cover it");
+  assert.match(EMBED_SRC, /\.why-video-overlay\{[^}]*linear-gradient/, "overlay needs a scrim for legibility");
 });
 
 test("video cards invent no star rating", () => {

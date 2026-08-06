@@ -389,29 +389,34 @@ const ReviewCardW = ({ r, s, tk, featured, accentFont, highlightQuote }: { r: Re
   );
 };
 
+/**
+ * Video card. The thumbnail *is* the card: caption and submitter overlay the
+ * video over a bottom gradient scrim, with nothing rendered below it. Kept in
+ * lockstep with renderVideoCard() in the embed — same 4/3 ratio, same overlay,
+ * same top-right duration chip.
+ */
 const VideoCardW = ({ v, s, tk }: { v: Video; s: PreviewSettings; tk: Tokens }) => (
-  <div style={st({ background: tk.card, border: `1px solid ${tk.line}`, borderRadius: s.radius, overflow: "hidden", display: "flex", flexDirection: "column", minWidth: 0 })}>
+  <div style={st({ position: "relative", background: "#0f172a", border: `1px solid ${tk.line}`, borderRadius: s.radius, overflow: "hidden", display: "block", minWidth: 0 })}>
     <div style={st({ position: "relative", aspectRatio: "4 / 3", background: `linear-gradient(135deg, color-mix(in srgb, ${s.accent} 30%, #1b1b22), #0f0f14)` })}>
       <div style={st({ position: "absolute", inset: 0, display: "grid", placeItems: "center" })}>
         <span style={st({ width: 52, height: 52, borderRadius: "50%", background: "rgba(255,255,255,.92)", display: "grid", placeItems: "center", boxShadow: "0 6px 20px rgba(0,0,0,.3)" })}>
           <svg width="20" height="20" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" fill={s.accent} /></svg>
         </span>
       </div>
-      <span style={st({ position: "absolute", bottom: 9, right: 9, background: "rgba(0,0,0,.62)", color: "#fff", fontSize: 11, fontWeight: 600, fontFamily: "var(--font-mono)", padding: "2px 7px", borderRadius: 5 })}>{v.length}</span>
-    </div>
-    <div style={st({ padding: 14, display: "flex", flexDirection: "column", gap: 8 })}>
-      {/* VideoTestimonial has no rating column — stars only where a real one exists. */}
-      {s.showRating && typeof v.rating === "number" && <Stars value={v.rating} size={14} />}
-      {v.quote.trim() !== "" && (
-        <p style={st({ fontSize: (s.fontSizeBase || 14) - 1, lineHeight: 1.5, color: tk.text, margin: 0, fontWeight: 500 })}>&ldquo;{v.quote}&rdquo;</p>
+      {v.length && (
+        <span style={st({ position: "absolute", top: 8, right: 8, background: "rgba(0,0,0,.5)", color: "rgba(255,255,255,.85)", fontSize: 11, fontWeight: 600, fontFamily: "var(--font-mono)", padding: "1px 6px", borderRadius: 4 })}>{v.length}</span>
       )}
-      <div style={st({ display: "flex", alignItems: "center", gap: 9, marginTop: 2 })}>
-        {s.showAvatars && <Avatar name={v.name} size={28} />}
-        <div style={st({ minWidth: 0, flex: 1 })}>
-          <div style={st({ fontSize: s.fontSizeNames || 13, fontWeight: 620, color: tk.text })}>{v.name}</div>
-          {s.showDates && <div style={st({ fontSize: (s.fontSizeLabel || 12) - 1, color: tk.muted })}>{v.time}</div>}
-        </div>
-        {s.showSources && <SourceBadge source={v.source} size={16} />}
+      {/* VideoTestimonial has no rating column — no stars are invented here. */}
+      <div style={st({ position: "absolute", left: 0, right: 0, bottom: 0, padding: 14, background: "linear-gradient(to top, rgba(0,0,0,.9) 0%, rgba(0,0,0,.6) 55%, rgba(0,0,0,0) 100%)", color: "#fff", pointerEvents: "none", textAlign: "left" })}>
+        {v.quote.trim() !== "" && (
+          <p style={st({ margin: "0 0 6px", fontSize: s.fontSizeBase || 14, lineHeight: 1.4, fontWeight: 600, color: "#fff", textShadow: "0 1px 2px rgba(0,0,0,.4)" })}>&ldquo;{v.quote}&rdquo;</p>
+        )}
+        {s.showAvatars && (
+          <div style={st({ fontSize: s.fontSizeNames || 13, fontWeight: 700, color: "#fff", textShadow: "0 1px 2px rgba(0,0,0,.4)" })}>{v.name}</div>
+        )}
+        {s.showDates && (
+          <div style={st({ fontSize: (s.fontSizeLabel || 12) - 0.5, color: "rgba(255,255,255,.82)", textShadow: "0 1px 2px rgba(0,0,0,.4)" })}>{v.time}</div>
+        )}
       </div>
     </div>
   </div>
