@@ -294,6 +294,9 @@ export function CampaignFormClient({ initialContacts, locations, defaultLocation
           background: "color-mix(in srgb, var(--white) 86%, transparent)", backdropFilter: "blur(8px)",
           borderTop: "1px solid var(--ink-200)",
           display: "flex", alignItems: "center", gap: 12,
+          // Wrap rather than push the page wide: three buttons plus the status
+          // line exceed a 390px viewport on one row.
+          flexWrap: "wrap",
         }}
       >
         <div style={{ fontSize: 12.5, color: "var(--ink-500)" }}>
@@ -301,7 +304,7 @@ export function CampaignFormClient({ initialContacts, locations, defaultLocation
             <>Ready to send to <b className="tnum" style={{ color: "var(--ink-900)" }}>{recipients.length}</b> recipient{recipients.length === 1 ? "" : "s"}</>
           ) : !anyChannel ? "Select a delivery channel to continue" : "Add at least one recipient to send"}
         </div>
-        <div style={{ marginLeft: "auto", display: "flex", gap: 10 }}>
+        <div style={{ marginLeft: "auto", display: "flex", gap: 10, flexWrap: "wrap" }}>
           <Link href="/campaigns" className="btn btn-ghost">Cancel</Link>
           <button type="button" className="btn btn-secondary" onClick={handleSaveDraft} disabled={isSavingDraft || isPending}>
             {isSavingDraft ? "Saving…" : "Save draft"}

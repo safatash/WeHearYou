@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 import Link from "next/link";
 import { CampaignStatus, PreferredChannel } from "@prisma/client";
 import { AppShell } from "@/components/app-shell";
+import { Icon } from "@/components/icon";
 import { formatCampaignStatus, formatChannel, formatDateTime, getCampaigns } from "@/lib/campaigns";
 import { getCurrentAccessibleLocationIds } from "@/lib/current-scope";
 
@@ -72,7 +73,8 @@ export default async function CampaignsPage({
             <p style={{ fontSize: 13.5, color: "var(--ink-500)", marginTop: 5 }}>Review requests and send history</p>
           </div>
           <Link href="/campaigns/new" className="btn btn-primary">
-            ➕ New campaign
+            <Icon name="plus" size={16} aria-hidden="true" />
+            New campaign
           </Link>
         </div>
 
@@ -83,10 +85,12 @@ export default async function CampaignsPage({
               <p style={{ fontWeight: 600, color: "var(--ink-900)", fontSize: 14 }}>No campaigns yet</p>
               <p style={{ marginTop: 5, fontSize: 13.5, color: "var(--ink-500)" }}>Send your first review request to get started.</p>
               <Link href="/campaigns/new" className="btn btn-primary" style={{ marginTop: 16 }}>
-                ➕ New campaign
+                <Icon name="plus" size={16} aria-hidden="true" />
+            New campaign
               </Link>
             </div>
           ) : (
+            <div style={{ overflowX: "auto" }}>
             <table style={{ minWidth: "100%", textAlign: "left", fontSize: 13.5 }}>
               <thead>
                 <tr style={{ borderBottom: "1px solid var(--ink-200)", color: "var(--ink-500)" }}>
@@ -144,6 +148,7 @@ export default async function CampaignsPage({
                 })}
               </tbody>
             </table>
+            </div>
           )}
         </div>
       </div>

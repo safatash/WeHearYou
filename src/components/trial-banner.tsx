@@ -45,7 +45,8 @@ export function TrialBanner({ daysLeft }: { daysLeft: number }) {
       className="lg:px-8"
     >
       <p style={{ fontSize: 13.5, fontWeight: 600, color: fg, margin: 0 }}>
-        🎉 {daysLeft} day{daysLeft === 1 ? "" : "s"} left in your free trial — no credit card needed yet.{" "}
+        <Icon name="sparkles" size={15} aria-hidden="true" style={{ verticalAlign: "-2px", marginRight: 6 }} />
+        {daysLeft} day{daysLeft === 1 ? "" : "s"} left in your free trial — no credit card needed yet.{" "}
         <Link href="/billing" style={{ textDecoration: "underline" }}>Upgrade now →</Link>
       </p>
       <button

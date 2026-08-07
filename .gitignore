@@ -40,6 +40,9 @@ yarn-error.log*
 .env*
 !.env.example
 
+# route screenshots — contain real customer data (see scripts/screenshot-routes.mjs)
+.screenshots/
+
 # vercel
 .vercel
 
