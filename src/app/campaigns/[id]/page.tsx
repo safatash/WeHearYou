@@ -45,7 +45,7 @@ export default async function CampaignDetailPage({ params }: { params: Promise<{
                 className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm"
               />
             </form>
-            <Link href="/campaigns/new" className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold !text-white shadow-sm visited:!text-white hover:!text-white">
+            <Link href="/campaigns/new" className="btn btn-primary">
               Duplicate Request
             </Link>
           </div>

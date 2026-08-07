@@ -40,7 +40,7 @@ export default async function AutomationPage() {
           </div>
           <Link
             href="/automation/new"
-            className="inline-flex rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-slate-800 transition whitespace-nowrap"
+            className="btn btn-primary inline-flex whitespace-nowrap"
             style={{ color: "white" }}
           >
             + New Automation
@@ -79,7 +79,7 @@ export default async function AutomationPage() {
             </p>
             <Link
               href="/automation/new"
-              className="mt-4 inline-flex rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-slate-800 transition"
+              className="btn btn-primary mt-4 inline-flex"
               style={{ color: "white" }}
             >
               + New Automation

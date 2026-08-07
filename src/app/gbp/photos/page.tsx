@@ -93,7 +93,7 @@ export default async function GbpPhotosPage({
                 <button type="submit" name="publishNow" value="true" className="rounded-2xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 transition">
                   Publish now ↗
                 </button>
-                <button type="submit" name="publishNow" value="false" className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-slate-800 transition">
+                <button type="submit" name="publishNow" value="false" className="btn btn-primary">
                   Save / Schedule
                 </button>
               </div>

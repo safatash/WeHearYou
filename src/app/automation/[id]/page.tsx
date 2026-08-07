@@ -366,7 +366,7 @@ export default async function AutomationDetailPage({
                   </div>
                   <button
                     type="submit"
-                    className="w-full rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-slate-800 transition"
+                    className="btn btn-primary w-full"
                   >
                     Save Changes
                   </button>

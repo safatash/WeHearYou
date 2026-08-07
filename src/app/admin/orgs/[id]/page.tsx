@@ -97,7 +97,7 @@ export default async function AdminOrgDetailPage({
             <FormSubmitButton
               idleLabel="Save changes"
               pendingLabel="Saving..."
-              className="rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white"
+              className="btn btn-primary"
             />
           </form>
         </section>
@@ -176,7 +176,7 @@ export default async function AdminOrgDetailPage({
             <label className="flex items-center gap-2 text-sm text-slate-700">
               <input type="checkbox" name="clearSuspended" /> Clear suspension
             </label>
-            <FormSubmitButton idleLabel="Save billing" pendingLabel="Saving..." className="rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white" />
+            <FormSubmitButton idleLabel="Save billing" pendingLabel="Saving..." className="btn btn-primary" />
           </form>
         </section>
 

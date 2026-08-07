@@ -253,7 +253,7 @@ export function FunnelPreviewSimulator({
                     <div className="mt-3 space-y-3">
                       <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500">What happened?</div>
                       <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500">Email or phone so the team can follow up</div>
-                      <div className="inline-flex rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white">{profile?.funnelPrivateSubmitLabel ?? "Send private feedback"}</div>
+                      <div className="btn btn-primary inline-flex">{profile?.funnelPrivateSubmitLabel ?? "Send private feedback"}</div>
                     </div>
                   </div>
                 </div>

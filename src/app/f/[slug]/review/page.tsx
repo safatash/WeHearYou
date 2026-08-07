@@ -126,7 +126,7 @@ export default async function PublicFunnelPositiveReviewPage({
             </a>
           </div>
 
-          <button type="submit" className="w-full rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold !text-white shadow-sm hover:bg-slate-800 transition visited:!text-white">
+          <button type="submit" className="btn btn-primary w-full">
             Submit review
           </button>
         </form>

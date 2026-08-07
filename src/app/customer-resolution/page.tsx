@@ -63,16 +63,37 @@ export default async function CustomerResolutionPage({ searchParams }: { searchP
           <StatTile label="Contact requested" value={stats.contactRequested} />
         </div>
 
-        {/* Filters */}
-        <div className="flex flex-wrap gap-2">
-          <Link href="/customer-resolution" className={`rounded-2xl px-4 py-2 text-sm font-semibold ${!statusFilter && !priorityFilter ? "bg-slate-950 text-white" : "border border-slate-200 bg-white text-slate-700"}`}>All</Link>
+        {/* Filters — canonical .chip; selection is carried by aria-current so it
+            is announced, not just tinted. */}
+        <nav aria-label="Filter cases" className="flex flex-wrap gap-2">
+          <Link
+            href="/customer-resolution"
+            className="chip focus-ring"
+            aria-current={!statusFilter && !priorityFilter ? "true" : undefined}
+          >
+            All
+          </Link>
           {(["NEW", "NEEDS_RESPONSE", "IN_PROGRESS", "RESOLVED"] as const).map((s) => (
-            <Link key={s} href={`/customer-resolution?status=${s}`} className={`rounded-2xl px-4 py-2 text-sm font-semibold ${statusFilter === s ? "bg-slate-950 text-white" : "border border-slate-200 bg-white text-slate-700"}`}>{fmtStatus(s)}</Link>
+            <Link
+              key={s}
+              href={`/customer-resolution?status=${s}`}
+              className="chip focus-ring"
+              aria-current={statusFilter === s ? "true" : undefined}
+            >
+              {fmtStatus(s)}
+            </Link>
           ))}
           {(["HIGH", "CRITICAL"] as const).map((p) => (
-            <Link key={p} href={`/customer-resolution?priority=${p}`} className={`rounded-2xl px-4 py-2 text-sm font-semibold ${priorityFilter === p ? "bg-slate-950 text-white" : "border border-slate-200 bg-white text-slate-700"}`}>{fmtStatus(p)}</Link>
+            <Link
+              key={p}
+              href={`/customer-resolution?priority=${p}`}
+              className="chip focus-ring"
+              aria-current={priorityFilter === p ? "true" : undefined}
+            >
+              {fmtStatus(p)}
+            </Link>
           ))}
-        </div>
+        </nav>
 
         <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
           {cases.length === 0 ? (

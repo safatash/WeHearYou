@@ -357,7 +357,7 @@ export default async function LocationDetailPage({
                 <FormSubmitButton
                   idleLabel="Save Automation Settings"
                   pendingLabel="Saving..."
-                  className="rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold !text-white shadow-sm visited:!text-white hover:!text-white"
+                  className="btn btn-primary"
                 />
               </form>
             </section>

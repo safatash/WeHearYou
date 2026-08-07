@@ -51,7 +51,7 @@ export default function NewAutomationPage() {
             <div className="flex gap-3 pt-2">
               <button
                 type="submit"
-                className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-slate-800 transition"
+                className="btn btn-primary"
                 style={{ color: "white" }}
               >
                 Create Automation

@@ -211,7 +211,7 @@ export default async function IntegrationsPage({ searchParams }: { searchParams?
                             idleLabel="Sync all mapped locations"
                             pendingLabel="Syncing connection..."
                             disabled={!connection.locations.some((location) => Boolean(location.googleLocationName))}
-                            className="rounded-2xl border border-slate-900 bg-slate-900 px-3 py-2 text-sm font-medium !text-white visited:!text-white hover:!text-white disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-white disabled:text-slate-400"
+                            className="btn btn-primary"
                           />
                         </form>
                         <form action={disconnectGoogleConnection}>
@@ -303,7 +303,7 @@ export default async function IntegrationsPage({ searchParams }: { searchParams?
                         idleLabel="Sync all locations"
                         pendingLabel="Syncing..."
                         disabled={connection.locations.length === 0}
-                        className="rounded-2xl border border-slate-900 bg-slate-900 px-3 py-2 text-sm font-medium !text-white visited:!text-white hover:!text-white disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-white disabled:text-slate-400"
+                        className="btn btn-primary"
                       />
                     </form>
                     <form action={disconnectMetaConnection}>

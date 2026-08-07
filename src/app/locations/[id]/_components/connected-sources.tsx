@@ -227,7 +227,7 @@ export function ConnectedSources({
 
                             <button
                               type="submit"
-                              className="rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold !text-white shadow-sm visited:!text-white hover:!text-white"
+                              className="btn btn-primary"
                             >
                               Map Google Location
                             </button>

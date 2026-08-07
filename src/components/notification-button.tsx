@@ -1,27 +1,18 @@
-'use client';
+"use client";
 
+import { Icon } from "@/components/icon";
+
+/**
+ * Notifications entry point.
+ *
+ * Was a raw 🔔 emoji in a bordered box: no accessible name, inconsistent glyph
+ * rendering across platforms, and a target below the 40px minimum. Now a
+ * canonical icon button.
+ */
 export function NotificationButton() {
   return (
-    <button
-      style={{
-        borderRadius: "var(--r-md)",
-        border: "1px solid var(--ink-200)",
-        background: "var(--white)",
-        padding: "8px 12px",
-        fontSize: 14,
-        fontWeight: 600,
-        color: "var(--ink-600)",
-        cursor: "pointer",
-        transition: "all 0.2s ease",
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.background = "var(--ink-50)";
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.background = "var(--white)";
-      }}
-    >
-      🔔
+    <button type="button" className="icon-btn focus-ring" aria-label="Notifications">
+      <Icon name="bell" size={18} aria-hidden="true" />
     </button>
   );
 }

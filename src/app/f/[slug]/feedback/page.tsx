@@ -65,7 +65,7 @@ export default async function PublicFunnelFeedbackPage({
               placeholder="Share what could have gone better, and anything you'd want the team to know."
             />
           </label>
-          <button type="submit" className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold !text-white shadow-sm visited:!text-white hover:!text-white">
+          <button type="submit" className="btn btn-primary">
             {location.publicProfile?.funnelPrivateSubmitLabel ?? "Send private feedback"}
           </button>
         </form>

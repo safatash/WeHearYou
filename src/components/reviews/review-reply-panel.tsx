@@ -61,7 +61,7 @@ export function ReviewReplyPanel({
           <span className="ml-auto rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
             {sourceLabel}
           </span>
-          <span className="rounded-full bg-slate-900 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-white">
+          <span className="btn btn-primary">
             {statusLabel}
           </span>
           {review.location && (
@@ -157,7 +157,7 @@ export function ReviewReplyPanel({
             type="submit"
             name="markSent"
             value="true"
-            className="rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white shadow-sm"
+            className="btn btn-primary"
           >
             Mark as sent
           </button>

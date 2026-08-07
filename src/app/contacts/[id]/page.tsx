@@ -43,7 +43,7 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
             <Link href={`/contacts/${contact.id}/edit`} className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm">
               Edit Contact
             </Link>
-            <Link href="/campaigns/new" className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold !text-white shadow-sm visited:!text-white hover:!text-white">
+            <Link href="/campaigns/new" className="btn btn-primary">
               Send Review Request
             </Link>
           </div>

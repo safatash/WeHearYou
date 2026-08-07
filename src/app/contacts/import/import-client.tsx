@@ -198,7 +198,7 @@ export function ImportClient({ locations }: { locations: Location[] }) {
           >
             Import another file
           </button>
-          <Link href="/contacts" className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-sm">
+          <Link href="/contacts" className="btn btn-primary">
             View contacts
           </Link>
         </div>
@@ -228,7 +228,7 @@ export function ImportClient({ locations }: { locations: Location[] }) {
             <button
               onClick={handleImport}
               disabled={isSubmitting || validCount === 0}
-              className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-sm disabled:opacity-50"
+              className="btn btn-primary"
             >
               {isSubmitting ? "Importing…" : `Import ${validCount} contact${validCount !== 1 ? "s" : ""}`}
             </button>
@@ -324,7 +324,7 @@ export function ImportClient({ locations }: { locations: Location[] }) {
         <button
           type="button"
           onClick={() => fileRef.current?.click()}
-          className="mt-6 rounded-2xl bg-slate-950 px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-slate-800 transition"
+          className="btn btn-primary mt-6"
         >
           Choose file
         </button>

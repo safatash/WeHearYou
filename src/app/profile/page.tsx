@@ -35,7 +35,7 @@ export default async function ProfilePage() {
         {/* User card */}
         <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
           <div className="flex items-center gap-5">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-slate-900 text-xl font-bold text-white">
+            <div className="btn btn-primary items-center justify-center">
               {initials}
             </div>
             <div>

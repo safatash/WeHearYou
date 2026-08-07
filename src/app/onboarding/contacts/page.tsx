@@ -87,7 +87,7 @@ export default async function OnboardingContactsPage({
           <FormSubmitButton
             idleLabel="Finish setup →"
             pendingLabel="Saving..."
-            className="rounded-2xl bg-slate-950 px-6 py-2.5 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-50"
+            className="btn btn-primary"
           />
         </div>
       </form>

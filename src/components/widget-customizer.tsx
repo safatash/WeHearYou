@@ -1761,7 +1761,7 @@ export function WidgetCustomizer({
                   href={localTestUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="flex-1 text-center rounded-xl bg-slate-900 text-white px-6 py-2.5 text-sm font-bold hover:bg-slate-800 transition-colors"
+                  className="btn btn-primary flex-1 text-center"
                 >
                   Open preview →
                 </a>

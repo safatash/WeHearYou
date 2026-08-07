@@ -43,7 +43,7 @@ export function AcceptInviteForm({ inviteToken }: { inviteToken: string }) {
       <button
         type="submit"
         disabled={pending}
-        className="w-full rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-sm disabled:opacity-60"
+        className="btn btn-primary w-full"
       >
         {pending ? "Finishing setup..." : "Complete setup"}
       </button>
@@ -70,7 +70,7 @@ export function AcceptExistingInviteForm({ inviteToken, email }: { inviteToken: 
       <button
         type="submit"
         disabled={pending}
-        className="w-full rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-sm disabled:opacity-60"
+        className="btn btn-primary w-full"
       >
         {pending ? "Accepting..." : "Accept invitation"}
       </button>

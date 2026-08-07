@@ -172,7 +172,7 @@ export default async function NewLocationPage({ searchParams }: { searchParams?:
                   </p>
 
                   <div className="flex justify-end">
-                    <button type="submit" className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold !text-white shadow-sm visited:!text-white hover:!text-white">
+                    <button type="submit" className="btn btn-primary">
                       Create from Google
                     </button>
                   </div>

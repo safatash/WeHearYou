@@ -69,7 +69,7 @@ export default async function ReviewThanksPage({
 
         {!isPrivate && !isWeHearYouReview && ctaUrl ? (
           <div className="mt-8 flex flex-wrap gap-3">
-            <Link href={ctaUrl} className="inline-flex rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold !text-white shadow-sm visited:!text-white hover:!text-white">
+            <Link href={ctaUrl} className="btn btn-primary inline-flex">
               {ctaLabel}
             </Link>
             <Link href="/" className="inline-flex rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm">
@@ -78,7 +78,7 @@ export default async function ReviewThanksPage({
           </div>
         ) : (
           <div className="mt-8">
-            <Link href="/" className="inline-flex rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold !text-white shadow-sm visited:!text-white hover:!text-white">
+            <Link href="/" className="btn btn-primary inline-flex">
               Finish
             </Link>
           </div>

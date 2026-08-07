@@ -57,7 +57,7 @@ export default async function ReviewDetailPage({
           </div>
           <div className="flex gap-3">
             <Link href="#follow-up" className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm">Assign Owner</Link>
-            <Link href="#reply-tracking" className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold !text-white shadow-sm visited:!text-white hover:!text-white">Track Reply</Link>
+            <Link href="#reply-tracking" className="btn btn-primary">Track Reply</Link>
           </div>
         </div>
 
@@ -75,7 +75,7 @@ export default async function ReviewDetailPage({
                 <div>
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">{sourceLabel}</span>
-                    <span className="rounded-full bg-slate-950 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-white">{statusLabel}</span>
+                    <span className="btn btn-primary">{statusLabel}</span>
                     <span className="rounded-full bg-indigo-50 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-indigo-700">{review.location.name}</span>
                   </div>
                   <h3 className="mt-4 text-2xl font-semibold text-slate-950">Original review</h3>
@@ -165,7 +165,7 @@ export default async function ReviewDetailPage({
                 <FormSubmitButton
                   idleLabel="Save follow-up"
                   pendingLabel="Saving..."
-                  className="rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold !text-white shadow-sm visited:!text-white hover:!text-white"
+                  className="btn btn-primary"
                 />
               </form>
             </section>

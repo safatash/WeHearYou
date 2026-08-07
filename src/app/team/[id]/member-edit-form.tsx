@@ -151,7 +151,7 @@ export function MemberEditForm({
         <button
           type="submit"
           disabled={pending}
-          className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-slate-800 disabled:opacity-60 transition"
+          className="btn btn-primary"
         >
           {pending ? "Saving…" : "Save Role Changes"}
         </button>

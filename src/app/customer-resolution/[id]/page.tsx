@@ -112,7 +112,7 @@ export default async function CaseDetailPage({
               <form action={addCaseNote} className="mt-4 flex gap-2">
                 <input type="hidden" name="caseId" value={c.id} />
                 <input name="body" placeholder="Add an internal note…" required className="flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm" />
-                <button type="submit" className="rounded-xl bg-slate-950 px-4 py-2 text-sm font-semibold text-white">Add</button>
+                <button type="submit" className="btn btn-primary">Add</button>
               </form>
             </Card>
           </div>
