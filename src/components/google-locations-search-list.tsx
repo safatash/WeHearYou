@@ -30,7 +30,7 @@ export function GoogleLocationsSearchList({ googleLocations }: Props) {
         placeholder="Search locations..."
         value={query}
         onChange={(e) => setQuery(e.target.value)}
-        className="mt-3 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+        className="mt-3 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2"
       />
       {query && (
         <p className="mt-2 text-xs text-slate-500">

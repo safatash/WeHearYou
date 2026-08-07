@@ -54,7 +54,7 @@ export default async function AdminUserDetailPage({
 
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-slate-950">{user.name}</h1>
+          <h1 className="page-title">{user.name}</h1>
           <p className="mt-1 text-sm text-slate-500">{user.email}</p>
         </div>
         {user.isSuperAdmin && (
@@ -66,7 +66,7 @@ export default async function AdminUserDetailPage({
 
       <div className="grid gap-6 xl:grid-cols-2">
         {/* User info */}
-        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <section className="panel">
           <h2 className="text-lg font-semibold text-slate-950">Account details</h2>
           <dl className="mt-4 space-y-3 text-sm">
             <div className="flex justify-between">
@@ -91,7 +91,7 @@ export default async function AdminUserDetailPage({
         </section>
 
         {/* Memberships */}
-        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <section className="panel">
           <h2 className="text-lg font-semibold text-slate-950">Organizations</h2>
           <div className="mt-4 divide-y divide-slate-100">
             {user.memberships.length === 0 ? (
@@ -118,7 +118,7 @@ export default async function AdminUserDetailPage({
         </section>
 
         {/* Superadmin control */}
-        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <section className="panel">
           <h2 className="text-lg font-semibold text-slate-950">Superadmin access</h2>
           <p className="mt-2 text-sm text-slate-500">
             {user.isSuperAdmin

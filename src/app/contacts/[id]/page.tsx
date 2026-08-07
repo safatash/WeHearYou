@@ -33,17 +33,17 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
             <Link href="/contacts" className="text-sm font-semibold text-indigo-600">
               ← Back to contacts
             </Link>
-            <p className="mt-4 text-sm font-semibold uppercase tracking-[0.22em] text-indigo-600">Contact Detail</p>
-            <h2 className="mt-2 text-4xl font-semibold tracking-tight text-slate-950">{contact.name}</h2>
+            <p className="mt-4 eyebrow">Contact Detail</p>
+            <h2 className="page-title">{contact.name}</h2>
             <p className="mt-3 max-w-3xl text-slate-600">
               A fuller CRM-style contact profile, tying together source, request history, review behavior, and next-step actions.
             </p>
           </div>
           <div className="flex gap-3">
-            <Link href={`/contacts/${contact.id}/edit`} className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm">
+            <Link href={`/contacts/${contact.id}/edit`} className="btn btn-secondary">
               Edit Contact
             </Link>
-            <Link href="/campaigns/new" className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold !text-white shadow-sm visited:!text-white hover:!text-white">
+            <Link href="/campaigns/new" className="btn btn-primary">
               Send Review Request
             </Link>
           </div>
@@ -56,8 +56,8 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
         </div>
 
         <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-          <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h3 className="text-xl font-semibold text-slate-950">Profile</h3>
+          <section className="panel">
+            <h3 className="section-title">Profile</h3>
             <div className="mt-6 grid gap-4 md:grid-cols-2">
               <Field label="Email" value={contact.email ?? "No email"} />
               <Field label="Phone" value={contact.phone ?? "No phone"} />
@@ -78,8 +78,8 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
             </div>
           </section>
 
-          <aside className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h3 className="text-xl font-semibold text-slate-950">Recent Outcomes</h3>
+          <aside className="panel">
+            <h3 className="section-title">Recent Outcomes</h3>
             <div className="mt-6 space-y-4">
               <OutcomeCard title="Requests sent" count={String(relatedCampaigns.length)} tone="neutral" />
               <OutcomeCard title="Opened or clicked" count={String(relatedCampaigns.filter((item) => item.status !== "SENT").length)} tone="positive" />
@@ -88,9 +88,9 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
           </aside>
         </div>
 
-        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <section className="panel">
           <div className="flex items-center justify-between">
-            <h3 className="text-xl font-semibold text-slate-950">Request History</h3>
+            <h3 className="section-title">Request History</h3>
             <span className="text-sm text-slate-500">Clickable prototype timeline</span>
           </div>
           <div className="mt-6 overflow-x-auto">

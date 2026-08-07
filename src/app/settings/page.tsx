@@ -21,7 +21,7 @@ export default async function SettingsPage({
   if (!data) {
     return (
       <AppShell activeScreen="settings">
-        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="panel">
           <p className="text-sm font-semibold text-slate-900">No organization found.</p>
           <p className="mt-2 text-sm text-slate-600">Seed the database to load the starter organization and settings data.</p>
         </div>
@@ -35,8 +35,8 @@ export default async function SettingsPage({
     <AppShell activeScreen="settings" flash={flash ? { message: flash, tone } : null}>
       <div className="space-y-6">
         <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.22em] text-indigo-600">Settings</p>
-          <h2 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">Organization and funnel defaults</h2>
+          <p className="eyebrow">Settings</p>
+          <h2 className="page-title">Organization and funnel defaults</h2>
           <p className="mt-3 max-w-3xl text-slate-600">
             Manage the core identity and shared defaults that shape review flows, mini-sites, integrations, and team operations.
           </p>
@@ -50,8 +50,8 @@ export default async function SettingsPage({
         </div>
 
         <div className="grid gap-6 xl:grid-cols-[1fr_1fr]">
-          <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <p className="text-sm font-semibold uppercase tracking-[0.22em] text-indigo-600">Organization</p>
+          <section className="panel">
+            <p className="eyebrow">Organization</p>
             <h3 className="mt-2 text-2xl font-semibold text-slate-950">Editable account settings</h3>
 
             <form action={updateOrganizationSettings} className="mt-6 space-y-4">
@@ -59,30 +59,30 @@ export default async function SettingsPage({
 
               <label className="grid gap-2 text-sm font-semibold text-slate-700">
                 Organization Name
-                <input name="name" defaultValue={organization.name} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-normal text-slate-700" />
+                <input name="name" defaultValue={organization.name} className="field-value" />
               </label>
 
               <label className="grid gap-2 text-sm font-semibold text-slate-700">
                 Slug
-                <input name="slug" defaultValue={organization.slug} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-normal text-slate-700" />
+                <input name="slug" defaultValue={organization.slug} className="field-value" />
               </label>
 
               <label className="grid gap-2 text-sm font-semibold text-slate-700">
                 Website
-                <input name="website" defaultValue={organization.website ?? ""} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-normal text-slate-700" />
+                <input name="website" defaultValue={organization.website ?? ""} className="field-value" />
               </label>
 
               <FormSubmitButton
                 idleLabel="Save Organization Settings"
                 pendingLabel="Saving..."
-                className="rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold !text-white shadow-sm visited:!text-white hover:!text-white"
+                className="btn btn-primary"
               />
             </form>
           </section>
 
           <aside className="space-y-6">
-            <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-              <p className="text-sm font-semibold uppercase tracking-[0.22em] text-indigo-600">Shared Defaults</p>
+            <section className="panel">
+              <p className="eyebrow">Shared Defaults</p>
               <div className="mt-6 space-y-4">
                 <Field label="Default Review Link" value={defaults.defaultReviewLink || "No review link set"} />
                 <Field label="Default Booking URL" value={defaults.bookingUrl || "No booking URL set"} />
@@ -92,8 +92,8 @@ export default async function SettingsPage({
               </div>
             </section>
 
-            <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-              <p className="text-sm font-semibold uppercase tracking-[0.22em] text-indigo-600">Operational Footprint</p>
+            <section className="panel">
+              <p className="eyebrow">Operational Footprint</p>
               <div className="mt-4 space-y-3">
                 {organization.locations.map((location) => (
                   <div key={location.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">

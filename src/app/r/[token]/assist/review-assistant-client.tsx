@@ -143,8 +143,8 @@ export function ReviewAssistantClient(props: Props) {
 
   return (
     <div>
-      <p className="text-sm font-semibold uppercase tracking-[0.22em] text-indigo-600">Need help writing your review?</p>
-      <h1 className="mt-3 text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">
+      <p className="eyebrow">Need help writing your review?</p>
+      <h1 className="mt-3 page-title sm:text-4xl">
         Let&apos;s turn your visit into a review
       </h1>
       <p className="mt-3 text-base leading-7 text-slate-600">
@@ -245,7 +245,7 @@ export function ReviewAssistantClient(props: Props) {
 
           {/* Destinations */}
           <div className="mt-8 border-t border-slate-200 pt-6">
-            <h2 className="text-xl font-semibold text-slate-950">Post your review</h2>
+            <h2 className="section-title">Post your review</h2>
             <p className="mt-1 text-sm text-slate-600">Copy your review, then choose where you&apos;d like to post it.</p>
             <div className="mt-4 flex flex-wrap gap-2">
               {props.destinations.map((d) => (

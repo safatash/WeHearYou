@@ -25,7 +25,7 @@ export default async function ReviewLandingPage({ params }: { params: Promise<{ 
         {profile?.logoUrl ? (
           <img src={profile.logoUrl} alt={`${location.name} logo`} className="mb-6 h-14 w-auto rounded-xl object-contain" />
         ) : null}
-        <p className="text-sm font-semibold uppercase tracking-[0.22em] text-indigo-600">WeHearYou Review Funnel</p>
+        <p className="eyebrow">WeHearYou Review Funnel</p>
         <h1 className="mt-3 text-4xl font-semibold tracking-tight text-slate-950">
           {profile?.funnelPromptTitle ?? `How was your experience with ${location.name}?`}
         </h1>

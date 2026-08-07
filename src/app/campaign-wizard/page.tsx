@@ -19,7 +19,7 @@ export default async function CampaignWizardPage() {
   if (locations.length === 0) {
     return (
       <AppShell activeScreen="funnel-builder">
-        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="panel">
           <p className="text-sm font-semibold text-slate-900">No locations found.</p>
           <p className="mt-2 text-sm text-slate-600">Add a business location to start building a campaign.</p>
         </div>

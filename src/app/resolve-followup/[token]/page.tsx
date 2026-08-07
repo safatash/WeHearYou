@@ -29,13 +29,13 @@ export default async function FollowUpPage({
       <div className="mx-auto max-w-xl rounded-[32px] border border-slate-200 bg-white p-8 shadow-[0_16px_50px_rgba(15,23,42,0.08)] sm:p-10">
         {done || followUp.respondedAt ? (
           <div className="text-center">
-            <h1 className="text-2xl font-semibold tracking-tight text-slate-950">Thank you for the update.</h1>
+            <h1 className="page-title">Thank you for the update.</h1>
             <p className="mt-3 text-sm text-slate-600">{businessName} has received your response.</p>
           </div>
         ) : (
           <form action={submitFollowUpResponse}>
             <input type="hidden" name="token" value={token} />
-            <h1 className="text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">Has your concern been addressed?</h1>
+            <h1 className="page-title sm:text-3xl">Has your concern been addressed?</h1>
             <p className="mt-2 text-sm text-slate-600">A quick update helps {businessName} make sure things are resolved.</p>
             <div className="mt-5 grid gap-2">
               {([["YES", "Yes"], ["PARTIALLY", "Partially"], ["NO", "No"]] as const).map(([val, label], i) => (

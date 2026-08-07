@@ -42,7 +42,7 @@ export default async function ReviewThanksPage({
   return (
     <main className="min-h-screen bg-slate-50 px-4 py-10 text-slate-900 sm:px-6">
       <div className="mx-auto max-w-3xl rounded-[32px] border border-slate-200 bg-white p-8 shadow-[0_16px_50px_rgba(15,23,42,0.08)] sm:p-10">
-        <p className="text-sm font-semibold uppercase tracking-[0.22em] text-indigo-600">Thank You</p>
+        <p className="eyebrow">Thank You</p>
         <h1 className="mt-3 text-4xl font-semibold tracking-tight text-slate-950">
           {isPrivate ? "Thanks for sharing your feedback" : isWeHearYouReview ? "Thanks for your review" : "Thanks for your rating"}
         </h1>
@@ -69,16 +69,16 @@ export default async function ReviewThanksPage({
 
         {!isPrivate && !isWeHearYouReview && ctaUrl ? (
           <div className="mt-8 flex flex-wrap gap-3">
-            <Link href={ctaUrl} className="inline-flex rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold !text-white shadow-sm visited:!text-white hover:!text-white">
+            <Link href={ctaUrl} className="btn btn-primary inline-flex">
               {ctaLabel}
             </Link>
-            <Link href="/" className="inline-flex rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm">
+            <Link href="/" className="inline-flex btn btn-secondary">
               Done
             </Link>
           </div>
         ) : (
           <div className="mt-8">
-            <Link href="/" className="inline-flex rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold !text-white shadow-sm visited:!text-white hover:!text-white">
+            <Link href="/" className="btn btn-primary inline-flex">
               Finish
             </Link>
           </div>

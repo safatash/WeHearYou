@@ -19,7 +19,7 @@ export function CopyButton({ value, label = "Copy", copiedLabel = "Copied" }: { 
     <button
       type="button"
       onClick={() => void handleCopy()}
-      className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm hover:border-slate-300 hover:text-slate-950"
+      className="btn btn-secondary hover:border-slate-300 hover:text-slate-950"
     >
       {copied ? copiedLabel : label}
     </button>

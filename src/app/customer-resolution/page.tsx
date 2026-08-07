@@ -49,8 +49,8 @@ export default async function CustomerResolutionPage({ searchParams }: { searchP
     <AppShell activeScreen="customer-resolution">
       <div className="space-y-6">
         <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.22em] text-indigo-600">Customer Resolution</p>
-          <h2 className="mt-2 text-4xl font-semibold tracking-tight text-slate-950">Resolution cases</h2>
+          <p className="eyebrow">Customer Resolution</p>
+          <h2 className="page-title">Resolution cases</h2>
           <p className="mt-3 max-w-3xl text-slate-600">Unhappy-customer feedback, organized into actionable cases you can triage, respond to, and follow up on.</p>
         </div>
 
@@ -63,16 +63,37 @@ export default async function CustomerResolutionPage({ searchParams }: { searchP
           <StatTile label="Contact requested" value={stats.contactRequested} />
         </div>
 
-        {/* Filters */}
-        <div className="flex flex-wrap gap-2">
-          <Link href="/customer-resolution" className={`rounded-2xl px-4 py-2 text-sm font-semibold ${!statusFilter && !priorityFilter ? "bg-slate-950 text-white" : "border border-slate-200 bg-white text-slate-700"}`}>All</Link>
+        {/* Filters — canonical .chip; selection is carried by aria-current so it
+            is announced, not just tinted. */}
+        <nav aria-label="Filter cases" className="flex flex-wrap gap-2">
+          <Link
+            href="/customer-resolution"
+            className="chip focus-ring"
+            aria-current={!statusFilter && !priorityFilter ? "true" : undefined}
+          >
+            All
+          </Link>
           {(["NEW", "NEEDS_RESPONSE", "IN_PROGRESS", "RESOLVED"] as const).map((s) => (
-            <Link key={s} href={`/customer-resolution?status=${s}`} className={`rounded-2xl px-4 py-2 text-sm font-semibold ${statusFilter === s ? "bg-slate-950 text-white" : "border border-slate-200 bg-white text-slate-700"}`}>{fmtStatus(s)}</Link>
+            <Link
+              key={s}
+              href={`/customer-resolution?status=${s}`}
+              className="chip focus-ring"
+              aria-current={statusFilter === s ? "true" : undefined}
+            >
+              {fmtStatus(s)}
+            </Link>
           ))}
           {(["HIGH", "CRITICAL"] as const).map((p) => (
-            <Link key={p} href={`/customer-resolution?priority=${p}`} className={`rounded-2xl px-4 py-2 text-sm font-semibold ${priorityFilter === p ? "bg-slate-950 text-white" : "border border-slate-200 bg-white text-slate-700"}`}>{fmtStatus(p)}</Link>
+            <Link
+              key={p}
+              href={`/customer-resolution?priority=${p}`}
+              className="chip focus-ring"
+              aria-current={priorityFilter === p ? "true" : undefined}
+            >
+              {fmtStatus(p)}
+            </Link>
           ))}
-        </div>
+        </nav>
 
         <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
           {cases.length === 0 ? (

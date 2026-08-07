@@ -48,6 +48,8 @@ yarn-error.log*
 # under .claude/ is per-developer local state.
 .claude/*
 !.claude/skills/
+# Packaged skill bundles are build artifacts, not source.
+.claude/skills/**/*.zip
 .superpowers/
 
 # typescript

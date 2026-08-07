@@ -1,4 +1,5 @@
 import {
+  Menu,
   Search,
   Bell,
   Settings,
@@ -57,6 +58,7 @@ import {
 } from 'lucide-react';
 
 export type IconName =
+  | 'menu'
   | 'search' | 'bell' | 'settings' | 'logout' | 'pin' | 'chevDown' | 'check' | 'plus'
   | 'eye' | 'eyeOff' | 'mail' | 'megaphone' | 'trash' | 'upload' | 'grid' | 'layers' | 'film'
   | 'star' | 'chat' | 'send' | 'sliders' | 'code' | 'copy' | 'sun' | 'moon'
@@ -94,6 +96,7 @@ const iconMap: Record<IconName, LucideIcon> = {
   phone: Smartphone,
   chevLeft: ChevronLeft,
   close: X,
+  menu: Menu,
   sparkles: Sparkles,
   inbox: Inbox,
   plug: Plug,

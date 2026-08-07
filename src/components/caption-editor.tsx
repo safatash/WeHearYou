@@ -69,7 +69,7 @@ export function CaptionEditor({
             value={caption}
             onChange={(e) => setCaption(e.target.value)}
             placeholder="Add a short description that will appear below the video for visitors…"
-            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 placeholder-slate-400 focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-400 resize-none"
+            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-1 resize-none"
           />
         </div>
 

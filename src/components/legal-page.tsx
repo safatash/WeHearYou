@@ -28,10 +28,10 @@ export function LegalPage({
         </div>
 
         <section className="rounded-[32px] border border-white/10 bg-white p-8 text-slate-700 shadow-2xl shadow-indigo-950/30 sm:p-10">
-          <p className="text-sm font-semibold uppercase tracking-[0.22em] text-indigo-600">
+          <p className="eyebrow">
             WeHearYou
           </p>
-          <h1 className="mt-3 text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">
+          <h1 className="mt-3 page-title sm:text-4xl">
             {title}
           </h1>
           <div className="mt-8 space-y-6 text-sm leading-7 text-slate-600 sm:text-base">

@@ -47,7 +47,7 @@ export default async function ReviewLinkFeedbackPage({
     <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-10">
       <div className="mx-auto w-full max-w-lg rounded-3xl border border-slate-200 bg-white p-8 shadow-lg">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-indigo-600">{location.name}</p>
-        <h1 className="mt-3 text-2xl font-semibold tracking-tight text-slate-950">Share your feedback</h1>
+        <h1 className="mt-3 page-title">Share your feedback</h1>
         <p className="mt-2 text-sm text-slate-500">
           Your name and email are optional. This feedback goes only to the business and is not posted publicly.
         </p>
@@ -67,7 +67,7 @@ export default async function ReviewLinkFeedbackPage({
           <input type="text" name="website" className="hidden" tabIndex={-1} aria-hidden="true" />
 
           <div>
-            <label className="block text-sm font-semibold text-slate-700" htmlFor="rl-name">
+            <label className="field-label" htmlFor="rl-name">
               Name <span className="font-normal text-slate-400">(optional)</span>
             </label>
             <input
@@ -75,13 +75,13 @@ export default async function ReviewLinkFeedbackPage({
               name="name"
               type="text"
               maxLength={100}
-              className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+              className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2"
               placeholder="Your name"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-slate-700" htmlFor="rl-email">
+            <label className="field-label" htmlFor="rl-email">
               Email <span className="font-normal text-slate-400">(optional)</span>
             </label>
             <input
@@ -89,13 +89,13 @@ export default async function ReviewLinkFeedbackPage({
               name="email"
               type="email"
               maxLength={200}
-              className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+              className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2"
               placeholder="you@example.com"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-slate-700" htmlFor="rl-message">
+            <label className="field-label" htmlFor="rl-message">
               What happened? <span className="text-red-500">*</span>
             </label>
             <textarea
@@ -105,14 +105,14 @@ export default async function ReviewLinkFeedbackPage({
               minLength={10}
               maxLength={2000}
               rows={5}
-              className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+              className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2"
               placeholder="Share what could have gone better, and anything you&apos;d want the team to know."
             />
           </div>
 
           <button
             type="submit"
-            className="w-full rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-slate-800 transition"
+            className="btn btn-primary w-full"
           >
             Send private feedback
           </button>

@@ -1,71 +1,128 @@
 import type { ReactNode } from "react";
 
+/**
+ * Shared surface primitives.
+ *
+ * These were the last holdout of the legacy Tailwind `slate-*` palette: 28px
+ * radii, bespoke shadows, `text-4xl` headings and an indigo eyebrow, none of
+ * which exist in the token system. They now read from the same tokens as the
+ * rest of the app (see globals.css).
+ *
+ * `PrimaryButton` / `SecondaryButton` used to live here as near-black
+ * (`bg-slate-950`) pills. They had no consumers and contradicted the canonical
+ * `.btn` classes, so they are gone — use `.btn .btn-primary` / `.btn-secondary`.
+ */
+
 type Tone = "positive" | "warning" | "neutral";
 
+/** A single headline figure. One radius, one shadow, one type scale. */
 export function StatCard({ title, value, meta }: { title: string; value: string | number; meta: string }) {
   return (
-    <div className="rounded-[28px] border border-slate-200/80 bg-white p-6 shadow-[0_12px_32px_rgba(15,23,42,0.05)]">
-      <p className="text-sm font-semibold text-slate-500">{title}</p>
-      <p className="mt-3 text-4xl font-semibold tracking-tight text-slate-950">{value}</p>
-      <p className="mt-3 text-sm leading-6 text-slate-500">{meta}</p>
+    <div className="card" style={{ padding: "var(--card-pad)" }}>
+      <p style={{ margin: 0, fontSize: 12.5, fontWeight: 580, color: "var(--ink-500)" }}>{title}</p>
+      <p
+        className="tnum"
+        style={{ margin: "8px 0 0", fontSize: 30, fontWeight: 680, letterSpacing: "-0.025em", color: "var(--ink-900)" }}
+      >
+        {value}
+      </p>
+      <p style={{ margin: "8px 0 0", fontSize: 12.5, lineHeight: 1.5, color: "var(--ink-500)" }}>{meta}</p>
     </div>
   );
 }
 
+/**
+ * A labelled count with a semantic tone. Tone drives a badge whose text is the
+ * count itself, so the meaning never rests on colour alone.
+ */
 export function OutcomeCard({ title, count, tone }: { title: string; count: string; tone: Tone }) {
-  const toneClasses =
-    tone === "positive"
-      ? "bg-emerald-50 text-emerald-700"
-      : tone === "warning"
-        ? "bg-amber-50 text-amber-700"
-        : "bg-slate-100 text-slate-600";
+  const badgeClass =
+    tone === "positive" ? "badge badge-success" : tone === "warning" ? "badge badge-warning" : "badge badge-neutral";
 
   return (
-    <div className="rounded-2xl border border-slate-100 bg-slate-50/90 p-4">
-      <div className="flex items-center justify-between gap-3">
-        <p className="font-semibold text-slate-900">{title}</p>
-        <span className={`rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] ${toneClasses}`}>
-          {count}
-        </span>
+    <div
+      style={{
+        borderRadius: "var(--r-md)",
+        border: "1px solid var(--ink-200)",
+        background: "var(--ink-50)",
+        padding: "12px 14px",
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+        <p style={{ margin: 0, fontSize: 13.5, fontWeight: 600, color: "var(--ink-800)" }}>{title}</p>
+        <span className={badgeClass}>{count}</span>
       </div>
     </div>
   );
 }
 
+/** A read-only labelled value. */
 export function Field({ label, value, multiline = false }: { label: string; value: string; multiline?: boolean }) {
   return (
     <div>
-      <p className="mb-2 text-sm font-semibold text-slate-700">{label}</p>
-      {multiline ? (
-        <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm leading-7 text-slate-600">
-          {value}
-        </div>
-      ) : (
-        <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
-          {value}
-        </div>
-      )}
-    </div>
-  );
-}
-
-export function SectionHeading({ eyebrow, title, description, actions }: { eyebrow?: string; title: string; description?: string; actions?: ReactNode }) {
-  return (
-    <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-      <div>
-        {eyebrow ? <p className="text-sm font-semibold uppercase tracking-[0.22em] text-indigo-600">{eyebrow}</p> : null}
-        <h2 className="mt-2 text-4xl font-semibold tracking-tight text-slate-950">{title}</h2>
-        {description ? <p className="mt-3 max-w-3xl text-slate-600">{description}</p> : null}
+      <p style={{ margin: "0 0 6px", fontSize: 12.5, fontWeight: 580, color: "var(--ink-700)" }}>{label}</p>
+      <div
+        style={{
+          borderRadius: "var(--r-sm)",
+          border: "1px solid var(--ink-200)",
+          background: "var(--ink-50)",
+          padding: multiline ? "12px 14px" : "9px 12px",
+          fontSize: 13.5,
+          lineHeight: multiline ? 1.6 : 1.4,
+          color: "var(--ink-700)",
+        }}
+      >
+        {value}
       </div>
-      {actions ? <div className="flex flex-wrap gap-3">{actions}</div> : null}
     </div>
   );
 }
 
-export function PrimaryButton({ children }: { children: ReactNode }) {
-  return <span className="inline-flex rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-sm">{children}</span>;
+/**
+ * The canonical page header. Eyebrow is optional and only earns its place when
+ * it carries meaning the title cannot.
+ */
+export function SectionHeading({
+  eyebrow,
+  title,
+  description,
+  actions,
+}: {
+  eyebrow?: string;
+  title: string;
+  description?: string;
+  actions?: ReactNode;
+}) {
+  return (
+    <div className="page-header">
+      <div style={{ minWidth: 0 }}>
+        {eyebrow ? <p className="eyebrow" style={{ margin: "0 0 6px" }}>{eyebrow}</p> : null}
+        <h1 className="page-title">{title}</h1>
+        {description ? <p className="page-description">{description}</p> : null}
+      </div>
+      {actions ? <div className="page-actions">{actions}</div> : null}
+    </div>
+  );
 }
 
-export function SecondaryButton({ children }: { children: ReactNode }) {
-  return <span className="inline-flex rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm">{children}</span>;
+/**
+ * The shared empty state. Every module's "no data yet" should look like this so
+ * a blank region always reads as deliberate rather than broken.
+ */
+export function EmptyState({
+  title,
+  body,
+  action,
+}: {
+  title: string;
+  body?: string;
+  action?: ReactNode;
+}) {
+  return (
+    <div className="empty-state">
+      <p className="empty-state-title">{title}</p>
+      {body ? <p className="empty-state-body">{body}</p> : null}
+      {action ? <div style={{ marginTop: 14 }}>{action}</div> : null}
+    </div>
+  );
 }

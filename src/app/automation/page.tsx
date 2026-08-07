@@ -32,15 +32,15 @@ export default async function AutomationPage() {
       <div className="space-y-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.22em] text-indigo-600">Automation Builder</p>
-            <h2 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">Workflow automation</h2>
+            <p className="eyebrow">Automation Builder</p>
+            <h2 className="page-title">Workflow automation</h2>
             <p className="mt-3 max-w-3xl text-slate-600">
               Build and manage automated workflows that trigger review requests and follow-ups.
             </p>
           </div>
           <Link
             href="/automation/new"
-            className="inline-flex rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-slate-800 transition whitespace-nowrap"
+            className="btn btn-primary inline-flex whitespace-nowrap"
             style={{ color: "white" }}
           >
             + New Automation
@@ -72,14 +72,14 @@ export default async function AutomationPage() {
             ))}
           </div>
         ) : (
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="panel">
             <p className="text-sm font-semibold text-slate-900">No automations yet.</p>
             <p className="mt-2 text-sm text-slate-600">
               Create your first automation to start sending automated review requests.
             </p>
             <Link
               href="/automation/new"
-              className="mt-4 inline-flex rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-slate-800 transition"
+              className="btn btn-primary mt-4 inline-flex"
               style={{ color: "white" }}
             >
               + New Automation

@@ -66,7 +66,7 @@ export function GooglePlacesSearch() {
         <button
           type="button"
           onClick={handleSearch}
-          className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold !text-white shadow-sm visited:!text-white hover:!text-white"
+          className="btn btn-primary"
         >
           {loading ? "Searching..." : "Search"}
         </button>

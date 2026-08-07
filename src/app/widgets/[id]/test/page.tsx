@@ -28,13 +28,13 @@ export default async function WidgetTestPage({ params }: { params: Promise<{ id:
           <Link href={`/widgets/${widget.id}`} className="text-sm font-semibold text-indigo-600">
             ← Back to widget
           </Link>
-          <p className="mt-4 text-sm font-semibold uppercase tracking-[0.22em] text-indigo-600">Widget Test Page</p>
-          <h2 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">{widget.name}</h2>
+          <p className="mt-4 eyebrow">Widget Test Page</p>
+          <h2 className="page-title">{widget.name}</h2>
           <p className="mt-2 text-sm text-slate-600">This page mounts the public embed script exactly like a customer site would.</p>
         </div>
 
-        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h3 className="text-xl font-semibold text-slate-950">Live mounted widget</h3>
+        <section className="panel">
+          <h3 className="section-title">Live mounted widget</h3>
           <p className="mt-2 text-sm text-slate-600">If reviews are synced and the widget is active, they should render below.</p>
           <div className="mt-6 rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-6">
             <div id="why-reviews-widget"></div>
@@ -42,8 +42,8 @@ export default async function WidgetTestPage({ params }: { params: Promise<{ id:
           </div>
         </section>
 
-        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h3 className="text-xl font-semibold text-slate-950">Test details</h3>
+        <section className="panel">
+          <h3 className="section-title">Test details</h3>
           <div className="mt-4 space-y-2 text-sm text-slate-600">
             <p><span className="font-semibold text-slate-900">Widget token:</span> {widget.publicToken}</p>
             <p><span className="font-semibold text-slate-900">Embed script:</span> {embedScriptUrl}</p>

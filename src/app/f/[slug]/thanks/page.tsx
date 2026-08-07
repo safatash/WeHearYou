@@ -51,7 +51,7 @@ export default async function PublicFunnelThanksPage({
         />
       )}
       <div className={isEmbed ? "" : "mx-auto max-w-3xl rounded-[32px] border border-slate-200 bg-white p-8 shadow-[0_16px_50px_rgba(15,23,42,0.08)] sm:p-10"}>
-        {!isEmbed && <p className="text-sm font-semibold uppercase tracking-[0.22em] text-indigo-600">Thank You</p>}
+        {!isEmbed && <p className="eyebrow">Thank You</p>}
         <h1 className={`${isEmbed ? "text-2xl" : "mt-3 text-4xl"} font-semibold tracking-tight text-slate-950`}>
           {isPrivate
             ? location.publicProfile?.funnelThanksPrivateTitle ?? "Thanks for sharing your feedback"
@@ -82,7 +82,7 @@ export default async function PublicFunnelThanksPage({
 
         {!isPrivate && !isWeHearYouReview && ctaUrl ? (
           <div className="mt-6 flex flex-wrap items-center gap-3">
-            <Link href={ctaUrl} target={isEmbed ? "_blank" : undefined} rel={isEmbed ? "noopener noreferrer" : undefined} className="inline-flex items-center gap-3 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold !text-white shadow-sm visited:!text-white hover:!text-white">
+            <Link href={ctaUrl} target={isEmbed ? "_blank" : undefined} rel={isEmbed ? "noopener noreferrer" : undefined} className="btn btn-primary inline-flex items-center gap-3">
               {ctaIsGoogle && (
                 <svg width="18" height="18" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
                   <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
@@ -99,7 +99,7 @@ export default async function PublicFunnelThanksPage({
                 <button
                   type="button"
                   data-why-embed-done="1"
-                  className="inline-flex rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50"
+                  className="inline-flex btn btn-secondary hover:bg-slate-50"
                 >
                   Done
                 </button>
@@ -118,7 +118,7 @@ export default async function PublicFunnelThanksPage({
                 <button
                   type="button"
                   data-why-embed-done="1"
-                  className="inline-flex rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-sm"
+                  className="btn btn-primary inline-flex"
                 >
                   Done
                 </button>
@@ -129,7 +129,7 @@ export default async function PublicFunnelThanksPage({
                 />
               </>
             ) : (
-              <Link href={`/b/${location.slug}`} className="inline-flex rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold !text-white shadow-sm visited:!text-white hover:!text-white">
+              <Link href={`/b/${location.slug}`} className="btn btn-primary inline-flex">
                 Finish
               </Link>
             )}

@@ -61,13 +61,13 @@ export default async function TeamMemberDetailPage({
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <Link href="/team" className="text-sm font-semibold text-indigo-600">← Back to team</Link>
-            <p className="mt-4 text-sm font-semibold uppercase tracking-[0.22em] text-indigo-600">User Detail</p>
-            <h2 className="mt-2 text-4xl font-semibold tracking-tight text-slate-950">{member.user.name}</h2>
+            <p className="mt-4 eyebrow">User Detail</p>
+            <h2 className="page-title">{member.user.name}</h2>
             <p className="mt-3 max-w-3xl text-slate-600">{member.user.email}</p>
           </div>
           {isPending && (
             <form action={resetInvite.bind(null, member.id)}>
-              <button className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm hover:border-slate-300">
+              <button className="btn btn-secondary hover:border-slate-300">
                 Reset Invite
               </button>
             </form>
@@ -99,8 +99,8 @@ export default async function TeamMemberDetailPage({
 
         {/* Profile + Access Health */}
         <div className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
-          <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h3 className="text-xl font-semibold text-slate-950">Profile</h3>
+          <section className="panel">
+            <h3 className="section-title">Profile</h3>
             <div className="mt-6 grid gap-4 md:grid-cols-2">
               <Field label="Full Name" value={member.user.name} />
               <Field label="Email"     value={member.user.email} />
@@ -125,8 +125,8 @@ export default async function TeamMemberDetailPage({
             </div>
           </section>
 
-          <aside className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h3 className="text-xl font-semibold text-slate-950">Access Health</h3>
+          <aside className="panel">
+            <h3 className="section-title">Access Health</h3>
             <div className="mt-6 space-y-4">
               <OutcomeCard
                 title="Account status"
@@ -145,8 +145,8 @@ export default async function TeamMemberDetailPage({
 
         {/* Role Editor + Location picker */}
         {!isDisabled && (
-          <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h3 className="text-xl font-semibold text-slate-950">Role & Access</h3>
+          <section className="panel">
+            <h3 className="section-title">Role & Access</h3>
             <p className="mt-2 mb-6 text-sm text-slate-500">
               Change this member's role and location assignments. Changes take effect immediately.
             </p>
@@ -162,8 +162,8 @@ export default async function TeamMemberDetailPage({
         )}
 
         {/* Read-only Permission Matrix */}
-        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h3 className="text-xl font-semibold text-slate-950">Permissions</h3>
+        <section className="panel">
+          <h3 className="section-title">Permissions</h3>
           <p className="mt-2 mb-5 text-sm text-slate-400">
             Permissions are determined by the member's role and cannot be set individually.
           </p>
@@ -197,7 +197,7 @@ export default async function TeamMemberDetailPage({
         {currentMembership.role === "OWNER" && !isOwner && member.status === "ACTIVE" && (
           <section className="rounded-3xl border border-amber-200 bg-white p-6 shadow-sm">
             <p className="text-sm font-semibold uppercase tracking-[0.22em] text-amber-600">Transfer Ownership</p>
-            <h3 className="mt-2 text-xl font-semibold text-slate-950">Transfer workspace ownership</h3>
+            <h3 className="mt-2 section-title">Transfer workspace ownership</h3>
             <p className="mt-2 mb-6 text-sm text-slate-500">
               Transfer full ownership of this workspace to <strong>{member.user.name}</strong>.
               This action is permanent and will immediately change both roles.
@@ -213,7 +213,7 @@ export default async function TeamMemberDetailPage({
         {/* Danger Zone */}
         <section className="rounded-3xl border border-red-100 bg-white p-6 shadow-sm">
           <p className="text-sm font-semibold uppercase tracking-[0.22em] text-red-500">Danger Zone</p>
-          <h3 className="mt-2 text-xl font-semibold text-slate-950">
+          <h3 className="mt-2 section-title">
             {isDisabled ? "Reactivate member" : "Deactivate member"}
           </h3>
           <p className="mt-2 text-sm text-slate-500">

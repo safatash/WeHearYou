@@ -49,7 +49,7 @@ export default async function PublicFunnelPage({
     <main className={isEmbed ? "bg-white p-5 text-slate-900" : "min-h-screen bg-slate-50 px-4 py-10 text-slate-900 sm:px-6"}>
       <div className={isEmbed ? "" : "mx-auto max-w-3xl rounded-[32px] border border-slate-200 bg-white p-8 shadow-[0_16px_50px_rgba(15,23,42,0.08)] sm:p-10"}>
         {profile?.logoUrl && !isEmbed ? <img src={profile.logoUrl} alt={`${location.name} logo`} className="mb-6 h-14 w-auto rounded-xl object-contain" /> : null}
-        {!isEmbed && <p className="text-sm font-semibold uppercase tracking-[0.22em] text-indigo-600">WeHearYou Review Funnel</p>}
+        {!isEmbed && <p className="eyebrow">WeHearYou Review Funnel</p>}
         <h1 className={`${isEmbed ? "text-2xl" : "mt-3 text-4xl"} font-semibold tracking-tight text-slate-950`}>
           {profile?.funnelPromptTitle ?? profile?.headline ?? `How was your experience with ${location.name}?`}
         </h1>

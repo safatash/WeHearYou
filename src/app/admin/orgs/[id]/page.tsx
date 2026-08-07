@@ -51,7 +51,7 @@ export default async function AdminOrgDetailPage({
 
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-slate-950">{org.name}</h1>
+          <h1 className="page-title">{org.name}</h1>
           <p className="mt-1 text-sm text-slate-500">/{org.slug}</p>
           <p className="mt-1 font-mono text-sm font-semibold text-indigo-700 tracking-wider">
             {"WHY-" + org.id.slice(0, 8).toUpperCase()}
@@ -66,7 +66,7 @@ export default async function AdminOrgDetailPage({
 
       <div className="grid gap-6 xl:grid-cols-2">
         {/* Edit form */}
-        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <section className="panel">
           <h2 className="text-lg font-semibold text-slate-950">Edit organization</h2>
           <form action={updateOrgAsAdmin} className="mt-4 space-y-4">
             <input type="hidden" name="orgId" value={org.id} />
@@ -75,7 +75,7 @@ export default async function AdminOrgDetailPage({
               <input
                 name="name"
                 defaultValue={org.name}
-                className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-normal text-slate-700 focus:border-indigo-300 focus:outline-none"
+                className="field-value focus:outline-none"
               />
             </label>
             <label className="grid gap-1.5 text-sm font-semibold text-slate-700">
@@ -83,7 +83,7 @@ export default async function AdminOrgDetailPage({
               <input
                 name="slug"
                 defaultValue={org.slug}
-                className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-normal text-slate-700 focus:border-indigo-300 focus:outline-none"
+                className="field-value focus:outline-none"
               />
             </label>
             <label className="grid gap-1.5 text-sm font-semibold text-slate-700">
@@ -91,19 +91,19 @@ export default async function AdminOrgDetailPage({
               <input
                 name="website"
                 defaultValue={org.website ?? ""}
-                className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-normal text-slate-700 focus:border-indigo-300 focus:outline-none"
+                className="field-value focus:outline-none"
               />
             </label>
             <FormSubmitButton
               idleLabel="Save changes"
               pendingLabel="Saving..."
-              className="rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white"
+              className="btn btn-primary"
             />
           </form>
         </section>
 
         {/* Members */}
-        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <section className="panel">
           <h2 className="text-lg font-semibold text-slate-950">Members ({org.users.length})</h2>
           <div className="mt-4 divide-y divide-slate-100">
             {org.users.map((m) => (
@@ -129,7 +129,7 @@ export default async function AdminOrgDetailPage({
         </section>
 
         {/* Locations */}
-        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <section className="panel">
           <h2 className="text-lg font-semibold text-slate-950">Locations ({org.locations.length})</h2>
           <div className="mt-4 divide-y divide-slate-100">
             {org.locations.map((loc) => (
@@ -149,7 +149,7 @@ export default async function AdminOrgDetailPage({
         </section>
 
         {/* Billing */}
-        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <section className="panel">
           <h2 className="text-lg font-semibold text-slate-950">Billing</h2>
           <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
             <div><dt className="text-slate-500">Plan</dt><dd className="font-semibold text-slate-900">{(org.planId && PLANS[org.planId as keyof typeof PLANS]?.name) ?? (org.planId ?? "None")}</dd></div>
@@ -176,7 +176,7 @@ export default async function AdminOrgDetailPage({
             <label className="flex items-center gap-2 text-sm text-slate-700">
               <input type="checkbox" name="clearSuspended" /> Clear suspension
             </label>
-            <FormSubmitButton idleLabel="Save billing" pendingLabel="Saving..." className="rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white" />
+            <FormSubmitButton idleLabel="Save billing" pendingLabel="Saving..." className="btn btn-primary" />
           </form>
         </section>
 

@@ -157,7 +157,7 @@ export function MiniSiteHero({
               rel={primaryCta.external ? "noreferrer" : undefined}
               data-track="cta"
               className="inline-flex items-center gap-2 rounded-2xl px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:opacity-90"
-              style={{ background: "var(--accent)", color: "white" }}
+              style={{ background: "var(--accent-solid)", color: "white" }}
             >
               {primaryCta.label}
             </a>

@@ -20,7 +20,7 @@ export default async function AdminDashboardPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-slate-950">Platform overview</h1>
+        <h1 className="page-title">Platform overview</h1>
         <p className="mt-1 text-sm text-slate-500">Real-time stats across all organizations.</p>
       </div>
 
@@ -38,7 +38,7 @@ export default async function AdminDashboardPage() {
         ))}
       </div>
 
-      <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="panel">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold text-slate-950">Recent organizations</h2>
           <Link href="/admin/orgs" className="text-sm font-semibold text-indigo-600 hover:text-indigo-700">

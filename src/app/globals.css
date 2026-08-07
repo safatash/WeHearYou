@@ -22,16 +22,34 @@
   --accent-soft: #e0f2f4;
   --accent-softer: #f0f8f9;
   --accent-strong: #2a8a92;
+  /* Teal for TEXT on light surfaces. --accent (2.66:1) and --accent-strong
+     (4.08:1) both fail WCAG AA for normal text on white; this is 5.84:1 on
+     white and 5.06:1 on --accent-soft. Use it for any teal label, never
+     --accent itself. */
+  --accent-ink: #1f6f76;
+  /* Interactive fill for solid controls carrying white content.
+     --accent (#37AEB7) is the brand hue but only reaches 2.66:1 with white,
+     so it is reserved for borders, soft fills, charts and decoration.
+     This is 5.84:1 with white. */
+  --accent-solid: #1f6f76;
+  --accent-solid-hover: #17565c;
   --accent-border: color-mix(in srgb, var(--accent) 26%, var(--ink-200));
   --accent-ring: color-mix(in srgb, var(--accent) 10%, transparent);
 
   /* Semantic colors */
+  /* Vivid hues: fills, dots, bars, chart series — never small text.
+     On white they are 2.54 / 2.15 / 3.76:1, all below AA. */
   --success: #10b981;
   --success-soft: #d1fae5;
   --warning: #f59e0b;
   --warning-soft: #fef3c7;
   --danger: #ef4444;
   --danger-soft: #fee2e2;
+  /* Text-role equivalents: 5.48 / 4.92 / 6.47:1 on white. Use these whenever a
+     status colour becomes a label. */
+  --success-ink: #047857;
+  --warning-ink: #a16207;
+  --danger-ink: #b91c1c;
   --star: #fbbf24;
 
   /* Review source brand colors */
@@ -139,6 +157,9 @@ textarea {
 .btn {
   display: inline-flex;
   align-items: center;
+  /* Centred so full-width buttons (w-full .btn) centre their label rather than
+     hugging the left edge. */
+  justify-content: center;
   gap: 8px;
   padding: 8px 16px;
   border-radius: var(--r-md);
@@ -151,12 +172,12 @@ textarea {
 }
 
 .btn-primary {
-  background: var(--accent);
-  color: white;
+  background: var(--accent-solid);
+  color: var(--accent-fg);
 }
 
-.btn-primary:hover {
-  background: var(--accent-strong);
+.btn-primary:hover:not(:disabled) {
+  background: var(--accent-solid-hover);
   box-shadow: var(--shadow-md);
 }
 
@@ -182,7 +203,7 @@ textarea {
 
 .btn-soft {
   background: var(--accent-soft);
-  color: var(--accent-strong);
+  color: var(--accent-ink);
 }
 
 .btn-sm {
@@ -193,6 +214,293 @@ textarea {
 .btn-icon {
   padding: 8px;
   border-radius: var(--r-sm);
+}
+
+/* Visually hidden but available to assistive tech. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ── Canonical interactive states ──────────────────────────────────────────
+   Every primitive below inherits these. Focus is never removed without a
+   replacement, and no state is signalled by colour alone (WCAG 2.2 AA 1.4.1). */
+.btn:focus-visible,
+.nav-item:focus-visible,
+.chip:focus-visible,
+.icon-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.btn:disabled,
+.btn[aria-disabled="true"] {
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* Loading buttons keep their label (no layout shift) and announce via aria-busy. */
+.btn[aria-busy="true"] {
+  cursor: progress;
+  opacity: 0.8;
+}
+
+.btn-danger {
+  background: var(--danger-ink);
+  color: var(--white);
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--danger-ink) 86%, #000);
+}
+
+/* Primary content colour is a token, not a literal. Dark content on the teal
+   fill fails contrast and must never be reintroduced. */
+.btn-primary {
+  color: var(--accent-fg);
+}
+
+.btn-primary .ic,
+.btn-primary svg {
+  color: currentColor;
+}
+
+/* ── Icon-only button ──────────────────────────────────────────────────────
+   Minimum 40px target (WCAG 2.2 AA 2.5.8) and always needs an aria-label. */
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+  min-height: 40px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--ink-200);
+  background: var(--white);
+  color: var(--ink-600);
+  transition: background 0.16s ease, border-color 0.16s ease;
+}
+
+.icon-btn:hover {
+  background: var(--ink-50);
+  border-color: var(--ink-300);
+}
+
+/* ── Navigation item ───────────────────────────────────────────────────────
+   One active treatment for sidebar rows. Selection is carried by
+   aria-current="page" so assistive tech and CSS read the same source. */
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-radius: var(--r-md);
+  padding: 9px 12px;
+  font-size: 14px;
+  font-weight: 560;
+  color: var(--ink-700);
+  transition: background 0.16s ease, color 0.16s ease;
+}
+
+.nav-item:hover {
+  background: var(--ink-100);
+  color: var(--ink-900);
+}
+
+.nav-item[aria-current="page"] {
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  font-weight: 640;
+}
+
+/* Non-colour cue for the active row, so state survives greyscale and
+   high-contrast modes. */
+.nav-item[aria-current="page"]::before {
+  content: "";
+  width: 3px;
+  align-self: stretch;
+  margin: -9px 0 -9px -12px;
+  border-radius: 0 3px 3px 0;
+  background: var(--accent);
+}
+
+.nav-item[aria-disabled="true"] {
+  color: var(--ink-400);
+  cursor: not-allowed;
+}
+
+.nav-item[aria-disabled="true"]:hover {
+  background: transparent;
+  color: var(--ink-400);
+}
+
+.nav-section-label {
+  padding: 0 12px;
+  margin: 0 0 6px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-400);
+}
+
+/* ── Filter chip / segmented option ────────────────────────────────────────
+   Replaces the ad-hoc dark "All" pill. Selection is aria-pressed (buttons) or
+   aria-current (links) — never a hardcoded dark fill. */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: var(--r-full);
+  border: 1px solid var(--ink-200);
+  background: var(--white);
+  color: var(--ink-700);
+  font-size: 13px;
+  font-weight: 560;
+  line-height: 1.3;
+  white-space: nowrap;
+  transition: background 0.16s ease, border-color 0.16s ease, color 0.16s ease;
+}
+
+.chip:hover:not(:disabled) {
+  background: var(--ink-50);
+  border-color: var(--ink-300);
+}
+
+.chip[aria-pressed="true"],
+.chip[aria-current="true"],
+.chip[data-selected="true"] {
+  background: var(--accent-soft);
+  border-color: var(--accent-border);
+  color: var(--accent-ink);
+  font-weight: 640;
+}
+
+.chip:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── Panel ────────────────────────────────────────────────────────────────
+   The padded card. 78 sites hand-rolled
+   `rounded-3xl border border-slate-200 bg-white p-6 shadow-sm`, which sits
+   outside the radius and shadow scales. */
+.panel {
+  border-radius: var(--r-md);
+  border: 1px solid var(--ink-200);
+  background: var(--white);
+  box-shadow: var(--shadow-xs);
+  padding: var(--card-pad);
+}
+
+/* Section heading inside a page — one step below .page-title. */
+.section-title {
+  font-size: 16px;
+  font-weight: 640;
+  letter-spacing: -0.01em;
+  color: var(--ink-900);
+  margin: 0;
+}
+
+/* Read-only value surface (the "Field" treatment). */
+.field-value {
+  border-radius: var(--r-sm);
+  border: 1px solid var(--ink-200);
+  background: var(--ink-50);
+  padding: 9px 12px;
+  font-size: 13.5px;
+  color: var(--ink-700);
+}
+
+/* Form label. */
+.field-label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 12.5px;
+  font-weight: 580;
+  color: var(--ink-700);
+}
+
+/* ── Page header ───────────────────────────────────────────────────────────
+   One vertical rhythm and one type scale for every route. */
+.page-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: var(--gutter);
+}
+
+.page-title {
+  font-size: 26px;
+  font-weight: 680;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+  color: var(--ink-900);
+  margin: 0;
+}
+
+.page-description {
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--ink-500);
+  margin: 6px 0 0;
+  max-width: 64ch;
+}
+
+.page-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+/* ── Empty state ───────────────────────────────────────────────────────────
+   Shared by every module so "no data" always looks intentional. */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 44px 24px;
+  border: 1px dashed var(--ink-250);
+  border-radius: var(--r-md);
+  background: var(--white);
+}
+
+.empty-state-title {
+  font-size: 15px;
+  font-weight: 620;
+  color: var(--ink-800);
+  margin: 0 0 4px;
+}
+
+.empty-state-body {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink-500);
+  margin: 0;
+  max-width: 46ch;
+}
+
+/* Honour reduced-motion for every transition/animation defined here. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* Badge styles */
@@ -214,22 +522,22 @@ textarea {
 
 .badge-success {
   background: color-mix(in srgb, var(--success) 10%, var(--white));
-  color: var(--success);
+  color: var(--success-ink);
 }
 
 .badge-accent {
   background: var(--accent-soft);
-  color: var(--accent-strong);
+  color: var(--accent-ink);
 }
 
 .badge-warning {
   background: color-mix(in srgb, var(--warning) 14%, var(--white));
-  color: var(--warning);
+  color: var(--warning-ink);
 }
 
 .badge-danger {
   background: color-mix(in srgb, var(--danger) 12%, var(--white));
-  color: var(--danger);
+  color: var(--danger-ink);
 }
 
 /* Tabular numerals for aligned figures */
@@ -410,7 +718,7 @@ select:focus {
 
 .au-form { width: 100%; max-width: 392px; margin: auto; padding: 28px 0; }
 .au-mobile-logo { display: none; align-items: center; gap: 10px; margin-bottom: 26px; }
-.au-mobile-logo .au-logo-mark { background: var(--accent); width: 36px; height: 36px; }
+.au-mobile-logo .au-logo-mark { background: var(--accent-solid); width: 36px; height: 36px; }
 .au-mobile-logo .au-logo-name { color: var(--ink-900); font-size: 16px; font-weight: 660; }
 
 .au-h1 { font-size: 27px; font-weight: 700; letter-spacing: -.03em; color: var(--ink-900); line-height: 1.12; }
@@ -421,7 +729,7 @@ select:focus {
   border: 1px solid var(--accent-border); background: var(--accent-soft); color: var(--ink-700); font-size: 13px; line-height: 1.45; }
 .au-trial b { color: var(--accent-strong); font-weight: 620; }
 .au-trial-ic { width: 26px; height: 26px; border-radius: 8px; flex: none; display: grid; place-items: center;
-  background: var(--accent); color: #fff; }
+  background: var(--accent-solid); color: #fff; }
 
 /* OAuth buttons */
 .au-oauth { display: flex; flex-direction: column; gap: 10px; margin-top: 26px; }
@@ -457,8 +765,8 @@ select:focus {
 
 .au-submit { display: flex; align-items: center; justify-content: center; gap: 9px; width: 100%; min-height: 52px; margin-top: 22px; border-radius: 14px;
   border: 0; cursor: pointer; font-family: inherit; font-size: 15.5px; font-weight: 620; color: var(--accent-fg);
-  background: var(--accent); box-shadow: var(--shadow-sm), inset 0 1px 0 rgba(255,255,255,.16); transition: background .14s, transform .06s; }
-.au-submit:hover { background: var(--accent-strong); }
+  background: var(--accent-solid); box-shadow: var(--shadow-sm), inset 0 1px 0 rgba(255,255,255,.16); transition: background .14s, transform .06s; }
+.au-submit:hover { background: var(--accent-solid-hover); }
 .au-submit:active { transform: translateY(1px); }
 .au-submit:disabled { opacity: .5; cursor: not-allowed; }
 

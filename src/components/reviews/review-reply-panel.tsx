@@ -61,7 +61,7 @@ export function ReviewReplyPanel({
           <span className="ml-auto rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
             {sourceLabel}
           </span>
-          <span className="rounded-full bg-slate-900 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-white">
+          <span className="btn btn-primary">
             {statusLabel}
           </span>
           {review.location && (
@@ -134,7 +134,7 @@ export function ReviewReplyPanel({
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           placeholder="Write your reply..."
-          className="min-h-36 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm leading-7 text-slate-700 outline-none focus:border-indigo-300"
+          className="min-h-36 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm leading-7 text-slate-700 outline-none"
         />
 
         {review.replySentAt && (
@@ -157,7 +157,7 @@ export function ReviewReplyPanel({
             type="submit"
             name="markSent"
             value="true"
-            className="rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white shadow-sm"
+            className="btn btn-primary"
           >
             Mark as sent
           </button>

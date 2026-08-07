@@ -29,7 +29,7 @@ export default async function PublicFunnelFeedbackPage({
   return (
     <main className={isEmbed ? "bg-white p-5 text-slate-900" : "min-h-screen bg-slate-50 px-4 py-10 text-slate-900 sm:px-6"}>
       <div className={isEmbed ? "" : "mx-auto max-w-3xl rounded-[32px] border border-slate-200 bg-white p-8 shadow-[0_16px_50px_rgba(15,23,42,0.08)] sm:p-10"}>
-        {!isEmbed && <p className="text-sm font-semibold uppercase tracking-[0.22em] text-indigo-600">Private Feedback</p>}
+        {!isEmbed && <p className="eyebrow">Private Feedback</p>}
         <h1 className={`${isEmbed ? "text-2xl" : "mt-3 text-4xl"} font-semibold tracking-tight text-slate-950`}>
           {location.publicProfile?.funnelPrivateTitle ?? `Tell ${location.name} how they can improve`}
         </h1>
@@ -48,7 +48,7 @@ export default async function PublicFunnelFeedbackPage({
           <input type="hidden" name="slug" value={slug} />
           <input type="hidden" name="rating" value={rating} />
           {isEmbed && <input type="hidden" name="embed" value="1" />}
-          <label className="block text-sm font-semibold text-slate-700">
+          <label className="field-label">
             Best name or contact info (optional)
             <input
               name="contact"
@@ -56,7 +56,7 @@ export default async function PublicFunnelFeedbackPage({
               placeholder="Email or phone so the team can follow up"
             />
           </label>
-          <label className="block text-sm font-semibold text-slate-700">
+          <label className="field-label">
             What happened?
             <textarea
               name="feedback"
@@ -65,7 +65,7 @@ export default async function PublicFunnelFeedbackPage({
               placeholder="Share what could have gone better, and anything you'd want the team to know."
             />
           </label>
-          <button type="submit" className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold !text-white shadow-sm visited:!text-white hover:!text-white">
+          <button type="submit" className="btn btn-primary">
             {location.publicProfile?.funnelPrivateSubmitLabel ?? "Send private feedback"}
           </button>
         </form>

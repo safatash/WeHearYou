@@ -45,7 +45,7 @@ export function GoogleMappingForm({ locationId, googleConnectionId, googleLocati
         placeholder="Search locations..."
         value={query}
         onChange={(e) => setQuery(e.target.value)}
-        className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100 mb-3"
+        className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 mb-3"
       />
 
       <div className="space-y-2 max-h-64 overflow-y-auto mb-4">
@@ -84,7 +84,7 @@ export function GoogleMappingForm({ locationId, googleConnectionId, googleLocati
           idleLabel="Map & Continue →"
           pendingLabel="Mapping..."
           disabled={!selected}
-          className="rounded-2xl bg-slate-950 px-6 py-2.5 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed"
+          className="btn btn-primary"
         />
       </div>
     </form>

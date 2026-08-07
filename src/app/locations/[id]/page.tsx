@@ -250,9 +250,9 @@ export default async function LocationDetailPage({
             <RequestPerformance perf={perf} locationId={location.id} />
 
             {/* Review Link section */}
-            <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-              <p className="text-sm font-semibold uppercase tracking-[0.22em] text-indigo-600">Review Link</p>
-              <h3 className="mt-2 text-xl font-semibold text-slate-950">Anonymous review link</h3>
+            <section className="panel">
+              <p className="eyebrow">Review Link</p>
+              <h3 className="mt-2 section-title">Anonymous review link</h3>
               <p className="mt-2 text-sm text-slate-500">
                 Share this link in email signatures, QR codes, or anywhere else you want to collect reviews.
               </p>
@@ -279,10 +279,10 @@ export default async function LocationDetailPage({
             />
 
             {/* Google Reply Automation section */}
-            <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+            <section className="panel">
               <div className="flex items-center justify-between gap-4">
                 <div>
-                  <h3 className="text-xl font-semibold text-slate-950">Google Reply Automation</h3>
+                  <h3 className="section-title">Google Reply Automation</h3>
                   <p className="mt-2 text-sm text-slate-600">
                     Automatically send AI-generated replies to new Google reviews matching your criteria.
                   </p>
@@ -357,7 +357,7 @@ export default async function LocationDetailPage({
                 <FormSubmitButton
                   idleLabel="Save Automation Settings"
                   pendingLabel="Saving..."
-                  className="rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold !text-white shadow-sm visited:!text-white hover:!text-white"
+                  className="btn btn-primary"
                 />
               </form>
             </section>

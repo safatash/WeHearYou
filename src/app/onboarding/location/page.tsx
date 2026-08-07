@@ -32,7 +32,7 @@ export default async function OnboardingLocationPage({
             name="name"
             required
             placeholder="e.g. Downtown Clinic"
-            className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+            className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2"
           />
         </div>
 
@@ -43,7 +43,7 @@ export default async function OnboardingLocationPage({
               name="city"
               required
               placeholder="Austin"
-              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2"
             />
           </div>
           <div>
@@ -52,7 +52,7 @@ export default async function OnboardingLocationPage({
               name="state"
               required
               placeholder="TX"
-              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2"
             />
           </div>
         </div>
@@ -64,7 +64,7 @@ export default async function OnboardingLocationPage({
           <input
             name="addressLine1"
             placeholder="123 Main St"
-            className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+            className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2"
           />
         </div>
 
@@ -72,7 +72,7 @@ export default async function OnboardingLocationPage({
           <FormSubmitButton
             idleLabel="Continue →"
             pendingLabel="Saving..."
-            className="rounded-2xl bg-slate-950 px-6 py-2.5 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-50"
+            className="btn btn-primary"
           />
         </div>
       </form>

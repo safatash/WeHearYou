@@ -45,7 +45,7 @@ export default async function OnboardingContactsPage({
             <input
               name="firstName"
               placeholder="Jane"
-              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2"
             />
           </div>
           <div>
@@ -53,7 +53,7 @@ export default async function OnboardingContactsPage({
             <input
               name="lastName"
               placeholder="Smith"
-              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2"
             />
           </div>
         </div>
@@ -67,7 +67,7 @@ export default async function OnboardingContactsPage({
               name="email"
               type="email"
               placeholder="jane@example.com"
-              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2"
             />
           </div>
           <div>
@@ -78,7 +78,7 @@ export default async function OnboardingContactsPage({
               name="phone"
               type="tel"
               placeholder="+1 555 000 0000"
-              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2"
             />
           </div>
         </div>
@@ -87,7 +87,7 @@ export default async function OnboardingContactsPage({
           <FormSubmitButton
             idleLabel="Finish setup →"
             pendingLabel="Saving..."
-            className="rounded-2xl bg-slate-950 px-6 py-2.5 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-50"
+            className="btn btn-primary"
           />
         </div>
       </form>

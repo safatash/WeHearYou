@@ -33,7 +33,7 @@ export function SourceCard({
       : null;
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md transition">
+    <div className="panel hover:shadow-md transition">
       <div className="flex gap-4 mb-4">
         {/* Icon with colored background */}
         <div

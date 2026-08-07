@@ -126,8 +126,8 @@ export function ResolutionWizard(props: Props) {
       {/* SCREEN 1 — intro */}
       {step === 1 && (
         <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.22em] text-indigo-600">{props.businessName}</p>
-          <h1 className="mt-3 text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">We&apos;d like to understand what happened.</h1>
+          <p className="eyebrow">{props.businessName}</p>
+          <h1 className="mt-3 page-title sm:text-4xl">We&apos;d like to understand what happened.</h1>
           <p className="mt-4 text-base leading-7 text-slate-600">Your feedback helps this business improve.</p>
           <button type="button" onClick={() => setStep(2)} className={`${primary} mt-8 w-full sm:w-auto`}>Continue</button>
         </div>
@@ -136,7 +136,7 @@ export function ResolutionWizard(props: Props) {
       {/* SCREEN 2 — issue selection */}
       {step === 2 && (
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">What best describes the issue?</h1>
+          <h1 className="page-title sm:text-3xl">What best describes the issue?</h1>
           <p className="mt-2 text-sm text-slate-600">Select any that apply.</p>
           <div className="mt-5 flex flex-wrap gap-2">
             {props.issueChips.map((chip) => {
@@ -159,7 +159,7 @@ export function ResolutionWizard(props: Props) {
       {/* SCREEN 3 — feedback collection */}
       {step === 3 && (
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">Tell us what happened</h1>
+          <h1 className="page-title sm:text-3xl">Tell us what happened</h1>
           <label className="mt-5 grid gap-1.5 text-sm font-semibold text-slate-700">
             What happened?
             <textarea value={whatHappened} rows={5}
@@ -207,7 +207,7 @@ export function ResolutionWizard(props: Props) {
       {/* SCREEN 4 — AI feedback helper (optional) */}
       {step === 4 && (
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">Want help saying this clearly?</h1>
+          <h1 className="page-title sm:text-3xl">Want help saying this clearly?</h1>
           <p className="mt-2 text-sm text-slate-600">This is optional — you can skip it and use your own words.</p>
 
           {!aiRewrite ? (
@@ -243,7 +243,7 @@ export function ResolutionWizard(props: Props) {
       {/* SCREEN 5 — final confirmation */}
       {step === 5 && (
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">Does this accurately describe your experience?</h1>
+          <h1 className="page-title sm:text-3xl">Does this accurately describe your experience?</h1>
           {editing ? (
             <textarea value={finalText} onChange={(e) => setFinalText(e.target.value)} rows={7} className={`${field} mt-5`} />
           ) : (

@@ -198,7 +198,7 @@ export default async function AutomationDetailPage({
         <div className="flex items-start justify-between gap-4">
           <div>
             <Link href="/automation" className="text-sm text-indigo-600 hover:underline">← All Automations</Link>
-            <h2 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">{automation.name}</h2>
+            <h2 className="page-title">{automation.name}</h2>
             <p className="mt-1 text-sm text-slate-500">Trigger: {formatTriggerType(automation.triggerType)}</p>
           </div>
           <span className={`mt-2 rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] ${automation.isActive ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-600"}`}>
@@ -247,9 +247,9 @@ export default async function AutomationDetailPage({
         {activeTab === "builder" && (
           <div className="grid gap-6 xl:grid-cols-[1fr_380px]">
             <div className="space-y-6">
-              <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-                <p className="text-sm font-semibold uppercase tracking-[0.22em] text-indigo-600">Workflow Steps</p>
-                <h3 className="mt-2 text-xl font-semibold text-slate-950">
+              <section className="panel">
+                <p className="eyebrow">Workflow Steps</p>
+                <h3 className="mt-2 section-title">
                   {automation.steps.length === 0
                     ? "No steps yet"
                     : `${automation.steps.length} step${automation.steps.length === 1 ? "" : "s"}`}
@@ -305,16 +305,16 @@ export default async function AutomationDetailPage({
                 )}
               </section>
 
-              <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-                <p className="text-sm font-semibold uppercase tracking-[0.22em] text-indigo-600">Add Step</p>
-                <h3 className="mt-2 text-xl font-semibold text-slate-950">New step</h3>
+              <section className="panel">
+                <p className="eyebrow">Add Step</p>
+                <h3 className="mt-2 section-title">New step</h3>
                 <AddStepForm automationId={automation.id} />
               </section>
 
               {automation.triggerType === "MANUAL_ENROLLMENT" && (
-                <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-                  <p className="text-sm font-semibold uppercase tracking-[0.22em] text-indigo-600">Manual Enrollment</p>
-                  <h3 className="mt-2 text-xl font-semibold text-slate-950">Enroll a contact</h3>
+                <section className="panel">
+                  <p className="eyebrow">Manual Enrollment</p>
+                  <h3 className="mt-2 section-title">Enroll a contact</h3>
                   <p className="mt-2 text-sm text-slate-500">
                     Run this automation immediately for a specific contact.
                   </p>
@@ -324,28 +324,28 @@ export default async function AutomationDetailPage({
             </div>
 
             <aside className="space-y-6">
-              <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-                <p className="text-sm font-semibold uppercase tracking-[0.22em] text-indigo-600">Settings</p>
-                <h3 className="mt-2 text-xl font-semibold text-slate-950">Edit automation</h3>
+              <div className="panel">
+                <p className="eyebrow">Settings</p>
+                <h3 className="mt-2 section-title">Edit automation</h3>
                 <form action={updateAutomation} className="mt-5 space-y-4">
                   <input type="hidden" name="automationId" value={automation.id} />
                   <div>
-                    <label className="mb-2 block text-sm font-semibold text-slate-700">Name</label>
+                    <label className="field-label">Name</label>
                     <input
                       name="name"
                       type="text"
                       required
                       defaultValue={automation.name}
-                      className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+                      className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 focus:outline-none focus:ring-2"
                     />
                   </div>
                   <div>
-                    <label className="mb-2 block text-sm font-semibold text-slate-700">Trigger</label>
+                    <label className="field-label">Trigger</label>
                     <select
                       name="triggerType"
                       required
                       defaultValue={automation.triggerType}
-                      className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+                      className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 focus:outline-none focus:ring-2"
                     >
                       <option value="APPOINTMENT_COMPLETED">Appointment Completed</option>
                       <option value="PROJECT_COMPLETED">Project Completed</option>
@@ -354,11 +354,11 @@ export default async function AutomationDetailPage({
                     </select>
                   </div>
                   <div>
-                    <label className="mb-2 block text-sm font-semibold text-slate-700">Status</label>
+                    <label className="field-label">Status</label>
                     <select
                       name="isActive"
                       defaultValue={automation.isActive ? "true" : "false"}
-                      className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+                      className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 focus:outline-none focus:ring-2"
                     >
                       <option value="true">Active</option>
                       <option value="false">Paused</option>
@@ -366,7 +366,7 @@ export default async function AutomationDetailPage({
                   </div>
                   <button
                     type="submit"
-                    className="w-full rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-slate-800 transition"
+                    className="btn btn-primary w-full"
                   >
                     Save Changes
                   </button>
@@ -377,7 +377,7 @@ export default async function AutomationDetailPage({
 
               <div className="rounded-3xl border border-red-100 bg-white p-6 shadow-sm">
                 <p className="text-sm font-semibold uppercase tracking-[0.22em] text-red-500">Danger Zone</p>
-                <h3 className="mt-2 text-xl font-semibold text-slate-950">Delete automation</h3>
+                <h3 className="mt-2 section-title">Delete automation</h3>
                 <p className="mt-2 text-sm text-slate-500">
                   Permanently deletes this automation and all its steps.
                 </p>
@@ -505,9 +505,9 @@ function SetupTab({ status, automationId }: { status: ProviderReadiness; automat
   return (
     <div className="space-y-6">
       {/* Provider readiness */}
-      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-        <p className="text-sm font-semibold uppercase tracking-[0.22em] text-indigo-600">Providers</p>
-        <h3 className="mt-2 text-xl font-semibold text-slate-950">Delivery readiness</h3>
+      <section className="panel">
+        <p className="eyebrow">Providers</p>
+        <h3 className="mt-2 section-title">Delivery readiness</h3>
         <p className="mt-1 mb-5 text-sm text-slate-500">
           Environment variables that control email, SMS, and webhook authentication.
           Secret values are never shown.
@@ -565,9 +565,9 @@ function SetupTab({ status, automationId }: { status: ProviderReadiness; automat
       </section>
 
       {/* Integration URLs */}
-      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-        <p className="text-sm font-semibold uppercase tracking-[0.22em] text-indigo-600">Endpoints</p>
-        <h3 className="mt-2 text-xl font-semibold text-slate-950">Integration URLs</h3>
+      <section className="panel">
+        <p className="eyebrow">Endpoints</p>
+        <h3 className="mt-2 section-title">Integration URLs</h3>
         <p className="mt-1 mb-5 text-sm text-slate-500">
           Use these when configuring your CRM webhook or cron scheduler.
         </p>
@@ -597,9 +597,9 @@ function SetupTab({ status, automationId }: { status: ProviderReadiness; automat
       </section>
 
       {/* Webhook payload reference */}
-      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-        <p className="text-sm font-semibold uppercase tracking-[0.22em] text-indigo-600">Reference</p>
-        <h3 className="mt-2 text-xl font-semibold text-slate-950">Webhook payload shape</h3>
+      <section className="panel">
+        <p className="eyebrow">Reference</p>
+        <h3 className="mt-2 section-title">Webhook payload shape</h3>
         <p className="mt-1 mb-4 text-sm text-slate-500">
           Example JSON body for the inbound webhook endpoint.
         </p>

@@ -20,7 +20,7 @@ export function AcceptInviteForm({ inviteToken }: { inviteToken: string }) {
           required
           minLength={8}
           autoComplete="new-password"
-          className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-normal text-slate-700"
+          className="field-value"
         />
       </label>
 
@@ -32,7 +32,7 @@ export function AcceptInviteForm({ inviteToken }: { inviteToken: string }) {
           required
           minLength={8}
           autoComplete="new-password"
-          className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-normal text-slate-700"
+          className="field-value"
         />
       </label>
 
@@ -43,7 +43,7 @@ export function AcceptInviteForm({ inviteToken }: { inviteToken: string }) {
       <button
         type="submit"
         disabled={pending}
-        className="w-full rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-sm disabled:opacity-60"
+        className="btn btn-primary w-full"
       >
         {pending ? "Finishing setup..." : "Complete setup"}
       </button>
@@ -70,7 +70,7 @@ export function AcceptExistingInviteForm({ inviteToken, email }: { inviteToken: 
       <button
         type="submit"
         disabled={pending}
-        className="w-full rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-sm disabled:opacity-60"
+        className="btn btn-primary w-full"
       >
         {pending ? "Accepting..." : "Accept invitation"}
       </button>
