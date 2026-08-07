@@ -60,7 +60,10 @@ export async function AppShell({
     <div style={{ display: "flex", minHeight: "100vh", background: "var(--page)", color: "var(--ink-900)" }}>
       <SidebarNav activeScreen={activeScreen} trialDaysLeft={trialDaysLeft} />
 
-      <div style={{ display: "flex", flex: 1, flexDirection: "column" }}>
+      {/* min-width:0 is load-bearing: a flex item defaults to min-width:auto, so
+          any wide child (a data table, a long unbroken string) stretches this
+          column past the viewport and takes the sticky header with it. */}
+      <div style={{ display: "flex", flex: 1, flexDirection: "column", minWidth: 0 }}>
         {/* Header */}
         {/* Header composition per design-reference/screens/app.jsx: the
             location switcher leads (the active scope should be the first thing
@@ -120,7 +123,7 @@ export async function AppShell({
         {trialDaysLeft != null && <TrialBanner daysLeft={trialDaysLeft} />}
 
         {/* Main content */}
-        <main id="main" style={{ flex: 1, padding: "22px 16px 40px" }} className="lg:px-8">
+        <main id="main" style={{ flex: 1, minWidth: 0, padding: "22px 16px 40px" }} className="lg:px-8">
           {flash ? <div style={{ marginBottom: 16 }}><FlashToast tone={flash.tone} message={flash.message} /></div> : null}
           {children}
         </main>

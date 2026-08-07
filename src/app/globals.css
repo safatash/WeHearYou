@@ -193,6 +193,7 @@ textarea {
 
 /* Card styling */
 .card {
+  min-width: 0;
   background: var(--white);
   border: 1px solid var(--ink-200);
   border-radius: var(--r-lg);
@@ -443,11 +444,21 @@ textarea {
    `rounded-3xl border border-slate-200 bg-white p-6 shadow-sm`, which sits
    outside the radius and shadow scales. */
 .panel {
+  /* min-width:0 + wrapping: grid and flex children default to min-width:auto,
+     so a wide child (chart, table, long unbroken token) pushes the surface past
+     the viewport. Caught on /analytics and /integrations at 390px. */
+  min-width: 0;
+  overflow-wrap: anywhere;
   background: var(--white);
   border: 1px solid var(--ink-200);
   border-radius: var(--r-lg);
   box-shadow: var(--shadow-sm);
   padding: var(--card-pad);
+}
+
+.panel > *,
+.card > * {
+  min-width: 0;
 }
 
 /* Section heading inside a page — one step below .page-title. */

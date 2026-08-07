@@ -1,5 +1,7 @@
 'use client';
 
+import { Icon } from "@/components/icon";
+
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { SignOutButton } from '@/components/sign-out-button';
@@ -101,7 +103,8 @@ export function UserDropdown({ userName, userEmail }: { userName: string; userEm
               onMouseEnter={(e) => ((e.target as HTMLElement).style.background = 'var(--ink-50)')}
               onMouseLeave={(e) => ((e.target as HTMLElement).style.background = 'transparent')}
             >
-              ⚙️ My Account
+              <Icon name="settings" size={15} aria-hidden="true" />
+              My account
             </Link>
 
             <Link
@@ -121,7 +124,8 @@ export function UserDropdown({ userName, userEmail }: { userName: string; userEm
               onMouseEnter={(e) => ((e.target as HTMLElement).style.background = 'var(--ink-50)')}
               onMouseLeave={(e) => ((e.target as HTMLElement).style.background = 'transparent')}
             >
-              💳 Billing
+              <Icon name="package" size={15} aria-hidden="true" />
+              Billing
             </Link>
           </div>
 

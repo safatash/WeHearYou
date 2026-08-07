@@ -1,5 +1,7 @@
 'use client';
 
+import { Icon } from "@/components/icon";
+
 import { useState, useRef, useEffect } from 'react';
 import { usePathname, useSearchParams, useRouter } from 'next/navigation';
 
@@ -56,9 +58,10 @@ export function LocationSwitcher({ locations, currentLocationId }: { locations: 
           color: 'var(--ink-900)',
         }}
       >
-        📍 {currentLocation?.name || 'No location'}
-        <span style={{ marginLeft: 4, fontSize: 12, transform: open ? 'rotate(180deg)' : '', transition: 'transform 0.2s' }}>
-          ▼
+        <Icon name="pin" size={15} aria-hidden="true" />
+        {currentLocation?.name || 'No location'}
+        <span style={{ marginLeft: 4, display: 'inline-flex', color: 'var(--ink-400)', transform: open ? 'rotate(180deg)' : '', transition: 'transform 0.15s' }}>
+          <Icon name="chevDown" size={15} aria-hidden="true" />
         </span>
       </button>
 

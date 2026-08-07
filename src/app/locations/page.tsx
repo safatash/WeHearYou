@@ -82,7 +82,7 @@ export default async function LocationsPage({ searchParams }: { searchParams?: P
         </div>
 
         {/* portfolio summary */}
-        <div className="loc-stats" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "var(--gutter)", marginBottom: "var(--gutter)" }}>
+        <div className="loc-stats" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(160px, 100%), 1fr))", gap: "var(--gutter)", marginBottom: "var(--gutter)" }}>
           <PortfolioStat icon="pin" label="Locations" value={portfolio.totalLocations} />
           <PortfolioStat icon="star" label="Avg rating" value={portfolio.portfolioRatingValue.toFixed(1)} suffix="★" />
           <PortfolioStat icon="chat" label="Total reviews" value={portfolio.totalReviews.toLocaleString()} />
@@ -98,7 +98,7 @@ export default async function LocationsPage({ searchParams }: { searchParams?: P
             </Link>
           </div>
         ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(372px, 1fr))", gap: "var(--gutter)" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(372px, 100%), 1fr))", gap: "var(--gutter)" }}>
             {cards.map(({ location, reputation }) => (
               <LocationCard key={location.id} location={location} reputation={reputation} />
             ))}
