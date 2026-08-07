@@ -44,7 +44,10 @@ yarn-error.log*
 .vercel
 
 # tooling state (Claude Code / superpowers)
-.claude/
+# .claude/skills is shared team documentation and IS tracked; everything else
+# under .claude/ is per-developer local state.
+.claude/*
+!.claude/skills/
 .superpowers/
 
 # typescript
