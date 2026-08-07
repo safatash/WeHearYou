@@ -27,16 +27,42 @@ export function contrastRatio(a: string, b: string): number {
   return (hi + 0.05) / (lo + 0.05);
 }
 
-/** Read a `--token: #hex;` value out of globals.css. */
-function token(name: string): string {
-  const m = CSS.match(new RegExp(`--${name}:\\s*(#[0-9a-fA-F]{6})`));
-  assert.ok(m, `--${name} must be defined as a hex literal in globals.css`);
-  return m![1].toLowerCase();
+/**
+ * Resolve a token to a hex value.
+ *
+ * The design system derives every accent/semantic variant with
+ * `color-mix(in srgb, var(--x) N%, <base>)` so the hue can be swapped in one
+ * place, so this resolves that form too — otherwise the contrast assertions
+ * below could only see the handful of literal tokens.
+ */
+function token(name: string, seen = new Set<string>()): string {
+  assert.ok(!seen.has(name), `circular token reference at --${name}`);
+  seen.add(name);
+
+  const decl = CSS.match(new RegExp(`--${name}:\\s*([^;]+);`));
+  assert.ok(decl, `--${name} must be defined in globals.css`);
+  const value = decl![1].trim();
+
+  if (/^#[0-9a-fA-F]{6}$/.test(value)) return value.toLowerCase();
+
+  const mix = value.match(
+    /color-mix\(\s*in srgb\s*,\s*var\(--([\w-]+)\)\s*([\d.]+)%\s*,\s*(#[0-9a-fA-F]{3,6}|\w+)\s*\)/,
+  );
+  assert.ok(mix, `--${name} is "${value}" — expected a hex literal or an srgb color-mix`);
+
+  const base = token(mix![1], seen);
+  const pct = Number(mix![2]) / 100;
+  const otherRaw = mix![3].toLowerCase();
+  const other = otherRaw === "#fff" ? "#ffffff" : otherRaw === "#000" ? "#000000" : otherRaw;
+  assert.match(other, /^#[0-9a-fA-F]{6}$/, `unsupported mix base "${otherRaw}" in --${name}`);
+
+  const channel = (hex: string, i: number) => parseInt(hex.slice(1 + i * 2, 3 + i * 2), 16);
+  const mixed = [0, 1, 2].map((i) => Math.round(channel(base, i) * pct + channel(other, i) * (1 - pct)));
+  return "#" + mixed.map((c) => c.toString(16).padStart(2, "0")).join("");
 }
 
 const WHITE = "#ffffff";
 const AA_TEXT = 4.5;
-const AA_LARGE = 3.0;
 
 /* ─── the rules that were actually broken ─────────────────────────────────── */
 
@@ -105,11 +131,49 @@ test("badges use the text-role status tokens, not the vivid fills", () => {
 });
 
 test("the vivid status hues stay non-text (documented, not accidental)", () => {
-  // If these ever pass AA the -ink split can be revisited; until then the
-  // split is load-bearing.
-  for (const name of ["success", "warning"]) {
-    assert.ok(contrastRatio(token(name), WHITE) < AA_LARGE, `--${name} unexpectedly passes`);
+  // The design system's own hues are 4.00 / 3.51 / 4.48:1 on white — better
+  // than the values that had drifted into the repo, but still short of the 4.5
+  // needed for label text. If any ever clears AA the -ink split can be
+  // revisited; until then it is load-bearing.
+  for (const name of ["success", "warning", "danger"]) {
+    const ratio = contrastRatio(token(name), WHITE);
+    assert.ok(ratio < AA_TEXT, `--${name} is ${ratio.toFixed(2)}:1 and no longer needs an -ink pair`);
+    assert.ok(ratio >= 3.0, `--${name} is ${ratio.toFixed(2)}:1 — too weak even for non-text use`);
   }
+});
+
+test("accent derivations resolve through color-mix, so the hue is swappable", () => {
+  // The design system derives every variant from --accent. Hardcoding one
+  // breaks live accent switching.
+  for (const name of ["accent-strong", "accent-soft", "accent-softer", "accent-ring", "accent-border"]) {
+    const decl = CSS.match(new RegExp(`--${name}:\\s*([^;]+);`));
+    assert.ok(decl, `--${name} must exist`);
+    assert.match(decl![1], /color-mix\(in srgb, var\(--accent\)/, `--${name} must derive from --accent`);
+  }
+});
+
+test("the ink ramp is the design system's cool ramp, not Tailwind gray", () => {
+  // The repo had drifted to Tailwind's gray palette; canon is zinc-based.
+  assert.equal(token("ink-900"), "#18181b");
+  assert.equal(token("ink-700"), "#3f3f46");
+  assert.equal(token("ink-500"), "#71717a");
+  assert.equal(token("ink-200"), "#e6e6ea");
+  assert.equal(token("page"), "#f7f7f8");
+});
+
+test("radii and layout metrics match the design system", () => {
+  const r = (n: string) => CSS.match(new RegExp(`--r-${n}:\\s*(\\d+)px`))![1];
+  assert.deepEqual([r("xs"), r("sm"), r("md"), r("lg"), r("xl")], ["5", "7", "10", "14", "20"]);
+  const metric = (n: string) => CSS.match(new RegExp(`--${n}:\\s*(\\d+)px`))![1];
+  assert.equal(metric("sidebar-w"), "248");
+  assert.equal(metric("topbar-h"), "60");
+  assert.equal(metric("gutter"), "28");
+  assert.equal(metric("card-pad"), "22");
+});
+
+test("the canonical mono face is used for figures", () => {
+  assert.match(CSS, /--font-mono:\s*"Geist Mono"/);
+  assert.match(CSS, /--font-sans:\s*"Geist"/);
 });
 
 /* ─── canonical primitives exist and stay canonical ───────────────────────── */
