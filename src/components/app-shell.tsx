@@ -62,31 +62,32 @@ export async function AppShell({
 
       <div style={{ display: "flex", flex: 1, flexDirection: "column" }}>
         {/* Header */}
+        {/* Header composition per design-reference/screens/app.jsx: the
+            location switcher leads (the active scope should be the first thing
+            read), then search / notifications / account trail. */}
         <header
           aria-label="Application"
           style={{
             position: "sticky",
             top: 0,
             zIndex: 30,
+            flex: "none",
             display: "flex",
             alignItems: "center",
-            justifyContent: "space-between",
-            gap: 12,
-            minHeight: "var(--topbar-h)",
+            gap: 16,
+            height: "var(--topbar-h)",
             borderBottom: "1px solid var(--ink-200)",
-            background: "rgba(255,255,255,.92)",
-            padding: "10px 16px",
-            backdropFilter: "blur(10px)",
+            background: "color-mix(in srgb, var(--white) 80%, transparent)",
+            backdropFilter: "blur(8px)",
+            padding: "0 16px",
           }}
-          className="lg:px-8"
+          className="lg:px-[var(--gutter)]"
         >
-          <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0, flex: 1 }}>
-            <MobileNav activeScreen={activeScreen} trialDaysLeft={trialDaysLeft} />
-            <SearchInput />
-          </div>
+          <MobileNav activeScreen={activeScreen} trialDaysLeft={trialDaysLeft} />
+          <LocationSwitcher locations={locations} currentLocationId={selectedLocationId} />
 
-          <div style={{ display: "flex", alignItems: "center", gap: 8, flex: "none" }}>
-            <LocationSwitcher locations={locations} currentLocationId={selectedLocationId} />
+          <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 10, flex: "none" }}>
+            <SearchInput />
             <NotificationButton />
             <UserDropdown userName={userName} userEmail={userEmail} />
           </div>

@@ -1,5 +1,50 @@
 @import "tailwindcss";
 
+/* ─────────────────────────────────────────────────────────────────────────────
+   Legacy palette remap.
+
+   ~1,700 atomic `slate-*` / `indigo-*` utilities remain across the app from
+   before the token system existed. Rather than rewrite every call site, the
+   legacy scales are redefined to resolve to the canonical tokens, so a
+   `text-slate-500` renders as --ink-500 and a `text-indigo-600` renders as the
+   accent.
+
+   slate → ink is close to a no-op visually (the canonical ramp is zinc-based,
+   slate is a near neighbour) but it means one ramp is in play, not two.
+   indigo has no place in the system at all and resolves to the accent.
+
+   Indigo maps to the AA-safe --accent-ink / --accent-solid rather than raw
+   --accent: indigo-600 is 6.29:1 on white and is used as label text, so mapping
+   it to --accent (2.66:1) would trade a palette inconsistency for an
+   accessibility regression.
+
+   This is a migration aid, not a licence. New code uses the tokens directly.
+   ───────────────────────────────────────────────────────────────────────────── */
+@theme {
+  --color-slate-50: var(--ink-50);
+  --color-slate-100: var(--ink-100);
+  --color-slate-200: var(--ink-200);
+  --color-slate-300: var(--ink-300);
+  --color-slate-400: var(--ink-400);
+  --color-slate-500: var(--ink-500);
+  --color-slate-600: var(--ink-600);
+  --color-slate-700: var(--ink-700);
+  --color-slate-800: var(--ink-800);
+  --color-slate-900: var(--ink-900);
+  --color-slate-950: var(--ink-950);
+
+  --color-indigo-50: var(--accent-softer);
+  --color-indigo-100: var(--accent-soft);
+  --color-indigo-200: var(--accent-border);
+  --color-indigo-300: var(--accent-border);
+  --color-indigo-400: var(--accent);
+  --color-indigo-500: var(--accent-ink);
+  --color-indigo-600: var(--accent-ink);
+  --color-indigo-700: var(--accent-solid-hover);
+  --color-indigo-800: var(--accent-solid-hover);
+  --color-indigo-900: var(--accent-solid-hover);
+}
+
 :root {
   /* ─────────────────────────────────────────────────────────────────────────
      Tokens are the design system's Foundations, adopted verbatim except where

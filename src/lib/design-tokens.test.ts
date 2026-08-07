@@ -10,7 +10,10 @@ import { readFileSync } from "node:fs";
  * canonical primitives so a future edit fails here rather than in production.
  */
 
-const CSS = readFileSync(new URL("../app/globals.css", import.meta.url), "utf8");
+const CSS_RAW = readFileSync(new URL("../app/globals.css", import.meta.url), "utf8");
+/** Comment-free view: prose that mentions a token (e.g. "raw --accent: ...")
+ *  must not be mistaken for a declaration by the resolver below. */
+const CSS = CSS_RAW.replace(/\/\*[\s\S]*?\*\//g, "");
 
 /* ─── contrast helpers (WCAG 2.1 relative luminance) ──────────────────────── */
 
@@ -254,4 +257,37 @@ test("navigation is reachable below the lg breakpoint", () => {
   assert.match(NAV, /aria-label="Open navigation menu"/);
   assert.match(NAV, /e\.key === "Escape"/, "Escape must dismiss the drawer");
   assert.match(NAV, /aria-current=\{active \? "page" : undefined\}/);
+});
+
+/* ─── legacy palette remap ────────────────────────────────────────────────── */
+
+test("the legacy slate scale resolves to the ink ramp", () => {
+  // ~1,500 atomic slate-* utilities remain from before the token system. The
+  // @theme remap makes them render as ink rather than a second neutral ramp.
+  for (const step of [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950]) {
+    assert.match(
+      CSS,
+      new RegExp(`--color-slate-${step}: var\\(--ink-${step}\\)`),
+      `slate-${step} must map to --ink-${step}`,
+    );
+  }
+});
+
+test("the legacy indigo scale resolves to accent tokens, and never to raw --accent for text", () => {
+  // indigo-600 is 6.29:1 on white and is used as label text. Mapping it to
+  // --accent (2.66:1) would trade a palette inconsistency for an accessibility
+  // regression, so the text steps map to the AA-safe tokens.
+  for (const step of [500, 600]) {
+    assert.match(CSS, new RegExp(`--color-indigo-${step}: var\\(--accent-ink\\)`));
+  }
+  const block = CSS.slice(CSS.indexOf("@theme {"), CSS.indexOf("}", CSS.indexOf("@theme {")));
+  assert.ok(
+    !/--color-indigo-(500|600|700): var\(--accent\)/.test(block),
+    "text-weight indigo steps must not map to the raw brand hue",
+  );
+});
+
+test("the remap is documented as a migration aid, not a licence", () => {
+  const block = CSS_RAW.slice(CSS_RAW.indexOf("Legacy palette remap"), CSS_RAW.indexOf("@theme {"));
+  assert.match(block, /migration aid/i);
 });
