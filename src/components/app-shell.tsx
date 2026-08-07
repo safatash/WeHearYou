@@ -58,7 +58,7 @@ export async function AppShell({
 
   return (
     <div style={{ display: "flex", minHeight: "100vh", background: "var(--page)", color: "var(--ink-900)" }}>
-      <SidebarNav activeScreen={activeScreen} />
+      <SidebarNav activeScreen={activeScreen} trialDaysLeft={trialDaysLeft} />
 
       <div style={{ display: "flex", flex: 1, flexDirection: "column" }}>
         {/* Header */}
@@ -81,7 +81,7 @@ export async function AppShell({
           className="lg:px-8"
         >
           <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0, flex: 1 }}>
-            <MobileNav activeScreen={activeScreen} />
+            <MobileNav activeScreen={activeScreen} trialDaysLeft={trialDaysLeft} />
             <SearchInput />
           </div>
 

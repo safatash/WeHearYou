@@ -140,8 +140,39 @@ function BrandMark() {
   );
 }
 
+/**
+ * Trial card, per the design system's sidebar foot. A restrained
+ * accent-softer → white gradient — not the indigo promo block that previously
+ * occupied this slot. Renders only while a trial is actually running.
+ */
+function TrialCard({ daysLeft }: { daysLeft: number }) {
+  return (
+    <div style={{ padding: "12px 4px 4px" }}>
+      <div
+        style={{
+          borderRadius: "var(--r-md)",
+          border: "1px solid var(--ink-200)",
+          padding: 14,
+          background: "linear-gradient(160deg, var(--accent-softer), var(--white))",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+          <Icon name="sparkles" size={15} style={{ color: "var(--accent)" }} aria-hidden="true" />
+          <span style={{ fontSize: 13, fontWeight: 620, color: "var(--ink-900)" }}>Pro trial</span>
+        </div>
+        <p style={{ fontSize: 12, color: "var(--ink-500)", lineHeight: 1.5, margin: "0 0 10px" }}>
+          {daysLeft} {daysLeft === 1 ? "day" : "days"} left. Unlock unlimited campaigns and AI replies.
+        </p>
+        <Link href="/billing" className="btn btn-primary btn-sm" style={{ width: "100%" }}>
+          Upgrade
+        </Link>
+      </div>
+    </div>
+  );
+}
+
 /** Desktop rail. Hidden below `lg`, where MobileNav takes over. */
-export function SidebarNav({ activeScreen }: { activeScreen: ScreenKey }) {
+export function SidebarNav({ activeScreen, trialDaysLeft }: { activeScreen: ScreenKey; trialDaysLeft?: number | null }) {
   return (
     <aside
       className="hidden lg:flex"
@@ -161,6 +192,11 @@ export function SidebarNav({ activeScreen }: { activeScreen: ScreenKey }) {
     >
       <BrandMark />
       <NavList activeScreen={activeScreen} />
+      {trialDaysLeft != null && (
+        <div style={{ marginTop: "auto" }}>
+          <TrialCard daysLeft={trialDaysLeft} />
+        </div>
+      )}
     </aside>
   );
 }
@@ -169,7 +205,7 @@ export function SidebarNav({ activeScreen }: { activeScreen: ScreenKey }) {
  * Mobile navigation drawer. Rendered as a modal dialog: Escape closes it, focus
  * returns to the trigger, and background scroll is locked while open.
  */
-export function MobileNav({ activeScreen }: { activeScreen: ScreenKey }) {
+export function MobileNav({ activeScreen, trialDaysLeft }: { activeScreen: ScreenKey; trialDaysLeft?: number | null }) {
   const [open, setOpen] = useState(false);
   const panelId = useId();
 
@@ -232,6 +268,11 @@ export function MobileNav({ activeScreen }: { activeScreen: ScreenKey }) {
               </button>
             </div>
             <NavList activeScreen={activeScreen} onNavigate={() => setOpen(false)} />
+            {trialDaysLeft != null && (
+              <div style={{ marginTop: "auto" }}>
+                <TrialCard daysLeft={trialDaysLeft} />
+              </div>
+            )}
           </div>
         </div>
       )}
