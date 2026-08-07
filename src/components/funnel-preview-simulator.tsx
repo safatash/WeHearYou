@@ -101,19 +101,19 @@ export function FunnelPreviewSimulator({
 
   return (
     <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
-      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <section className="panel">
         <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-slate-50 p-4 text-sm text-slate-600">
           <div>
             Live preview mode: <span className="font-semibold text-slate-900">rating selected → branch revealed → customer next step</span>
           </div>
           <div className="flex flex-wrap gap-3">
-            <Link href={`/funnel-builder?location=${selectedLocation.id}`} className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm">
+            <Link href={`/funnel-builder?location=${selectedLocation.id}`} className="btn btn-secondary">
               Back to builder
             </Link>
-            <Link href={`/f/${selectedLocation.slug}`} className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm">
+            <Link href={`/f/${selectedLocation.slug}`} className="btn btn-secondary">
               Open live funnel
             </Link>
-            <Link href={`/b/${selectedLocation.slug}`} target="_blank" rel="noreferrer" className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm">
+            <Link href={`/b/${selectedLocation.slug}`} target="_blank" rel="noreferrer" className="btn btn-secondary">
               Open mini-site
             </Link>
           </div>
@@ -124,7 +124,7 @@ export function FunnelPreviewSimulator({
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-indigo-600">Customer preview</p>
-                <h3 className="mt-3 text-3xl font-semibold tracking-tight text-slate-950">
+                <h3 className="mt-3 page-title">
                   {profile?.funnelPromptTitle ?? previewSteps[0]?.title ?? profile?.headline ?? selectedLocation.name}
                 </h3>
                 <p className="mt-3 text-sm leading-7 text-slate-600">
@@ -264,8 +264,8 @@ export function FunnelPreviewSimulator({
       </section>
 
       <aside className="space-y-6">
-        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <p className="text-sm font-semibold uppercase tracking-[0.22em] text-indigo-600">Preview Location</p>
+        <section className="panel">
+          <p className="eyebrow">Preview Location</p>
           <div className="mt-5 grid gap-3">
             {locations.map((location) => {
               const isSelected = location.id === selectedLocation.id;
@@ -292,8 +292,8 @@ export function FunnelPreviewSimulator({
           </div>
         </section>
 
-        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <p className="text-sm font-semibold uppercase tracking-[0.22em] text-indigo-600">Current Configuration</p>
+        <section className="panel">
+          <p className="eyebrow">Current Configuration</p>
           <h3 className="mt-2 text-2xl font-semibold text-slate-950">{selectedLocation.name}</h3>
           <div className="mt-4 space-y-3 text-sm leading-7 text-slate-600">
             <p><span className="font-semibold text-slate-900">Funnel prompt:</span> {profile?.funnelPromptTitle ?? profile?.headline ?? selectedLocation.name}</p>
@@ -306,8 +306,8 @@ export function FunnelPreviewSimulator({
           </div>
         </section>
 
-        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <p className="text-sm font-semibold uppercase tracking-[0.22em] text-indigo-600">Branch Checklist</p>
+        <section className="panel">
+          <p className="eyebrow">Branch Checklist</p>
           <div className="mt-4 space-y-3 text-sm leading-7 text-slate-600">
             <p><span className="font-semibold text-slate-900">Step 1:</span> customer sees brand copy and the selected segmentation style.</p>
             <p><span className="font-semibold text-slate-900">Step 2:</span> positive responses route toward the review request.</p>

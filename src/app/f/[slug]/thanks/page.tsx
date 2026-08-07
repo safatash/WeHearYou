@@ -51,7 +51,7 @@ export default async function PublicFunnelThanksPage({
         />
       )}
       <div className={isEmbed ? "" : "mx-auto max-w-3xl rounded-[32px] border border-slate-200 bg-white p-8 shadow-[0_16px_50px_rgba(15,23,42,0.08)] sm:p-10"}>
-        {!isEmbed && <p className="text-sm font-semibold uppercase tracking-[0.22em] text-indigo-600">Thank You</p>}
+        {!isEmbed && <p className="eyebrow">Thank You</p>}
         <h1 className={`${isEmbed ? "text-2xl" : "mt-3 text-4xl"} font-semibold tracking-tight text-slate-950`}>
           {isPrivate
             ? location.publicProfile?.funnelThanksPrivateTitle ?? "Thanks for sharing your feedback"
@@ -99,7 +99,7 @@ export default async function PublicFunnelThanksPage({
                 <button
                   type="button"
                   data-why-embed-done="1"
-                  className="inline-flex rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50"
+                  className="inline-flex btn btn-secondary hover:bg-slate-50"
                 >
                   Done
                 </button>

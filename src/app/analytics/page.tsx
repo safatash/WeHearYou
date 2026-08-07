@@ -29,8 +29,8 @@ export default async function AnalyticsPage({
       <div className="space-y-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.22em] text-indigo-600">Analytics & Reporting</p>
-            <h2 className="mt-2 text-4xl font-semibold tracking-tight text-slate-950">Performance drilldowns across reviews, funnel behavior, and response trends</h2>
+            <p className="eyebrow">Analytics & Reporting</p>
+            <h2 className="page-title">Performance drilldowns across reviews, funnel behavior, and response trends</h2>
             <p className="mt-3 max-w-3xl text-slate-600">
               This is the analytics layer for WeHearYou, the kind of reporting view agencies expect when they want to prove ROI and monitor location-level reputation performance.
             </p>
@@ -65,7 +65,7 @@ export default async function AnalyticsPage({
         </div>
 
         <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
-          <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <section className="panel">
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-lg font-semibold text-slate-950">Review Growth</h3>
@@ -85,7 +85,7 @@ export default async function AnalyticsPage({
             </div>
           </section>
 
-          <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <section className="panel">
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-lg font-semibold text-slate-950">Sentiment Mix</h3>
@@ -102,7 +102,7 @@ export default async function AnalyticsPage({
         </div>
 
         <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
-          <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <section className="panel">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold text-slate-950">Response Time Trend</h3>
               <span className="text-sm text-slate-500">Lower is better</span>
@@ -117,7 +117,7 @@ export default async function AnalyticsPage({
             </div>
           </section>
 
-          <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <section className="panel">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold text-slate-950">Channel Breakdown</h3>
               <span className="text-sm text-slate-500">Source-level reporting</span>
@@ -165,7 +165,7 @@ function AssistantSection({ a }: { a: AssistantAnalytics }) {
     { label: "Private feedback", value: a.privateFeedback.toLocaleString() },
   ];
   return (
-    <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+    <section className="panel">
       <div className="mb-6 flex items-center gap-3">
         <Icon name="sparkles" size={18} />
         <div>
@@ -195,7 +195,7 @@ function ResolutionSection({ r }: { r: ResolutionStats }) {
     { label: "Contact requested", value: r.contactRequested.toLocaleString() },
   ];
   return (
-    <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+    <section className="panel">
       <div className="mb-6 flex items-center gap-3">
         <Icon name="shield" size={18} />
         <div>

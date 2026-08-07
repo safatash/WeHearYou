@@ -33,14 +33,14 @@ export default async function TeamPage({
       <div className="space-y-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.22em] text-indigo-600">Agency Team & Access</p>
-            <h2 className="mt-2 text-4xl font-semibold tracking-tight text-slate-950">Users, roles, and permissions across your locations</h2>
+            <p className="eyebrow">Agency Team & Access</p>
+            <h2 className="page-title">Users, roles, and permissions across your locations</h2>
             <p className="mt-3 max-w-3xl text-slate-600">
               This gives the prototype a proper agency-grade permission model, with agency admins, location managers, analysts, and scoped access by location.
             </p>
           </div>
           <div className="flex gap-3">
-            <a href="#permission-defaults" className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm hover:border-slate-300">
+            <a href="#permission-defaults" className="btn btn-secondary hover:border-slate-300">
               Role defaults ↓
             </a>
           </div>
@@ -71,9 +71,9 @@ export default async function TeamPage({
         <InviteUserForm locations={inviteLocations} />
 
         <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
-          <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <section className="panel">
             <div className="flex items-center justify-between">
-              <h3 className="text-xl font-semibold text-slate-950">Team Members</h3>
+              <h3 className="section-title">Team Members</h3>
               <span className="text-sm text-slate-500">Permission-aware roster</span>
             </div>
             <div className="mt-6 space-y-4">
@@ -87,7 +87,7 @@ export default async function TeamPage({
                   <div key={member.id} className="rounded-3xl border border-slate-200 p-5">
                     <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                       <div>
-                        <h4 className="text-xl font-semibold text-slate-950">
+                        <h4 className="section-title">
                           <Link href={`/team/${member.id}`} className="hover:text-indigo-600">
                             {member.user.name}
                           </Link>
@@ -130,8 +130,8 @@ export default async function TeamPage({
           </section>
 
           <aside className="space-y-6">
-            <section id="permission-defaults" className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-              <h3 className="text-xl font-semibold text-slate-950">Permission Defaults</h3>
+            <section id="permission-defaults" className="panel">
+              <h3 className="section-title">Permission Defaults</h3>
               <div className="mt-6 space-y-4">
                 <Field label="Agency Admin" value="Full access to billing, automations, all locations, team management" multiline />
                 <Field label="Location Manager" value="Scoped to assigned locations, can reply to reviews and send requests" multiline />
@@ -139,8 +139,8 @@ export default async function TeamPage({
               </div>
             </section>
 
-            <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-              <h3 className="text-xl font-semibold text-slate-950">Access Health</h3>
+            <section className="panel">
+              <h3 className="section-title">Access Health</h3>
               <div className="mt-6 space-y-4">
                 <OutcomeCard title="Least-privilege roles applied" count="Yes" tone="positive" />
                 <OutcomeCard title="Pending invites" count={String(stats.invitedUsers)} tone="warning" />

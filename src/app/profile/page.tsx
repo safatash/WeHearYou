@@ -28,8 +28,8 @@ export default async function ProfilePage() {
     <AppShell activeScreen="dashboard">
       <div className="max-w-2xl space-y-6">
         <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.22em] text-indigo-600">Account</p>
-          <h2 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">Your profile</h2>
+          <p className="eyebrow">Account</p>
+          <h2 className="page-title">Your profile</h2>
         </div>
 
         {/* User card */}
@@ -39,7 +39,7 @@ export default async function ProfilePage() {
               {initials}
             </div>
             <div>
-              <p className="text-xl font-semibold text-slate-950">{user.name ?? "—"}</p>
+              <p className="section-title">{user.name ?? "—"}</p>
               <p className="text-sm text-slate-500">{user.email}</p>
               <span className="mt-1 inline-block rounded-full bg-indigo-50 px-2.5 py-0.5 text-xs font-semibold text-indigo-700 capitalize">
                 {membership.role.toLowerCase()}

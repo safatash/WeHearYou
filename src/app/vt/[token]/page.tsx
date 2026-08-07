@@ -13,7 +13,7 @@ export default async function VideoTestimonialRecorderPage({ params }: { params:
       <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
         <div className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-sm">
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100 text-2xl">✓</div>
-          <h1 className="text-xl font-semibold text-slate-950">Already submitted</h1>
+          <h1 className="section-title">Already submitted</h1>
           <p className="mt-2 text-sm text-slate-600">This link has already been used. Thank you for your testimonial!</p>
         </div>
       </div>

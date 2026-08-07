@@ -13,10 +13,10 @@ export function InviteUserForm({
   const [state, formAction, pending] = useActionState(inviteTeamMember, initialState);
 
   return (
-    <form action={formAction} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+    <form action={formAction} className="panel">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h3 className="text-xl font-semibold text-slate-950">Invite user</h3>
+          <h3 className="section-title">Invite user</h3>
           <p className="mt-2 text-sm leading-6 text-slate-600">
             Create an invited team member and assign their role and location scope before they set their password.
           </p>
@@ -26,15 +26,15 @@ export function InviteUserForm({
       <div className="mt-6 grid gap-4 md:grid-cols-2">
         <label className="grid gap-2 text-sm font-semibold text-slate-700">
           Full name
-          <input name="name" required className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-normal text-slate-700" />
+          <input name="name" required className="field-value" />
         </label>
         <label className="grid gap-2 text-sm font-semibold text-slate-700">
           Email
-          <input name="email" type="email" required className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-normal text-slate-700" />
+          <input name="email" type="email" required className="field-value" />
         </label>
         <label className="grid gap-2 text-sm font-semibold text-slate-700 md:col-span-2">
           Role
-          <select name="role" defaultValue="MANAGER" className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-normal text-slate-700">
+          <select name="role" defaultValue="MANAGER" className="field-value">
             <option value="ADMIN">Agency Admin</option>
             <option value="MANAGER">Location Manager</option>
             <option value="ANALYST">Analyst</option>

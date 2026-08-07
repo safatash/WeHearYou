@@ -48,7 +48,7 @@ export default async function GbpPhotosPage({
       <div className="space-y-6 max-w-4xl">
         <div>
           <a href="/gbp" className="text-sm text-indigo-600 hover:underline">← GBP Manager</a>
-          <h2 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">Photo Management</h2>
+          <h2 className="page-title">Photo Management</h2>
         </div>
 
         <div className="flex gap-1 rounded-2xl border border-slate-200 bg-slate-50 p-1 w-fit">
@@ -61,12 +61,12 @@ export default async function GbpPhotosPage({
         </div>
 
         {tab === "upload" && (
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="panel">
             <h3 className="text-lg font-semibold text-slate-950 mb-5">Upload a photo</h3>
             <form action={uploadGbpPhotoAction} encType="multipart/form-data" className="space-y-4">
               <div>
-                <label className="mb-2 block text-sm font-semibold text-slate-700">Location</label>
-                <select name="locationId" required className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100">
+                <label className="field-label">Location</label>
+                <select name="locationId" required className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 focus:outline-none focus:ring-2">
                   <option value="">Select a location…</option>
                   {locations.map((loc) => (
                     <option key={loc.id} value={loc.id}>{loc.name}</option>
@@ -74,20 +74,20 @@ export default async function GbpPhotosPage({
                 </select>
               </div>
               <div>
-                <label className="mb-2 block text-sm font-semibold text-slate-700">Photo</label>
+                <label className="field-label">Photo</label>
                 <input name="photo" type="file" accept="image/*" required className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900" />
               </div>
               <div>
-                <label className="mb-2 block text-sm font-semibold text-slate-700">Category</label>
-                <select name="category" className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100">
+                <label className="field-label">Category</label>
+                <select name="category" className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 focus:outline-none focus:ring-2">
                   {CATEGORIES.map((c) => (
                     <option key={c} value={c}>{c.replace("_", " ")}</option>
                   ))}
                 </select>
               </div>
               <div>
-                <label className="mb-2 block text-sm font-semibold text-slate-700">Schedule <span className="font-normal text-slate-400">(optional)</span></label>
-                <input name="scheduledAt" type="datetime-local" className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100" />
+                <label className="field-label">Schedule <span className="font-normal text-slate-400">(optional)</span></label>
+                <input name="scheduledAt" type="datetime-local" className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 focus:outline-none focus:ring-2" />
               </div>
               <div className="flex gap-3 pt-2">
                 <button type="submit" name="publishNow" value="true" className="rounded-2xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 transition">
@@ -104,7 +104,7 @@ export default async function GbpPhotosPage({
         {tab === "gallery" && (
           <>
             {pendingPhotos.length > 0 && (
-              <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+              <div className="panel">
                 <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-400 mb-4">Pending / Scheduled</p>
                 <div className="divide-y divide-slate-100">
                   {pendingPhotos.map((photo) => (

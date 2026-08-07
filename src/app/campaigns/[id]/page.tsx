@@ -30,8 +30,8 @@ export default async function CampaignDetailPage({ params }: { params: Promise<{
             <Link href="/campaigns" className="text-sm font-semibold text-indigo-600">
               ← Back to requests
             </Link>
-            <p className="mt-4 text-sm font-semibold uppercase tracking-[0.22em] text-indigo-600">Request Detail</p>
-            <h2 className="mt-2 text-4xl font-semibold tracking-tight text-slate-950">{campaign.name}</h2>
+            <p className="mt-4 eyebrow">Request Detail</p>
+            <h2 className="page-title">{campaign.name}</h2>
             <p className="mt-3 max-w-3xl text-slate-600">
               Delivery details for this review request, including channel, recipients, and the outcome after each invite was sent.
             </p>
@@ -42,7 +42,7 @@ export default async function CampaignDetailPage({ params }: { params: Promise<{
               <FormSubmitButton
                 idleLabel="Resend Invite"
                 pendingLabel="Resending..."
-                className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm"
+                className="btn btn-secondary"
               />
             </form>
             <Link href="/campaigns/new" className="btn btn-primary">
@@ -58,8 +58,8 @@ export default async function CampaignDetailPage({ params }: { params: Promise<{
         </div>
 
         <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-          <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h3 className="text-xl font-semibold text-slate-950">Request Metadata</h3>
+          <section className="panel">
+            <h3 className="section-title">Request Metadata</h3>
             <div className="mt-6 grid gap-4 md:grid-cols-2">
               <Field label="Campaign" value={campaign.name} />
               <Field label="Date Sent" value={formatDateTime(campaign.sendAt)} />
@@ -76,8 +76,8 @@ export default async function CampaignDetailPage({ params }: { params: Promise<{
             </div>
           </section>
 
-          <aside className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h3 className="text-xl font-semibold text-slate-950">Outcome Snapshot</h3>
+          <aside className="panel">
+            <h3 className="section-title">Outcome Snapshot</h3>
             <div className="mt-6 space-y-4">
               <OutcomeCard title="Invite delivered" count="Yes" tone="positive" />
               <OutcomeCard title="Recipients created" count={String(campaign.recipients.length)} tone="positive" />
@@ -100,8 +100,8 @@ export default async function CampaignDetailPage({ params }: { params: Promise<{
           </aside>
         </div>
 
-        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h3 className="text-xl font-semibold text-slate-950">Recipient Timeline</h3>
+        <section className="panel">
+          <h3 className="section-title">Recipient Timeline</h3>
           <div className="mt-6 space-y-4">
             {campaign.recipients.map((recipient) => (
               <div key={recipient.id} className="rounded-2xl border border-slate-200 p-4">

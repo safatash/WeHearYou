@@ -195,7 +195,7 @@ export function ConnectedSources({
                               <select
                                 name="googleLocationPayload"
                                 defaultValue=""
-                                className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-normal text-slate-700"
+                                className="field-value"
                               >
                                 <option value="" disabled>
                                   Choose a Google location
@@ -303,7 +303,7 @@ export function ConnectedSources({
                   <FormSubmitButton
                     idleLabel="Refresh Google Details"
                     pendingLabel="Refreshing..."
-                    className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm"
+                    className="btn btn-secondary"
                   />
                 </form>
               </div>

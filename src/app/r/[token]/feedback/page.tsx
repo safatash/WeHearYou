@@ -29,7 +29,7 @@ export default async function PrivateFeedbackPage({
   return (
     <main className="min-h-screen bg-slate-50 px-4 py-10 text-slate-900 sm:px-6">
       <div className="mx-auto max-w-3xl rounded-[32px] border border-slate-200 bg-white p-8 shadow-[0_16px_50px_rgba(15,23,42,0.08)] sm:p-10">
-        <p className="text-sm font-semibold uppercase tracking-[0.22em] text-indigo-600">WeHearYou Review Funnel</p>
+        <p className="eyebrow">WeHearYou Review Funnel</p>
         <h1 className="mt-3 text-4xl font-semibold tracking-tight text-slate-950">How was your experience with {location.name}?</h1>
         <p className="mt-4 text-base leading-7 text-slate-600">Share a quick rating below.</p>
 
@@ -54,14 +54,14 @@ export default async function PrivateFeedbackPage({
                 name="feedback"
                 required
                 placeholder="Your message..."
-                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 placeholder-slate-400 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100 min-h-24"
+                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 min-h-24"
               />
               <div>
                 <label className="block text-sm font-semibold text-slate-900 mb-2">Name</label>
                 <input
                   type="text"
                   placeholder="Your name"
-                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 placeholder-slate-400 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2"
                 />
               </div>
               <div>
@@ -69,7 +69,7 @@ export default async function PrivateFeedbackPage({
                 <input
                   type="email"
                   placeholder="your@email.com"
-                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 placeholder-slate-400 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2"
                 />
               </div>
               <button

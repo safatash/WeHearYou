@@ -43,7 +43,7 @@ export default async function ReviewDetailPage({
             <Link href="/reviews" className="text-sm font-semibold text-indigo-600">
               ← Back to inbox
             </Link>
-            <p className="mt-4 text-sm font-semibold uppercase tracking-[0.22em] text-indigo-600">Review Detail</p>
+            <p className="mt-4 eyebrow">Review Detail</p>
             <div className="mt-2 flex items-center gap-4">
               {review.reviewerPhotoUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -56,7 +56,7 @@ export default async function ReviewDetailPage({
             </p>
           </div>
           <div className="flex gap-3">
-            <Link href="#follow-up" className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm">Assign Owner</Link>
+            <Link href="#follow-up" className="btn btn-secondary">Assign Owner</Link>
             <Link href="#reply-tracking" className="btn btn-primary">Track Reply</Link>
           </div>
         </div>
@@ -70,7 +70,7 @@ export default async function ReviewDetailPage({
 
         <div className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
           <section className="space-y-6">
-            <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div className="panel">
               <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                 <div>
                   <div className="flex flex-wrap items-center gap-2">
@@ -90,8 +90,8 @@ export default async function ReviewDetailPage({
               <p className="mt-5 rounded-2xl bg-slate-50 p-5 text-sm leading-7 text-slate-700">{review.body}</p>
             </div>
 
-            <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-              <h3 className="text-xl font-semibold text-slate-950">Response Planning</h3>
+            <div className="panel">
+              <h3 className="section-title">Response Planning</h3>
               <div className="mt-6 space-y-4">
                 <div className="rounded-2xl border border-slate-200 p-4">
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Internal guidance</p>
@@ -114,8 +114,8 @@ export default async function ReviewDetailPage({
           </section>
 
           <aside className="space-y-6">
-            <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-              <h3 className="text-xl font-semibold text-slate-950">Review Context</h3>
+            <section className="panel">
+              <h3 className="section-title">Review Context</h3>
               <div className="mt-6 space-y-4">
                 <OutcomeCard title="Route" count={isPublicRoute ? "Public review" : "Private feedback"} tone={isPublicRoute ? "positive" : "warning"} />
                 <OutcomeCard title="Sentiment" count={sentiment} tone={sentiment === "Negative" ? "warning" : sentiment === "Positive" ? "positive" : "neutral"} />
@@ -123,8 +123,8 @@ export default async function ReviewDetailPage({
               </div>
             </section>
 
-            <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-              <h3 className="text-xl font-semibold text-slate-950">Metadata</h3>
+            <section className="panel">
+              <h3 className="section-title">Metadata</h3>
               <div className="mt-6 grid gap-4">
                 <Field label="Location" value={review.location.name} />
                 <Field label="Reviewer" value={review.reviewerName} />
@@ -136,13 +136,13 @@ export default async function ReviewDetailPage({
               </div>
             </section>
 
-            <section id="follow-up" className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-              <h3 className="text-xl font-semibold text-slate-950">Follow-up Ownership</h3>
+            <section id="follow-up" className="panel">
+              <h3 className="section-title">Follow-up Ownership</h3>
               <form action={saveReviewFollowUp} className="mt-6 space-y-4">
                 <input type="hidden" name="reviewId" value={review.id} />
                 <label className="grid gap-2 text-sm font-semibold text-slate-700">
                   Assign owner
-                  <select name="ownerMembershipId" defaultValue={review.ownerMembershipId ?? ""} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-normal text-slate-700">
+                  <select name="ownerMembershipId" defaultValue={review.ownerMembershipId ?? ""} className="field-value">
                     <option value="">Unassigned</option>
                     {owners.map((owner) => (
                       <option key={owner.id} value={owner.id}>
@@ -170,8 +170,8 @@ export default async function ReviewDetailPage({
               </form>
             </section>
 
-            <section id="reply-tracking" className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-              <h3 className="text-xl font-semibold text-slate-950">
+            <section id="reply-tracking" className="panel">
+              <h3 className="section-title">
                 {review.source === "INTERNAL" ? "Reply Management" : review.source === "GOOGLE" ? "Send to Google" : "Reply Tracking"}
               </h3>
               <div className="mt-4 space-y-3 text-sm text-slate-600">
@@ -214,7 +214,7 @@ export default async function ReviewDetailPage({
                 </label>
 
                 <div className="flex flex-wrap gap-3">
-                  <button type="submit" name="markSent" value="false" className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm">
+                  <button type="submit" name="markSent" value="false" className="btn btn-secondary">
                     Save draft
                   </button>
                   <button type="submit" name="markSent" value="true" disabled={review.replySentAt ? true : false} className={`rounded-2xl px-4 py-3 text-sm font-semibold !text-white shadow-sm visited:!text-white hover:!text-white ${review.replySentAt && review.source === "GOOGLE" ? "bg-slate-300 cursor-not-allowed" : "bg-slate-950"}`}>
@@ -224,8 +224,8 @@ export default async function ReviewDetailPage({
               </form>
             </section>
 
-            <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-              <h3 className="text-xl font-semibold text-slate-950">Suggested Actions</h3>
+            <section className="panel">
+              <h3 className="section-title">Suggested Actions</h3>
               <div className="mt-6 space-y-3 text-sm text-slate-600">
                 <div className="rounded-2xl bg-slate-50 p-4">Assign this thread to the location manager or client lead</div>
                 <div className="rounded-2xl bg-slate-50 p-4">Save a polished reply draft before sending publicly</div>
@@ -248,31 +248,31 @@ export default async function ReviewDetailPage({
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
                 <form action={updateReviewWorkflow}>
                   <input type="hidden" name="reviewId" value={review.id} />
-                  <button type="submit" name="intent" value="mark-private" className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm">
+                  <button type="submit" name="intent" value="mark-private" className="w-full btn btn-secondary">
                     Mark private feedback
                   </button>
                 </form>
                 <form action={updateReviewWorkflow}>
                   <input type="hidden" name="reviewId" value={review.id} />
-                  <button type="submit" name="intent" value="mark-published" className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm">
+                  <button type="submit" name="intent" value="mark-published" className="w-full btn btn-secondary">
                     Mark published
                   </button>
                 </form>
                 <form action={updateReviewWorkflow}>
                   <input type="hidden" name="reviewId" value={review.id} />
-                  <button type="submit" name="intent" value="toggle-testimonial" className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm">
+                  <button type="submit" name="intent" value="toggle-testimonial" className="w-full btn btn-secondary">
                     {review.isTestimonial ? "Remove testimonial" : "Promote to testimonial"}
                   </button>
                 </form>
                 <form action={updateReviewWorkflow}>
                   <input type="hidden" name="reviewId" value={review.id} />
-                  <button type="submit" name="intent" value="toggle-widget" className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm">
+                  <button type="submit" name="intent" value="toggle-widget" className="w-full btn btn-secondary">
                     {review.isWidgetVisible ? "Hide from widget" : "Show in widget"}
                   </button>
                 </form>
                 <form action={updateReviewWorkflow} className="sm:col-span-2">
                   <input type="hidden" name="reviewId" value={review.id} />
-                  <button type="submit" name="intent" value="toggle-featured" className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm">
+                  <button type="submit" name="intent" value="toggle-featured" className="w-full btn btn-secondary">
                     {review.isFeatured ? "Remove featured flag" : "Mark as featured"}
                   </button>
                 </form>

@@ -23,7 +23,7 @@ export default async function AdminUsersPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-slate-950">Users</h1>
+        <h1 className="page-title">Users</h1>
         <p className="mt-1 text-sm text-slate-500">{users.length} total</p>
       </div>
 

@@ -134,7 +134,7 @@ export function ReviewReplyPanel({
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           placeholder="Write your reply..."
-          className="min-h-36 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm leading-7 text-slate-700 outline-none focus:border-indigo-300"
+          className="min-h-36 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm leading-7 text-slate-700 outline-none"
         />
 
         {review.replySentAt && (

@@ -54,8 +54,8 @@ export default async function IntegrationsPage({ searchParams }: { searchParams?
     <AppShell activeScreen="integrations">
       <div className="space-y-6">
         <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.22em] text-indigo-600">Integrations</p>
-          <h2 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">Connect the same channels your plugin already depends on</h2>
+          <p className="eyebrow">Integrations</p>
+          <h2 className="page-title">Connect the same channels your plugin already depends on</h2>
         </div>
 
         <GoogleSyncBanner
@@ -82,10 +82,10 @@ export default async function IntegrationsPage({ searchParams }: { searchParams?
         ) : null}
 
         <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="panel">
             <div className="flex items-center justify-between gap-4">
               <div>
-                <h3 className="text-xl font-semibold text-slate-950">Google Business Profile</h3>
+                <h3 className="section-title">Google Business Profile</h3>
                 <p className="mt-2 text-sm text-slate-600">Connect OAuth, sync reviews, map locations, and power website review widgets.</p>
               </div>
               <span className={`rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] ${googleConnections.length > 0 ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-600"}`}>
@@ -120,20 +120,20 @@ export default async function IntegrationsPage({ searchParams }: { searchParams?
           </div>
 
           {metaConnections.length > 0 ? (
-            <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div className="panel">
               <div className="flex items-center justify-between gap-4">
                 <div>
-                  <h3 className="text-xl font-semibold text-slate-950">Facebook</h3>
+                  <h3 className="section-title">Facebook</h3>
                   <p className="mt-2 text-sm text-slate-600">Bring Facebook reviews into the inbox beside Google feedback.</p>
                 </div>
                 <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">Connected</span>
               </div>
             </div>
           ) : (
-            <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div className="panel">
               <div className="flex items-center justify-between gap-4">
                 <div>
-                  <h3 className="text-xl font-semibold text-slate-950">Facebook</h3>
+                  <h3 className="section-title">Facebook</h3>
                   <p className="mt-2 text-sm text-slate-600">Bring Facebook reviews into the inbox beside Google feedback.</p>
                 </div>
                 <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-600">Not Connected</span>
@@ -149,10 +149,10 @@ export default async function IntegrationsPage({ searchParams }: { searchParams?
             </div>
           )}
 
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="panel">
             <div className="flex items-center justify-between gap-4">
               <div>
-                <h3 className="text-xl font-semibold text-slate-950">Webhook / Zapier</h3>
+                <h3 className="section-title">Webhook / Zapier</h3>
                 <p className="mt-2 text-sm text-slate-600">Accept appointment_completed and project_completed events to send requests automatically.</p>
               </div>
               <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">Connected</span>
@@ -161,8 +161,8 @@ export default async function IntegrationsPage({ searchParams }: { searchParams?
         </div>
 
         {googleConnections.length > 0 ? (
-          <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h3 className="text-xl font-semibold text-slate-950">Google Connections</h3>
+          <section className="panel">
+            <h3 className="section-title">Google Connections</h3>
             <div className="mt-6 space-y-4">
               {googleConnections.map((connection) => (
                 <div key={connection.id} className="rounded-2xl border border-slate-200 p-4">
@@ -281,8 +281,8 @@ export default async function IntegrationsPage({ searchParams }: { searchParams?
         ) : null}
 
         {metaConnections.length > 0 ? (
-          <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h3 className="text-xl font-semibold text-slate-950">Facebook Connections</h3>
+          <section className="panel">
+            <h3 className="section-title">Facebook Connections</h3>
             <div className="mt-6 space-y-4">
               {metaConnections.map((connection) => (
                 <div key={connection.id} className="rounded-2xl border border-slate-200 p-4">

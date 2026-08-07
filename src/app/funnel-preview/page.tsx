@@ -19,7 +19,7 @@ export default async function FunnelPreviewPage({
   if (!data.selectedLocation) {
     return (
       <AppShell activeScreen="funnel-preview">
-        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="panel">
           <p className="text-sm font-semibold text-slate-900">No locations found.</p>
           <p className="mt-2 text-sm text-slate-600">Add a business location to start previewing this account&apos;s review funnel.</p>
         </div>
@@ -33,8 +33,8 @@ export default async function FunnelPreviewPage({
     <AppShell activeScreen="funnel-preview">
       <div className="space-y-6">
         <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.22em] text-indigo-600">Funnel Preview</p>
-          <h2 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">Test the live review flow before launch</h2>
+          <p className="eyebrow">Funnel Preview</p>
+          <h2 className="page-title">Test the live review flow before launch</h2>
           <p className="mt-3 max-w-3xl text-slate-600">
             This page is now a simulator. Choose a location, click a rating, and verify the promoter versus detractor path before customers see it.
           </p>

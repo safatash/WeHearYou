@@ -225,7 +225,7 @@ export function VideoRecorder({ token, prompt, businessName, logoUrl }: Props) {
     return (
       <div className="rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-sm">
         <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100 text-2xl">✓</div>
-        <h2 className="text-xl font-semibold text-slate-950">Thank you!</h2>
+        <h2 className="section-title">Thank you!</h2>
         <p className="mt-2 text-sm text-slate-600">
           Your video testimonial for <span className="font-semibold">{businessName}</span> has been submitted and is under review.
         </p>
@@ -246,7 +246,7 @@ export function VideoRecorder({ token, prompt, businessName, logoUrl }: Props) {
             </div>
           )}
           <div>
-            <h2 className="text-xl font-semibold text-slate-950">{businessName} wants to hear from you</h2>
+            <h2 className="section-title">{businessName} wants to hear from you</h2>
             <p className="mt-2 text-sm text-slate-600">Share your experience in ~90 seconds. No app needed.</p>
           </div>
           <ul className="text-left text-sm text-slate-600 space-y-1 w-full max-w-xs">
@@ -285,7 +285,7 @@ export function VideoRecorder({ token, prompt, businessName, logoUrl }: Props) {
               onChange={(e) => setScript(e.target.value)}
               placeholder={`e.g. "I've been working with ${businessName} for two years and the results have been amazing…"`}
               rows={4}
-              className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100 resize-none"
+              className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 resize-none"
             />
           </div>
           <video
@@ -400,7 +400,7 @@ export function VideoRecorder({ token, prompt, businessName, logoUrl }: Props) {
               onChange={(e) => setName(e.target.value)}
               placeholder="Jane Smith"
               required
-              className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+              className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2"
             />
           </div>
           <div>
@@ -412,7 +412,7 @@ export function VideoRecorder({ token, prompt, businessName, logoUrl }: Props) {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="jane@example.com"
-              className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+              className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2"
             />
           </div>
           {error && <p className="text-sm text-rose-600">{error}</p>}

@@ -86,7 +86,7 @@ const ColSelect = ({
     <select
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2"
     >
       <option value="">— not mapped —</option>
       {headers.map((h) => (
@@ -194,7 +194,7 @@ export function ImportClient({ locations }: { locations: Location[] }) {
         <div className="mt-8 flex justify-center gap-3">
           <button
             onClick={() => { setStage("upload"); setHeaders([]); setDataRows([]); setFileName(""); setResult(null); }}
-            className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm"
+            className="btn btn-secondary"
           >
             Import another file
           </button>
@@ -222,7 +222,7 @@ export function ImportClient({ locations }: { locations: Location[] }) {
             </button>
           </div>
           <div className="flex gap-3 shrink-0">
-            <Link href="/contacts" className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm">
+            <Link href="/contacts" className="btn btn-secondary">
               Cancel
             </Link>
             <button
@@ -238,7 +238,7 @@ export function ImportClient({ locations }: { locations: Location[] }) {
         {error && <p className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
 
         <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
-          <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <section className="panel">
             <h3 className="text-lg font-semibold text-slate-950">Map columns</h3>
             <p className="mt-1 text-sm text-slate-500">Tell us which CSV columns contain each field. We&apos;ve made our best guess — adjust if needed.</p>
 
@@ -253,7 +253,7 @@ export function ImportClient({ locations }: { locations: Location[] }) {
                 <select
                   value={locationId}
                   onChange={(e) => setLocationId(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2"
                 >
                   {locations.map((l) => (
                     <option key={l.id} value={l.id}>{l.name}</option>
@@ -263,7 +263,7 @@ export function ImportClient({ locations }: { locations: Location[] }) {
             </div>
           </section>
 
-          <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <section className="panel">
             <h3 className="text-lg font-semibold text-slate-950">Preview</h3>
             <p className="mt-1 text-sm text-slate-500">First {Math.min(5, dataRows.length)} rows after mapping.</p>
             <div className="mt-4 overflow-x-auto">
@@ -299,7 +299,7 @@ export function ImportClient({ locations }: { locations: Location[] }) {
   return (
     <div className="space-y-6">
       <div className="flex gap-3 justify-end">
-        <Link href="/contacts" className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm">
+        <Link href="/contacts" className="btn btn-secondary">
           Cancel
         </Link>
       </div>
@@ -345,7 +345,7 @@ export function ImportClient({ locations }: { locations: Location[] }) {
         </a>
       </div>
 
-      <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="panel">
         <h3 className="text-base font-semibold text-slate-950">Expected format</h3>
         <p className="mt-2 text-sm text-slate-500">Your CSV should have a header row. We auto-detect common column names. Minimum: a name, email, or phone.</p>
         <div className="mt-4 overflow-x-auto rounded-xl border border-slate-200 bg-slate-50">

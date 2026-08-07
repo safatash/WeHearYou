@@ -54,14 +54,14 @@ export default async function NewLocationPage({ searchParams }: { searchParams?:
       <div className="space-y-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.22em] text-indigo-600">Add Location</p>
-            <h2 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">Create a new business location</h2>
+            <p className="eyebrow">Add Location</p>
+            <h2 className="page-title">Create a new business location</h2>
             <p className="mt-3 max-w-3xl text-slate-600">
               Find the business from Google first so you can capture place ID, address details, and review destination automatically. Use manual entry when the business is not available yet.
             </p>
           </div>
           <div className="flex gap-3">
-            <Link href="/locations" className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm">
+            <Link href="/locations" className="btn btn-secondary">
               Cancel
             </Link>
           </div>
@@ -75,11 +75,11 @@ export default async function NewLocationPage({ searchParams }: { searchParams?:
 
         <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
           <div className="space-y-6">
-            <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+            <section className="panel">
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <p className="text-sm font-semibold uppercase tracking-[0.18em] text-emerald-600">Recommended</p>
-                  <h3 className="mt-2 text-xl font-semibold text-slate-950">Find business from Google</h3>
+                  <h3 className="mt-2 section-title">Find business from Google</h3>
                   <p className="mt-2 text-sm text-slate-600">
                     Best for live businesses. This captures the Google Business Profile location or Google Place, place ID, review link, and address details up front.
                   </p>
@@ -115,7 +115,7 @@ export default async function NewLocationPage({ searchParams }: { searchParams?:
                         <select
                           name="googleLocationPayload"
                           defaultValue=""
-                          className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-normal text-slate-700"
+                          className="field-value"
                         >
                           <option value="" disabled>
                             Select a Google Business Profile location
@@ -149,7 +149,7 @@ export default async function NewLocationPage({ searchParams }: { searchParams?:
                         <select
                           name="googleConnectionId"
                           defaultValue={googleConnections.length === 1 ? googleConnections[0].id : ""}
-                          className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-normal text-slate-700"
+                          className="field-value"
                         >
                           <option value="" disabled>
                             Select the connected account
@@ -184,10 +184,10 @@ export default async function NewLocationPage({ searchParams }: { searchParams?:
               )}
             </section>
 
-            <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+            <section className="panel">
               <div>
                 <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">Fallback</p>
-                <h3 className="mt-2 text-xl font-semibold text-slate-950">Enter manually instead</h3>
+                <h3 className="mt-2 section-title">Enter manually instead</h3>
                 <p className="mt-2 text-sm text-slate-600">
                   Use this for pre-launch businesses, listings that are not in Google yet, or edge cases where Google data is wrong.
                 </p>
@@ -197,31 +197,31 @@ export default async function NewLocationPage({ searchParams }: { searchParams?:
                 <input type="hidden" name="mode" value="manual" />
                 <label className="grid gap-2 text-sm font-semibold text-slate-700 md:col-span-2">
                   Location name
-                  <input name="name" placeholder="Nova Dental, Manhattan" className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-normal text-slate-700" />
+                  <input name="name" placeholder="Nova Dental, Manhattan" className="field-value" />
                 </label>
                 <label className="grid gap-2 text-sm font-semibold text-slate-700 md:col-span-2">
                   Street address
-                  <input name="addressLine1" placeholder="123 Main St" className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-normal text-slate-700" />
+                  <input name="addressLine1" placeholder="123 Main St" className="field-value" />
                 </label>
                 <label className="grid gap-2 text-sm font-semibold text-slate-700 md:col-span-2">
                   Address line 2
-                  <input name="addressLine2" placeholder="Suite 400" className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-normal text-slate-700" />
+                  <input name="addressLine2" placeholder="Suite 400" className="field-value" />
                 </label>
                 <label className="grid gap-2 text-sm font-semibold text-slate-700">
                   City
-                  <input name="city" placeholder="New York" className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-normal text-slate-700" />
+                  <input name="city" placeholder="New York" className="field-value" />
                 </label>
                 <label className="grid gap-2 text-sm font-semibold text-slate-700">
                   State
-                  <input name="state" placeholder="NY" className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-normal text-slate-700" />
+                  <input name="state" placeholder="NY" className="field-value" />
                 </label>
                 <label className="grid gap-2 text-sm font-semibold text-slate-700">
                   ZIP / postal code
-                  <input name="postalCode" placeholder="10001" className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-normal text-slate-700" />
+                  <input name="postalCode" placeholder="10001" className="field-value" />
                 </label>
                 <label className="grid gap-2 text-sm font-semibold text-slate-700 md:col-span-2">
                   Review link
-                  <input name="reviewLink" placeholder="https://g.page/r/..." className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-normal text-slate-700" />
+                  <input name="reviewLink" placeholder="https://g.page/r/..." className="field-value" />
                 </label>
 
                 <div className="md:col-span-2 rounded-2xl bg-slate-50 p-4 text-sm text-slate-600">
@@ -229,7 +229,7 @@ export default async function NewLocationPage({ searchParams }: { searchParams?:
                 </div>
 
                 <div className="md:col-span-2 flex justify-end">
-                  <button type="submit" className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm">
+                  <button type="submit" className="btn btn-secondary">
                     Create manually
                   </button>
                 </div>
@@ -238,7 +238,7 @@ export default async function NewLocationPage({ searchParams }: { searchParams?:
           </div>
 
           <div className="space-y-6">
-            <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+            <section className="panel">
               <h3 className="text-lg font-semibold text-slate-950">Why this flow is better</h3>
               <div className="mt-5 space-y-3 text-sm text-slate-600">
                 <div className="rounded-2xl bg-slate-50 p-4">Google-first creation gives you place ID early, which makes review-link generation and future enrichment much easier.</div>
@@ -247,7 +247,7 @@ export default async function NewLocationPage({ searchParams }: { searchParams?:
               </div>
             </section>
 
-            <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+            <section className="panel">
               <h3 className="text-lg font-semibold text-slate-950">Existing portfolio</h3>
               <div className="mt-5 space-y-3">
                 {locations.map((location) => (

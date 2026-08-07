@@ -24,7 +24,7 @@ const fmt = (s: string) => s.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (
 
 function Card({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+    <section className="panel">
       <h3 className="text-sm font-semibold uppercase tracking-[0.16em] text-slate-500">{title}</h3>
       <div className="mt-3">{children}</div>
     </section>
@@ -52,9 +52,9 @@ export default async function CaseDetailPage({
       <div className="space-y-6">
         <Link href="/customer-resolution" className="text-sm font-semibold text-indigo-600">← All cases</Link>
 
-        <header className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <header className="panel">
           <div className="flex flex-wrap items-center gap-3">
-            <h2 className="text-2xl font-semibold tracking-tight text-slate-950">{c.customerName || "Anonymous customer"}</h2>
+            <h2 className="page-title">{c.customerName || "Anonymous customer"}</h2>
             <span className="tabular-nums text-slate-600">{c.rating}★</span>
             <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${PRIORITY_BADGE[c.priority]}`}>{c.priority}</span>
             <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-600">{fmt(c.status)}</span>

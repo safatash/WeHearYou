@@ -23,7 +23,7 @@ export default async function ReviewLinkThanksPage({
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-indigo-600 mb-2">
           {location.name}
         </p>
-        <h1 className="text-2xl font-semibold tracking-tight text-slate-950">Thank you</h1>
+        <h1 className="page-title">Thank you</h1>
         <p className="mt-3 text-sm text-slate-500 leading-relaxed">
           We take every message seriously and will follow up if you&apos;ve provided contact information.
         </p>

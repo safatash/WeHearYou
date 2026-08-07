@@ -35,7 +35,7 @@ export default async function AdminOrgsPage({
 
       <div className="flex items-end justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-slate-950">Organizations</h1>
+          <h1 className="page-title">Organizations</h1>
           <p className="mt-1 text-sm text-slate-500">{orgs.length} total</p>
         </div>
       </div>

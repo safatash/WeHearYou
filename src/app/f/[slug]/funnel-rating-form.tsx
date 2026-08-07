@@ -107,7 +107,7 @@ export function FunnelRatingForm({
               value={feedback}
               onChange={(e) => setFeedback(e.target.value)}
               placeholder="Your message..."
-              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-normal text-slate-700 placeholder-slate-400 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100 min-h-24"
+              className="w-full field-value placeholder-slate-400 focus:outline-none focus:ring-2 min-h-24"
             />
           </div>
         ) : (
@@ -122,11 +122,11 @@ export function FunnelRatingForm({
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-semibold text-slate-900 mb-2">Name</label>
-            <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-normal text-slate-700 placeholder-slate-400 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100" />
+            <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" className="w-full field-value placeholder-slate-400 focus:outline-none focus:ring-2" />
           </div>
           <div>
             <label className="block text-sm font-semibold text-slate-900 mb-2">Email</label>
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="your@email.com" className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-normal text-slate-700 placeholder-slate-400 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100" />
+            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="your@email.com" className="w-full field-value placeholder-slate-400 focus:outline-none focus:ring-2" />
           </div>
         </div>
 

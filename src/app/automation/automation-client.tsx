@@ -12,13 +12,13 @@ export function AddStepForm({ automationId }: { automationId: string }) {
       <input type="hidden" name="automationId" value={automationId} />
 
       <div>
-        <label className="mb-2 block text-sm font-semibold text-slate-700">Step Type</label>
+        <label className="field-label">Step Type</label>
         <select
           name="stepType"
           required
           value={stepType}
           onChange={(e) => setStepType(e.target.value)}
-          className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+          className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 focus:outline-none focus:ring-2"
         >
           <option value="">Select step type...</option>
           <option value="DELAY">Delay</option>
@@ -30,36 +30,36 @@ export function AddStepForm({ automationId }: { automationId: string }) {
       </div>
 
       <div>
-        <label className="mb-2 block text-sm font-semibold text-slate-700">Step Title</label>
+        <label className="field-label">Step Title</label>
         <input
           name="title"
           type="text"
           required
           placeholder="e.g. Wait 24 hours, Send email request..."
-          className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+          className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2"
         />
       </div>
 
       <div>
-        <label className="mb-2 block text-sm font-semibold text-slate-700">Description (optional)</label>
+        <label className="field-label">Description (optional)</label>
         <input
           name="description"
           type="text"
           placeholder="Brief description of this step..."
-          className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+          className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2"
         />
       </div>
 
       {stepType === "DELAY" && (
         <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-          <label className="mb-2 block text-sm font-semibold text-slate-700">Delay (hours)</label>
+          <label className="field-label">Delay (hours)</label>
           <input
             name="delayHours"
             type="number"
             min="0"
             step="0.5"
             placeholder="e.g. 24"
-            className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+            className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2"
           />
         </div>
       )}
@@ -67,10 +67,10 @@ export function AddStepForm({ automationId }: { automationId: string }) {
       {stepType === "SEND_REQUEST" && (
         <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4 space-y-3">
           <div>
-            <label className="mb-2 block text-sm font-semibold text-slate-700">Channel</label>
+            <label className="field-label">Channel</label>
             <select
               name="channel"
-              className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+              className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 focus:outline-none focus:ring-2"
             >
               <option value="EMAIL">Email</option>
               <option value="SMS">SMS</option>
@@ -84,12 +84,12 @@ export function AddStepForm({ automationId }: { automationId: string }) {
 
       {stepType === "TAG_CONTACT" && (
         <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-          <label className="mb-2 block text-sm font-semibold text-slate-700">Tag Name</label>
+          <label className="field-label">Tag Name</label>
           <input
             name="tagName"
             type="text"
             placeholder="e.g. VIP, Follow-up, Appointment"
-            className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+            className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2"
           />
           <p className="mt-2 text-xs text-slate-500">The tag will be created automatically if it doesn&apos;t exist.</p>
         </div>
@@ -97,24 +97,24 @@ export function AddStepForm({ automationId }: { automationId: string }) {
 
       {stepType === "NOTIFY_TEAM" && (
         <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-          <label className="mb-2 block text-sm font-semibold text-slate-700">Notify Email</label>
+          <label className="field-label">Notify Email</label>
           <input
             name="notifyEmail"
             type="email"
             placeholder="team@example.com"
-            className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+            className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2"
           />
         </div>
       )}
 
       {stepType === "WEBHOOK" && (
         <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-          <label className="mb-2 block text-sm font-semibold text-slate-700">Webhook URL</label>
+          <label className="field-label">Webhook URL</label>
           <input
             name="webhookUrl"
             type="url"
             placeholder="https://..."
-            className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+            className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2"
           />
         </div>
       )}
@@ -166,14 +166,14 @@ export function EnrollContactForm({
     >
       <input type="hidden" name="automationId" value={automationId} />
       <div>
-        <label className="mb-2 block text-sm font-semibold text-slate-700">Select contact</label>
+        <label className="field-label">Select contact</label>
         {contacts.length === 0 ? (
           <p className="text-sm text-slate-500">No contacts found. <Link href="/contacts/new" className="text-indigo-600 hover:underline">Add a contact</Link> first.</p>
         ) : (
           <select
             name="contactId"
             required
-            className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+            className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 focus:outline-none focus:ring-2"
           >
             <option value="">Choose a contact…</option>
             {contacts.map((c) => (

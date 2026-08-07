@@ -33,7 +33,7 @@ export function OwnershipTransferForm({
 
       {/* Typed confirmation */}
       <div>
-        <label className="block text-sm font-semibold text-slate-700 mb-2">
+        <label className="field-label mb-2">
           Type <span className="font-mono font-bold text-slate-950">{CONFIRM_PHRASE}</span> to confirm
         </label>
         <input
@@ -44,7 +44,7 @@ export function OwnershipTransferForm({
           autoComplete="off"
           spellCheck={false}
           placeholder={CONFIRM_PHRASE}
-          className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+          className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 focus:outline-none focus:ring-2"
         />
       </div>
 

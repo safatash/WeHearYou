@@ -29,14 +29,14 @@ export default async function SelectFacebookPage() {
     <AppShell activeScreen="integrations">
       <div className="mx-auto max-w-2xl space-y-6">
         <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.22em] text-indigo-600">Facebook</p>
-          <h2 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">Choose a Page to connect</h2>
+          <p className="eyebrow">Facebook</p>
+          <h2 className="page-title">Choose a Page to connect</h2>
           <p className="mt-2 text-sm text-slate-600">
             Your Facebook account manages multiple Pages. Pick the one whose reviews you want to bring into WeHearYou. You can connect another Page later by reconnecting.
           </p>
         </div>
 
-        <form action={connectSelectedMetaPage} className="space-y-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <form action={connectSelectedMetaPage} className="space-y-4 panel">
           <fieldset className="space-y-3">
             {pages.map((page, index) => (
               <label

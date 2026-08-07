@@ -172,7 +172,7 @@ export const BigBtn = ({ children, onClick, variant = "primary", disabled, full 
     opacity: disabled ? 0.45 : 1,
     transition: "background .14s, border-color .14s, color .14s, transform .06s, box-shadow .14s",
     ...(variant === "primary"
-      ? { background: "var(--accent)", color: "var(--accent-fg)", boxShadow: "var(--shadow-sm), inset 0 1px 0 rgba(255,255,255,.16)" }
+      ? { background: "var(--accent-solid)", color: "var(--accent-fg)", boxShadow: "var(--shadow-sm), inset 0 1px 0 rgba(255,255,255,.16)" }
       : variant === "secondary"
       ? { background: "var(--white)", color: "var(--ink-800)", borderColor: "var(--ink-200)", boxShadow: "var(--shadow-xs)" }
       : { background: "var(--ink-100)", color: "var(--ink-700)" }),

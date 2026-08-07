@@ -64,7 +64,7 @@ export default async function ReviewLinkPage({
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-indigo-600 mb-3">
           {location.name}
         </p>
-        <h1 className="text-2xl font-semibold tracking-tight text-slate-950">
+        <h1 className="page-title">
           Would you recommend {location.name}?
         </h1>
         <p className="mt-2 text-sm text-slate-500">Your feedback helps us improve.</p>

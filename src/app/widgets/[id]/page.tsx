@@ -173,7 +173,7 @@ export default async function WidgetDetailPage({
       <div className="space-y-8">
         {/* Header */}
         <div className="border-b border-slate-200 pb-6">
-          <p className="text-sm font-semibold uppercase tracking-[0.22em] text-indigo-600">Widget Customizer</p>
+          <p className="eyebrow">Widget Customizer</p>
           <div className="mt-4 flex items-end justify-between gap-4">
             <div>
               <p className="text-sm text-slate-600 font-medium">Customizing</p>

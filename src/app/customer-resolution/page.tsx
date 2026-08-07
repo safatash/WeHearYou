@@ -49,8 +49,8 @@ export default async function CustomerResolutionPage({ searchParams }: { searchP
     <AppShell activeScreen="customer-resolution">
       <div className="space-y-6">
         <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.22em] text-indigo-600">Customer Resolution</p>
-          <h2 className="mt-2 text-4xl font-semibold tracking-tight text-slate-950">Resolution cases</h2>
+          <p className="eyebrow">Customer Resolution</p>
+          <h2 className="page-title">Resolution cases</h2>
           <p className="mt-3 max-w-3xl text-slate-600">Unhappy-customer feedback, organized into actionable cases you can triage, respond to, and follow up on.</p>
         </div>
 

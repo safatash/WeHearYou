@@ -124,7 +124,7 @@ function BrandMark() {
           height: 34,
           width: 34,
           borderRadius: "var(--r-md)",
-          background: "var(--accent)",
+          background: "var(--accent-solid)",
           color: "var(--accent-fg)",
           fontSize: 15,
           fontWeight: 700,
