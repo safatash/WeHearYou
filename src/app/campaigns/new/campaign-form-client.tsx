@@ -327,6 +327,9 @@ interface RecipientPickerProps {
   onRecipientsChange: (recipients: ContactItem[]) => void;
 }
 
+/** Suggestions shown before the list is expanded. */
+const SUGGESTION_LIMIT = 6;
+
 function contactLine(c: ContactItem) {
   return [c.email, c.phone].filter(Boolean).join(" · ") || "No contact info";
 }
@@ -339,12 +342,16 @@ function RecipientPicker({ initialContacts, locationId, selectedRecipients, onRe
   const [mContact, setMContact] = useState("");
   const [isAdding, setIsAdding] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
+  const [showAllSuggestions, setShowAllSuggestions] = useState(false);
 
   const selectedIds = new Set(selectedRecipients.map((r) => r.id));
   const pool = contacts.filter((c) => c.locationId === locationId);
   const matches = pool.filter(
     (c) => !selectedIds.has(c.id) && (query.trim() === "" || `${c.name} ${c.email ?? ""} ${c.phone ?? ""}`.toLowerCase().includes(query.toLowerCase())),
   );
+  // Contacts for this location that are not already recipients.
+  const available = pool.filter((c) => !selectedIds.has(c.id));
+  const visibleSuggestions = showAllSuggestions ? available : available.slice(0, SUGGESTION_LIMIT);
 
   function add(c: ContactItem) {
     if (selectedIds.has(c.id)) return;
@@ -443,30 +450,62 @@ function RecipientPicker({ initialContacts, locationId, selectedRecipients, onRe
         ) : null}
       </div>
 
-      {/* suggestions when nothing selected */}
-      {selectedRecipients.length === 0 && query.trim() === "" ? (
+      {/* Suggested contacts.
+          This used to be gated on `selectedRecipients.length === 0`, so the
+          first "Add" hid the whole list and only one recipient could be picked
+          from it. It now stays open while you build the list, and already-added
+          contacts drop out rather than being offered twice. */}
+      {query.trim() === "" ? (
         <div style={{ border: "1px dashed var(--ink-300)", borderRadius: "var(--r-md)", padding: 14, background: "var(--ink-50)" }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 10 }}>
             <span className="eyebrow">Suggested · this location</span>
-            {pool.length > 0 ? (
-              <button className="btn btn-ghost btn-sm" type="button" onClick={() => onRecipientsChange(pool)}>Select all {pool.length}</button>
+            {available.length > 0 ? (
+              <button
+                className="btn btn-ghost btn-sm"
+                type="button"
+                onClick={() => onRecipientsChange([...selectedRecipients, ...available])}
+              >
+                Add all {available.length}
+              </button>
             ) : null}
           </div>
+
           {pool.length === 0 ? (
-            <div style={{ fontSize: 13, color: "var(--ink-400)", textAlign: "center", padding: "8px 0" }}>No contacts for this location. Add one above.</div>
-          ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              {pool.slice(0, 4).map((c) => (
-                <button key={c.id} type="button" onClick={() => add(c)} className="tap focus-ring" style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 8px", borderRadius: "var(--r-sm)", border: 0, cursor: "pointer", background: "var(--white)", textAlign: "left", boxShadow: "var(--shadow-xs)" }}>
-                  <AvatarChip name={c.name} size={26} />
-                  <span style={{ minWidth: 0, flex: 1 }}>
-                    <span style={{ display: "block", fontSize: 12.5, fontWeight: 560 }}>{c.name}</span>
-                    <span style={{ display: "block", fontSize: 11, color: "var(--ink-400)" }}>{contactLine(c)}</span>
-                  </span>
-                  <span style={{ fontSize: 11.5, fontWeight: 540, color: "var(--accent-strong)", display: "inline-flex", alignItems: "center", gap: 4 }}><Icon name="plus" size={13} />Add</span>
-                </button>
-              ))}
+            <div style={{ fontSize: 13, color: "var(--ink-400)", textAlign: "center", padding: "8px 0" }}>
+              No contacts for this location. Add one above.
             </div>
+          ) : available.length === 0 ? (
+            <div style={{ fontSize: 13, color: "var(--ink-500)", textAlign: "center", padding: "8px 0" }}>
+              All {pool.length} contact{pool.length === 1 ? "" : "s"} for this location {pool.length === 1 ? "is" : "are"} added.
+            </div>
+          ) : (
+            <>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {visibleSuggestions.map((c) => (
+                  <button key={c.id} type="button" onClick={() => add(c)} className="tap focus-ring" style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 8px", borderRadius: "var(--r-sm)", border: 0, cursor: "pointer", background: "var(--white)", textAlign: "left", boxShadow: "var(--shadow-xs)" }}>
+                    <AvatarChip name={c.name} size={26} />
+                    <span style={{ minWidth: 0, flex: 1 }}>
+                      <span style={{ display: "block", fontSize: 12.5, fontWeight: 560 }}>{c.name}</span>
+                      <span style={{ display: "block", fontSize: 11, color: "var(--ink-400)" }}>{contactLine(c)}</span>
+                    </span>
+                    <span style={{ fontSize: 11.5, fontWeight: 540, color: "var(--accent-ink)", display: "inline-flex", alignItems: "center", gap: 4 }}>
+                      <Icon name="plus" size={13} />Add
+                    </span>
+                  </button>
+                ))}
+              </div>
+              {available.length > SUGGESTION_LIMIT ? (
+                <button
+                  className="btn btn-ghost btn-sm"
+                  type="button"
+                  onClick={() => setShowAllSuggestions((v) => !v)}
+                  style={{ marginTop: 8 }}
+                  aria-expanded={showAllSuggestions}
+                >
+                  {showAllSuggestions ? "Show fewer" : `Show all ${available.length}`}
+                </button>
+              ) : null}
+            </>
           )}
         </div>
       ) : null}
