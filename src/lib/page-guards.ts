@@ -1,9 +1,12 @@
 import { notFound } from "next/navigation";
-import { getCurrentMembership } from "@/lib/authz";
+import { getCurrentMembership, type MembershipOptions } from "@/lib/authz";
 import { canManageContacts, canManageTeam, canReplyToReviews, canViewLocation } from "@/lib/team";
 
-export async function requireActiveMembershipPage() {
-  const membership = await getCurrentMembership();
+export async function requireActiveMembershipPage(options: MembershipOptions = {}) {
+  // Enforcement (trial expiry / suspension) happens inside getCurrentMembership,
+  // so every page using this guard is covered. Pass { allowSuspended: true } only
+  // on the pages a suspended organization must still reach to pay.
+  const membership = await getCurrentMembership(options);
 
   if (!membership) {
     notFound();

@@ -37,7 +37,7 @@ export default async function BillingPage({
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const params = (await searchParams) ?? {};
-  const membership = (await requireActiveMembershipPage()) as TeamMemberWithRelations;
+  const membership = (await requireActiveMembershipPage({ allowSuspended: true })) as TeamMemberWithRelations;
   const org = membership.organization;
   const canManage = canManageBilling(membership);
   const justSubscribed = params.success === "1";

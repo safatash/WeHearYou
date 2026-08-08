@@ -28,7 +28,9 @@ export async function AppShell({
 }) {
   const jar = await cookies();
   const isImpersonating = Boolean(jar.get("why_impersonate")?.value);
-  const [session, membership] = await Promise.all([auth(), getCurrentMembership()]);
+  // The shell renders chrome; the page's own guard decides access. Enforcing
+  // here too would bounce a suspended org off /billing — the one page it needs.
+  const [session, membership] = await Promise.all([auth(), getCurrentMembership({ allowSuspended: true })]);
   const userName = membership?.user.name ?? session?.user?.name ?? "Unknown User";
   const userEmail = membership?.user.email ?? session?.user?.email ?? "No email";
   const initials = userName

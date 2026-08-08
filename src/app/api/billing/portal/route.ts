@@ -16,7 +16,7 @@ export async function POST(req: Request) {
   }
   const stripe = getStripe();
 
-  const membership = (await getCurrentMembership()) as TeamMemberWithRelations | null;
+  const membership = (await getCurrentMembership({ allowSuspended: true })) as TeamMemberWithRelations | null;
   if (!membership) {
     return NextResponse.json({ error: "Not authenticated." }, { status: 401 });
   }
