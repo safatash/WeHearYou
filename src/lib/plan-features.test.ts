@@ -167,3 +167,60 @@ test("every renewal path opts out of enforcement, or the org cannot pay", async 
     assert.match(src, /allowSuspended: true/, `${rel} must allow a suspended org through`);
   }
 });
+
+/* ─── the post-expiry signal ──────────────────────────────────────────────── */
+
+test("an expired trial is still classified, so the UI has something to show", () => {
+  // The banner used to be gated on trialEndsAt > now, so at expiry it simply
+  // vanished: no block (enforcement is off) and no prompt either. The shell now
+  // reads this classifier instead, so "ended" is a state it can render.
+  assert.equal(classifyOrganizationAccess(org({ trialEndsAt: day(-1) }), NOW), "TRIAL_EXPIRED");
+  assert.equal(classifyOrganizationAccess(org({ trialEndsAt: day(2) }), NOW), "ACTIVE");
+});
+
+test("a paying organization gets no trial banner at all", () => {
+  // Neither countdown nor ended: they have converted.
+  assert.equal(
+    classifyOrganizationAccess(org({ trialEndsAt: day(-10), stripeSubscriptionStatus: "active" }), NOW),
+    "ACTIVE",
+  );
+});
+
+test("the shell derives the banner from the classifier, not its own date maths", async () => {
+  const { readFileSync } = await import("node:fs");
+  const shell = readFileSync(new URL("../components/app-shell.tsx", import.meta.url), "utf8");
+  assert.match(shell, /classifyOrganizationAccess\(bOrg\) === "TRIAL_EXPIRED"/);
+  // Countdown must not render once the trial has ended.
+  assert.match(shell, /!trialEnded && bOrg\?\.trialEndsAt/);
+  assert.match(shell, /trialEnded \? <TrialBanner ended \/>/);
+});
+
+test("the ended banner does not claim access is blocked", async () => {
+  const { readFileSync } = await import("node:fs");
+  const banner = readFileSync(new URL("../components/trial-banner.tsx", import.meta.url), "utf8");
+  // Enforcement is still gated behind BILLING_ENFORCEMENT, so wording that says
+  // access has stopped would be untrue today.
+  for (const claim of [/access has been (blocked|suspended)/i, /no longer have access/i, /account is suspended/i]) {
+    assert.ok(!claim.test(banner), `banner must not assert a block: ${claim}`);
+  }
+  assert.match(banner, /free trial has ended/i);
+  assert.match(banner, /View plans/);
+});
+
+test("countdown and ended banners dismiss independently", async () => {
+  const { readFileSync } = await import("node:fs");
+  const banner = readFileSync(new URL("../components/trial-banner.tsx", import.meta.url), "utf8");
+  // A shared key meant dismissing "3 days left" also hid the ended banner when
+  // the trial lapsed later in the same session.
+  assert.match(banner, /countdown: "why_trial_banner_dismissed"/);
+  assert.match(banner, /ended: "why_trial_ended_banner_dismissed"/);
+});
+
+test("banner text colours use the AA-safe status tokens", async () => {
+  const { readFileSync } = await import("node:fs");
+  const banner = readFileSync(new URL("../components/trial-banner.tsx", import.meta.url), "utf8");
+  // --warning is 2.15:1 and --accent-strong 4.08:1 — both below AA at this size.
+  assert.match(banner, /var\(--warning-ink\)/);
+  assert.match(banner, /var\(--accent-ink\)/);
+  assert.ok(!/color: "var\(--warning\)"/.test(banner));
+});
