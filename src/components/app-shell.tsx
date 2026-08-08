@@ -9,6 +9,7 @@ import { NotificationButton } from "@/components/notification-button";
 import { ExitImpersonationButton } from "@/components/exit-impersonation-button";
 import { TrialBanner } from "@/components/trial-banner";
 import { getCurrentMembership } from "@/lib/authz";
+import { classifyOrganizationAccess, hasPayingSubscription } from "@/lib/plan-features";
 import { navItems, type ScreenKey } from "@/lib/navigation";
 import { prisma } from "@/lib/prisma";
 import { LocationSwitcher } from "@/components/location-switcher";
@@ -41,11 +42,13 @@ export async function AppShell({
     .toUpperCase();
 
   // Trial banner state (informational — independent of enforcement).
+  // Derived from the same classifier getCurrentMembership enforces with, so the
+  // banner and the guard can never disagree about whether a trial has lapsed.
   const bOrg = membership?.organization;
-  const bSubscribed = Boolean(bOrg?.stripeSubscriptionId) && (bOrg?.stripeSubscriptionStatus === "active" || bOrg?.stripeSubscriptionStatus === "trialing");
   const nowMs = new Date().getTime();
+  const trialEnded = bOrg ? classifyOrganizationAccess(bOrg) === "TRIAL_EXPIRED" : false;
   const trialDaysLeft =
-    bOrg?.trialEndsAt && !bSubscribed && bOrg.trialEndsAt.getTime() > nowMs
+    !trialEnded && bOrg?.trialEndsAt && bOrg.trialEndsAt.getTime() > nowMs && !hasPayingSubscription(bOrg.stripeSubscriptionStatus)
       ? Math.ceil((bOrg.trialEndsAt.getTime() - nowMs) / (24 * 60 * 60 * 1000))
       : null;
 
@@ -60,7 +63,7 @@ export async function AppShell({
 
   return (
     <div style={{ display: "flex", minHeight: "100vh", background: "var(--page)", color: "var(--ink-900)" }}>
-      <SidebarNav activeScreen={activeScreen} trialDaysLeft={trialDaysLeft} />
+      <SidebarNav activeScreen={activeScreen} trialDaysLeft={trialDaysLeft} trialEnded={trialEnded} />
 
       {/* min-width:0 is load-bearing: a flex item defaults to min-width:auto, so
           any wide child (a data table, a long unbroken string) stretches this
@@ -88,7 +91,7 @@ export async function AppShell({
           }}
           className="lg:px-[var(--gutter)]"
         >
-          <MobileNav activeScreen={activeScreen} trialDaysLeft={trialDaysLeft} />
+          <MobileNav activeScreen={activeScreen} trialDaysLeft={trialDaysLeft} trialEnded={trialEnded} />
           <LocationSwitcher locations={locations} currentLocationId={selectedLocationId} />
 
           <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 10, flex: "none" }}>
@@ -122,7 +125,7 @@ export async function AppShell({
         )}
 
         {/* Trial banner */}
-        {trialDaysLeft != null && <TrialBanner daysLeft={trialDaysLeft} />}
+        {trialEnded ? <TrialBanner ended /> : trialDaysLeft != null ? <TrialBanner daysLeft={trialDaysLeft} /> : null}
 
         {/* Main content */}
         <main id="main" style={{ flex: 1, minWidth: 0, padding: "22px 16px 40px" }} className="lg:px-8">

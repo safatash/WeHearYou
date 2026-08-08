@@ -145,7 +145,7 @@ function BrandMark() {
  * accent-softer → white gradient — not the indigo promo block that previously
  * occupied this slot. Renders only while a trial is actually running.
  */
-function TrialCard({ daysLeft }: { daysLeft: number }) {
+function TrialCard({ daysLeft, ended }: { daysLeft: number | null; ended?: boolean }) {
   return (
     <div style={{ padding: "12px 4px 4px" }}>
       <div
@@ -158,13 +158,17 @@ function TrialCard({ daysLeft }: { daysLeft: number }) {
       >
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
           <Icon name="sparkles" size={15} style={{ color: "var(--accent)" }} aria-hidden="true" />
-          <span style={{ fontSize: 13, fontWeight: 620, color: "var(--ink-900)" }}>Pro trial</span>
+          <span style={{ fontSize: 13, fontWeight: 620, color: "var(--ink-900)" }}>
+            {ended ? "Trial ended" : "Pro trial"}
+          </span>
         </div>
         <p style={{ fontSize: 12, color: "var(--ink-500)", lineHeight: 1.5, margin: "0 0 10px" }}>
-          {daysLeft} {daysLeft === 1 ? "day" : "days"} left. Unlock unlimited campaigns and AI replies.
+          {ended
+            ? "Your free trial is over. Choose a plan to keep full access."
+            : `${daysLeft} ${daysLeft === 1 ? "day" : "days"} left. Unlock unlimited campaigns and AI replies.`}
         </p>
         <Link href="/billing" className="btn btn-primary btn-sm" style={{ width: "100%" }}>
-          Upgrade
+          {ended ? "View plans" : "Upgrade"}
         </Link>
       </div>
     </div>
@@ -172,7 +176,7 @@ function TrialCard({ daysLeft }: { daysLeft: number }) {
 }
 
 /** Desktop rail. Hidden below `lg`, where MobileNav takes over. */
-export function SidebarNav({ activeScreen, trialDaysLeft }: { activeScreen: ScreenKey; trialDaysLeft?: number | null }) {
+export function SidebarNav({ activeScreen, trialDaysLeft, trialEnded }: { activeScreen: ScreenKey; trialDaysLeft?: number | null; trialEnded?: boolean }) {
   return (
     <aside
       className="hidden lg:flex"
@@ -192,9 +196,9 @@ export function SidebarNav({ activeScreen, trialDaysLeft }: { activeScreen: Scre
     >
       <BrandMark />
       <NavList activeScreen={activeScreen} />
-      {trialDaysLeft != null && (
+      {(trialEnded || trialDaysLeft != null) && (
         <div style={{ marginTop: "auto" }}>
-          <TrialCard daysLeft={trialDaysLeft} />
+          <TrialCard daysLeft={trialDaysLeft ?? null} ended={trialEnded} />
         </div>
       )}
     </aside>
@@ -205,7 +209,7 @@ export function SidebarNav({ activeScreen, trialDaysLeft }: { activeScreen: Scre
  * Mobile navigation drawer. Rendered as a modal dialog: Escape closes it, focus
  * returns to the trigger, and background scroll is locked while open.
  */
-export function MobileNav({ activeScreen, trialDaysLeft }: { activeScreen: ScreenKey; trialDaysLeft?: number | null }) {
+export function MobileNav({ activeScreen, trialDaysLeft, trialEnded }: { activeScreen: ScreenKey; trialDaysLeft?: number | null; trialEnded?: boolean }) {
   const [open, setOpen] = useState(false);
   const panelId = useId();
 
@@ -268,9 +272,9 @@ export function MobileNav({ activeScreen, trialDaysLeft }: { activeScreen: Scree
               </button>
             </div>
             <NavList activeScreen={activeScreen} onNavigate={() => setOpen(false)} />
-            {trialDaysLeft != null && (
+            {(trialEnded || trialDaysLeft != null) && (
               <div style={{ marginTop: "auto" }}>
-                <TrialCard daysLeft={trialDaysLeft} />
+                <TrialCard daysLeft={trialDaysLeft ?? null} ended={trialEnded} />
               </div>
             )}
           </div>
