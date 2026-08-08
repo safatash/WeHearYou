@@ -19,6 +19,66 @@ export function billingEnforced(): boolean {
   return process.env.BILLING_ENFORCEMENT === "true";
 }
 
+/* ─── organization access state ───────────────────────────────────────────── */
+
+/**
+ * Whether an organization may use the product.
+ *
+ *  - `ACTIVE`        — full access
+ *  - `SUSPENDED`     — a suspension has been recorded on the row
+ *  - `TRIAL_EXPIRED` — the 14-day trial has run out with no paying subscription
+ *
+ * `SUSPENDED` and `TRIAL_EXPIRED` are kept distinct because they need different
+ * handling: an expired trial is *persisted* as a suspension on first detection
+ * so concurrent requests agree, whereas an already-recorded suspension needs no
+ * write.
+ */
+export type OrganizationAccessState = "ACTIVE" | "SUSPENDED" | "TRIAL_EXPIRED";
+
+/** The organization fields the classifier reads. Structural, so it accepts a
+ *  Prisma row, a session-cached copy, or a test fixture. */
+export type OrganizationAccessInput = {
+  suspendedAt?: Date | null;
+  trialEndsAt?: Date | null;
+  stripeSubscriptionStatus?: string | null;
+};
+
+/** Stripe statuses that count as paying. Anything else (past_due, canceled,
+ *  incomplete, unpaid, paused, or absent) does not restore access. */
+const PAYING_SUBSCRIPTION_STATUSES = new Set(["active", "trialing"]);
+
+export function hasPayingSubscription(status?: string | null): boolean {
+  return PAYING_SUBSCRIPTION_STATUSES.has(String(status ?? "").trim().toLowerCase());
+}
+
+/**
+ * Classify an organization's access state. Pure: no Prisma, no clock reads
+ * beyond the injectable `now`, no env lookups — so it is fully testable and the
+ * same answer can be computed on any surface.
+ *
+ * Order of precedence:
+ *   1. A recorded suspension always blocks, even with a live subscription. An
+ *      admin suspending an account must not be undone by billing state.
+ *   2. A paying subscription grants access regardless of the trial date.
+ *   3. No trial date means a legacy organization from before trials existed —
+ *      those keep access rather than being locked out by a missing field.
+ *   4. Otherwise the trial governs, and expires *at* `trialEndsAt`.
+ */
+export function classifyOrganizationAccess(
+  org: OrganizationAccessInput,
+  now: Date = new Date(),
+): OrganizationAccessState {
+  if (org.suspendedAt) return "SUSPENDED";
+  if (hasPayingSubscription(org.stripeSubscriptionStatus)) return "ACTIVE";
+  if (!org.trialEndsAt) return "ACTIVE";
+  return org.trialEndsAt.getTime() <= now.getTime() ? "TRIAL_EXPIRED" : "ACTIVE";
+}
+
+/** Convenience predicate for callers that only need a yes/no. */
+export function organizationHasAccess(org: OrganizationAccessInput, now: Date = new Date()): boolean {
+  return classifyOrganizationAccess(org, now) === "ACTIVE";
+}
+
 function resolvePlanId(planId: string | null | undefined): PlanId {
   return isPlanId(planId) ? planId : DEFAULT_PLAN_ID;
 }

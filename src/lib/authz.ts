@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { billingEnforced } from "@/lib/plan-features";
+import { billingEnforced, classifyOrganizationAccess } from "@/lib/plan-features";
 import {
   canManageAutomations,
   canManageBilling,
@@ -28,7 +28,17 @@ const MEMBERSHIP_INCLUDE = {
   },
 } as const;
 
-export async function getCurrentMembership() {
+/**
+ * Options for the membership lookup.
+ *
+ * `allowSuspended` loads the membership *without* enforcing access state. It
+ * exists so a suspended organization can still reach the pages that let it pay —
+ * without it, /billing and /suspended would redirect to /suspended forever and
+ * there would be no route back to an active account.
+ */
+export type MembershipOptions = { allowSuspended?: boolean };
+
+async function findMembership() {
   const session = await auth();
   const userId = session?.user?.id;
 
@@ -60,30 +70,59 @@ export async function getCurrentMembership() {
   });
 }
 
+/**
+ * The current user's membership, with trial/suspension enforcement applied.
+ *
+ * Enforcement lives here rather than in a wrapper because this is the function
+ * every surface actually calls — page guards, the app shell, API routes. It
+ * previously sat in `requireMembership`, which the page guards bypassed, so an
+ * expired trial saw a banner but kept full access to every protected route.
+ */
+export async function getCurrentMembership(options: MembershipOptions = {}) {
+  const membership = await findMembership();
+
+  if (!membership) {
+    return null;
+  }
+
+  // The renewal path: load the membership but do not act on its state.
+  if (options.allowSuspended) {
+    return membership;
+  }
+
+  const state = classifyOrganizationAccess(membership.organization);
+
+  if (state === "TRIAL_EXPIRED") {
+    // Dormant until billing is switched on. Without this gate, deploying would
+    // suspend every organization whose trial has already lapsed.
+    if (!billingEnforced()) {
+      return membership;
+    }
+    // Persist before redirecting so concurrent requests — and every other
+    // surface — agree that this organization is suspended.
+    await prisma.organization.update({
+      where: { id: membership.organization.id },
+      data: { suspendedAt: new Date() },
+    });
+    redirect("/suspended");
+  }
+
+  if (state === "SUSPENDED") {
+    redirect("/suspended");
+  }
+
+  return membership;
+}
+
+/**
+ * Membership for callers that require one. Enforcement already happened in
+ * `getCurrentMembership`; this only adds the "must exist" contract.
+ */
 async function requireMembership() {
   const membership = await getCurrentMembership();
 
   if (!membership) {
     throw new Error("No active membership found");
-  }
-
-  const org = membership.organization;
-
-  // Trial-expiry enforcement — gated behind BILLING_ENFORCEMENT so it is dormant
-  // until billing is live. When enforced, an org whose trial has ended with no
-  // active/trialing subscription is suspended (persisted so the check below and
-  // every other surface stay consistent).
-  if (billingEnforced() && !org.suspendedAt) {
-    const trialExpired = org.trialEndsAt != null && org.trialEndsAt < new Date();
-    const subActive = org.stripeSubscriptionStatus === "active" || org.stripeSubscriptionStatus === "trialing";
-    if (trialExpired && !subActive) {
-      await prisma.organization.update({ where: { id: org.id }, data: { suspendedAt: new Date() } });
-      redirect("/suspended");
-    }
-  }
-
-  if (org.suspendedAt) {
-    redirect("/suspended");
   }
 
   return membership as TeamMemberWithRelations;

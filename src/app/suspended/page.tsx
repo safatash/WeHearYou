@@ -4,7 +4,7 @@ import Link from "next/link";
 import { getCurrentMembership } from "@/lib/authz";
 
 export default async function SuspendedPage() {
-  const membership = await getCurrentMembership();
+  const membership = await getCurrentMembership({ allowSuspended: true });
   const org = membership?.organization;
 
   const subActive = org?.stripeSubscriptionStatus === "active" || org?.stripeSubscriptionStatus === "trialing";
