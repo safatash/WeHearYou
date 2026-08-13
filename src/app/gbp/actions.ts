@@ -2,12 +2,12 @@
 
 import { redirect } from "next/navigation";
 import { put } from "@vercel/blob";
-import { GbpPublishStatus, GbpPostType, Prisma } from "@prisma/client";
+import { GbpPublishStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getCurrentMembership } from "@/lib/authz";
 import { getCurrentAccessibleLocationIds } from "@/lib/current-scope";
-import { getValidGoogleAccessToken, fetchGoogleBusinessLocations } from "@/lib/google-oauth";
-import { publishGbpReply, createGbpPost, deleteGbpPost, uploadGbpPhoto, deleteGbpPhoto, answerGbpQuestion } from "@/lib/gbp-api";
+import { getValidGoogleAccessToken } from "@/lib/google-oauth";
+import { publishGbpReply, deleteGbpPost, uploadGbpPhoto, deleteGbpPhoto, answerGbpQuestion } from "@/lib/gbp-api";
 
 async function getLocationWithConnection(locationId: string, allowedIds: string[]) {
   if (allowedIds.length > 0 && !allowedIds.includes(locationId)) return null;
@@ -61,70 +61,6 @@ export async function publishGbpReplyAction(formData: FormData) {
   } catch (error) {
     return { error: error instanceof Error ? error.message : "Failed to publish reply" };
   }
-}
-
-export async function createGbpPostAction(formData: FormData) {
-  const membership = await getCurrentMembership();
-  if (!membership) redirect("/login");
-
-  const locationId = String(formData.get("locationId") ?? "").trim();
-  const content = String(formData.get("content") ?? "").trim();
-  const postTypeRaw = String(formData.get("postType") ?? "WHATS_NEW").trim().toUpperCase();
-  const ctaUrl = String(formData.get("ctaUrl") ?? "").trim();
-  const ctaType = String(formData.get("ctaType") ?? "LEARN_MORE").trim();
-  const imageUrl = String(formData.get("imageUrl") ?? "").trim() || null;
-  const scheduledAtRaw = String(formData.get("scheduledAt") ?? "").trim();
-  const publishNow = formData.get("publishNow") === "true";
-
-  if (!locationId || !content) redirect("/gbp/posts/new?error=missing_fields");
-
-  const postType: GbpPostType =
-    postTypeRaw === "OFFER" ? GbpPostType.OFFER :
-    postTypeRaw === "EVENT" ? GbpPostType.EVENT :
-    GbpPostType.WHATS_NEW;
-
-  const scheduledAt = !publishNow && scheduledAtRaw ? new Date(scheduledAtRaw) : null;
-  const status = publishNow ? GbpPublishStatus.DRAFT : (scheduledAt ? GbpPublishStatus.SCHEDULED : GbpPublishStatus.DRAFT);
-
-  const locationIds = await getCurrentAccessibleLocationIds();
-  const location = await getLocationWithConnection(locationId, locationIds);
-  if (!location) redirect("/gbp/posts/new?error=not_found");
-
-  const callToAction = ctaUrl ? { actionType: ctaType, url: ctaUrl } : null;
-  const callToActionJson: Prisma.InputJsonValue | typeof Prisma.DbNull = ctaUrl
-    ? { actionType: ctaType, url: ctaUrl }
-    : Prisma.DbNull;
-
-  if (publishNow && location.googleConnection && location.googleLocationName) {
-    try {
-      const accessToken = await getValidGoogleAccessToken(location.googleConnection);
-
-      // googleLocationName is stored as "locations/xxx" — API needs "accounts/xxx/locations/xxx"
-      const googleLocations = await fetchGoogleBusinessLocations(accessToken);
-      const matched = googleLocations.find((l) => l.name === location.googleLocationName);
-      const fullLocationName = matched?.accountResourceName
-        ? `${matched.accountResourceName}/${location.googleLocationName}`
-        : location.googleLocationName;
-
-      const gbpPostId = await createGbpPost(accessToken, fullLocationName, {
-        postType, content, callToAction, imageUrl,
-      });
-      await prisma.gbpPost.create({
-        data: { locationId, postType, content, callToAction: callToActionJson, imageUrl, status: GbpPublishStatus.PUBLISHED, publishedAt: new Date(), gbpPostId },
-      });
-    } catch (error) {
-      const msg = error instanceof Error ? error.message : "Failed to publish";
-      await prisma.gbpPost.create({
-        data: { locationId, postType, content, callToAction: callToActionJson, imageUrl, status: GbpPublishStatus.FAILED, failureReason: msg },
-      });
-    }
-  } else {
-    await prisma.gbpPost.create({
-      data: { locationId, postType, content, callToAction: callToActionJson, imageUrl, status, scheduledAt },
-    });
-  }
-
-  redirect("/gbp/posts");
 }
 
 export async function deleteGbpPostAction(formData: FormData) {

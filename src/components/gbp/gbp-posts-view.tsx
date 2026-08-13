@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { GbpPublishStatus, GbpPostType } from "@prisma/client";
 import { PostComposer, EditPost } from "./post-composer";
 import { deleteGbpPostInline, duplicateGbpPostInline } from "@/app/gbp/posts/actions";
+import { GBP_NEW_POST_PATH, GBP_POSTS_PATH } from "@/lib/gbp-post-navigation";
 
 interface Location {
   id: string;
@@ -273,6 +274,7 @@ function PostCard({
 }
 
 export function GbpPostsView({ posts, locations, stats, openComposerFromRoute }: GbpPostsViewProps) {
+  const router = useRouter();
   const canCreatePost = locations.length > 0;
   const [filter, setFilter] = useState<Filter>("All");
   const [composerOpen, setComposerOpen] = useState(() => openComposerFromRoute && canCreatePost);
@@ -318,25 +320,18 @@ export function GbpPostsView({ posts, locations, stats, openComposerFromRoute }:
   }, []);
 
   const requestNewComposer = useCallback(() => {
-    setEditPost(null);
     if (!canCreatePost) {
       setComposerNotice("You do not have access to a location where a Google post can be created. Ask an organization administrator to assign a location.");
       return;
     }
-    setComposerNotice(null);
-    setComposerOpen(true);
-  }, [canCreatePost]);
-
-  useEffect(() => {
-    if (openComposerFromRoute) {
-      window.history.replaceState(null, "", "/gbp/posts");
-    }
-  }, [openComposerFromRoute]);
+    router.push(GBP_NEW_POST_PATH);
+  }, [canCreatePost, router]);
 
   const closeComposer = useCallback(() => {
     setComposerOpen(false);
     setEditPost(null);
-  }, []);
+    if (openComposerFromRoute) router.replace(GBP_POSTS_PATH);
+  }, [openComposerFromRoute, router]);
 
   return (
     <>
