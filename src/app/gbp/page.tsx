@@ -10,6 +10,7 @@ import { getCurrentMembership } from "@/lib/authz";
 import { getCurrentAccessibleLocationIds } from "@/lib/current-scope";
 import { getLocations, getLocationPortfolioStats } from "@/lib/locations";
 import { buildLocationReputation } from "@/lib/location-reputation";
+import { buildGbpPostComposerPath } from "@/lib/gbp-post-navigation";
 
 /* ---------- presentational helpers (server-rendered, no interactivity) ---------- */
 
@@ -175,7 +176,7 @@ export default async function GbpManagerPage() {
               ) : null}
               <div style={{ display: "flex", gap: 8 }}>
                 <Link href="/gbp/photos" className="btn btn-secondary btn-sm"><Icon name="upload" size={14} />Photos</Link>
-                <Link href="/gbp/posts/new" className="btn btn-primary"><Icon name="plus" size={16} />New Google post</Link>
+                <Link href={buildGbpPostComposerPath()} className="btn btn-primary"><Icon name="plus" size={16} />New Google post</Link>
               </div>
             </div>
 
