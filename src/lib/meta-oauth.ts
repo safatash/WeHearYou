@@ -4,16 +4,38 @@ import { normalizeMetaPages, type MetaPage } from "@/lib/meta-pages";
 
 export type { MetaPage } from "@/lib/meta-pages";
 
-export function getMetaOAuthConfig() {
+export type MetaOAuthConfig = {
+  clientId: string;
+  clientSecret: string;
+  redirectUri: string;
+};
+
+export function getMetaOAuthConfig(): MetaOAuthConfig {
   return {
-    clientId: process.env.META_APP_ID ?? "",
-    clientSecret: process.env.META_APP_SECRET ?? "",
-    redirectUri: process.env.META_OAUTH_REDIRECT_URI ?? "",
+    clientId: process.env.META_APP_ID?.trim() ?? "",
+    clientSecret: process.env.META_APP_SECRET?.trim() ?? "",
+    redirectUri: process.env.META_OAUTH_REDIRECT_URI?.trim() ?? "",
   };
+}
+
+export function getMissingMetaOAuthConfig(config: MetaOAuthConfig = getMetaOAuthConfig()): string[] {
+  const missing: string[] = [];
+  if (!config.clientId.trim()) missing.push("META_APP_ID");
+  if (!config.clientSecret.trim()) missing.push("META_APP_SECRET");
+  if (!config.redirectUri.trim()) missing.push("META_OAUTH_REDIRECT_URI");
+  return missing;
+}
+
+export function isMetaOAuthConfigured(config: MetaOAuthConfig = getMetaOAuthConfig()): boolean {
+  return getMissingMetaOAuthConfig(config).length === 0;
 }
 
 export function buildMetaOAuthUrl(state: string): string {
   const config = getMetaOAuthConfig();
+  const missing = getMissingMetaOAuthConfig(config);
+  if (missing.length > 0) {
+    throw new Error(`Meta OAuth is not configured: missing ${missing.join(", ")}`);
+  }
   const scopes = ["pages_show_list", "pages_read_engagement", "pages_read_user_content"];
   const params = new URLSearchParams({
     client_id: config.clientId,
@@ -38,8 +60,9 @@ export async function exchangeMetaCodeForToken(
 ): Promise<MetaTokenExchangeResponse> {
   const config = getMetaOAuthConfig();
 
-  if (!config.clientId || !config.clientSecret || !config.redirectUri) {
-    throw new Error("Meta OAuth not configured: missing META_APP_ID, META_APP_SECRET, or META_OAUTH_REDIRECT_URI");
+  const missing = getMissingMetaOAuthConfig(config);
+  if (missing.length > 0) {
+    throw new Error(`Meta OAuth is not configured: missing ${missing.join(", ")}`);
   }
 
   const params = new URLSearchParams({

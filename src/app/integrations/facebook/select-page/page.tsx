@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { FormSubmitButton } from "@/components/form-submit-button";
-import { requireActiveMembershipPage } from "@/lib/page-guards";
+import { requireTeamAccessPage } from "@/lib/page-guards";
 import { decryptToken } from "@/lib/token-encryption";
 import { fetchMetaUserPages } from "@/lib/meta-oauth";
 import { connectSelectedMetaPage } from "./actions";
@@ -12,7 +12,7 @@ import { connectSelectedMetaPage } from "./actions";
 const USER_TOKEN_COOKIE = "meta_user_token";
 
 export default async function SelectFacebookPage() {
-  await requireActiveMembershipPage();
+  await requireTeamAccessPage();
 
   const cookieStore = await cookies();
   const userToken = decryptToken(cookieStore.get(USER_TOKEN_COOKIE)?.value);

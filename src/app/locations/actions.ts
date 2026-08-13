@@ -374,6 +374,7 @@ export async function performMetaReviewSync(locationId: string) {
     where: { id: location.metaConnection.id },
     data: {
       reviewCount: publishedReviews.length,
+      lastSyncedAt: new Date(),
     },
   });
 
@@ -694,6 +695,60 @@ export async function syncAllGoogleReviewsForConnection(formData: FormData) {
     const params = buildIntegrationErrorParams("bulk-sync-error", message);
 
     redirect(`/integrations?${params.toString()}`);
+  }
+}
+
+export async function mapLocationToMeta(formData: FormData) {
+  const locationId = String(formData.get("locationId") ?? "").trim();
+  const metaConnectionId = String(formData.get("metaConnectionId") ?? "").trim();
+
+  if (!locationId || !metaConnectionId) {
+    throw new Error("Facebook mapping requires a location and a connected Facebook Page");
+  }
+
+  const membership = await requireLocationAccess(locationId);
+  await requireMetaConnectionForOrganization(metaConnectionId, membership.organizationId);
+
+  const location = await prisma.location.findFirst({
+    where: {
+      id: locationId,
+      organizationId: membership.organizationId,
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  if (!location) {
+    throw new Error("Location not found for this organization");
+  }
+
+  await prisma.location.update({
+    where: { id: location.id },
+    data: { metaConnectionId },
+  });
+
+  revalidatePath("/integrations");
+  revalidatePath(`/locations/${location.id}`);
+  redirect(`/locations/${location.id}?flash=Facebook+Page+mapped.+Use+Sync+Facebook+Reviews+when+you+are+ready+to+import.&tone=success`);
+}
+
+export async function syncMetaReviews(formData: FormData) {
+  const locationId = String(formData.get("locationId") ?? "").trim();
+
+  if (!locationId) {
+    throw new Error("Location is required");
+  }
+
+  await requireLocationAccess(locationId);
+
+  try {
+    const result = await performMetaReviewSync(locationId);
+    redirect(`/locations/${locationId}?flash=Facebook+reviews+synced.+${result.createdCount}+imported%2C+${result.updatedCount}+updated%2C+${result.skippedCount}+unchanged.&tone=success`);
+  } catch (error) {
+    if (isRedirectError(error)) throw error;
+    const message = error instanceof Error ? error.message : "Facebook review sync failed";
+    redirect(`/locations/${locationId}?flash=${encodeURIComponent(message)}&tone=error`);
   }
 }
 

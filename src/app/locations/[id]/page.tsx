@@ -37,7 +37,7 @@ export default async function LocationDetailPage({
 }) {
   const { id } = await params;
   const query = (await searchParams) ?? {};
-  await requireLocationAccessPage(id);
+  const membership = await requireLocationAccessPage(id);
   const location = await getLocationById(id);
 
   if (!location) {
@@ -45,6 +45,15 @@ export default async function LocationDetailPage({
   }
 
   const mappingOptions = await getLocationMappingOptions(location.id);
+  const metaConnections = await prisma.metaAccountConnection.findMany({
+    where: { organizationId: membership.organizationId },
+    orderBy: { connectedAt: "desc" },
+    select: {
+      id: true,
+      pageId: true,
+      pageName: true,
+    },
+  });
   const lastSyncedLabel = formatRelativeSyncTime(location.lastSyncAt ?? location.googleConnection?.lastSyncedAt);
   const syncState = typeof query.sync === "string" ? query.sync : undefined;
   const syncMessage = typeof query.message === "string" ? query.message : undefined;
@@ -60,7 +69,7 @@ export default async function LocationDetailPage({
   const connectedSources = [
     location.googleLocationName ? "Google" : null,
     location.yelpBusinessId ? "Yelp" : null,
-    profile?.facebookUrl ? "Facebook" : null,
+    location.metaConnectionId ? "Facebook" : null,
   ].filter(Boolean) as string[];
   const hasConnectedSource = connectedSources.length > 0;
   const profileComplete = isMiniSiteProfileComplete({ phone: profile?.phone ?? null, websiteUrl: profile?.websiteUrl ?? null });
@@ -88,6 +97,11 @@ export default async function LocationDetailPage({
   const pendingReplies = location.reviews.filter((r) => !r.replyPublishedAt && !r.replySentAt).length;
 
   // ── ConnectedSources SourceRow[] ────────────────────────────────────────
+  const facebookReviews = location.reviews.filter((review) => review.source === "FACEBOOK" && review.status === "PUBLISHED");
+  const facebookAverageRating = facebookReviews.length > 0
+    ? facebookReviews.reduce((sum, review) => sum + (review.rating ?? 0), 0) / facebookReviews.length
+    : null;
+
   const sources: SourceRow[] = [
     {
       key: "google",
@@ -112,11 +126,11 @@ export default async function LocationDetailPage({
     {
       key: "facebook",
       label: "Facebook",
-      connected: false,
-      lastSyncedLabel: null,
-      reviewsImported: null,
-      rating: null,
-      syncStatus: null,
+      connected: Boolean(location.metaConnectionId),
+      lastSyncedLabel: location.metaConnection?.lastSyncedAt ? formatRelativeSyncTime(location.metaConnection.lastSyncedAt) ?? null : null,
+      reviewsImported: facebookReviews.length,
+      rating: facebookAverageRating,
+      syncStatus: location.metaConnection?.lastSyncedAt ? "Synced" : location.metaConnectionId ? "Awaiting first sync" : null,
       comingSoon: false,
     },
     {
@@ -276,6 +290,7 @@ export default async function LocationDetailPage({
               sources={sources}
               location={location}
               mappingOptions={mappingOptions}
+              metaConnections={metaConnections}
             />
 
             {/* Google Reply Automation section */}

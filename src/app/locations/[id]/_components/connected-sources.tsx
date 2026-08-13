@@ -1,8 +1,10 @@
 import { FormSubmitButton } from "@/components/form-submit-button";
 import {
   mapLocationToGoogle,
-  syncGoogleReviews,
+  mapLocationToMeta,
   refreshGoogleLocationDetails,
+  syncGoogleReviews,
+  syncMetaReviews,
 } from "@/app/locations/actions";
 import { buildGoogleLastSyncResultSummary } from "@/lib/google-sync-summary";
 import type { getLocationMappingOptions } from "@/lib/locations";
@@ -32,6 +34,13 @@ type LocationFields = {
   lastSyncSkippedCount: number | null;
   lastSyncFetchedCount: number | null;
   googleReviewCount: number;
+  metaConnectionId: string | null;
+};
+
+type MetaConnectionOption = {
+  id: string;
+  pageId: string | null;
+  pageName: string | null;
 };
 
 type MappingOptions = Awaited<ReturnType<typeof getLocationMappingOptions>>;
@@ -40,10 +49,12 @@ export function ConnectedSources({
   sources,
   location,
   mappingOptions,
+  metaConnections,
 }: {
   sources: SourceRow[];
   location: LocationFields;
   mappingOptions: MappingOptions;
+  metaConnections: MetaConnectionOption[];
 }) {
   const fmtStat = (v: string | number | null) => (v === null ? "—" : String(v));
 
@@ -98,6 +109,53 @@ export function ConnectedSources({
                 <dd className="font-semibold text-slate-800">{fmtStat(source.syncStatus)}</dd>
               </div>
             </dl>
+
+            {source.key === "facebook" && (
+              <div className="mt-4 space-y-4">
+                {location.metaConnectionId ? (
+                  <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                    <p className="text-sm text-slate-700">
+                      This location is mapped to a Facebook Page. Syncing will import only that Page’s recommendations into this location’s inbox and eligible widgets.
+                    </p>
+                    <form action={syncMetaReviews} className="mt-4">
+                      <input type="hidden" name="locationId" value={location.id} />
+                      <FormSubmitButton
+                        idleLabel="Sync Facebook Reviews"
+                        pendingLabel="Syncing Facebook reviews..."
+                        className="rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-semibold !text-white shadow-sm visited:!text-white hover:!text-white disabled:cursor-not-allowed disabled:opacity-70"
+                      />
+                    </form>
+                  </div>
+                ) : metaConnections.length > 0 ? (
+                  <form action={mapLocationToMeta} className="rounded-2xl border border-slate-200 bg-white p-4">
+                    <input type="hidden" name="locationId" value={location.id} />
+                    <label className="grid gap-2 text-sm font-semibold text-slate-700">
+                      Select the Facebook Page for this location
+                      <select name="metaConnectionId" defaultValue="" className="field-value">
+                        <option value="" disabled>
+                          Choose a connected Facebook Page
+                        </option>
+                        {metaConnections.map((connection) => (
+                          <option key={connection.id} value={connection.id}>
+                            {connection.pageName || "Facebook Page"}{connection.pageId ? ` · ${connection.pageId}` : ""}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <p className="mt-2 text-sm text-slate-600">
+                      Confirm the Page carefully. Reviews are imported into this location and may appear in its public widgets when Facebook is enabled as a source.
+                    </p>
+                    <button type="submit" className="btn btn-primary mt-4">
+                      Map Facebook Page
+                    </button>
+                  </form>
+                ) : (
+                  <div className="rounded-2xl border border-dashed border-slate-200 bg-white px-4 py-4 text-sm text-slate-600">
+                    No Facebook Pages are connected for this organization yet. Connect a Page from the integrations page, then return here to map it to this location.
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Google-specific mapping and sync forms */}
             {source.key === "google" && source.connected && (

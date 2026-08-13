@@ -9,6 +9,7 @@ import { GoogleLocationSyncStatusCard } from "@/components/google-location-sync-
 import { GoogleLocationsSearchList } from "@/components/google-locations-search-list";
 import { GoogleSyncBanner } from "@/components/google-sync-banner";
 import { getGoogleConnections, getGoogleOAuthConfig } from "@/lib/google-oauth";
+import { getMetaOAuthConfig, getMissingMetaOAuthConfig, isMetaOAuthConfigured } from "@/lib/meta-oauth";
 import { formatRelativeSyncTime } from "@/lib/locations";
 import { requireActiveMembershipPage } from "@/lib/page-guards";
 import { prisma } from "@/lib/prisma";
@@ -49,6 +50,9 @@ export default async function IntegrationsPage({ searchParams }: { searchParams?
   const metaConnections = await getMetaConnections(membership.organizationId);
   const googleConfig = getGoogleOAuthConfig();
   const googleReady = Boolean(googleConfig.clientId && googleConfig.clientSecret && googleConfig.redirectUri);
+  const metaConfig = getMetaOAuthConfig();
+  const metaReady = isMetaOAuthConfigured(metaConfig);
+  const missingMetaConfig = getMissingMetaOAuthConfig(metaConfig);
 
   return (
     <AppShell activeScreen="integrations">
@@ -73,7 +77,15 @@ export default async function IntegrationsPage({ searchParams }: { searchParams?
 
         {facebookState === "connected" ? (
           <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-            Facebook Page{facebookPage ? ` "${facebookPage}"` : ""} connected. Sync its reviews below to bring them into your inbox and widgets.
+            Facebook Page{facebookPage ? ` "${facebookPage}"` : ""} connected. Map it to the correct location before syncing reviews into the inbox and widgets.
+          </div>
+        ) : facebookState === "configuration-error" ? (
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            {syncMessage || "Facebook connection is not configured yet. An account administrator must finish the Facebook app setup before a Page can be connected."}
+          </div>
+        ) : facebookState === "permission-denied" ? (
+          <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
+            {syncMessage || "You do not have permission to manage integrations for this organization."}
           </div>
         ) : facebookState === "auth-error" ? (
           <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
@@ -136,15 +148,24 @@ export default async function IntegrationsPage({ searchParams }: { searchParams?
                   <h3 className="section-title">Facebook</h3>
                   <p className="mt-2 text-sm text-slate-600">Bring Facebook reviews into the inbox beside Google feedback.</p>
                 </div>
-                <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-600">Not Connected</span>
+                <span className={`rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] ${metaReady ? "bg-slate-100 text-slate-600" : "bg-amber-50 text-amber-800"}`}>
+                  {metaReady ? "Not connected" : "Needs configuration"}
+                </span>
               </div>
               <div className="mt-6">
-                <Link
-                  href="/api/integrations/meta/auth"
-                  className="inline-block rounded-2xl border border-blue-600 bg-blue-600 px-4 py-3 text-sm font-semibold !text-white visited:!text-white hover:!text-white"
-                >
-                  Connect Facebook
-                </Link>
+                {metaReady ? (
+                  <Link
+                    href="/api/integrations/meta/auth"
+                    className="inline-block rounded-2xl border border-blue-600 bg-blue-600 px-4 py-3 text-sm font-semibold !text-white visited:!text-white hover:!text-white"
+                  >
+                    Connect Facebook
+                  </Link>
+                ) : (
+                  <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                    <p className="font-semibold">Facebook app setup is incomplete.</p>
+                    <p className="mt-1">Missing deployment settings: {missingMetaConfig.join(", ")}. Add them and register the same callback URL in the Facebook app before connecting a Page.</p>
+                  </div>
+                )}
               </div>
             </div>
           )}
