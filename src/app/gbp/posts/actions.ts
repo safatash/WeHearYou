@@ -7,6 +7,7 @@ import { getCurrentMembership } from "@/lib/authz";
 import { getCurrentAccessibleLocationIds } from "@/lib/current-scope";
 import { getValidGoogleAccessToken, fetchGoogleBusinessLocations } from "@/lib/google-oauth";
 import { createGbpPost, deleteGbpPost } from "@/lib/gbp-api";
+import { canAccessGbpPostLocation } from "@/lib/gbp-post-navigation";
 
 const GOOGLE_CONNECTION_SELECT = {
   id: true, accessToken: true, refreshToken: true, expiresAt: true, scope: true, tokenType: true,
@@ -100,12 +101,12 @@ export async function createGbpPostInline(formData: FormData): Promise<{ success
     : GbpPublishStatus.DRAFT;
 
   const locationIds = await getCurrentAccessibleLocationIds();
-  if (locationIds.length > 0 && !locationIds.includes(locationId)) {
+  if (!canAccessGbpPostLocation(locationIds, locationId)) {
     return { success: false, error: "Location not found" };
   }
 
-  const location = await prisma.location.findUnique({
-    where: { id: locationId },
+  const location = await prisma.location.findFirst({
+    where: { id: locationId, organizationId: membership.organizationId },
     select: {
       id: true,
       googleLocationName: true,
@@ -188,7 +189,11 @@ export async function updateGbpPostInline(formData: FormData): Promise<{ success
 
   const locationIds = await getCurrentAccessibleLocationIds();
   const post = await prisma.gbpPost.findFirst({
-    where: { id: postId, ...(locationIds.length > 0 ? { locationId: { in: locationIds } } : {}) },
+    where: {
+      id: postId,
+      locationId: { in: locationIds },
+      location: { organizationId: membership.organizationId },
+    },
     include: {
       location: {
         select: { googleLocationName: true, googleConnection: { select: GOOGLE_CONNECTION_SELECT } },
@@ -248,7 +253,11 @@ export async function deleteGbpPostInline(postId: string): Promise<{ success: bo
 
   const locationIds = await getCurrentAccessibleLocationIds();
   const post = await prisma.gbpPost.findFirst({
-    where: { id: postId, ...(locationIds.length > 0 ? { locationId: { in: locationIds } } : {}) },
+    where: {
+      id: postId,
+      locationId: { in: locationIds },
+      location: { organizationId: membership.organizationId },
+    },
     include: {
       location: {
         select: { googleLocationName: true, googleConnection: { select: GOOGLE_CONNECTION_SELECT } },
@@ -275,7 +284,11 @@ export async function duplicateGbpPostInline(postId: string): Promise<{ success:
 
   const locationIds = await getCurrentAccessibleLocationIds();
   const post = await prisma.gbpPost.findFirst({
-    where: { id: postId, ...(locationIds.length > 0 ? { locationId: { in: locationIds } } : {}) },
+    where: {
+      id: postId,
+      locationId: { in: locationIds },
+      location: { organizationId: membership.organizationId },
+    },
     select: { postType: true, content: true, imageUrl: true, callToAction: true, locationId: true },
   });
   if (!post) return { success: false, error: "Post not found" };

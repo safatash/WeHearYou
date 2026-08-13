@@ -7,15 +7,27 @@ import { getCurrentAccessibleLocationIds } from "@/lib/current-scope";
 import { notFound } from "next/navigation";
 import { GbpPublishStatus } from "@prisma/client";
 import { GbpPostsView } from "@/components/gbp/gbp-posts-view";
+import { isGbpPostComposerRequested } from "@/lib/gbp-post-navigation";
 
-export default async function GbpPostsPage() {
+export default async function GbpPostsPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ compose?: string | string[] }>;
+}) {
   const membership = await getCurrentMembership();
   if (!membership) notFound();
 
   const locationIds = await getCurrentAccessibleLocationIds();
+  const query = (await searchParams) ?? {};
+  const openComposerFromRoute = isGbpPostComposerRequested(query.compose);
   const [posts, locations] = await Promise.all([
     prisma.gbpPost.findMany({
-      where: locationIds.length > 0 ? { locationId: { in: locationIds } } : {},
+      where: {
+        location: {
+          organizationId: membership.organizationId,
+          id: { in: locationIds },
+        },
+      },
       include: { location: { select: { id: true, name: true } } },
       orderBy: [{ createdAt: "desc" }],
       take: 200,
@@ -40,7 +52,13 @@ export default async function GbpPostsPage() {
 
   return (
     <AppShell activeScreen="gbp-posts">
-      <GbpPostsView posts={posts} locations={locations} stats={stats} />
+      <GbpPostsView
+        key={openComposerFromRoute ? "compose-new" : "posts-index"}
+        posts={posts}
+        locations={locations}
+        stats={stats}
+        openComposerFromRoute={openComposerFromRoute}
+      />
     </AppShell>
   );
 }

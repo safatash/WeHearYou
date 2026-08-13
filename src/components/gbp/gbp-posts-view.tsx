@@ -38,6 +38,7 @@ interface GbpPostsViewProps {
   posts: Post[];
   locations: Location[];
   stats: Stats;
+  openComposerFromRoute: boolean;
 }
 
 const STATUS_META: Record<GbpPublishStatus, { label: string; dot: string; pill: string }> = {
@@ -271,11 +272,18 @@ function PostCard({
   );
 }
 
-export function GbpPostsView({ posts, locations, stats }: GbpPostsViewProps) {
+export function GbpPostsView({ posts, locations, stats, openComposerFromRoute }: GbpPostsViewProps) {
+  const router = useRouter();
+  const canCreatePost = locations.length > 0;
   const [filter, setFilter] = useState<Filter>("All");
-  const [composerOpen, setComposerOpen] = useState(false);
+  const [composerOpen, setComposerOpen] = useState(() => openComposerFromRoute && canCreatePost);
   const [editPost, setEditPost] = useState<EditPost | null>(null);
   const [detailPost, setDetailPost] = useState<Post | null>(null);
+  const [composerNotice, setComposerNotice] = useState<string | null>(() =>
+    openComposerFromRoute && !canCreatePost
+      ? "You do not have access to a location where a Google post can be created. Ask an organization administrator to assign a location."
+      : null,
+  );
 
   const STATUS_MAP: Partial<Record<Filter, GbpPublishStatus>> = {
     Live: "PUBLISHED",
@@ -310,10 +318,21 @@ export function GbpPostsView({ posts, locations, stats }: GbpPostsViewProps) {
     setComposerOpen(true);
   }, []);
 
+  const requestNewComposer = useCallback(() => {
+    setEditPost(null);
+    if (!canCreatePost) {
+      setComposerNotice("You do not have access to a location where a Google post can be created. Ask an organization administrator to assign a location.");
+      return;
+    }
+    setComposerNotice(null);
+    setComposerOpen(true);
+  }, [canCreatePost]);
+
   const closeComposer = useCallback(() => {
     setComposerOpen(false);
     setEditPost(null);
-  }, []);
+    if (openComposerFromRoute) router.replace("/gbp/posts");
+  }, [openComposerFromRoute, router]);
 
   return (
     <>
@@ -336,7 +355,7 @@ export function GbpPostsView({ posts, locations, stats }: GbpPostsViewProps) {
               Scheduler
             </a>
             <button
-              onClick={() => { setComposerOpen(true); setEditPost(null); }}
+              onClick={requestNewComposer}
               className="inline-flex items-center gap-1.5 rounded-lg bg-[#37aeb7] px-4 py-2 text-sm font-semibold text-white hover:bg-[#2a8a92] transition"
             >
               <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -344,6 +363,12 @@ export function GbpPostsView({ posts, locations, stats }: GbpPostsViewProps) {
             </button>
           </div>
         </div>
+
+        {composerNotice && (
+          <div role="alert" className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            {composerNotice}
+          </div>
+        )}
 
         {/* Stat tiles */}
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
@@ -391,7 +416,7 @@ export function GbpPostsView({ posts, locations, stats }: GbpPostsViewProps) {
             <p className="text-sm font-semibold text-slate-700">No posts yet</p>
             <p className="mt-1 text-sm text-slate-400">Create your first Google post to get started.</p>
             <button
-              onClick={() => { setComposerOpen(true); setEditPost(null); }}
+              onClick={requestNewComposer}
               className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-[#37aeb7] px-4 py-2 text-sm font-semibold text-white hover:bg-[#2a8a92] transition"
             >
               + New post
