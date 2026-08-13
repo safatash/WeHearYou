@@ -53,7 +53,6 @@ export default async function GbpPostsPage({
   return (
     <AppShell activeScreen="gbp-posts">
       <GbpPostsView
-        key={openComposerFromRoute ? "compose-new" : "posts-index"}
         posts={posts}
         locations={locations}
         stats={stats}

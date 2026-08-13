@@ -25,14 +25,14 @@ test("empty location scopes fail closed", () => {
   assert.equal(canAccessGbpPostLocation(["location-a"], "location-b"), false);
 });
 
-test("dashboard entry opens the canonical composer and its route is cleared on dismissal", () => {
+test("dashboard entry opens the canonical composer and replaces the one-time trigger with the clean posts URL", () => {
   const dashboard = readFileSync(new URL("../app/gbp/page.tsx", import.meta.url), "utf8");
   const postsPage = readFileSync(new URL("../app/gbp/posts/page.tsx", import.meta.url), "utf8");
   const postsView = readFileSync(new URL("../components/gbp/gbp-posts-view.tsx", import.meta.url), "utf8");
 
   assert.match(dashboard, /href=\{buildGbpPostComposerPath\(\)\}/);
   assert.match(postsPage, /openComposerFromRoute=\{openComposerFromRoute\}/);
-  assert.match(postsView, /router\.replace\("\/gbp\/posts"\)/);
+  assert.match(postsView, /window\.history\.replaceState\(null, "", "\/gbp\/posts"\)/);
 });
 
 test("posts data and mutations keep empty scopes restricted rather than treating them as unrestricted", () => {

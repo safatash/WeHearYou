@@ -273,7 +273,6 @@ function PostCard({
 }
 
 export function GbpPostsView({ posts, locations, stats, openComposerFromRoute }: GbpPostsViewProps) {
-  const router = useRouter();
   const canCreatePost = locations.length > 0;
   const [filter, setFilter] = useState<Filter>("All");
   const [composerOpen, setComposerOpen] = useState(() => openComposerFromRoute && canCreatePost);
@@ -328,11 +327,16 @@ export function GbpPostsView({ posts, locations, stats, openComposerFromRoute }:
     setComposerOpen(true);
   }, [canCreatePost]);
 
+  useEffect(() => {
+    if (openComposerFromRoute) {
+      window.history.replaceState(null, "", "/gbp/posts");
+    }
+  }, [openComposerFromRoute]);
+
   const closeComposer = useCallback(() => {
     setComposerOpen(false);
     setEditPost(null);
-    if (openComposerFromRoute) router.replace("/gbp/posts");
-  }, [openComposerFromRoute, router]);
+  }, []);
 
   return (
     <>
