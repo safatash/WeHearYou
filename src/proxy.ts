@@ -5,6 +5,7 @@ export default auth((req) => {
   const isPublicPath =
     req.nextUrl.pathname === "/login" ||
     req.nextUrl.pathname === "/signup" ||
+    req.nextUrl.pathname === "/data-deletion" ||
     req.nextUrl.pathname.startsWith("/accept-invite") ||
     req.nextUrl.pathname.startsWith("/api/auth") ||
     req.nextUrl.pathname.startsWith("/api/public/widgets/") ||
