@@ -53,11 +53,28 @@ export async function GET(request: NextRequest) {
     const selection = categorizeMetaPageSelection(discovery.pages);
 
     if (selection.kind === "none") {
-      const message =
-        discovery.returnedCount > 0 && discovery.missingPageTokenCount > 0
-          ? "Facebook returned the selected Page without a usable Page token. Reauthorize the Page after confirming Meta access, then try again."
-          : "No Facebook Pages found for this account. Make sure you granted access to at least one Page.";
-      return errorRedirect(request, message);
+      if (discovery.returnedCount === 0) {
+        // Meta can return an empty `/me/accounts` relation for a business-managed
+        // Page even after the user selects it in the consent dialog. Preserve the
+        // encrypted user token briefly and require a server-verified numeric Page
+        // ID instead of treating the empty list as an authorization failure.
+        const url = new URL("/integrations/facebook/connect-page", request.url);
+        const response = NextResponse.redirect(url);
+        response.cookies.delete("meta_oauth_state");
+        response.cookies.set(USER_TOKEN_COOKIE, encryptToken(userToken) ?? "", {
+          httpOnly: true,
+          sameSite: "lax",
+          secure: true,
+          maxAge: 600,
+          path: "/",
+        });
+        return response;
+      }
+
+      return errorRedirect(
+        request,
+        "Facebook returned the selected Page without a usable Page token. Reauthorize the Page after confirming Meta access, then try again.",
+      );
     }
 
     if (selection.kind === "single") {

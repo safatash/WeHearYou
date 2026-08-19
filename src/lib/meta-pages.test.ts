@@ -4,7 +4,16 @@ import {
   normalizeMetaPageDiscovery,
   normalizeMetaPages,
   categorizeMetaPageSelection,
+  normalizeMetaPageId,
 } from "./meta-pages.ts";
+
+test("normalizeMetaPageId accepts only a numeric Facebook Page ID", () => {
+  assert.equal(normalizeMetaPageId(" 1242746702258443 "), "1242746702258443");
+  assert.equal(normalizeMetaPageId("1234"), null);
+  assert.equal(normalizeMetaPageId("https://facebook.com/page"), null);
+  assert.equal(normalizeMetaPageId("12345/ratings"), null);
+  assert.equal(normalizeMetaPageId(null), null);
+});
 
 test("normalizeMetaPages maps id/name/access_token from raw account data", () => {
   const pages = normalizeMetaPages([

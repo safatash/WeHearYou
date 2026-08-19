@@ -176,6 +176,32 @@ export async function fetchMetaUserPages(userAccessToken: string): Promise<MetaP
   return (await fetchMetaUserPageDiscovery(userAccessToken)).pages;
 }
 
+/**
+ * Verifies a single user-supplied Page ID after OAuth when Meta's `/me/accounts`
+ * relation is empty for a business-managed Page. The user token must be able to
+ * obtain the Page access token; otherwise this throws and nothing is persisted.
+ * The Page token remains server-side and is encrypted only by the connection
+ * storage helper after the caller has checked tenant authorization.
+ */
+export async function fetchMetaPageById(
+  userAccessToken: string,
+  pageId: string,
+): Promise<MetaPage> {
+  const result = await metaGraphGet<Record<string, unknown>>(
+    pageId,
+    { fields: "id,name,access_token" },
+    userAccessToken,
+  );
+
+  const discovery = normalizeMetaPageDiscovery([result]);
+  const page = discovery.pages[0];
+  if (!page) {
+    throw new Error("Meta could not issue a Page access token for that Page ID.");
+  }
+
+  return page;
+}
+
 export type MetaPageInfo = {
   id: string;
   name: string;

@@ -14,6 +14,17 @@ export type MetaPage = {
   access_token: string;
 };
 
+/**
+ * Normalizes the optional direct Page-ID fallback used only after Meta returns
+ * an empty `/me/accounts` list. Facebook Page IDs are numeric; rejecting every
+ * other input keeps the Graph path deterministic and avoids treating arbitrary
+ * URLs or node paths as page identifiers.
+ */
+export function normalizeMetaPageId(value: unknown): string | null {
+  const pageId = typeof value === "string" ? value.trim() : "";
+  return /^\d{5,25}$/.test(pageId) ? pageId : null;
+}
+
 /** A token-safe summary of a `/me/accounts` response. */
 export type MetaPageDiscovery = {
   pages: MetaPage[];
