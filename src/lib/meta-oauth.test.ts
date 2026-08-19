@@ -46,7 +46,7 @@ test("buildMetaOAuthUrl refuses incomplete configuration instead of emitting an 
   }
 });
 
-test("buildMetaOAuthUrl requests only the Page access needed to list Pages and read recommendations", () => {
+test("buildMetaOAuthUrl requests the Page scopes needed to discover a Page token and read recommendations", () => {
   const originalAppId = process.env.META_APP_ID;
   const originalSecret = process.env.META_APP_SECRET;
   const originalRedirectUri = process.env.META_OAUTH_REDIRECT_URI;
@@ -62,7 +62,7 @@ test("buildMetaOAuthUrl requests only the Page access needed to list Pages and r
     assert.equal(url.searchParams.get("state"), "state-value");
     assert.equal(
       url.searchParams.get("scope"),
-      "pages_show_list,pages_read_engagement,pages_read_user_content",
+      "pages_show_list,pages_read_engagement,pages_read_user_content,pages_manage_metadata",
     );
   } finally {
     if (originalAppId === undefined) delete process.env.META_APP_ID;

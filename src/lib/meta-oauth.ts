@@ -36,7 +36,15 @@ export function buildMetaOAuthUrl(state: string): string {
   if (missing.length > 0) {
     throw new Error(`Meta OAuth is not configured: missing ${missing.join(", ")}`);
   }
-  const scopes = ["pages_show_list", "pages_read_engagement", "pages_read_user_content"];
+  // Meta requires pages_manage_metadata alongside Page-read scopes when issuing
+  // the Page access token returned by /me/accounts. We use that token only for
+  // read-only Page recommendation sync; this integration does not write Page metadata.
+  const scopes = [
+    "pages_show_list",
+    "pages_read_engagement",
+    "pages_read_user_content",
+    "pages_manage_metadata",
+  ];
   const params = new URLSearchParams({
     client_id: config.clientId,
     redirect_uri: config.redirectUri,
