@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 import {
   exchangeMetaCodeForToken,
   exchangeForLongLivedUserToken,
-  fetchMetaUserPages,
+  fetchMetaUserPageDiscovery,
 } from "@/lib/meta-oauth";
 import { categorizeMetaPageSelection } from "@/lib/meta-pages";
 import { storeMetaPageConnection } from "@/lib/meta-connection";
@@ -49,14 +49,15 @@ export async function GET(request: NextRequest) {
 
     // List the pages this user manages. Reviews live on the Page node and need
     // a page token — the user token cannot read them.
-    const pages = await fetchMetaUserPages(userToken);
-    const selection = categorizeMetaPageSelection(pages);
+    const discovery = await fetchMetaUserPageDiscovery(userToken);
+    const selection = categorizeMetaPageSelection(discovery.pages);
 
     if (selection.kind === "none") {
-      return errorRedirect(
-        request,
-        "No Facebook Pages found for this account. Make sure you granted access to at least one Page.",
-      );
+      const message =
+        discovery.returnedCount > 0 && discovery.missingPageTokenCount > 0
+          ? "Facebook returned the selected Page without a usable Page token. Reauthorize the Page after confirming Meta access, then try again."
+          : "No Facebook Pages found for this account. Make sure you granted access to at least one Page.";
+      return errorRedirect(request, message);
     }
 
     if (selection.kind === "single") {

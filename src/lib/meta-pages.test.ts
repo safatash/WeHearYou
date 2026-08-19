@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { normalizeMetaPages, categorizeMetaPageSelection } from "./meta-pages.ts";
+import {
+  normalizeMetaPageDiscovery,
+  normalizeMetaPages,
+  categorizeMetaPageSelection,
+} from "./meta-pages.ts";
 
 test("normalizeMetaPages maps id/name/access_token from raw account data", () => {
   const pages = normalizeMetaPages([
@@ -20,6 +24,26 @@ test("normalizeMetaPages drops entries missing id or access_token", () => {
     { name: "No id", access_token: "tok-c" },
   ]);
   assert.deepEqual(pages, [{ id: "111", name: "Has token", access_token: "tok-a" }]);
+});
+
+test("normalizeMetaPageDiscovery distinguishes tokenless Page records from an empty response", () => {
+  assert.deepEqual(
+    normalizeMetaPageDiscovery([
+      { id: "111", name: "Has token", access_token: "tok-a" },
+      { id: "222", name: "No token" },
+      { name: "No id", access_token: "tok-c" },
+    ]),
+    {
+      pages: [{ id: "111", name: "Has token", access_token: "tok-a" }],
+      returnedCount: 3,
+      missingPageTokenCount: 1,
+    },
+  );
+  assert.deepEqual(normalizeMetaPageDiscovery([]), {
+    pages: [],
+    returnedCount: 0,
+    missingPageTokenCount: 0,
+  });
 });
 
 test("normalizeMetaPages falls back to a default name", () => {

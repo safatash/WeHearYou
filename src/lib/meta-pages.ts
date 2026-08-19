@@ -14,22 +14,43 @@ export type MetaPage = {
   access_token: string;
 };
 
+/** A token-safe summary of a `/me/accounts` response. */
+export type MetaPageDiscovery = {
+  pages: MetaPage[];
+  returnedCount: number;
+  missingPageTokenCount: number;
+};
+
 /**
  * Normalize the raw `data` array from `GET /me/accounts?fields=id,name,access_token`.
- * Drops anything without both an id and an access token (a page we couldn't
- * actually sync), and defaults a missing name.
+ * It preserves token-safe counts so the caller can distinguish an actual empty
+ * Page list from Pages Meta returned without usable Page access tokens.
  */
-export function normalizeMetaPages(data: unknown): MetaPage[] {
-  if (!Array.isArray(data)) return [];
+export function normalizeMetaPageDiscovery(data: unknown): MetaPageDiscovery {
+  if (!Array.isArray(data)) {
+    return { pages: [], returnedCount: 0, missingPageTokenCount: 0 };
+  }
 
-  return data
+  const candidates = data
     .filter((entry): entry is Record<string, unknown> => Boolean(entry) && typeof entry === "object")
     .map((entry) => ({
       id: typeof entry.id === "string" ? entry.id : entry.id != null ? String(entry.id) : "",
       name: typeof entry.name === "string" && entry.name.trim().length > 0 ? entry.name : "Facebook Page",
       access_token: typeof entry.access_token === "string" ? entry.access_token : "",
-    }))
-    .filter((page) => page.id.length > 0 && page.access_token.length > 0);
+    }));
+
+  return {
+    pages: candidates.filter((page) => page.id.length > 0 && page.access_token.length > 0),
+    returnedCount: candidates.length,
+    missingPageTokenCount: candidates.filter(
+      (page) => page.id.length > 0 && page.access_token.length === 0,
+    ).length,
+  };
+}
+
+/** Backward-compatible Page list used by callers that do not need diagnostics. */
+export function normalizeMetaPages(data: unknown): MetaPage[] {
+  return normalizeMetaPageDiscovery(data).pages;
 }
 
 export type MetaPageSelection =

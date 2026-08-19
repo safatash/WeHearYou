@@ -1,6 +1,11 @@
 import crypto from "node:crypto";
 import { metaGraphGet, getMetaGraphApiVersion, type MetaGraphConnection } from "@/lib/meta-graph";
-import { normalizeMetaPages, type MetaPage } from "@/lib/meta-pages";
+import {
+  normalizeMetaPageDiscovery,
+  normalizeMetaPages,
+  type MetaPage,
+  type MetaPageDiscovery,
+} from "@/lib/meta-pages";
 
 export type { MetaPage } from "@/lib/meta-pages";
 
@@ -141,8 +146,14 @@ export async function exchangeForLongLivedUserToken(shortLivedToken: string): Pr
  * The ratings/reviews edges live on the Page node and require the page token —
  * the user token cannot read them.
  */
-export async function fetchMetaUserPages(userAccessToken: string): Promise<MetaPage[]> {
+export type MetaUserPageDiscovery = MetaPageDiscovery;
+
+export async function fetchMetaUserPageDiscovery(
+  userAccessToken: string,
+): Promise<MetaUserPageDiscovery> {
   const pages: MetaPage[] = [];
+  let returnedCount = 0;
+  let missingPageTokenCount = 0;
   let afterCursor: string | undefined;
 
   do {
@@ -151,11 +162,18 @@ export async function fetchMetaUserPages(userAccessToken: string): Promise<MetaP
       { fields: "id,name,access_token", limit: "100", after: afterCursor ?? "" },
       userAccessToken,
     );
-    pages.push(...normalizeMetaPages(result.data));
+    const discovery = normalizeMetaPageDiscovery(result.data);
+    pages.push(...discovery.pages);
+    returnedCount += discovery.returnedCount;
+    missingPageTokenCount += discovery.missingPageTokenCount;
     afterCursor = result.paging?.next ? result.paging?.cursors?.after : undefined;
   } while (afterCursor);
 
-  return pages;
+  return { pages, returnedCount, missingPageTokenCount };
+}
+
+export async function fetchMetaUserPages(userAccessToken: string): Promise<MetaPage[]> {
+  return (await fetchMetaUserPageDiscovery(userAccessToken)).pages;
 }
 
 export type MetaPageInfo = {
