@@ -18,6 +18,7 @@ const PAYLOAD_SRC = readFileSync(new URL("./review-widgets.ts", import.meta.url)
 const ACTIONS_SRC = readFileSync(new URL("../app/widgets/actions.ts", import.meta.url), "utf8");
 const EDITOR_SRC = readFileSync(new URL("../app/widgets/widget-studio-editor.tsx", import.meta.url), "utf8");
 const INDEX_SRC = readFileSync(new URL("../app/widgets/widgets-index.tsx", import.meta.url), "utf8");
+const PREVIEW_SRC = readFileSync(new URL("../components/widget-mock-preview.tsx", import.meta.url), "utf8");
 
 /* ─── Display parity: owner responses ─────────────────────────────────────── */
 
@@ -232,6 +233,11 @@ test("draft source filters and pins reach the preview", () => {
   assert.match(settings, /\n\s*enabledSources,/);
   assert.match(settings, /\n\s*pinnedReviewIds,/);
   assert.match(settings, /spotlightReviewId: spotlightReviewId \?\? undefined/);
+});
+
+test("the live preview preserves Facebook recommendation polarity for the shared resolver", () => {
+  assert.match(PREVIEW_SRC, /recommendationType: r\.recommendationType \?\? null/);
+  assert.match(PREVIEW_SRC, /resolveWallItems\(canonicalReviews, canonicalVideos, resolutionConfig\)/);
 });
 
 /* ─── Inventory metadata ──────────────────────────────────────────────────── */

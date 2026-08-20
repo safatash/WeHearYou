@@ -846,6 +846,7 @@ export function WidgetMockPreview({
     id: r.realId ?? String(r.id),
     source: previewSourceToCanonical[r.source] ?? r.source,
     rating: r.rating,
+    recommendationType: r.recommendationType ?? null,
     _display: r,
   }));
 
