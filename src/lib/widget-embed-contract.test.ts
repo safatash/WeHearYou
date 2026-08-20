@@ -329,10 +329,10 @@ test("the wall renderer is skipped entirely when there is nothing to show", () =
   assert.match(EMBED_SRC, /if \(container && items\.length > 0\) \{/);
 });
 
-test("an empty wall shows no Load more affordance", () => {
-  const idx = EMBED_SRC.indexOf("loadMoreButton && items.length > 0");
-  assert.notEqual(idx, -1, "Load more must be gated on having items");
-  assert.match(EMBED_SRC.slice(idx, idx + 120), /data\.pagination\.hasMore/);
+test("Load more obeys the saved pagination toggle and never appears for an empty wall", () => {
+  const idx = EMBED_SRC.indexOf("data.widget.showPagination !== false && items.length > 0");
+  assert.notEqual(idx, -1, "Load more must be gated on saved pagination and having items");
+  assert.match(EMBED_SRC.slice(idx, idx + 220), /data\.pagination\.hasMore/);
 });
 
 /* ─── Display parity ──────────────────────────────────────────────────────── */

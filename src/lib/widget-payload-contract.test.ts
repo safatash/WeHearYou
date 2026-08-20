@@ -115,11 +115,15 @@ test("a location with no eligible reviews publishes no score", () => {
   );
 });
 
-test("videos are fetched for VIDEOS and MIXED, and capped", () => {
+test("videos are fetched for VIDEOS and MIXED, with an explicit All exception", () => {
   assert.match(PAYLOAD_SRC, /contentModeIncludesVideos\(contentMode\) && isFirstPage/);
   const idx = PAYLOAD_SRC.indexOf("videoTestimonial.findMany", PAYLOAD_SRC.indexOf("contentModeIncludesVideos"));
   assert.notEqual(idx, -1);
-  assert.match(PAYLOAD_SRC.slice(idx, idx + 600), /take: pageSize/, "video fetch must be bounded");
+  assert.match(
+    PAYLOAD_SRC.slice(idx, idx + 600),
+    /take: isAllReviews \? undefined : pageSize/,
+    "normal pages must remain bounded while the explicit All setting is complete",
+  );
 });
 
 /* ─── The save path persists what the editor offers ───────────────────────── */
@@ -127,7 +131,7 @@ test("videos are fetched for VIDEOS and MIXED, and capped", () => {
 test("every setting the studio exposes is actually written", () => {
   // These were silently dropped ("field not in schema") and are the direct cause
   // of the Natural-vs-Equal and pinning defects.
-  for (const field of ["cardHeights", "pinnedReviewIds", "spotlightReviewId", "reviewHighlights"]) {
+  for (const field of ["cardHeights", "pinnedReviewIds", "spotlightReviewId", "spotlightTextSize", "reviewHighlights"]) {
     assert.ok(
       new RegExp(`^\\s*${field}: `, "m").test(ACTIONS_SRC),
       `${field} must be persisted, not commented out`,

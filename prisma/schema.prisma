@@ -755,6 +755,7 @@ model ReviewWidget {
   // Spotlight & pins (Wall of Love). Ordering semantics live in
   // src/lib/widget-config.ts#resolveWallItems.
   spotlightReviewId String?                          // single featured Review.id
+  spotlightTextSize Int         @default(18)          // spotlight review body (14-28px)
   pinnedReviewIds   String      @default("")         // CSV of Review.id, admin pin order preserved
   reviewHighlights  String      @default("")         // JSON [{reviewId, quote}]
   showBranding     Boolean      @default(true)

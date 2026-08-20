@@ -5,6 +5,10 @@ import {
   DEFAULT_CARD_HEIGHTS,
   normalizeCardHeights,
   usesNaturalHeights,
+  ALL_REVIEWS_PAGE_SIZE,
+  DEFAULT_SPOTLIGHT_TEXT_SIZE,
+  normalizeSpotlightTextSize,
+  normalizeWidgetPageSize,
   normalizeContentMode,
   contentModeToStored,
   contentModeIncludesReviews,
@@ -106,6 +110,31 @@ test("card heights: malformed persisted values are reported, absent ones are not
   normalizeCardHeights("");
   setInvalidWidgetValueReporter(null);
   assert.deepEqual(seen, ["cardHeights=auto→equal"]);
+});
+
+/* ─── Wall of Love limits and spotlight typography ───────────────────────── */
+
+test("Wall of Love: zero is the explicit All review-limit sentinel", () => {
+  assert.equal(ALL_REVIEWS_PAGE_SIZE, 0);
+  assert.equal(normalizeWidgetPageSize(0), 0);
+  assert.equal(normalizeWidgetPageSize("0"), 0);
+  assert.equal(normalizeWidgetPageSize(16), 16);
+  assert.equal(normalizeWidgetPageSize(3.9), 3);
+  assert.equal(normalizeWidgetPageSize(-1), 12);
+  assert.equal(normalizeWidgetPageSize(51), 12);
+});
+
+test("Wall of Love: All removes only the final display cap", () => {
+  const all = resolveWallItems(POPULATED_REVIEWS, EMPTY_VIDEOS, cfg({ pageSize: ALL_REVIEWS_PAGE_SIZE }));
+  assert.equal(all.length, POPULATED_REVIEWS.length);
+});
+
+test("Wall of Love: spotlight text size has a safe independent range", () => {
+  assert.equal(DEFAULT_SPOTLIGHT_TEXT_SIZE, 18);
+  assert.equal(normalizeSpotlightTextSize(undefined), 18);
+  assert.equal(normalizeSpotlightTextSize(12), 14);
+  assert.equal(normalizeSpotlightTextSize(21.9), 21);
+  assert.equal(normalizeSpotlightTextSize(32), 28);
 });
 
 /* ─── content modes ───────────────────────────────────────────────────────── */

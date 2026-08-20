@@ -136,6 +136,7 @@ export type StudioWidget = {
   singleTestimonialReviewId: string | null;
   // Spotlight & Pins
   spotlightReviewId: string | null;
+  spotlightTextSize: number;
   pinnedReviewIds: string;
   reviewHighlights: string;
   // preserved-as-is fields (not exposed in this editor)
@@ -173,6 +174,8 @@ function deriveTypeKey(w: StudioWidget): TypeKey {
 }
 
 function snapPageSize(n: number): number {
+  // `0` is the persisted, canonical sentinel for the explicit All option.
+  if (n === 0) return 0;
   return PAGE_SIZE_OPTIONS.reduce((best, opt) => (Math.abs(opt - n) < Math.abs(best - n) ? opt : best), PAGE_SIZE_OPTIONS[0]);
 }
 
@@ -389,6 +392,7 @@ type WidgetDraft = {
   enabledSources: string[];
   singleTestimonialReviewId: string | null;
   spotlightReviewId: string | null;
+  spotlightTextSize: number;
   pinnedReviewIds: string[];
   reviewHighlights: HighlightEntry[];
   // Badge
@@ -423,7 +427,7 @@ function draftFromWidget(w: StudioWidget): WidgetDraft {
     dark: w.theme === "dark",
     accent: w.primaryColor || "#4f46e5",
     minRating: w.minRating || 1,
-    pageSize: snapPageSize(w.pageSize || 12),
+    pageSize: snapPageSize(w.pageSize === 0 ? 0 : (w.pageSize || 12)),
     marqueeSpeed: w.marqueeSpeed || "normal",
     isActive: w.isActive,
     showHeader: w.showHeader,
@@ -457,6 +461,7 @@ function draftFromWidget(w: StudioWidget): WidgetDraft {
     enabledSources: normalizeEnabledSources(w.enabledSources),
     singleTestimonialReviewId: w.singleTestimonialReviewId ?? null,
     spotlightReviewId: w.spotlightReviewId ?? null,
+    spotlightTextSize: w.spotlightTextSize ?? 18,
     pinnedReviewIds: parsePinnedReviewIds(w.pinnedReviewIds),
     reviewHighlights: parseReviewHighlights(w.reviewHighlights),
     badgeStyle: (w.badgeStyle as BadgeStyle) || "rating",
@@ -521,7 +526,7 @@ export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [], aiS
     showRating, showWriteReview, showAiSummary, showResponses, showNav, showPagination, showBranding,
     starColor, fontSizeBase, fontSizeNames, fontSizeHeader, fontSizeLabel, fontSizeSummary, bodyMaxChars,
     fontFamily, starColorMode, cornerRadius, cardStyle, density, gridColumns, wallStyle, cardHeights,
-    enabledSources, singleTestimonialReviewId, spotlightReviewId, pinnedReviewIds, reviewHighlights,
+    enabledSources, singleTestimonialReviewId, spotlightReviewId, spotlightTextSize, pinnedReviewIds, reviewHighlights,
     badgeStyle, collectPosition, collectTheme, collectColorMode, collectColor, collectMobile,
     floatingCardStyle, floatingVariation, floatingPosition, floatingRotation, floatingInterval,
     floatingAccentMode, floatingAccentColor, floatingMobile, floatingApprovedOnly, floatingMinRating,
@@ -567,6 +572,7 @@ export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [], aiS
   const setCardHeights = (v: string) => update({ cardHeights: v });
   const setSingleTestimonialReviewId = (v: string | null) => update({ singleTestimonialReviewId: v });
   const setSpotlightReviewId = (v: string | null) => update({ spotlightReviewId: v });
+  const setSpotlightTextSize = (v: number) => update({ spotlightTextSize: v });
   const setPinnedReviewIds = (fn: (prev: string[]) => string[]) =>
     setDraft((prev) => ({ ...prev, pinnedReviewIds: fn(prev.pinnedReviewIds) }));
   const setReviewHighlights = (fn: (prev: HighlightEntry[]) => HighlightEntry[]) =>
@@ -732,6 +738,7 @@ export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [], aiS
     enabledSources,
     pinnedReviewIds,
     spotlightReviewId: spotlightReviewId ?? undefined,
+    spotlightTextSize,
     reviewHighlights,
     aiSummary: isReviewWall && content !== "videos" && showAiSummary,
     aiSummaryText,
@@ -829,6 +836,7 @@ export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [], aiS
     fd.append("singleTestimonialReviewId", submitted.singleTestimonialReviewId ?? "");
     // Spotlight & Pins
     fd.append("spotlightReviewId", submitted.spotlightReviewId ?? "");
+    fd.append("spotlightTextSize", String(submitted.spotlightTextSize));
     fd.append("pinnedReviewIds", serializePinnedReviewIds(submitted.pinnedReviewIds));
     fd.append("reviewHighlights", serializeReviewHighlights(submitted.reviewHighlights));
     // preserved-as-is fields the editor doesn't expose
@@ -1227,7 +1235,7 @@ export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [], aiS
                 <input type="range" min={1} max={5} value={minRating} onChange={(e) => setMinRating(Number(e.target.value))} style={st({ width: "100%", accentColor: "var(--accent)" })} />
               </Field>
               {isReviewWall && (
-                <Field label="Max reviews shown" hint={`${pageSize}`}>
+                <Field label="Max reviews shown" hint={pageSize === 0 ? "All" : `${pageSize}`}>
                   <div style={st({ display: "flex", flexWrap: "wrap", gap: 6 })}>
                     {PAGE_SIZE_OPTIONS.map((opt) => (
                       <button key={opt} type="button" onClick={() => setPageSize(opt)}
@@ -1235,7 +1243,12 @@ export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [], aiS
                         {opt}
                       </button>
                     ))}
+                    <button type="button" onClick={() => setPageSize(0)}
+                      style={st({ minWidth: 46, borderRadius: 8, padding: "6px 9px", fontSize: 13, fontWeight: 600, cursor: "pointer", border: pageSize === 0 ? "1px solid var(--accent)" : "1px solid var(--ink-200)", background: pageSize === 0 ? "var(--accent-softer)" : "var(--white)", color: pageSize === 0 ? "var(--accent-strong)" : "var(--ink-600)" })}>
+                      All
+                    </button>
                   </div>
+                  {pageSize === 0 && <p style={st({ margin: "2px 0 0", fontSize: 11.5, color: "var(--ink-500)", lineHeight: 1.45 })}>All eligible reviews load in one view; pagination is unavailable.</p>}
                 </Field>
               )}
               {typeKey === "carousel" && (
@@ -1266,7 +1279,7 @@ export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [], aiS
                     </form>
                   )}
                   {isReviewWall && <Toggle checked={showNav} onChange={setShowNav} label="Navigation arrows" />}
-                  {isReviewWall && <Toggle checked={showPagination} onChange={setShowPagination} label="Pagination / load more" />}
+                  {isReviewWall && <Toggle checked={showPagination} onChange={setShowPagination} label={typeKey === "grid" ? "Load more pagination" : "Pagination dots"} />}
                   <Toggle checked={showBranding} onChange={setShowBranding} label="WeHearYou branding" />
                 </div>
               </Field>
@@ -1279,6 +1292,7 @@ export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [], aiS
                   <FontSlider label="Reviewer names" value={fontSizeNames} min={10} max={16} onChange={setFontSizeNames} />
                   {showDate && <FontSlider label="Dates & labels" value={fontSizeLabel} min={10} max={14} onChange={setFontSizeLabel} />}
                   {isReviewWall && <FontSlider label="Header title" value={fontSizeHeader} min={14} max={28} onChange={setFontSizeHeader} />}
+                  {typeKey === "grid" && spotlightReviewId && <FontSlider label="Spotlight review text" value={spotlightTextSize} min={14} max={28} onChange={setSpotlightTextSize} />}
                   {isReviewWall && content !== "videos" && <FontSlider label="AI summary text" value={fontSizeSummary} min={11} max={16} onChange={setFontSizeSummary} />}
                 </div>
               </Field>

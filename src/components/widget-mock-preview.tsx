@@ -14,6 +14,8 @@ import {
   normalizeCardHeights,
   normalizeContentMode,
   normalizeEnabledSources,
+  normalizeSpotlightTextSize,
+  normalizeWidgetPageSize,
   parsePinnedReviewIds,
   resolveWidgetTypeMeta,
   resolveWallItems,
@@ -69,6 +71,8 @@ export type PreviewSettings = {
   bodyMaxChars: number;
   // Spotlight & Pins
   spotlightReviewId?: string;
+  /** Accent-background spotlight review body (14-28px). */
+  spotlightTextSize: number;
   /** Ordered, canonical review IDs the admin pinned. */
   pinnedReviewIds?: string[];
   reviewHighlights?: Array<{ reviewId: string; quote: string }>;
@@ -127,6 +131,7 @@ export const PREVIEW_DEFAULTS: PreviewSettings = {
   fontSizeLabel: 12,
   fontSizeSummary: 14,
   bodyMaxChars: 280,
+  spotlightTextSize: 18,
   badgeStyle: "rating",
   collectPosition: "bottom-right",
   collectTheme: "default",
@@ -285,7 +290,7 @@ const FeaturedReviewCardW = ({ r, s, tk, highlightQuote }: { r: Review; s: Previ
   const starColor = "rgba(255,255,255,0.9)";
   const fontStack = FONT_STACKS[s.fontFamily] || FONT_STACKS.system;
   const pad = s.density === "compact" ? 16 : 22;
-  const bodyFontSize = s.fontSizeBase || 14;
+  const bodyFontSize = s.spotlightTextSize || 18;
   const truncLen = s.bodyMaxChars || 280;
   const displayText = resolveCardBody(r.text, truncLen);
   // Render body with highlight on white-on-accent background
@@ -877,6 +882,10 @@ export function WidgetMockPreview({
   };
 
   const resolved = resolveWallItems(canonicalReviews, canonicalVideos, resolutionConfig);
+  const allResolved = s.maxReviews > 0
+    ? resolveWallItems(canonicalReviews, canonicalVideos, { ...resolutionConfig, pageSize: 0 })
+    : resolved;
+  const hasMoreItems = s.maxReviews > 0 && allResolved.length > resolved.length;
   const items: Array<
     | { kind: "review"; data: Review; pinned: boolean; spotlight: boolean }
     | { kind: "video"; data: Video; pinned: boolean; spotlight: boolean }
@@ -1000,7 +1009,7 @@ export function WidgetMockPreview({
         </div>
       )}
       {/* Pagination / load more */}
-      {s.showPagination && s.type === "grid" && (
+      {s.showPagination && s.type === "grid" && hasMoreItems && (
         <div style={st({ marginTop: 14, display: "flex", justifyContent: "center" })}>
           <button style={st({ padding: "8px 22px", borderRadius: s.radius, border: `1px solid ${tk.line}`, background: tk.card, color: tk.sub, fontSize: 13, cursor: "default", fontWeight: 560 })}>Load more reviews</button>
         </div>
@@ -1030,6 +1039,7 @@ export function mapWidgetToPreviewSettings(w: {
   wallStyle?: string | null;
   pinnedReviewIds?: string | null;
   spotlightReviewId?: string | null;
+  spotlightTextSize?: number | null;
 }): Partial<PreviewSettings> {
   // Single typed registry: the saved widgetType decides the renderer, exactly as
   // it decides the inventory label and the embed placement guidance.
@@ -1047,11 +1057,12 @@ export function mapWidgetToPreviewSettings(w: {
     wallStyle: (w.wallStyle as PreviewSettings["wallStyle"]) ?? "varied",
     pinnedReviewIds: parsePinnedReviewIds(w.pinnedReviewIds),
     spotlightReviewId: w.spotlightReviewId ?? undefined,
+    spotlightTextSize: normalizeSpotlightTextSize(w.spotlightTextSize),
     theme: w.theme === "dark" ? "dark" : "light",
     accent: w.primaryColor || "#4f46e5",
     content,
     minRating: w.minRating ?? 4,
-    maxReviews: w.pageSize ?? 6,
+    maxReviews: normalizeWidgetPageSize(w.pageSize),
     marqueeSpeed: w.marqueeSpeed ?? "normal",
     showHeader: w.showHeader ?? true,
     showDates: w.showDate ?? true,

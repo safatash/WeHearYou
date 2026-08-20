@@ -16,6 +16,8 @@ import {
   serializePinnedReviewIds,
   parseReviewHighlights,
   serializeReviewHighlights,
+  normalizeWidgetPageSize,
+  normalizeSpotlightTextSize,
 } from "@/lib/widget-config";
 
 const WIDGET_LIMIT_FLASH = "You've reached your plan's widget limit. Upgrade to add more.";
@@ -320,6 +322,7 @@ export async function updateReviewWidget(formData: FormData) {
   const rawEnabledSources = String(formData.get("enabledSources") ?? "").trim();
   // Spotlight & Pins
   const rawSpotlightReviewId = String(formData.get("spotlightReviewId") ?? "").trim() || null;
+  const rawSpotlightTextSize = Number(formData.get("spotlightTextSize") ?? 18);
   const rawPinnedReviewIds = String(formData.get("pinnedReviewIds") ?? "").trim();
   // reviewHighlights is a JSON array of { reviewId, quote }. Validation happens
   // in parseReviewHighlights, which keeps every well-formed record and drops
@@ -355,7 +358,7 @@ export async function updateReviewWidget(formData: FormData) {
       theme: String(formData.get("theme") ?? "light"),
       sort: String(formData.get("sort") ?? "newest"),
       minRating: Number.isFinite(rawMinRating) ? Math.max(1, Math.min(5, Math.floor(rawMinRating))) : 1,
-      pageSize: Number.isFinite(rawPageSize) ? Math.max(1, Math.min(50, Math.floor(rawPageSize))) : 12,
+      pageSize: normalizeWidgetPageSize(rawPageSize),
       isActive: String(formData.get("isActive") ?? "") === "on",
 
       // Header panel
@@ -394,6 +397,7 @@ export async function updateReviewWidget(formData: FormData) {
       enabledSources: serializeEnabledSources(normalizeEnabledSources(rawEnabledSources)),
       // Spotlight & Pins
       spotlightReviewId: rawSpotlightReviewId,
+      spotlightTextSize: normalizeSpotlightTextSize(rawSpotlightTextSize),
       pinnedReviewIds: serializePinnedReviewIds(parsePinnedReviewIds(rawPinnedReviewIds)),
       reviewHighlights: serializeReviewHighlights(parseReviewHighlights(rawReviewHighlights)),
       fontSizeBase: Math.max(11, Math.min(18, fontSizeBase)),

@@ -1365,7 +1365,7 @@ const script = `
               var recommendationHtml = item.data.source === 'FACEBOOK' && item.data.rating == null && item.data.recommendationType === 'positive' ? '<div style="font-size:' + (w.fontSizeLabel || 11) + 'px;font-weight:650;color:rgba(255,255,255,.86);margin-bottom:10px">Recommended on Facebook</div>' : '';
               var nameHtml = w.showAvatars !== false ? '<div style="font-size:' + (w.fontSizeNames || 13) + 'px;font-weight:600;color:rgba(255,255,255,.9)">' + escapeHtml(item.data.reviewerName || 'Anonymous') + '</div>' : '';
               // Highlight on accent bg: white semi-transparent mark
-              var spotlightFontSize = w.fontSizeBase || 14;
+              var spotlightFontSize = w.spotlightTextSize || 18;
               var quote = highlightMap[reviewId];
               var bodyHtml;
               if (quote && body.indexOf(quote) !== -1) {
@@ -1488,7 +1488,7 @@ const script = `
         // Build footer structure: Load more (footerActions) → Write a review (writeReviewContainer) → Powered by (brandingContainer)
         if (nextPage === 1 && footerActions) {
           // Add the Load more button (skip for slider, carousel, VIDEO, and MIXED)
-          if (!loadMoreButton && items.length > 0 && data.pagination.hasMore && data.widget.layout !== "slider" && data.widget.layout !== "carousel" && data.widget.layout !== "video" && data.widget.contentType !== "VIDEO" && data.widget.contentType !== "MIXED") {
+          if (!loadMoreButton && data.widget.showPagination !== false && items.length > 0 && data.pagination.hasMore && data.widget.layout !== "slider" && data.widget.layout !== "carousel" && data.widget.layout !== "video" && data.widget.contentType !== "VIDEO" && data.widget.contentType !== "MIXED") {
             loadMoreButton = document.createElement("button");
             loadMoreButton.type = "button";
             loadMoreButton.className = "why-widget-button";

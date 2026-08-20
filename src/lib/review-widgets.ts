@@ -10,6 +10,9 @@ import {
   contentModeIncludesVideos,
   normalizeEnabledSources,
   serializeEnabledSources,
+  ALL_REVIEWS_PAGE_SIZE,
+  normalizeSpotlightTextSize,
+  normalizeWidgetPageSize,
   resolvePublicOwnerResponse,
   parsePinnedReviewIds,
   serializePinnedReviewIds,
@@ -145,6 +148,7 @@ export type PublicWidgetPayload = {
     enabledSources: string;
     // Spotlight & Pins
     spotlightReviewId: string | null;
+    spotlightTextSize: number;
     pinnedReviewIds: string;
     reviewHighlights: string;
     // Collecting Widget
@@ -384,6 +388,7 @@ export async function getPublicReviewWidgetPayload(publicToken: string, page = 1
     enabledSources: serializeEnabledSources(normalizeEnabledSources(widget.enabledSources)),
     // Spotlight & Pins
     spotlightReviewId: widget.spotlightReviewId ?? null,
+    spotlightTextSize: normalizeSpotlightTextSize(widget.spotlightTextSize),
     pinnedReviewIds: serializePinnedReviewIds(parsePinnedReviewIds(widget.pinnedReviewIds)),
     reviewHighlights: serializeReviewHighlights(parseReviewHighlights(widget.reviewHighlights)),
     fontSizeBase: widget.fontSizeBase ?? 14,
@@ -563,8 +568,9 @@ export async function getPublicReviewWidgetPayload(publicToken: string, page = 1
   // in @/lib/widget-config, which the editor preview calls with the same
   // arguments. That is what keeps preview and embed in agreement.
   const safePage = Number.isFinite(page) && page > 0 ? Math.floor(page) : 1;
-  const pageSize = Math.max(1, Math.min(widget.pageSize, 50));
-  const skip = (safePage - 1) * pageSize;
+  const pageSize = normalizeWidgetPageSize(widget.pageSize);
+  const isAllReviews = pageSize === ALL_REVIEWS_PAGE_SIZE;
+  const skip = isAllReviews ? 0 : (safePage - 1) * pageSize;
   const isFirstPage = safePage === 1;
 
   const contentMode = normalizeContentMode(widget.contentType);
@@ -612,7 +618,7 @@ export async function getPublicReviewWidgetPayload(publicToken: string, page = 1
       where: { ...where, id: { notIn: priorityIds.length > 0 ? priorityIds : undefined } },
       orderBy: buildOrderBy(widget.sort),
       skip: isFirstPage ? 0 : Math.max(0, skip - priorityIds.length),
-      take: pageSize,
+      take: isAllReviews ? undefined : pageSize,
       select: reviewSelect,
     }),
     prisma.review.count({ where }),
@@ -649,8 +655,8 @@ export async function getPublicReviewWidgetPayload(publicToken: string, page = 1
         videoUrl: { not: null },
       },
       orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
-      take: pageSize,
-      select: {
+        take: isAllReviews ? undefined : pageSize,
+        select: {
         id: true,
         submitterName: true,
         videoUrl: true,
@@ -714,7 +720,7 @@ export async function getPublicReviewWidgetPayload(publicToken: string, page = 1
       page: safePage,
       pageSize,
       total,
-      hasMore: skip + reviews.length < total,
+      hasMore: !isAllReviews && skip + reviews.length < total,
     },
     ...(videoTestimonials.length > 0 ? { videoTestimonials } : {}),
   };

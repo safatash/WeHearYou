@@ -73,7 +73,7 @@ const BASE_WIDGET = {
   primaryColor: "#4338ca", starColor: "#f59e0b", backgroundColor: "#ffffff", textColor: "#18181b",
   fontFamily: "system", starColorMode: "gold", cornerRadius: 12, cardStyle: "border",
   density: "cozy", gridColumns: "2", wallStyle: "uniform", cardHeights: "equal",
-  enabledSources: "", spotlightReviewId: null, pinnedReviewIds: "", reviewHighlights: "",
+  enabledSources: "", spotlightReviewId: null, spotlightTextSize: 18, pinnedReviewIds: "", reviewHighlights: "",
   fontSizeBase: 14, fontSizeNames: 13, fontSizeHeader: 20, fontSizeLabel: 12, fontSizeSummary: 14,
   collectDisplayFreq: null, collectButtonColor: null, collectButtonTheme: null,
   collectMobileBehavior: null, collectButtonPosition: null,
@@ -84,7 +84,7 @@ const BASE_WIDGET = {
 };
 
 /** Build a payload exactly the way getPublicReviewWidgetPayload does. */
-function buildPayload({ widget = {}, reviews = POPULATED_REVIEWS, videos = POPULATED_VIDEOS, locationName = "Acme Cabinets", highlights = null } = {}) {
+function buildPayload({ widget = {}, reviews = POPULATED_REVIEWS, videos = POPULATED_VIDEOS, locationName = "Acme Cabinets", highlights = null, hasMore = false } = {}) {
   const w = { ...BASE_WIDGET, ...widget };
   if (highlights) w.reviewHighlights = serializeReviewHighlights(highlights);
   const contentMode = w.contentType === "VIDEO" ? "VIDEOS" : w.contentType === "MIXED" ? "MIXED" : "REVIEWS";
@@ -114,7 +114,7 @@ function buildPayload({ widget = {}, reviews = POPULATED_REVIEWS, videos = POPUL
     reviews: renderedReviews,
     items,
     emptyState: resolveWallEmptyState(items.length, config),
-    pagination: { page: 1, pageSize: w.pageSize, total: reviews.length, hasMore: false },
+    pagination: { page: 1, pageSize: w.pageSize, total: reviews.length, hasMore },
     ...(items.some((i) => i.type === "video") ? { videoTestimonials: videos } : {}),
   };
 }
@@ -193,6 +193,30 @@ await render(browser, buildPayload({ reviews: POSITIVE_FACEBOOK_RECOMMENDATION, 
   const stars = await page.$$(".why-widget-stars");
   check("positive Facebook recommendation renders as a recommendation", text.includes("Recommended on Facebook"));
   check("recommendation-only Facebook review renders no fabricated stars", stars.length === 0, `${stars.length} star block(s)`);
+});
+
+/* 2c — Wall of Love spotlight typography and pagination semantics */
+await render(browser, buildPayload({
+  widget: { wallStyle: "varied", spotlightReviewId: "r1", spotlightTextSize: 23 },
+}), async (page) => {
+  const spotlightTextSize = await page.$eval(
+    '.why-widget-card [style*="font-size:23px"]',
+    (element) => getComputedStyle(element).fontSize,
+  ).catch(() => null);
+  check("accent spotlight uses its dedicated review text size", spotlightTextSize === "23px", `font-size=${spotlightTextSize}`);
+});
+
+await render(browser, buildPayload({ widget: { pageSize: 2, showPagination: true }, hasMore: true }), async (page) => {
+  check("Load more appears when pagination is enabled and another page exists", Boolean(await page.$(".why-widget-button")));
+});
+
+await render(browser, buildPayload({ widget: { pageSize: 2, showPagination: false }, hasMore: true }), async (page) => {
+  check("Load more is absent when pagination is disabled", !(await page.$(".why-widget-button")));
+});
+
+await render(browser, buildPayload({ widget: { pageSize: 0, showPagination: true }, hasMore: false }), async (page) => {
+  check("All renders every available review in the first view", (await page.$$(".why-widget-card")).length === POPULATED_REVIEWS.length);
+  check("All has no redundant Load more affordance", !(await page.$(".why-widget-button")));
 });
 
 /* 3 — card heights, with deliberately unequal review lengths */

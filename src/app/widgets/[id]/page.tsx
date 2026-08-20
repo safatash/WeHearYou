@@ -114,6 +114,7 @@ export default async function WidgetDetailPage({
       singleTestimonialReviewId: widget.singleTestimonialReviewId ?? null,
       // Spotlight & Pins
       spotlightReviewId: widget.spotlightReviewId,
+      spotlightTextSize: widget.spotlightTextSize,
       pinnedReviewIds: widget.pinnedReviewIds,
       reviewHighlights: widget.reviewHighlights,
       showAvgRating: widget.showAvgRating,

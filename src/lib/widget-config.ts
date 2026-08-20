@@ -71,6 +71,44 @@ export function usesNaturalHeights(value?: string | null): boolean {
   return normalizeCardHeights(value) === "natural";
 }
 
+/* ─── Wall of Love limits and spotlight typography ───────────────────────── */
+
+/** `0` is an explicit, persisted "All eligible reviews" setting. */
+export const ALL_REVIEWS_PAGE_SIZE = 0;
+export const DEFAULT_WIDGET_PAGE_SIZE = 12;
+export const MAX_WIDGET_PAGE_SIZE = 50;
+export const DEFAULT_SPOTLIGHT_TEXT_SIZE = 18;
+export const MIN_SPOTLIGHT_TEXT_SIZE = 14;
+export const MAX_SPOTLIGHT_TEXT_SIZE = 28;
+
+/**
+ * Normalizes the persisted Wall of Love page size. `0` is never a malformed
+ * value: it is the canonical All sentinel. Finite values remain bounded for
+ * ordinary paginated widgets.
+ */
+export function normalizeWidgetPageSize(value: unknown): number {
+  const numeric = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(numeric)) {
+    reportInvalid("pageSize", value, String(DEFAULT_WIDGET_PAGE_SIZE));
+    return DEFAULT_WIDGET_PAGE_SIZE;
+  }
+  const size = Math.floor(numeric);
+  if (size === ALL_REVIEWS_PAGE_SIZE) return ALL_REVIEWS_PAGE_SIZE;
+  if (size >= 1 && size <= MAX_WIDGET_PAGE_SIZE) return size;
+  reportInvalid("pageSize", value, String(DEFAULT_WIDGET_PAGE_SIZE));
+  return DEFAULT_WIDGET_PAGE_SIZE;
+}
+
+/** Normalizes the accent-background spotlight card's independent body size. */
+export function normalizeSpotlightTextSize(value: unknown): number {
+  const numeric = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(numeric)) {
+    reportInvalid("spotlightTextSize", value, String(DEFAULT_SPOTLIGHT_TEXT_SIZE));
+    return DEFAULT_SPOTLIGHT_TEXT_SIZE;
+  }
+  return Math.max(MIN_SPOTLIGHT_TEXT_SIZE, Math.min(MAX_SPOTLIGHT_TEXT_SIZE, Math.floor(numeric)));
+}
+
 /* ─── content mode ────────────────────────────────────────────────────────── */
 
 /**
