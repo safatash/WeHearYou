@@ -148,7 +148,7 @@ const SOURCE_META: Record<string, { color: string; letter: string }> = {
 
 const AV_COLORS = ["#6366f1", "#0ea5e9", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899", "#14b8a6"];
 
-type Review = { id: number; name: string; rating: number; text: string; time: string; source: string; realId?: string; ownerReply?: string | null };
+type Review = { id: number; name: string; rating: number | null; text: string; time: string; source: string; recommendationType?: "positive" | "negative" | null; realId?: string; ownerReply?: string | null };
 type Video = { id: number; name: string; rating?: number | null; quote: string; time: string; source: string; length: string };
 
 const REVIEWS: Review[] = [
@@ -167,9 +167,10 @@ const VIDEOS: Video[] = [
 ];
 
 
-const Stars = ({ value = 0, size = 14, gap = 1.5, color }: { value?: number; size?: number; gap?: number; color?: string }) => {
-  const full = Math.floor(value);
-  const frac = value - full;
+const Stars = ({ value = 0, size = 14, gap = 1.5, color }: { value?: number | null; size?: number; gap?: number; color?: string }) => {
+  const numericValue = typeof value === "number" ? value : 0;
+  const full = Math.floor(numericValue);
+  const frac = numericValue - full;
   const starFill = color || "var(--star)";
   return (
     <span style={st({ display: "inline-flex", gap })}>
@@ -307,7 +308,8 @@ const FeaturedReviewCardW = ({ r, s, tk, highlightQuote }: { r: Review; s: Previ
   };
   return (
     <div style={st({ background: s.accent, borderRadius: s.radius, padding: pad, display: "flex", flexDirection: "column", gap: 12, minWidth: 0, fontFamily: fontStack, color: "#fff" })}>
-      {s.showRating && <Stars value={r.rating} size={s.density === "compact" ? 15 : 18} color={starColor} />}
+      {s.showRating && r.rating !== null && <Stars value={r.rating} size={s.density === "compact" ? 15 : 18} color={starColor} />}
+      {r.recommendationType === "positive" && <div style={st({ fontSize: s.fontSizeLabel || 11, fontWeight: 650, color: "rgba(255,255,255,.86)" })}>Recommended on Facebook</div>}
       {renderFeaturedBody()}
       {s.showAvatars && (
         <div style={st({ display: "flex", alignItems: "center", gap: 9, marginTop: 4 })}>
@@ -378,7 +380,8 @@ const ReviewCardW = ({ r, s, tk, featured, accentFont, highlightQuote }: { r: Re
           <SourceBadge source={r.source} size={18} />
         </div>
       )}
-      {s.showRating && <Stars value={r.rating} size={s.density === "compact" ? 13 : 15} color={starColor} />}
+      {s.showRating && r.rating !== null && <Stars value={r.rating} size={s.density === "compact" ? 13 : 15} color={starColor} />}
+      {r.recommendationType === "positive" && <div style={st({ fontSize: s.fontSizeLabel || 11, fontWeight: 650, color: s.accent })}>Recommended on Facebook</div>}
       {renderBodyWithHighlight(bodyText, highlightQuote, s.accent, s.fontSizeBase || 14, tk.sub, bodyFont)}
       {s.showResponses && ownerReply && (
         <div style={st({ background: `color-mix(in srgb, ${s.accent} 8%, ${tk.bg})`, border: `1px solid color-mix(in srgb, ${s.accent} 20%, ${tk.line})`, borderRadius: Math.max(4, s.radius - 4), padding: "9px 11px", fontSize: (s.fontSizeBase || 13) - 1, color: tk.sub, lineHeight: 1.5 })}>
@@ -550,7 +553,8 @@ type RealReview = {
   id: string;
   reviewerName: string;
   reviewerPhotoUrl: string | null;
-  rating: number;
+  rating: number | null;
+  recommendationType?: "positive" | "negative" | null;
   body: string;
   reviewedAt: string | null;
   source: string;
@@ -588,6 +592,7 @@ function convertRealReviews(realReviews: RealReview[]): Review[] {
       realId: r.id,
       name: r.reviewerName || "Anonymous",
       rating: r.rating,
+      recommendationType: r.recommendationType ?? null,
       text: r.body,
       time: formatRelativeTime(r.reviewedAt),
       source: sourceMap[r.source] || r.source,
@@ -640,7 +645,7 @@ export function WidgetMockPreview({
   }
 
   if (s.type === "floating") {
-    const r = reviews.find((x) => x.rating >= s.floatingMinRating) || reviews[0];
+    const r = reviews.find((x) => typeof x.rating === "number" && x.rating >= s.floatingMinRating) || reviews[0];
     if (!r) return null;
     const accent = s.floatingAccentColor || s.accent;
     const compact = s.floatingVariation === "compact";
@@ -657,8 +662,8 @@ export function WidgetMockPreview({
             {avatar}
             <div>
               <div style={st({ fontSize: 12, fontWeight: 700, color: "#0f172a" })}>{r.name}</div>
-              <div style={st({ fontSize: 11, color: "#64748b" })}>just left a {r.rating}-star review</div>
-              <div style={st({ display: "flex", alignItems: "center", gap: 6, marginTop: 2 })}><Stars value={r.rating} size={11} /><span style={st({ fontSize: 10, color: "#64748b", fontWeight: 500 })}>{source}</span></div>
+              <div style={st({ fontSize: 11, color: "#64748b" })}>{r.rating === null ? "shared a recommendation" : `just left a ${r.rating}-star review`}</div>
+              <div style={st({ display: "flex", alignItems: "center", gap: 6, marginTop: 2 })}>{r.rating !== null && <Stars value={r.rating} size={11} />}<span style={st({ fontSize: 10, color: "#64748b", fontWeight: 500 })}>{source}</span></div>
             </div>
           </div>
         </div>
@@ -666,7 +671,8 @@ export function WidgetMockPreview({
     } else if (s.floatingCardStyle === "below_card") {
       card = (
         <div style={st(cardBase)}>
-          <Stars value={r.rating} size={13} />
+          {r.rating !== null && <Stars value={r.rating} size={13} />}
+          {r.recommendationType === "positive" && <div style={st({ fontSize: 10, color: "#64748b", fontWeight: 650 })}>Recommended on Facebook</div>}
           {!compact && <p style={st({ fontSize: 11, color: "#475569", lineHeight: 1.5, paddingLeft: 7, margin: "7px 0", borderLeft: `2px solid ${accent}` })}>{quote}</p>}
           <div style={st({ display: "flex", alignItems: "center", gap: 7, marginTop: 7 })}>{avatar}<div><div style={st({ fontSize: 11, fontWeight: 700, color: "#0f172a" })}>{r.name}</div><div style={st({ fontSize: 9, color: "#64748b" })}>{source}</div></div></div>
         </div>
@@ -675,7 +681,8 @@ export function WidgetMockPreview({
       const pillBg = s.floatingCardStyle === "frosted_glass_pill" ? "rgba(15,23,42,.65)" : "#0f172a";
       card = (
         <div style={st(cardBase)}>
-          <Stars value={r.rating} size={13} />
+          {r.rating !== null && <Stars value={r.rating} size={13} />}
+          {r.recommendationType === "positive" && <div style={st({ fontSize: 10, color: "#64748b", fontWeight: 650 })}>Recommended on Facebook</div>}
           {!compact && <p style={st({ fontSize: 11, color: "#475569", lineHeight: 1.5, paddingLeft: 7, margin: "7px 0", borderLeft: `2px solid ${accent}` })}>{quote}</p>}
           <div style={st({ display: "inline-flex", alignItems: "center", gap: 7, borderRadius: 999, padding: "4px 10px 4px 4px", background: pillBg, marginTop: 7, backdropFilter: s.floatingCardStyle === "frosted_glass_pill" ? "blur(4px)" : undefined })}>
             {avatar}
@@ -783,7 +790,7 @@ export function WidgetMockPreview({
   if (s.type === "single") {
     const useVideo = s.content === "videos";
     const v = VIDEOS[0];
-    const r = reviews.find((x) => s.sources[x.source] && x.rating >= 5) || reviews[0];
+    const r = reviews.find((x) => s.sources[x.source] && typeof x.rating === "number" && x.rating >= 5) || reviews[0];
     const fontStack = FONT_STACKS[s.fontFamily] || FONT_STACKS.system;
     const cardStyles = resolveCardStyle(s, tk);
     const starColor = resolveStarColor(s);
@@ -798,7 +805,8 @@ export function WidgetMockPreview({
           <div style={st({ ...cardStyles, borderRadius: s.radius, padding: s.density === "compact" ? 20 : 28, display: "flex", flexDirection: "column", gap: s.density === "compact" ? 12 : 16, fontFamily: fontStack })}>
             <svg width="30" height="30" viewBox="0 0 24 24" fill="none" style={st({ opacity: 0.25 })}><path d="M10 11H6a1 1 0 0 1-1-1V7a3 3 0 0 1 3-3M19 11h-4a1 1 0 0 1-1-1V7a3 3 0 0 1 3-3" stroke={s.accent} strokeWidth="2" /><path d="M10 11v3a4 4 0 0 1-4 4M19 11v3a4 4 0 0 1-4 4" stroke={s.accent} strokeWidth="2" /></svg>
             <p style={st({ fontSize: (s.fontSizeBase || 14) + 4, lineHeight: 1.5, color: tk.text, margin: 0, fontWeight: 500, letterSpacing: "-.01em" })}>{r.text}</p>
-            {s.showRating && <Stars value={r.rating} size={18} color={starColor} />}
+            {s.showRating && r.rating !== null && <Stars value={r.rating} size={18} color={starColor} />}
+            {r.recommendationType === "positive" && <div style={st({ fontSize: s.fontSizeLabel || 11, fontWeight: 650, color: s.accent })}>Recommended on Facebook</div>}
             <div style={st({ display: "flex", alignItems: "center", gap: 11, borderTop: `1px solid ${tk.line}`, paddingTop: 16 })}>
               {s.showAvatars && <Avatar name={r.name} size={40} />}
               <div style={st({ flex: 1 })}>

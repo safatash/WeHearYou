@@ -13,7 +13,8 @@ type AvailableReview = {
   id: string;
   reviewerName: string;
   reviewerPhotoUrl: string | null;
-  rating: number;
+  rating: number | null;
+  recommendationType?: "positive" | "negative" | null;
   body: string;
   reviewedAt: string | null;
   source: string;
@@ -976,7 +977,7 @@ export function WidgetCustomizer({
                       >
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
-                            <span className="text-amber-400 text-xs">{"★".repeat(r.rating)}</span>
+                            <span className="text-amber-400 text-xs">{r.rating === null ? (r.recommendationType === "positive" ? "Recommended on Facebook" : "Facebook recommendation") : "★".repeat(r.rating)}</span>
                             {singleTestimonialReviewId === r.id && (
                               <span className="text-xs font-bold text-indigo-600 bg-indigo-100 px-2 py-0.5 rounded-full">
                                 Selected

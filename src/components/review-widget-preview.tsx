@@ -9,7 +9,9 @@ type ReviewItem = {
   reviewerPhotoUrl?: string | null;
   sourceReviewUrl?: string | null;
   sourceReplyText?: string | null;
-  rating: number;
+  /** Source-supplied star rating. Facebook recommendations may have no star score. */
+  rating: number | null;
+  recommendationType?: "positive" | "negative" | null;
   body: string;
   reviewedAt?: string | null;
   source?: string | null; // "GOOGLE" | "FACEBOOK" | "YELP" | "INTERNAL"
@@ -201,14 +203,17 @@ function ReviewCard({
 
   return (
     <div className="rounded-2xl border border-slate-200 p-4">
-      {showRating && (
+      {showRating && review.rating !== null && (
         <p className="mb-2 mt-0 flex gap-1">
           {[...Array(5)].map((_, i) => (
-            <span key={i} style={{ color: i < Math.round(review.rating) ? starColor : mutedColor }}>
+            <span key={i} style={{ color: i < Math.round(review.rating!) ? starColor : mutedColor }}>
               ★
             </span>
           ))}
         </p>
+      )}
+      {review.recommendationType === "positive" && (
+        <p className="mb-2 mt-0 text-xs font-semibold" style={{ color: primaryColor }}>Recommended on Facebook</p>
       )}
       <p className="mb-2 mt-0 text-sm overflow-y-auto" style={{ color: textColor, fontSize: `${fontSizeBase}px`, maxHeight: 112, scrollbarWidth: "thin" as const }}>
         {review.body}
@@ -362,14 +367,17 @@ function SingleTextPreview({
   const date = review.reviewedAt ? new Date(review.reviewedAt).toLocaleDateString() : null;
   return (
     <div className="rounded-2xl border border-slate-200 p-6 max-w-lg mx-auto">
-      {showRating && (
+      {showRating && review.rating !== null && (
         <div className="flex gap-1 mb-3">
           {[...Array(5)].map((_, i) => (
-            <span key={i} style={{ color: i < Math.round(review.rating) ? starColor : mutedColor, fontSize: 20 }}>
+            <span key={i} style={{ color: i < Math.round(review.rating!) ? starColor : mutedColor, fontSize: 20 }}>
               ★
             </span>
           ))}
         </div>
+      )}
+      {review.recommendationType === "positive" && (
+        <p className="mb-3 text-xs font-semibold" style={{ color: starColor }}>Recommended on Facebook</p>
       )}
       <p className="leading-relaxed mb-4 overflow-y-auto" style={{ color: textColor, fontSize: `${fontSizeBase}px`, maxHeight: 112, scrollbarWidth: "thin" as const }}>
         &ldquo;{review.body}&rdquo;

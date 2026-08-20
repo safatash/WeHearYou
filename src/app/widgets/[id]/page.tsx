@@ -141,6 +141,7 @@ export default async function WidgetDetailPage({
       body: r.body,
       reviewedAt: r.reviewedAt,
       source: r.source,
+      recommendationType: r.recommendationType,
       ownerReply: r.ownerReply,
     }));
     return (

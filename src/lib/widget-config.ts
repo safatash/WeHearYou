@@ -306,7 +306,10 @@ export function resolveCardBody(body: string | null | undefined, bodyMaxChars?: 
 export type WallReview = {
   id: string;
   source: string;
-  rating: number;
+  /** Numeric star score when supplied by the source. Facebook recommendations can be null. */
+  rating: number | null;
+  /** Explicit Meta recommendation polarity for a Facebook review without a star score. */
+  recommendationType?: "positive" | "negative" | null;
   [key: string]: unknown;
 };
 
@@ -378,7 +381,13 @@ export function resolveWallItems(
         if (!r || typeof r.id !== "string" || seenReviews.has(r.id)) return false;
         const source = SOURCE_ALIASES[String(r.source ?? "").trim().toUpperCase()];
         if (!source || !enabled.has(source)) return false;
-        if ((r.rating ?? 0) < floor) return false;
+        const hasEligibleStarRating = typeof r.rating === "number" && r.rating >= floor;
+        const isEligiblePositiveFacebookRecommendation =
+          source === "FACEBOOK" &&
+          r.rating === null &&
+          r.recommendationType === "positive" &&
+          floor <= 1;
+        if (!hasEligibleStarRating && !isEligiblePositiveFacebookRecommendation) return false;
         seenReviews.add(r.id);
         return true;
       })

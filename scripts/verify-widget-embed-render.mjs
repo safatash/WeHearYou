@@ -59,6 +59,10 @@ const POPULATED_VIDEOS = [
   { id: "v2", submitterName: "Morgan", videoUrl: "https://cdn.example/v2.mp4", durationSeconds: 95, caption: null, publishedAt: "2026-06-20T00:00:00.000Z", customThumbnailUrl: null, capturedFrameUrl: null, capturedFrameTimestamp: null, thumbnailSource: "AUTO" },
 ];
 
+const POSITIVE_FACEBOOK_RECOMMENDATION = [
+  { id: "fb-recommendation", reviewerName: "NOVA test reviewer", reviewerPhotoUrl: null, sourceReviewUrl: null, sourceReplyText: null, rating: null, recommendationType: "positive", body: "NOVA’s team was responsive and helpful.", reviewedAt: "2026-06-20T00:00:00.000Z", source: "FACEBOOK" },
+];
+
 const BASE_WIDGET = {
   name: "Test wall", layout: "masonry", renderKind: "list", marqueeSpeed: "normal", theme: "light",
   pageSize: 12, contentType: "TEXT", widgetType: "WALL_OF_LOVE", badgeStyle: null,
@@ -95,12 +99,13 @@ function buildPayload({ widget = {}, reviews = POPULATED_REVIEWS, videos = POPUL
   };
   const items = resolveWallItems(reviews, contentMode === "REVIEWS" ? [] : videos, config);
   const renderedReviews = items.filter((i) => i.type === "review").map((i) => i.data);
+  const numericRatings = reviews.filter((review) => typeof review.rating === "number");
   return {
     widget: w,
     location: {
       name: locationName,
       slug: "acme",
-      avgRating: reviews.length > 0 ? 4.8 : null,
+      avgRating: numericRatings.length > 0 ? 4.8 : null,
       reviewCount: reviews.length,
       reviewLink: "https://g.page/acme/review",
       aiReviewSummary: null,
@@ -180,6 +185,14 @@ await render(browser, buildPayload({ widget: { contentType: "MIXED" } }), async 
 await render(browser, buildPayload({ widget: { contentType: "VIDEO" } }), async (page) => {
   check("VIDEOS renders video cards only",
     (await page.$$(".why-video-card")).length === POPULATED_VIDEOS.length && (await page.$$(".why-widget-card")).length === 0);
+});
+
+/* 2b — recommendation-only Facebook reviews preserve no star score */
+await render(browser, buildPayload({ reviews: POSITIVE_FACEBOOK_RECOMMENDATION, videos: [] }), async (page) => {
+  const text = await page.textContent("body");
+  const stars = await page.$$(".why-widget-stars");
+  check("positive Facebook recommendation renders as a recommendation", text.includes("Recommended on Facebook"));
+  check("recommendation-only Facebook review renders no fabricated stars", stars.length === 0, `${stars.length} star block(s)`);
 });
 
 /* 3 — card heights, with deliberately unequal review lengths */

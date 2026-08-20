@@ -23,8 +23,8 @@ import { hasGoogleReviewChanged } from "@/lib/google-review-sync";
 import { buildGoogleWriteReviewLink } from "@/lib/locations";
 import { prisma } from "@/lib/prisma";
 import { requireLocationAccess, requireOrganizationAccess, requireReviewReplyAccess, requireTeamManagement } from "@/lib/authz";
-import { exchangeMetaCodeForToken, fetchMetaPageInfo, fetchMetaPageRatings, normalizeMetaRating } from "@/lib/meta-oauth";
-import { hasMetaReviewChanged, normalizeMetaReviewerName, normalizeMetaReviewText } from "@/lib/meta-review-sync";
+import { exchangeMetaCodeForToken, fetchMetaPageInfo, fetchMetaPageRatings } from "@/lib/meta-oauth";
+import { hasMetaReviewChanged, normalizeMetaRecommendation, normalizeMetaReviewerName, normalizeMetaReviewText } from "@/lib/meta-review-sync";
 import { decryptToken } from "@/lib/token-encryption";
 import type { RawRating } from "@/lib/meta-oauth";
 
@@ -272,7 +272,8 @@ export async function performMetaReviewSync(locationId: string) {
     const reviewedAt = rawReview.created_time ? new Date(rawReview.created_time) : null;
 
     const normalizedReviewerName = normalizeMetaReviewerName(rawReview.reviewer?.name);
-    const normalizedRating = normalizeMetaRating(rawReview.rating);
+    const normalizedRecommendation = normalizeMetaRecommendation(rawReview.rating, rawReview.recommendation_type);
+    const normalizedRating = normalizedRecommendation.rating;
     const normalizedBody = normalizeMetaReviewText(rawReview.review_text);
     const sourceUpdatedAt = rawReview.created_time ? new Date(rawReview.created_time) : null;
 
@@ -293,7 +294,7 @@ export async function performMetaReviewSync(locationId: string) {
 
     if (existingReview) {
       const changed = hasMetaReviewChanged(
-        { ...existingReview, rating: existingReview.rating ?? 0, reviewedAt: null },
+        { ...existingReview, reviewedAt: null },
         {
           reviewerName: normalizedReviewerName,
           rating: normalizedRating,
@@ -309,6 +310,7 @@ export async function performMetaReviewSync(locationId: string) {
           data: {
             reviewerName: normalizedReviewerName,
             rating: normalizedRating,
+            sentiment: normalizedRecommendation.sentiment,
             body: normalizedBody,
             status: ReviewStatus.PUBLISHED,
             reviewedAt,
@@ -329,6 +331,7 @@ export async function performMetaReviewSync(locationId: string) {
           externalId: reviewId,
           reviewerName: normalizedReviewerName,
           rating: normalizedRating,
+          sentiment: normalizedRecommendation.sentiment,
           status: ReviewStatus.PUBLISHED,
           body: normalizedBody,
           reviewedAt,
@@ -341,19 +344,31 @@ export async function performMetaReviewSync(locationId: string) {
     }
   }
 
-  const publishedReviews = await prisma.review.findMany({
-    where: {
-      locationId: location.id,
-      source: ReviewSource.FACEBOOK,
-      status: ReviewStatus.PUBLISHED,
-    },
-    select: {
-      rating: true,
-    },
-  });
+  // Meta recommendations can be positive/negative without a numeric star score.
+  // Recompute the location aggregate from every published source but include only
+  // real numeric ratings, so a recommendation-only sync cannot overwrite an
+  // existing Google average with zero or invent a Facebook star average.
+  const [publishedFacebookReviews, publishedLocationRatings] = await Promise.all([
+    prisma.review.findMany({
+      where: {
+        locationId: location.id,
+        source: ReviewSource.FACEBOOK,
+        status: ReviewStatus.PUBLISHED,
+      },
+      select: { rating: true },
+    }),
+    prisma.review.findMany({
+      where: {
+        locationId: location.id,
+        status: ReviewStatus.PUBLISHED,
+        rating: { not: null },
+      },
+      select: { rating: true },
+    }),
+  ]);
 
-  const avgRating = publishedReviews.length
-    ? publishedReviews.reduce((sum, review) => sum + (review.rating ?? 0), 0) / publishedReviews.length
+  const avgRating = publishedLocationRatings.length
+    ? publishedLocationRatings.reduce((sum, review) => sum + (review.rating ?? 0), 0) / publishedLocationRatings.length
     : null;
 
   await prisma.location.update({
@@ -373,7 +388,7 @@ export async function performMetaReviewSync(locationId: string) {
   await prisma.metaAccountConnection.update({
     where: { id: location.metaConnection.id },
     data: {
-      reviewCount: publishedReviews.length,
+      reviewCount: publishedFacebookReviews.length,
       lastSyncedAt: new Date(),
     },
   });

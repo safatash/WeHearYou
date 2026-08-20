@@ -356,8 +356,12 @@ const script = `
     var variation = widget.floatingVariation || 'standard';
     var initial = escapeHtml((review.reviewerName || '?').slice(0, 1).toUpperCase());
     var name = escapeHtml(review.reviewerName || 'Anonymous');
-    var ratingNum = review.rating || 5;
-    var ratingStr = escapeHtml(stars(ratingNum));
+    var isRecommendationOnly = review.source === 'FACEBOOK' && review.rating == null && (review.recommendationType === 'positive' || review.recommendationType === 'negative');
+    var recommendationLabel = isRecommendationOnly
+      ? (review.recommendationType === 'positive' ? 'Recommended on Facebook' : 'Does not recommend on Facebook')
+      : '';
+    var ratingNum = typeof review.rating === 'number' ? review.rating : null;
+    var ratingStr = ratingNum === null ? '' : escapeHtml(stars(ratingNum));
     var source = review.source === 'GOOGLE' ? 'On Google' : review.source === 'FACEBOOK' ? 'On Facebook' : review.source === 'YELP' ? 'On Yelp' : 'On WeHearYou';
     var avatarStyle = 'background:' + accentColor + ';';
     var quoteBody = truncate(review.body || '', variation === 'compact' ? 60 : 110);
@@ -369,9 +373,9 @@ const script = `
           '<div class="why-float-avatar" style="' + avatarStyle + '">' + initial + '</div>' +
           '<div>' +
             '<div class="why-float-name">' + name + '</div>' +
-            '<div class="why-float-action">just left a ' + escapeHtml(String(ratingNum)) + '-star review</div>' +
+            '<div class="why-float-action">' + escapeHtml(recommendationLabel || ('just left a ' + String(ratingNum) + '-star review')) + '</div>' +
             '<div class="why-float-meta">' +
-              '<span class="why-float-stars" style="color:' + floatStarColor + '">' + ratingStr + '</span>' +
+              (ratingStr ? '<span class="why-float-stars" style="color:' + floatStarColor + '">' + ratingStr + '</span>' : '') +
               '<span class="why-float-source">' + escapeHtml(source) + '</span>' +
             '</div>' +
           '</div>' +
@@ -383,7 +387,8 @@ const script = `
 
     if (cardStyle === 'below_card') {
       return '<div class="why-float-card">' +
-        '<div class="why-float-stars-row" style="color:' + floatStarColor + '">' + ratingStr + '</div>' +
+        (ratingStr ? '<div class="why-float-stars-row" style="color:' + floatStarColor + '">' + ratingStr + '</div>' : '') +
+        (recommendationLabel ? '<div class="why-float-below-source">' + escapeHtml(recommendationLabel) + '</div>' : '') +
         (showQuote ? '<div class="why-float-quote" style="border-left-color:' + accentColor + '">' + escapeHtml(quoteBody) + '</div>' : '') +
         '<div class="why-float-below-row">' +
           '<div class="why-float-avatar" style="' + avatarStyle + '">' + initial + '</div>' +
@@ -635,6 +640,9 @@ const script = `
     var fontSizeBase = widget.fontSizeBase || 14;
     var fontSizeNames = widget.fontSizeNames || 13;
     var fontSizeLabel = widget.fontSizeLabel || 12;
+    var recommendationHtml = review.source === 'FACEBOOK' && review.rating == null && review.recommendationType === 'positive'
+      ? '<div style="font-size:' + fontSizeLabel + 'px;font-weight:650;color:' + escapeHtml(primaryColor) + ';margin:8px 0">Recommended on Facebook</div>'
+      : '';
 
     var html = '<article class="why-widget-card" style="' + cardStyleCss + 'color:' + escapeHtml(textColor) + ';border-radius:' + radius + 'px;padding:' + pad + ';font-size:' + fontSizeBase + 'px;font-family:' + fontStack(widget.fontFamily) + '">';
 
@@ -657,9 +665,10 @@ const script = `
     }
 
     // 2. Stars
-    if (widget.showRating) {
+    if (widget.showRating && review.rating != null) {
       html += '<div class="why-widget-stars" style="color:' + escapeHtml(starColor) + ';margin-bottom:12px;margin-top:12px">' + escapeHtml(stars(review.rating)) + '</div>';
     }
+    html += recommendationHtml;
 
     // 3. Body text
     html += '<div class="why-widget-body" style="margin-bottom:12px">' +
@@ -782,6 +791,9 @@ const script = `
         '</div>' + sourceMarkHtml + '</div>';
     }
     var singleStarColor = resolveStarColorEmbed(w);
+    var recommendationHtml = r.source === 'FACEBOOK' && r.rating == null && r.recommendationType === 'positive'
+      ? '<div style="font-size:' + fontSizeLabel + 'px;font-weight:650;color:' + escapeHtml(accentColor) + ';margin:0 0 12px">Recommended on Facebook</div>'
+      : '';
     var ownerReplyHtml = (w.showResponses && r.sourceReplyText)
       ? '<div class="why-widget-owner-reply" style="margin-top:14px"><strong>Owner reply:</strong> ' + escapeHtml(r.sourceReplyText) + '</div>'
       : '';
@@ -790,7 +802,8 @@ const script = `
       : '';
     return wrapOpen +
       quoteMark +
-      (w.showRating !== false ? '<div style="color:' + escapeHtml(singleStarColor) + ';font-size:18px;margin-bottom:12px">' + escapeHtml(stars(r.rating)) + '</div>' : '') +
+      (w.showRating !== false && r.rating != null ? '<div style="color:' + escapeHtml(singleStarColor) + ';font-size:18px;margin-bottom:12px">' + escapeHtml(stars(r.rating)) + '</div>' : '') +
+      recommendationHtml +
       '<p style="font-size:' + quoteFontSize + 'px;line-height:1.55;font-weight:500;margin:0 0 18px">' + escapeHtml(r.body || '') + '</p>' +
       reviewerHtml +
       ownerReplyHtml +
@@ -1348,7 +1361,8 @@ const script = `
               var radius = typeof w.cornerRadius === "number" ? w.cornerRadius : 12;
               var body = truncate(item.data.body || "", data.widget.bodyMaxChars);
               var starColor = "#fff";
-              var starsHtml = w.showRating !== false ? '<div style="font-size:14px;color:' + starColor + ';margin-bottom:10px">' + escapeHtml(stars(item.data.rating)) + '</div>' : '';
+              var starsHtml = w.showRating !== false && item.data.rating != null ? '<div style="font-size:14px;color:' + starColor + ';margin-bottom:10px">' + escapeHtml(stars(item.data.rating)) + '</div>' : '';
+              var recommendationHtml = item.data.source === 'FACEBOOK' && item.data.rating == null && item.data.recommendationType === 'positive' ? '<div style="font-size:' + (w.fontSizeLabel || 11) + 'px;font-weight:650;color:rgba(255,255,255,.86);margin-bottom:10px">Recommended on Facebook</div>' : '';
               var nameHtml = w.showAvatars !== false ? '<div style="font-size:' + (w.fontSizeNames || 13) + 'px;font-weight:600;color:rgba(255,255,255,.9)">' + escapeHtml(item.data.reviewerName || 'Anonymous') + '</div>' : '';
               // Highlight on accent bg: white semi-transparent mark
               var spotlightFontSize = w.fontSizeBase || 14;
@@ -1364,7 +1378,7 @@ const script = `
                 bodyHtml = '<div style="font-family:' + serif + ';letter-spacing:-.01em;font-size:' + spotlightFontSize + 'px;line-height:1.45;font-weight:400;margin-bottom:16px;color:#fff">\u201c' + escapeHtml(body) + '\u201d</div>';
               }
               return '<article class="why-widget-card" style="background:' + escapeHtml(accentColor) + ';border:none;border-radius:' + radius + 'px;padding:20px;color:#fff">' +
-                starsHtml + bodyHtml +
+                starsHtml + recommendationHtml + bodyHtml +
                 (w.showAvatars !== false ? '<div style="display:flex;align-items:center;gap:10px;margin-top:auto">' +
                   '<div style="width:36px;height:36px;border-radius:999px;background:rgba(255,255,255,.25);color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700">' + escapeHtml((item.data.reviewerName || '?').slice(0,1).toUpperCase()) + '</div>' +
                   nameHtml +
@@ -1392,7 +1406,8 @@ const script = `
                   (w.showDate && item.data.reviewedAt ? '<div class="why-widget-date" style="font-size:' + fontSizeLabel + 'px">' + escapeHtml(formatDate(item.data.reviewedAt)) + '</div>' : '') +
                   '</div>' + sourceMarkHtml + '</div>';
               }
-              if (w.showRating !== false) { html += '<div style="font-size:14px;color:' + escapeHtml(starColor) + ';margin:8px 0">' + escapeHtml(stars(item.data.rating)) + '</div>'; }
+              if (w.showRating !== false && item.data.rating != null) { html += '<div style="font-size:14px;color:' + escapeHtml(starColor) + ';margin:8px 0">' + escapeHtml(stars(item.data.rating)) + '</div>'; }
+              if (item.data.source === 'FACEBOOK' && item.data.rating == null && item.data.recommendationType === 'positive') { html += '<div style="font-size:' + fontSizeLabel + 'px;font-weight:650;color:' + escapeHtml(accentColor) + ';margin:8px 0">Recommended on Facebook</div>'; }
               html += renderBodyWithHighlight(body, reviewId, w.textColor, fontStack(w.fontFamily), fontSizeBase, false);
               html += '</article>';
               return html;
@@ -1420,7 +1435,8 @@ const script = `
                   (w.showDate && item.data.reviewedAt ? '<div class="why-widget-date" style="font-size:' + fontSizeLabel + 'px">' + escapeHtml(formatDate(item.data.reviewedAt)) + '</div>' : '') +
                   '</div>' + sourceMarkHtml + '</div>';
               }
-              if (w.showRating !== false) { html += '<div style="font-size:14px;color:' + escapeHtml(starColor) + ';margin:8px 0">' + escapeHtml(stars(item.data.rating)) + '</div>'; }
+              if (w.showRating !== false && item.data.rating != null) { html += '<div style="font-size:14px;color:' + escapeHtml(starColor) + ';margin:8px 0">' + escapeHtml(stars(item.data.rating)) + '</div>'; }
+              if (item.data.source === 'FACEBOOK' && item.data.rating == null && item.data.recommendationType === 'positive') { html += '<div style="font-size:' + fontSizeLabel + 'px;font-weight:650;color:' + escapeHtml(accentColor) + ';margin:8px 0">Recommended on Facebook</div>'; }
               html += renderBodyWithHighlight(body, reviewId, w.textColor, bodyFontFamily, w.fontSizeBase || 14, false);
               html += '</article>';
               return html;

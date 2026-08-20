@@ -575,3 +575,17 @@ test("resolution never fabricates data and passes through only what it was given
     assert.equal(item.data, original, "items reference the supplied records verbatim");
   }
 });
+
+/* ─── Facebook recommendation-only reviews ─────────────────────────────────── */
+
+test("positive Facebook recommendations without star ratings render only at the one-star floor", () => {
+  const recommendations: WallReview[] = [
+    { id: "fb-positive", source: "FACEBOOK", rating: null, recommendationType: "positive" },
+    { id: "fb-negative", source: "FACEBOOK", rating: null, recommendationType: "negative" },
+  ];
+
+  assert.deepEqual(ids(resolveWallItems(recommendations, [], cfg({ enabledSources: ["FACEBOOK"], minRating: 1 }))), [
+    "review:fb-positive",
+  ]);
+  assert.deepEqual(resolveWallItems(recommendations, [], cfg({ enabledSources: ["FACEBOOK"], minRating: 2 })), []);
+});

@@ -158,10 +158,12 @@ export type PickerReview = {
   id: string;
   reviewerName: string;
   reviewerPhotoUrl: string | null;
-  rating: number;
+  rating: number | null;
   body: string;
   reviewedAt: string | null;
   source: string;
+  /** Explicit Facebook recommendation polarity when Meta supplied no star score. */
+  recommendationType?: "positive" | "negative" | null;
   /** Published owner response, or null. Never an unpublished admin draft. */
   ownerReply?: string | null;
 };
@@ -678,8 +680,8 @@ export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [], aiS
     const byDate = (a: PickerReview, b: PickerReview) =>
       String(b.reviewedAt ?? "").localeCompare(String(a.reviewedAt ?? ""));
     const list = [...availableReviews];
-    if (widget.sort === "highest") return list.sort((a, b) => b.rating - a.rating || byDate(a, b));
-    if (widget.sort === "lowest") return list.sort((a, b) => a.rating - b.rating || byDate(a, b));
+    if (widget.sort === "highest") return list.sort((a, b) => (b.rating ?? -1) - (a.rating ?? -1) || byDate(a, b));
+    if (widget.sort === "lowest") return list.sort((a, b) => (a.rating ?? 6) - (b.rating ?? 6) || byDate(a, b));
     return list.sort(byDate);
   }, [availableReviews, widget.sort]);
 
@@ -1019,7 +1021,7 @@ export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [], aiS
                     style={st({ borderRadius: 8, padding: "8px 10px", fontSize: 12.5, cursor: "pointer", textAlign: "left", border: singleTestimonialReviewId === r.id ? "1px solid var(--accent)" : "1px solid var(--ink-200)", background: singleTestimonialReviewId === r.id ? "var(--accent-softer)" : "var(--white)" })}
                   >
                     <div style={st({ display: "flex", alignItems: "center", gap: 6, marginBottom: 3 })}>
-                      <span style={st({ color: "#f59e0b", fontSize: 11 })}>{'★'.repeat(r.rating)}</span>
+                      <span style={st({ color: "#f59e0b", fontSize: 11 })}>{r.rating === null ? (r.recommendationType === "positive" ? "Recommended on Facebook" : "Facebook recommendation") : '★'.repeat(r.rating)}</span>
                       {singleTestimonialReviewId === r.id && (
                         <span style={st({ fontSize: 10.5, fontWeight: 660, color: "var(--accent-strong)", background: "var(--accent-softer)", borderRadius: 4, padding: "1px 5px" })}>Selected</span>
                       )}
@@ -1334,7 +1336,7 @@ export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [], aiS
                               onClick={() => { setSpotlightReviewId(r.id); setSpotlightSearch(""); }}
                               style={st({ textAlign: "left", borderRadius: 7, border: "1px solid var(--ink-200)", background: "var(--white)", padding: "8px 10px", cursor: "pointer", display: "flex", flexDirection: "column", gap: 3 })}>
                               <div style={st({ display: "flex", alignItems: "center", gap: 6 })}>
-                                <span style={st({ fontSize: 11, color: "#f59e0b" })}>{'★'.repeat(r.rating)}</span>
+                                <span style={st({ fontSize: 11, color: "#f59e0b" })}>{r.rating === null ? (r.recommendationType === "positive" ? "Recommended on Facebook" : "Facebook recommendation") : '★'.repeat(r.rating)}</span>
                                 <span style={st({ fontSize: 11, color: "var(--ink-500)", fontWeight: 560 })}>{r.reviewerName}</span>
                               </div>
                               <div style={st({ fontSize: 11.5, color: "var(--ink-600)", lineHeight: 1.4 })}>{r.body.slice(0, 70)}{r.body.length > 70 ? "…" : ""}</div>
@@ -1374,7 +1376,7 @@ export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [], aiS
                               onClick={() => setPinnedReviewIds((prev) => prev.length < MAX_PINNED_REVIEWS ? [...prev, r.id] : prev)}
                               style={st({ textAlign: "left", borderRadius: 7, border: "1px solid var(--ink-200)", background: "var(--white)", padding: "7px 10px", cursor: "pointer", display: "flex", flexDirection: "column", gap: 3 })}>
                               <div style={st({ display: "flex", alignItems: "center", gap: 6 })}>
-                                <span style={st({ fontSize: 11, color: "#f59e0b" })}>{'★'.repeat(r.rating)}</span>
+                                <span style={st({ fontSize: 11, color: "#f59e0b" })}>{r.rating === null ? (r.recommendationType === "positive" ? "Recommended on Facebook" : "Facebook recommendation") : '★'.repeat(r.rating)}</span>
                                 <span style={st({ fontSize: 11, color: "var(--ink-500)", fontWeight: 560 })}>{r.reviewerName}</span>
                                 <span style={st({ fontSize: 10.5, color: "var(--ink-400)", marginLeft: "auto" })}>+ Pin</span>
                               </div>
@@ -1463,7 +1465,7 @@ export function WidgetStudioEditor({ widget, embedScriptUrl, locations = [], aiS
                               onClick={() => { addReviewHighlight(r.id); setHighlightEditId(r.id); }}
                               style={st({ textAlign: "left", borderRadius: 7, border: "1px solid var(--ink-200)", background: "var(--white)", padding: "7px 10px", cursor: "pointer", display: "flex", flexDirection: "column", gap: 3 })}>
                               <div style={st({ display: "flex", alignItems: "center", gap: 6 })}>
-                                <span style={st({ fontSize: 11, color: "#f59e0b" })}>{'★'.repeat(r.rating)}</span>
+                                <span style={st({ fontSize: 11, color: "#f59e0b" })}>{r.rating === null ? (r.recommendationType === "positive" ? "Recommended on Facebook" : "Facebook recommendation") : '★'.repeat(r.rating)}</span>
                                 <span style={st({ fontSize: 11, color: "var(--ink-500)", fontWeight: 560 })}>{r.reviewerName}</span>
                                 <span style={st({ fontSize: 10.5, color: accent, marginLeft: "auto" })}>+ Highlight</span>
                               </div>

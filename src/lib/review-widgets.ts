@@ -39,13 +39,50 @@ function resolveEnabledSources(enabledSourcesCsv: string | null | undefined): Re
   return normalizeEnabledSources(enabledSourcesCsv) as unknown as ReviewSource[];
 }
 
+/**
+ * Produces the canonical persisted-review eligibility filter shared by the
+ * public payload, the editor health state, and every widget render type.
+ * Positive Facebook recommendations have no star score in Meta's API, so they
+ * are eligible only at the default one-star threshold; they are never treated
+ * as an invented five-star rating.
+ */
+function buildWidgetReviewEligibilityWhere({
+  locationId,
+  enabledSourcesCsv,
+  minRating,
+}: {
+  locationId: string;
+  enabledSourcesCsv: string | null | undefined;
+  minRating: number;
+}) {
+  const sources = resolveEnabledSources(enabledSourcesCsv);
+  const safeMinRating = Number.isFinite(minRating) ? minRating : 1;
+  const includePositiveFacebookRecommendations =
+    safeMinRating <= 1 && sources.includes(ReviewSource.FACEBOOK);
+
+  return {
+    locationId,
+    source: { in: sources },
+    status: ReviewStatus.PUBLISHED,
+    OR: [
+      { rating: { gte: safeMinRating } },
+      ...(includePositiveFacebookRecommendations
+        ? [{ source: ReviewSource.FACEBOOK, rating: null, sentiment: "positive" }]
+        : []),
+    ],
+  };
+}
+
 export type PublicWidgetReview = {
   id: string;
   reviewerName: string;
   reviewerPhotoUrl: string | null;
   sourceReviewUrl: string | null;
   sourceReplyText: string | null;
-  rating: number;
+  /** Numeric stars supplied by the source. Null means this is a recommendation without a star score. */
+  rating: number | null;
+  /** Positive/negative signal for a recommendation-only Facebook review; otherwise null. */
+  recommendationType: "positive" | "negative" | null;
   body: string;
   reviewedAt: string | null;
   source: string; // "GOOGLE" | "FACEBOOK" | "YELP" | "INTERNAL"
@@ -261,11 +298,11 @@ export async function getReviewWidgetById(id: string) {
   await requireOrganizationAccess(widget.organizationId);
 
   const reviewCount = await prisma.review.count({
-    where: {
+    where: buildWidgetReviewEligibilityWhere({
       locationId: widget.locationId,
-      source: { in: resolveEnabledSources(widget.enabledSources) },
-      status: ReviewStatus.PUBLISHED,
-    },
+      enabledSourcesCsv: widget.enabledSources,
+      minRating: widget.minRating,
+    }),
   });
 
   return {
@@ -427,23 +464,23 @@ export async function getPublicReviewWidgetPayload(publicToken: string, page = 1
     } else {
       const reviewSelect = {
         id: true, reviewerName: true, reviewerPhotoUrl: true, sourceReviewUrl: true,
-        sourceReplyText: true, rating: true, body: true, reviewedAt: true, source: true,
+        sourceReplyText: true, rating: true, sentiment: true, body: true, reviewedAt: true, source: true,
       } as const;
-      // Explicitly chosen review, or auto-select the "best match": the
-      // highest-rated, most recent published review from the widget's enabled
-      // sources at/above its minimum rating.
+      // Explicitly chosen review, or auto-select the best eligible review. Both
+      // paths apply the same location/source/status floor so a stale pin cannot
+      // disclose another location's review.
+      const eligibilityWhere = buildWidgetReviewEligibilityWhere({
+        locationId: widget.locationId,
+        enabledSourcesCsv: widget.enabledSources,
+        minRating: widget.minRating,
+      });
       const rev = widget.singleTestimonialReviewId
         ? await prisma.review.findFirst({
-            where: { id: widget.singleTestimonialReviewId, status: ReviewStatus.PUBLISHED },
+            where: { ...eligibilityWhere, id: widget.singleTestimonialReviewId },
             select: reviewSelect,
           })
         : await prisma.review.findFirst({
-            where: {
-              locationId: widget.locationId,
-              source: { in: resolveEnabledSources(widget.enabledSources) },
-              status: ReviewStatus.PUBLISHED,
-              rating: { gte: widget.minRating },
-            },
+            where: eligibilityWhere,
             orderBy: [{ rating: "desc" }, { reviewedAt: "desc" }, { createdAt: "desc" }],
             select: reviewSelect,
           });
@@ -454,7 +491,10 @@ export async function getPublicReviewWidgetPayload(publicToken: string, page = 1
           reviewerPhotoUrl: rev.reviewerPhotoUrl ?? null,
           sourceReviewUrl: rev.sourceReviewUrl ?? null,
           sourceReplyText: rev.sourceReplyText ?? null,
-          rating: rev.rating ?? 0,
+          rating: rev.rating,
+          recommendationType: rev.source === ReviewSource.FACEBOOK && rev.rating === null
+            ? (rev.sentiment === "positive" || rev.sentiment === "negative" ? rev.sentiment : null)
+            : null,
           body: rev.body,
           reviewedAt: rev.reviewedAt ? rev.reviewedAt.toISOString() : null,
           source: rev.source as string,
@@ -478,19 +518,18 @@ export async function getPublicReviewWidgetPayload(publicToken: string, page = 1
   if (widget.widgetType === "FLOATING") {
     const minRating = widget.floatingMinRating ?? 4;
     const floatingReviews = await prisma.review.findMany({
-      where: {
+      where: buildWidgetReviewEligibilityWhere({
         locationId: widget.locationId,
-        source: { in: resolveEnabledSources(widget.enabledSources) },
-        status: ReviewStatus.PUBLISHED,
-        rating: { gte: minRating },
-      },
+        enabledSourcesCsv: widget.enabledSources,
+        minRating,
+      }),
       orderBy: [{ reviewedAt: "desc" }, { createdAt: "desc" }],
       take: 20,
       select: {
         id: true, reviewerName: true, reviewerPhotoUrl: true,
         sourceReviewUrl: true, sourceReplyText: true,
         replyDraft: true, replyPublishedAt: true, replySentAt: true,
-        rating: true, body: true, reviewedAt: true, source: true,
+        rating: true, sentiment: true, body: true, reviewedAt: true, source: true,
       },
     });
 
@@ -503,7 +542,10 @@ export async function getPublicReviewWidgetPayload(publicToken: string, page = 1
         reviewerPhotoUrl: r.reviewerPhotoUrl ?? null,
         sourceReviewUrl: r.sourceReviewUrl ?? null,
         sourceReplyText: resolvePublicOwnerResponse(r, widget.showResponses),
-        rating: r.rating ?? 5,
+        rating: r.rating,
+        recommendationType: r.source === ReviewSource.FACEBOOK && r.rating === null
+          ? (r.sentiment === "positive" || r.sentiment === "negative" ? r.sentiment : null)
+          : null,
         body: r.body,
         reviewedAt: r.reviewedAt ? r.reviewedAt.toISOString() : null,
         source: r.source as string,
@@ -530,14 +572,11 @@ export async function getPublicReviewWidgetPayload(publicToken: string, page = 1
   const pinnedIds = parsePinnedReviewIds(widget.pinnedReviewIds);
   const spotlightId = widget.spotlightReviewId ?? null;
 
-  const where = {
+  const where = buildWidgetReviewEligibilityWhere({
     locationId: widget.locationId,
-    source: { in: resolveEnabledSources(widget.enabledSources) },
-    status: ReviewStatus.PUBLISHED,
-    rating: {
-      gte: widget.minRating,
-    },
-  };
+    enabledSourcesCsv: widget.enabledSources,
+    minRating: widget.minRating,
+  });
 
   // Pinned/spotlight reviews are fetched by id so they are present even when
   // they fall outside the page window. Eligibility (source / minimum rating) is
@@ -555,6 +594,7 @@ export async function getPublicReviewWidgetPayload(publicToken: string, page = 1
     replyPublishedAt: true,
     replySentAt: true,
     rating: true,
+    sentiment: true,
     body: true,
     reviewedAt: true,
     source: true,
@@ -562,7 +602,7 @@ export async function getPublicReviewWidgetPayload(publicToken: string, page = 1
 
   const priorityReviews = priorityIds.length > 0 && isFirstPage
     ? await prisma.review.findMany({
-        where: { id: { in: priorityIds }, status: ReviewStatus.PUBLISHED },
+        where: { ...where, id: { in: priorityIds } },
         select: reviewSelect,
       })
     : [];
@@ -586,7 +626,10 @@ export async function getPublicReviewWidgetPayload(publicToken: string, page = 1
     // Owner responses: unpublished admin drafts stay private, and with the
     // toggle off the text is omitted from the payload rather than hidden in CSS.
     sourceReplyText: resolvePublicOwnerResponse(review, widget.showResponses),
-    rating: review.rating ?? 0,
+    rating: review.rating,
+    recommendationType: review.source === ReviewSource.FACEBOOK && review.rating === null
+      ? (review.sentiment === "positive" || review.sentiment === "negative" ? review.sentiment : null)
+      : null,
     body: review.body,
     reviewedAt: review.reviewedAt ? review.reviewedAt.toISOString() : null,
     source: review.source as string,
@@ -691,11 +734,11 @@ export async function getOrganizationReviewWidgets(organizationId: string) {
   return Promise.all(
         widgets.map(async (widget) => {
       const reviewCount = await prisma.review.count({
-        where: {
+        where: buildWidgetReviewEligibilityWhere({
           locationId: widget.locationId,
-          source: { in: resolveEnabledSources(widget.enabledSources) },
-          status: ReviewStatus.PUBLISHED,
-        },
+          enabledSourcesCsv: widget.enabledSources,
+          minRating: widget.minRating,
+        }),
       });
       return {
         ...widget,
@@ -726,11 +769,11 @@ export async function getWidgetEligibleLocations(organizationId: string) {
   return Promise.all(
         locations.map(async (location) => {
       const reviewCount = await prisma.review.count({
-        where: {
+        where: buildWidgetReviewEligibilityWhere({
           locationId: location.id,
-          source: { in: DEFAULT_SOURCES },
-          status: ReviewStatus.PUBLISHED,
-        },
+          enabledSourcesCsv: "",
+          minRating: 1,
+        }),
       });
       const videoTestimonialCount = await prisma.videoTestimonial.count({
         where: { locationId: location.id, status: "APPROVED" },
@@ -776,6 +819,7 @@ export async function getWidgetPickerData(locationId: string) {
         body: true,
         reviewedAt: true,
         source: true,
+        sentiment: true,
         // Needed so the editor preview can show the *real* owner response
         // instead of an invented one. Publish rules are applied below.
         sourceReplyText: true,
@@ -811,10 +855,13 @@ export async function getWidgetPickerData(locationId: string) {
       id: r.id,
       reviewerName: r.reviewerName,
       reviewerPhotoUrl: r.reviewerPhotoUrl ?? null,
-      rating: r.rating ?? 0,
+      rating: r.rating,
       body: r.body,
       reviewedAt: r.reviewedAt ? r.reviewedAt.toISOString() : null,
       source: r.source as string,
+      recommendationType: r.source === ReviewSource.FACEBOOK && r.rating === null
+        ? (r.sentiment === "positive" || r.sentiment === "negative" ? r.sentiment as "positive" | "negative" : null)
+        : null,
       // Same publish rule as the public payload: an unpublished admin draft is
       // private, so the preview must not show it either.
       ownerReply: resolvePublicOwnerResponse(r, true),
