@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { publishGbpReply } from "@/lib/gbp-api";
 import { getValidGoogleAccessToken, fetchGoogleBusinessLocations } from "@/lib/google-oauth";
+import { qualifyGbpLocationName } from "@/lib/gbp-location-name";
 
 export type SendGoogleReplyResult = {
   success: boolean;
@@ -67,15 +68,8 @@ export async function sendGoogleReviewReply(
       tokenType: connection.tokenType,
     });
 
-    // Build full resource name: googleLocationName is stored as "locations/xxx"
-    // but the API needs "accounts/xxx/locations/xxx/reviews/xxx"
     const googleLocations = await fetchGoogleBusinessLocations(accessToken);
-    const matchedLocation = googleLocations.find(
-      (loc) => loc.name === review.location.googleLocationName,
-    );
-    const fullLocationName = matchedLocation?.accountResourceName
-      ? `${matchedLocation.accountResourceName}/${review.location.googleLocationName}`
-      : review.location.googleLocationName;
+    const fullLocationName = qualifyGbpLocationName(review.location.googleLocationName, googleLocations);
 
     const reviewName = `${fullLocationName}/reviews/${review.externalId}`;
     await publishGbpReply(accessToken, reviewName, replyText);

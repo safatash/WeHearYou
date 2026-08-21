@@ -8,6 +8,7 @@ import { getCurrentMembership } from "@/lib/authz";
 import { getCurrentAccessibleLocationIds } from "@/lib/current-scope";
 import { getValidGoogleAccessToken } from "@/lib/google-oauth";
 import { publishGbpReply, deleteGbpPost, uploadGbpPhoto, deleteGbpPhoto, answerGbpQuestion } from "@/lib/gbp-api";
+import { resolveGbpLocationName } from "@/lib/gbp-location-name";
 
 async function getLocationWithConnection(locationId: string, allowedIds: string[]) {
   if (allowedIds.length > 0 && !allowedIds.includes(locationId)) return null;
@@ -124,7 +125,8 @@ export async function uploadGbpPhotoAction(formData: FormData) {
   if (publishNow && location.googleConnection && location.googleLocationName) {
     try {
       const accessToken = await getValidGoogleAccessToken(location.googleConnection);
-      const gbpMediaId = await uploadGbpPhoto(accessToken, location.googleLocationName, blob.url, category);
+      const fullLocationName = await resolveGbpLocationName(accessToken, location.googleLocationName);
+      const gbpMediaId = await uploadGbpPhoto(accessToken, fullLocationName, blob.url, category);
       await prisma.gbpPhoto.create({
         data: { locationId, storageUrl: blob.url, category, status: GbpPublishStatus.PUBLISHED, publishedAt: new Date(), gbpMediaId },
       });

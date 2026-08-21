@@ -2,6 +2,7 @@ import { ReviewSource, ReviewStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getValidGoogleAccessToken, fetchGoogleBusinessLocations, fetchGoogleLocationReviews, normalizeGoogleStarRating } from "@/lib/google-oauth";
 import { listGbpQuestions } from "@/lib/gbp-api";
+import { qualifyGbpLocationName, resolveGbpLocationName } from "@/lib/gbp-location-name";
 import { isEmailSendingConfigured, sendTeamNotificationEmail } from "@/lib/email";
 import { hasGoogleReviewChanged } from "@/lib/google-review-sync";
 import { tryAutoSendGoogleReplyForReview } from "@/lib/auto-send-reply";
@@ -30,7 +31,8 @@ export async function runGbpSync(): Promise<{ locationsProcessed: number; questi
 
     try {
       const accessToken = await getValidGoogleAccessToken(location.googleConnection);
-      const questions = await listGbpQuestions(accessToken, location.googleLocationName);
+      const fullLocationName = await resolveGbpLocationName(accessToken, location.googleLocationName);
+      const questions = await listGbpQuestions(accessToken, fullLocationName);
 
       for (const q of questions) {
         const existingAnswer = q.topAnswers?.[0];
@@ -138,12 +140,9 @@ export async function runGoogleReviewSync(): Promise<GoogleReviewSyncResult> {
     try {
       const accessToken = await getValidGoogleAccessToken(location.googleConnection);
 
-      // Build the correct review location name (may need account prefix)
       const googleLocations = await fetchGoogleBusinessLocations(accessToken);
       const googleLocationDetails = googleLocations.find((l) => l.name === location.googleLocationName);
-      const googleReviewLocationName = googleLocationDetails?.accountResourceName
-        ? `${googleLocationDetails.accountResourceName}/${location.googleLocationName}`
-        : location.googleLocationName;
+      const googleReviewLocationName = qualifyGbpLocationName(location.googleLocationName, googleLocations);
 
       const googleReviews = await fetchGoogleLocationReviews({
         accessToken,
