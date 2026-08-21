@@ -35,6 +35,24 @@ async function gbpFetch(
   return res;
 }
 
+/**
+ * Google's v4 endpoints answer some failures with an HTML error page instead of
+ * JSON. Stored verbatim that puts a whole document in `failureReason` and paints
+ * it across the UI, so reduce it to its readable sentence.
+ */
+export function summarizeGbpErrorBody(text: string, maxLength = 300): string {
+  const trimmed = text.trim();
+  if (!trimmed.startsWith("<")) return trimmed.slice(0, maxLength);
+
+  const stripped = trimmed
+    .replace(/<(style|script)[\s\S]*?<\/\1>/gi, " ")
+    .replace(/<[^>]*>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  return stripped.slice(0, maxLength);
+}
+
 function extractErrorMessage(text: string): string {
   try {
     type GbpError = {
@@ -44,14 +62,14 @@ function extractErrorMessage(text: string): string {
       };
     };
     const json = JSON.parse(text) as GbpError;
-    let msg = json.error?.message ?? text;
+    let msg = json.error?.message ?? summarizeGbpErrorBody(text);
     const violations = json.error?.details?.flatMap((d) => d.fieldViolations ?? []) ?? [];
     if (violations.length) {
       msg += " — " + violations.map((v) => `${v.field ?? "?"}: ${v.description ?? "?"}`).join("; ");
     }
     return msg;
   } catch {
-    return text;
+    return summarizeGbpErrorBody(text);
   }
 }
 
