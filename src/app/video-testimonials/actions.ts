@@ -228,6 +228,7 @@ export async function uploadCustomThumbnail(formData: FormData) {
     {
       access: "public",
       contentType: "image/webp",
+      token: process.env.BLOB_Public_READ_WRITE_TOKEN,
     }
   );
 

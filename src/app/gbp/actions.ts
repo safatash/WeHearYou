@@ -113,7 +113,10 @@ export async function uploadGbpPhotoAction(formData: FormData) {
   if (!location) redirect("/gbp/photos?error=not_found");
 
   const blobName = `gbp-photos/${locationId}/${Date.now()}-${photoFile.name}`;
-  const blob = await put(blobName, photoFile, { access: "public" });
+  const blob = await put(blobName, photoFile, {
+    access: "public",
+    token: process.env.BLOB_Public_READ_WRITE_TOKEN,
+  });
 
   const scheduledAt = !publishNow && scheduledAtRaw ? new Date(scheduledAtRaw) : null;
   const status = publishNow ? GbpPublishStatus.DRAFT : (scheduledAt ? GbpPublishStatus.SCHEDULED : GbpPublishStatus.DRAFT);

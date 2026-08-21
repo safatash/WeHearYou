@@ -18,6 +18,7 @@ export async function saveFrameAsImage(
     {
       access: "public",
       contentType: format === "webp" ? "image/webp" : "image/png",
+      token: process.env.BLOB_Public_READ_WRITE_TOKEN,
     }
   );
 
