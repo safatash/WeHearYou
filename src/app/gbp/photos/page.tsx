@@ -131,7 +131,7 @@ export default async function GbpPhotosPage({
                     <div key={photo.id} className="group relative rounded-2xl overflow-hidden border border-slate-200">
                       <img src={photo.storageUrl} alt="" className="h-32 w-full object-cover" />
                       <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
-                        <form action={async (fd) => { await deleteGbpPhotoAction(fd); }}>
+                        <form action={async (fd) => { "use server"; await deleteGbpPhotoAction(fd); }}>
                           <input type="hidden" name="photoId" value={photo.id} />
                           <button type="submit" className="rounded-xl bg-red-600 px-3 py-1.5 text-xs font-semibold text-white">Delete</button>
                         </form>
