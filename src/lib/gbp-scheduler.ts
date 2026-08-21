@@ -2,6 +2,7 @@ import { GbpPostType, GbpPublishStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getValidGoogleAccessToken } from "@/lib/google-oauth";
 import { createGbpPost, deleteGbpPost, uploadGbpPhoto } from "@/lib/gbp-api";
+import { resolveGbpLocationName } from "@/lib/gbp-location-name";
 
 type SchedulerResult = {
   processed: number;
@@ -49,7 +50,8 @@ export async function runGbpScheduler(): Promise<SchedulerResult> {
           ? (post.callToAction as { actionType?: string; url?: string })
           : null;
 
-      const gbpPostId = await createGbpPost(accessToken, post.location.googleLocationName, {
+      const fullLocationName = await resolveGbpLocationName(accessToken, post.location.googleLocationName);
+      const gbpPostId = await createGbpPost(accessToken, fullLocationName, {
         postType: post.postType,
         content: post.content,
         callToAction: callToAction?.url ? { actionType: callToAction.actionType ?? "LEARN_MORE", url: callToAction.url } : null,
@@ -101,7 +103,8 @@ export async function runGbpScheduler(): Promise<SchedulerResult> {
 
     try {
       const accessToken = await getValidGoogleAccessToken(conn);
-      const gbpMediaId = await uploadGbpPhoto(accessToken, photo.location.googleLocationName, photo.storageUrl, photo.category);
+      const fullLocationName = await resolveGbpLocationName(accessToken, photo.location.googleLocationName);
+      const gbpMediaId = await uploadGbpPhoto(accessToken, fullLocationName, photo.storageUrl, photo.category);
       await prisma.gbpPhoto.update({
         where: { id: photo.id },
         data: { status: GbpPublishStatus.PUBLISHED, publishedAt: new Date(), gbpMediaId, failureReason: null },
